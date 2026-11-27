@@ -14,6 +14,7 @@ import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-bi
 import {installConfiguredModelProviders} from './installed-model-configuration.mjs';
 import packageCustody from './initial-control-package-custody.cjs';
 import {boundConstructionActualFixture} from './fixtures/bound-construction-actual.fixture.mjs';
+import {admitFixtureUndici} from './fixtures/ordinary-undici-custody.fixture.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
@@ -68,23 +69,30 @@ test('the original Host verifies SDK software and closes the options before supp
   const lock = await write(adapterRoot, 'npm-shrinkwrap.json', '{"fixture":"original dependency lock"}');
   const images = [await manifest(local, '@actql/local-node', './index.mjs'),
     await write(local, 'index.mjs', ''), await write(local, host, 'export function assertInitialControlHostPreparation() {}')];
-  const packages = [
-    {name: '@actql/provider-ai-sdk', version: '1.0.0', dependencies: [{name: 'fixture-sdk', package: 1}],
-      images: [await manifest(adapterRoot, '@actql/provider-ai-sdk', './index.mjs', {'fixture-sdk': '1.0.0'}), adapter, lock]},
-    {name: 'fixture-sdk', version: '1.0.0', dependencies: [],
-      images: [await manifest(sdkRoot, 'fixture-sdk', './index.mjs'), sdk, foreign]},
-  ];
-  const sdkImageCustody = packageCustody.captureOrdinaryInitialControlPackageCustody({
-    images, packages, dependencies: [], optionalSdk: 0, optionalSdkCoverage: 'prepared',
+  const undici = admitFixtureUndici({directory, root: local});
+  const inventory = {
+    images, packages: [], dependencies: [], optionalSdk: 0, optionalSdkCoverage: 'prepared',
     publicNode: null, publicNodeCoverage: 'absent',
     hostModule: host, hostValidator: 'assertInitialControlHostPreparation', localPublicModule: 'index.mjs',
-  }, local, join(directory, 'entry.mjs'));
+  };
+  inventory.packages.push(
+    {name: '@actql/provider-ai-sdk', version: '1.0.0', dependencies: [{name: 'fixture-sdk', package: 1}],
+      images: [await manifest(adapterRoot, '@actql/provider-ai-sdk', './index.mjs',
+        {'fixture-sdk': '1.0.0', undici: undici.version}), adapter, lock]},
+    {name: 'fixture-sdk', version: '1.0.0', dependencies: [],
+      images: [await manifest(sdkRoot, 'fixture-sdk', './index.mjs'), sdk, foreign]},
+  );
+  const undiciIndex = undici.include(inventory);
+  inventory.packages[0].dependencies.push({name: 'undici', package: undiciIndex});
   const file = (image, packageName = '@actql/provider-ai-sdk') => Object.freeze({
     path: image.path, cid: 'sha256:' + image.sha256, packageName, version: '1.0.0'});
   const installed = Object.freeze({adapter: file(adapter), lock: file(lock), sdk: file(sdk, 'fixture-sdk')});
+  const foreignInstalled = Object.freeze({...installed, sdk: file(foreign, 'fixture-sdk')});
+  const sdkImageCustody = packageCustody.captureOrdinaryInitialControlPackageCustody(
+    inventory, local, join(directory, 'entry.mjs'), undefined, [installed, foreignInstalled]);
   const read = original => packageCustody.readVerifiedSdkImages(sdkImageCustody, original);
   const {sdk: actualSdk} = read(installed);
-  const {sdk: foreignSdk} = read(Object.freeze({...installed, sdk: file(foreign, 'fixture-sdk')}));
+  const {sdk: foreignSdk} = read(foreignInstalled);
   assert.notEqual(actualSdk.build, foreignSdk.build);
   sdkImageCustody.initializeHostNamespace();
 

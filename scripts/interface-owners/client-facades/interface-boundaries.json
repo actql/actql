@@ -2047,7 +2047,7 @@
     {
       "module": "packages/local-node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "73d5a3e6a63f9640616ce7c5623bcb006b36072f59b411f8c91943f16af44e07",
+      "sha256": "d41218c6c5db21d8ad715cd4dfb93d54d0d02b4ed3fe77311bbd42942f6e9f27",
       "exports": [
         "CalendarArtifactInstallation",
         "EffectProfilePaths",
@@ -2057,10 +2057,12 @@
         "HostRequestValuePolicySubject",
         "HostRequestValuePolicyValue",
         "HostRequestValuePolicyVerifier",
+        "HttpChatProviderOptions",
         "InstalledConnectorEntry",
         "InstalledConnectorTable",
         "SourceProfilePaths",
         "connect",
+        "createHttpChatProvider",
         "createInstalledConnectorTable",
         "publishEffect",
         "publishSource"
@@ -2126,11 +2128,23 @@
           "result": "Promise<Client>"
         },
         {
+          "name": "createHttpChatProvider",
+          "parameters": [
+            "options: HttpChatProviderOptions"
+          ],
+          "result": "NonNullable<HostInstallation['registerModelProviders']>"
+        },
+        {
           "name": "createInstalledConnectorTable",
           "parameters": [
             "entries: readonly InstalledConnectorEntry[]"
           ],
           "result": "InstalledConnectorTable"
+        },
+        {
+          "name": "observeEgress",
+          "parameters": [],
+          "result": "unknown"
         },
         {
           "name": "publishEffect",
@@ -2169,14 +2183,14 @@
             "<call>#7",
             "<call>#8",
             "connect",
+            "createHttpChatProvider",
             "createInstalledConnectorTable",
+            "observeEgress",
             "publishEffect",
             "publishSource"
           ],
           "exports": [
             "CalendarArtifactInstallation",
-            "connect",
-            "createInstalledConnectorTable",
             "EffectProfilePaths",
             "HostCapacityPolicy",
             "HostInstallation",
@@ -2184,11 +2198,15 @@
             "HostRequestValuePolicySubject",
             "HostRequestValuePolicyValue",
             "HostRequestValuePolicyVerifier",
+            "HttpChatProviderOptions",
             "InstalledConnectorEntry",
             "InstalledConnectorTable",
+            "SourceProfilePaths",
+            "connect",
+            "createHttpChatProvider",
+            "createInstalledConnectorTable",
             "publishEffect",
-            "publishSource",
-            "SourceProfilePaths"
+            "publishSource"
           ],
           "attributes": {
             "responsibility": [
@@ -2385,6 +2403,10 @@
               {
                 "path": "packages/node/project-profile.typecheck.mts",
                 "anchor": "const selected={mode:"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "the public Local factory enters the selected direct Chat module after the package seal"
               }
             ]
           }
@@ -2394,9 +2416,10 @@
     {
       "module": "packages/local-node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0180cce2950069c586e3085740b415fb7b75b484fb73c248c5052deb4e436435",
+      "sha256": "32187e85f7d1ee98fad160961f5ef480f25d64bfc1fa21157fd6e1ed51bdf01e",
       "exports": [
         "connect",
+        "createHttpChatProvider",
         "createInstalledConnectorTable",
         "publishEffect",
         "publishSource"
@@ -2406,6 +2429,21 @@
           "name": "connect",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
+          "parameters": [
+            "moon",
+            "context"
           ],
           "async": false
         },
@@ -2427,7 +2465,8 @@
       "imports": [
         "./adapters/host-node/embedded-local.mjs",
         "./adapters/host-node/installed-connectors.mjs",
-        "@actql/sdk"
+        "@actql/sdk",
+        "node:module"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -2439,11 +2478,14 @@
           "operations": [
             "<module>",
             "connect",
+            "createHttpChatProvider/createHttpChatProvider",
+            "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
             "publishEffect",
             "publishSource"
           ],
           "exports": [
             "connect",
+            "createHttpChatProvider",
             "createInstalledConnectorTable",
             "publishEffect",
             "publishSource"
@@ -2543,6 +2585,10 @@
               {
                 "path": "packages/node/local-owner.typecheck.mts",
                 "anchor": "const embedded: EmbeddedLocalOptions"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "the public Local factory enters the selected direct Chat module after the package seal"
               }
             ]
           }

@@ -61,6 +61,27 @@ fn local_effect_request_identity(
     is EffectComputation(prepared) else {
     stop("LocalEffectPreparationRequired")
   }
+  // The Native Query checker already bound its exact authored Submission.
+  // Its lowered Effect can use the existing material identity while a
+  // Source-bound Effect still has to match the authored input CID.
+  if submitted_input_cid is Some(expected) &&
+    @local_host.native_client_submitted_preparation_lowered_effect_query(
+      preparation,
+    ) {
+    if @local_host.native_client_submitted_preparation_intent_cid(preparation) !=
+      expected {
+      stop("LocalEffectRequestIdentityUnavailable")
+    }
+    let request = @run_host.prepare_client_original_effect_request_identity(
+      prepared, scope, request_id,
+    ).unwrap_or_else(() => stop("LocalEffectRequestIdentityUnavailable"))
+    let input = @run_host.client_request_input_cid(request)
+    if input != expected &&
+      input != @run_host.source_free_caller_input_intent_cid() {
+      stop("LocalEffectRequestIdentityUnavailable")
+    }
+    return request
+  }
   @run_host.prepare_client_original_effect_request_identity(
     prepared,
     scope,
@@ -204,9 +225,15 @@ fn local_effect_prepare_start(
     @local_host.native_client_submission_reference_wire(reference) {
     stop("LocalEffectRequestIdentityUnavailable")
   }
-  // The owned Request checker retains this Submission input in the Effect.
-  // Direct setup prepares its body without that checked input binding.
-  let submitted_input_cid = business.map(_ => submitted_cid)
+  // Verify the selected Request before choosing its Effect material identity.
+  // Direct setup has its own preparation from the same Submission.
+  let submitted_input_cid = business.map(original => {
+    if !physical_equal(original.preparation, preparation) ||
+      @run_host.client_submitted_intent_cid(original.intent) != submitted_cid {
+      stop("LocalEffectRequestIdentityUnavailable")
+    }
+    submitted_cid
+  })
   local_effect_prepare_start_with_clocks(
     host,
     settings,

@@ -15,7 +15,7 @@ export type LocalCheckPolicy<Classification extends string = MoonClassification 
 
 export const heavyJobs = Object.freeze([
   'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'native-http', 'session-evidence', 'session-controls',
-  'client-packages', 'client-readme-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
+  'client-packages', 'client-readme-packed', 'client-model-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
   'client-distribution-callers', 'client-distribution-mutations',
   'client-distribution-packed',
   'workers', 'connector-addition', 'duckdb-node', 'spec',
@@ -28,6 +28,7 @@ export const ciOnlyPipelineJobs: Readonly<Partial<Record<string, string>>> = Obj
   'native-workloads': 'requires the owned hosted background command group lifecycle',
   'native-macos-workloads': 'requires the owned hosted macOS background command group lifecycle',
   'client-supported-versions': 'requires exact same-run normal tarballs and the selected compatibility interpreter',
+  'client-direct-model': 'requires the exact same-run normal Client package artifact',
   'main-performance': 'requires exact same-run normal Client package artifact provenance',
   ...Object.fromEntries(Object.values(partJobs).map(job => [job,
     'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal'])),

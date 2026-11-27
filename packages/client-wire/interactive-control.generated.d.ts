@@ -33,7 +33,7 @@ export type WireControlGuards = Readonly<{
     }>;
 }>;
 export type WireControlInterval = Readonly<{
-    "until": "step" | "batch" | "gate" | "boundary" | "breakpoint" | "terminal";
+    "until": "step" | "batch" | "gate" | "boundary" | "terminal";
     "guards": null | Readonly<{
         "estimated_cost_ceiling": Readonly<{
             "currency": string;
@@ -42,6 +42,21 @@ export type WireControlInterval = Readonly<{
             "tariff_revision_cid": string;
             "valid_until": string;
         }>;
+    }>;
+}> | Readonly<{
+    "until": "breakpoint";
+    "guards": null | Readonly<{
+        "estimated_cost_ceiling": Readonly<{
+            "currency": string;
+            "amount_micro": string;
+            "scope_cids": readonly (string)[];
+            "tariff_revision_cid": string;
+            "valid_until": string;
+        }>;
+    }>;
+    "breakpoint_selection": Readonly<{
+        "logical_map_cid": string;
+        "before_step_ids": readonly (string)[];
     }>;
 }>;
 export type WireControlProfile = Readonly<{
@@ -377,6 +392,7 @@ export type WirePlanView = Readonly<{
         "policy_revision_cid": string;
         "debug_entry"?: true;
     }>;
+    "entry_breakpoint_profile"?: "all_operations";
 }>;
 export type WireControlResumeOrigin = Readonly<{
     "kind": "manual";
@@ -454,12 +470,17 @@ export type WireControlledRunState = Readonly<{
         "continuation_generation_cid": string;
         "fence_cid": string;
     }>;
-    "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable";
+    "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable" | "effect_write";
     "boundary"?: Readonly<{
         "step_id": null | string;
         "position": "before" | "after";
-        "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary";
+        "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary" | "effect_write";
         "consumed_boundary_cid": string;
+        "effect_write"?: Readonly<{
+            "unit_id": string;
+            "effect_preview_cid": string;
+            "member_preview_cid": string;
+        }>;
     }>;
     "matched_breakpoints"?: readonly (string)[];
     "paused_at"?: string;
@@ -471,7 +492,7 @@ export type WireControlledRunState = Readonly<{
 }>;
 export type WireControlCommand = Readonly<{
     "version": "actql-control-command/0.1";
-    "operation": "pause" | "resume";
+    "operation": "pause" | "resume" | "confirm_write";
     "run_ref": Readonly<{
         "namespaceId": string;
         "authorityScopeCid": string;
@@ -480,7 +501,7 @@ export type WireControlCommand = Readonly<{
     "expected_control_revision": number;
     "operation_id": string;
     "interval"?: Readonly<{
-        "until": "step" | "batch" | "gate" | "boundary" | "breakpoint" | "terminal";
+        "until": "step" | "batch" | "gate" | "boundary" | "terminal";
         "guards": null | Readonly<{
             "estimated_cost_ceiling": Readonly<{
                 "currency": string;
@@ -490,6 +511,26 @@ export type WireControlCommand = Readonly<{
                 "valid_until": string;
             }>;
         }>;
+    }> | Readonly<{
+        "until": "breakpoint";
+        "guards": null | Readonly<{
+            "estimated_cost_ceiling": Readonly<{
+                "currency": string;
+                "amount_micro": string;
+                "scope_cids": readonly (string)[];
+                "tariff_revision_cid": string;
+                "valid_until": string;
+            }>;
+        }>;
+        "breakpoint_selection": Readonly<{
+            "logical_map_cid": string;
+            "before_step_ids": readonly (string)[];
+        }>;
+    }>;
+    "effect_write"?: Readonly<{
+        "unit_id": string;
+        "effect_preview_cid": string;
+        "member_preview_cid": string;
     }>;
     "self_cid": string;
 }>;
@@ -580,12 +621,17 @@ export type WireControlOperationReceipt = Readonly<{
             "continuation_generation_cid": string;
             "fence_cid": string;
         }>;
-        "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable";
+        "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable" | "effect_write";
         "boundary"?: Readonly<{
             "step_id": null | string;
             "position": "before" | "after";
-            "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary";
+            "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary" | "effect_write";
             "consumed_boundary_cid": string;
+            "effect_write"?: Readonly<{
+                "unit_id": string;
+                "effect_preview_cid": string;
+                "member_preview_cid": string;
+            }>;
         }>;
         "matched_breakpoints"?: readonly (string)[];
         "paused_at"?: string;
@@ -692,12 +738,17 @@ export type WireControlOperationLookup = Readonly<{
                 "continuation_generation_cid": string;
                 "fence_cid": string;
             }>;
-            "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable";
+            "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable" | "effect_write";
             "boundary"?: Readonly<{
                 "step_id": null | string;
                 "position": "before" | "after";
-                "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary";
+                "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary" | "effect_write";
                 "consumed_boundary_cid": string;
+                "effect_write"?: Readonly<{
+                    "unit_id": string;
+                    "effect_preview_cid": string;
+                    "member_preview_cid": string;
+                }>;
             }>;
             "matched_breakpoints"?: readonly (string)[];
             "paused_at"?: string;
@@ -1334,12 +1385,17 @@ export type WireRunView = Readonly<{
             "continuation_generation_cid": string;
             "fence_cid": string;
         }>;
-        "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable";
+        "stop_reason"?: "entry" | "step" | "batch" | "boundary" | "gate" | "breakpoint" | "pause" | "guard_exceeded" | "guard_unavailable" | "effect_write";
         "boundary"?: Readonly<{
             "step_id": null | string;
             "position": "before" | "after";
-            "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary";
+            "kind": "entry" | "logical_step" | "batch" | "gate" | "boundary" | "effect_write";
             "consumed_boundary_cid": string;
+            "effect_write"?: Readonly<{
+                "unit_id": string;
+                "effect_preview_cid": string;
+                "member_preview_cid": string;
+            }>;
         }>;
         "matched_breakpoints"?: readonly (string)[];
         "paused_at"?: string;
@@ -1693,7 +1749,7 @@ export type WireRunView = Readonly<{
     }> | Readonly<{
         "state": "forbidden";
     }>;
-    "available_operations": readonly ("inspect" | "wait_view" | "pause" | "resume" | "cancel" | "resolve" | "lookup_control_operation")[];
+    "available_operations": readonly ("inspect" | "wait_view" | "pause" | "resume" | "cancel" | "resolve" | "lookup_control_operation" | "confirm_write")[];
     "capabilities": Readonly<{
         "static_plan": boolean;
         "inspect": boolean;
@@ -1704,6 +1760,11 @@ export type WireRunView = Readonly<{
         "execution_batch": boolean;
         "policy_revision_cid": string;
         "debug_entry"?: true;
+    }>;
+    "breakpoint_targets"?: readonly (string)[];
+    "entry_breakpoint_selection"?: Readonly<{
+        "logical_map_cid": string;
+        "before_step_ids": readonly (string)[];
     }>;
 }>;
 export type WireRunPlanView = Readonly<{
@@ -1785,6 +1846,7 @@ export type WireRunPlanView = Readonly<{
             "policy_revision_cid": string;
             "debug_entry"?: true;
         }>;
+        "entry_breakpoint_profile"?: "all_operations";
     }>;
 }>;
 export type WireEffectfulStaticPlanView = Readonly<{
@@ -1866,6 +1928,7 @@ export type WireEffectfulStaticPlanView = Readonly<{
                 "policy_revision_cid": string;
                 "debug_entry"?: true;
             }>;
+            "entry_breakpoint_profile"?: "all_operations";
         }>;
     }>;
     "effect_set": Readonly<{
@@ -2689,6 +2752,7 @@ export type WireStaticExplanationView = Readonly<{
             "policy_revision_cid": string;
             "debug_entry"?: true;
         }>;
+        "entry_breakpoint_profile"?: "all_operations";
     }> | Readonly<{
         "version": "actql-effectful-static-plan-view/0.1";
         "program_definition_cid": string;
@@ -2768,6 +2832,7 @@ export type WireStaticExplanationView = Readonly<{
                     "policy_revision_cid": string;
                     "debug_entry"?: true;
                 }>;
+                "entry_breakpoint_profile"?: "all_operations";
             }>;
         }>;
         "effect_set": Readonly<{
@@ -3173,6 +3238,7 @@ export type WireRunExplanationContextView = Readonly<{
                     "policy_revision_cid": string;
                     "debug_entry"?: true;
                 }>;
+                "entry_breakpoint_profile"?: "all_operations";
             }>;
             "facts": Readonly<{
                 "version": "actql-explanation-facts/0.1";

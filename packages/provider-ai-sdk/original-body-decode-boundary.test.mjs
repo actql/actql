@@ -9,7 +9,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 // Delay each SAME original _destroy, not a synthetic close callback/event.
 // Entry, saved receipt and Common projection below are explicit doubles.
 // This verifies physical ordering, not numerical capacity or public adoption.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const OriginalClient = undici.Client;
 const bodies = [];
@@ -44,7 +44,7 @@ undici.Client = new Proxy(OriginalClient, {construct(target, args) {
 }});
 let physical, sdk, port;
 try {
-  physical = await import('./_internal/original-undici-transport.mjs');
+  physical = await import('@actql/local-node/_internal/model-http-transport');
   sdk = await import('./_internal/intercepted-request.mjs');
   port = await import('./_internal/model-port.mjs');
 } finally { undici.Client = OriginalClient; }
@@ -94,37 +94,39 @@ test('normal saved Chat projection follows same body close but not delayed Socke
     handle = sdk.interceptSdkRequest({endpoint, maxRequestBytes: 256,
       maxHeaderBytes: 1024, maxHeaders: 8, notify() {},
       async runSdk(intercepted, signal) {
-        await intercepted(endpoint, {method: 'POST', body: '{}', signal});
-        assert.fail('raw-only mode must not deliver an SDK response copy');
+        const response = await intercepted(endpoint, {method: 'POST', body: '{}', signal});
+        return response.json();
       }});
     const request = Object.freeze({original: Symbol('request double')});
     const entry = Object.freeze({original: Symbol('Entry double')});
     const moon = {
       clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
-      clientProgramModelAsyncPhysicalRequestPlan: (...args) => ({start: args.at(-1)}),
+      clientProgramModelStructuredRequestPlan: (...args) => ({start: args.at(-2)}),
       clientProgramModelPhysicalCallForRequest(actual, original, poll, cancel, cleanup) {
         assert.strictEqual(actual, entry); assert.strictEqual(original, request);
         return {poll, cancel, cleanup};
       },
       clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
       clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
-      clientProgramModelPhysicalSavedChat(response) {
+      clientProgramModelPhysicalSavedStructured(original, receipt, bytes) {
         projections++;
         assert.equal(bodies[firstBody].closes, 1, 'actual same body must have closed');
         assert.equal(sockets[firstSocket].closes, 0, 'Socket ACK is still separate');
-        return {kind: 'saved', response};
+        assert.strictEqual(original, call);
+        assert.strictEqual(bytes, raw.body);
+        return {kind: 'saved', receipt};
       },
       clientProgramModelPhysicalIoObservation: (original, quiescent, inner) =>
         ({original, quiescent, inner}),
     };
-    const owner = port.createSdkModelPreflight({moon, request, preparation: handle,
+    const owner = port.createSdkStructuredModelPreflight({moon, request, preparation: handle,
       profile: {}, installation: {}, quantities: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       fetch, responseLimits: limits, checked: value => value, notify() {},
       observeAt: () => '2026-10-16T00:00:00.000Z',
       persistRaw(original, observed) {
         assert.strictEqual(original, call); saves++; raw = observed;
-        return {response: {raw, original: Symbol('saved receipt double')}};
-      }, cleanupRaw: () => holdingReleased});
+        return {receipt: {raw, original: Symbol('saved receipt double')}, bytes: raw.body};
+      }, cleanupRaw: () => holdingReleased}, Object.freeze({}));
     const {_1: plan} = await until(() => owner.preflight.advance(), value => value._0);
     assert.ok(plan);
     call = plan.start(entry);

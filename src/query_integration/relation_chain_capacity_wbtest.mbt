@@ -1,14 +1,9 @@
 ///|
-// Provider selection keeps eleven provider field slots and two capacity
-// results (each result and its Some: 2H/1R/2W) alive once per chain.
+// The installed quote includes a retained reference for every task. The
+// chain reserves only its transient provider selection peak here, once.
 fn capacity_evidence_selection_bytes() -> Int64 {
-  @execution.preparation_representation_cost({
-    record_headers: 4L,
-    reference_slots: 13L,
-    scalar_words: 4L,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }).unwrap()
+  let quote = @local_connector.local_module_provider_field_inventory(1).unwrap()
+  quote.execution_bytes - quote.retained_bytes
 }
 
 ///|

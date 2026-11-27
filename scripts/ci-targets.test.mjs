@@ -1514,7 +1514,7 @@ test('pipeline evidence aggregates dependency failures but stops on workflow can
   }
 });
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
-  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-composition', 'client-salesforce']],
+  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-model-packed']],
     ['pipeline-evidence', [...Object.values(partJobs), 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
@@ -1534,7 +1534,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 });
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-direct-model', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
@@ -1885,7 +1885,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 });
 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-direct-model', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
@@ -2114,9 +2114,9 @@ test('distribution isolates pinned provider tests with their required GC recipe'
     assert.equal(selected.length, 1);
     assert.equal(selected[0].if, steps.find(step => step.name === 'Test source-backed distribution contracts').if);
     assert.equal(selected[0]['continue-on-error'], undefined);
-    assert(steps.indexOf(steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts')) < steps.indexOf(selected[0]));
+    assert(steps.indexOf(steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps')) < steps.indexOf(selected[0]));
   }
-  assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts'));
+  assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps'));
   for (const step of steps.filter(step => step.run?.startsWith('node --test '))) {
     assert(!step.run.includes('packages/provider-ai-sdk/*.test.mjs'));
     assert(!step.run.includes('--expose-gc'));

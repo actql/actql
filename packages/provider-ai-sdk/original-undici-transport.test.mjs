@@ -2,18 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createServer} from 'node:http';
+import {mkdtempSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {once} from 'node:events';
 import {channel} from 'node:diagnostics_channel';
 import net from 'node:net';
 import {setImmediate as turn} from 'node:timers/promises';
 import {gzipSync} from 'node:zlib';
-import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
-import {createOriginalUndiciFetch, fixedOriginalTransportTimeouts} from './_internal/original-undici-transport.mjs';
-import {createSdkModelPreflight} from './_internal/model-port.mjs';
-import {createProjectOpenAIChatProvider} from './index.mjs';
+import {fixtureStructuredChatOptions, prepareSelectedChat} from './selected-chat.fixture.mjs';
+import {createOriginalUndiciFetch, fixedOriginalTransportTimeouts} from '@actql/local-node/_internal/model-http-transport';
+import {createSdkStructuredModelPreflight} from './_internal/model-port.mjs';
 import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
-  pollSdkDecode, cleanupSdkPreparation, cancelSdkPreparation,
+  pollSdkDecode, confirmSavedSdkTransportResponse, takeSavedSdkDecodedResult, cleanupSdkPreparation, cancelSdkPreparation,
   progressSdkOriginalIoCleanup} from './_internal/intercepted-request.mjs';
 
 const requestLimits = {maxBytes: 256, maxHeaderBytes: 1024, maxHeaders: 8};
@@ -24,26 +26,28 @@ const responseLimits = {maxBytes: 256, maxChunkBytes: 256, maxChunks: 8,
   maxHeaderBytes: 1024, observedHeaders: ['content-type', 'content-encoding']};
 const originalBody = '{"model":"synthetic","messages":[{"role":"user","content":"é\\n雪"}]}';
 
-test('project credential binding is one-shot on the same prepared transport', () => {
-  const transport = new URL('./_internal/original-undici-transport.mjs', import.meta.url).href;
+test('registered credential binding is one-shot on the same prepared transport', () => {
+  const transport = new URL(import.meta.resolve('@actql/local-node/_internal/model-http-transport')).href;
   const sdk = new URL('./_internal/intercepted-request.mjs', import.meta.url).href;
   execFileSync(process.execPath, ['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
     import {setImmediate as turn} from 'node:timers/promises';
-    import {createOriginalUndiciFetch, unboundOpenAICredential} from ${JSON.stringify(transport)};
+    import {createOriginalUndiciFetch} from ${JSON.stringify(transport)};
     import {interceptSdkRequest, prepareSdkTransport, bindSdkTransportCredential,
       startSdkTransport, pollSdkTransport, cleanupSdkPreparation} from ${JSON.stringify(sdk)};
     const endpoint = 'https://api.openai.com/v1/chat/completions';
+    const placeholder = 'fixture-marker';
     const bounds = ${JSON.stringify(requestLimits)}, responseLimits = ${JSON.stringify(responseLimits)};
     const fetch = createOriginalUndiciFetch({endpoint, requestLimits: bounds, responseLimits,
-      physicalAcquisitionLimits: ${JSON.stringify(physicalAcquisitionLimits)}, openAICredentialBytes: 20,
+      physicalAcquisitionLimits: ${JSON.stringify(physicalAcquisitionLimits)}, registeredCredential: {
+        endpoint, reference: 'FIXTURE_API_KEY', header: 'authorization', prefix: 'Bearer ', placeholder, maxBytes: 20},
       transportTimeouts: {connectMs: 100, headersMs: 100, bodyMs: 100, callMs: 100}});
     function prepare() {
       const handle = interceptSdkRequest({endpoint, maxRequestBytes: bounds.maxBytes,
         maxHeaderBytes: bounds.maxHeaderBytes, maxHeaders: bounds.maxHeaders, notify() {},
         runSdk: intercept => intercept(endpoint, {method: 'POST', body: '{}',
-          headers: {authorization: 'Bearer ' + unboundOpenAICredential}})});
-      prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'raw-only'});
+          headers: {authorization: 'Bearer ' + placeholder}})});
+      prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'saved-sdk'});
       return handle;
     }
     async function retire(handle) {
@@ -55,39 +59,27 @@ test('project credential binding is one-shot on the same prepared transport', ()
     }
     const missing = prepare();
     assert.throws(() => startSdkTransport(missing), {code: 'SdkTransportStartRefused'});
-    assert.throws(() => bindSdkTransportCredential(missing), {code: 'OpenAIProjectCredentialUnavailable'});
-    process.env.OPENAI_API_KEY = 'synthetic-key';
-    assert.throws(() => bindSdkTransportCredential(missing), {code: 'OpenAIProjectCredentialPreparationUnavailable'});
+    assert.throws(() => bindSdkTransportCredential(missing), {code: 'ModelProjectCredentialUnavailable'});
+    process.env.FIXTURE_API_KEY = 'synthetic-key';
+    assert.throws(() => bindSdkTransportCredential(missing), {code: 'ModelProjectCredentialPreparationUnavailable'});
     assert.throws(() => startSdkTransport(missing), {code: 'SdkTransportStartRefused'});
     await retire(missing);
     const original = prepare();
     bindSdkTransportCredential(original);
-    assert.throws(() => bindSdkTransportCredential(original), {code: 'OpenAIProjectCredentialPreparationUnavailable'});
+    assert.throws(() => bindSdkTransportCredential(original), {code: 'ModelProjectCredentialPreparationUnavailable'});
     assert.equal(pollSdkTransport(original).kind, 'not-started');
     await retire(original);
   `], {env: {}, timeout: 5000, stdio: 'pipe'});
 });
 
-test('project factory and original transport both refuse endpoint overrides', async () => {
-  for (const baseURL of ['https://127.0.0.1:1234/v1', 'https://foreign.invalid/v1']) {
-    const register = createProjectOpenAIChatProvider({baseURL, modelId: 'synthetic',
-      generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
-      budget: {maxCalls: 1n, maxRows: 1, maxTokens: 1000n, maxCostUnits: 10000n, maxDurationMs: 1000n},
-      transportTimeouts: {connectMs: 100, headersMs: 100, bodyMs: 100, callMs: 100},
-      observeEgress() {assert.fail('Rejected options reached egress');}});
-    await assert.rejects(register({}, {
-      projectOpenAIProvider: () => ({providerId: 'models/openai'}),
-      prepareConfiguration: use => use(),
-      runtimeIdentity() {assert.fail('Rejected options reached runtime');},
-      artifactIdentity() {assert.fail('Rejected options reached artifacts');},
-      readText() {assert.fail('Rejected options reached file credentials');},
-      prepareBindingOriginals() {assert.fail('Rejected options reached a provider binding');},
-      prepareTasks() {assert.fail('Rejected options reached Task construction');},
-      prepareRawPolicies() {assert.fail('Rejected options reached raw capture policy');},
-    }), {code: 'InvalidOpenAIProviderConfiguration'});
-    assert.throws(() => createOriginalUndiciFetch({endpoint: baseURL + '/chat/completions',
-      requestLimits, responseLimits, physicalAcquisitionLimits, openAICredentialBytes: 20}),
-    {code: 'OpenAIProjectCredentialEndpointUnavailable'});
+test('registered credential transport refuses a different endpoint', () => {
+  const registeredCredential = {endpoint: 'https://api.openai.com/v1/chat/completions',
+    reference: 'OPENAI_API_KEY', header: 'authorization', prefix: 'Bearer ',
+    placeholder: 'fixture-marker', maxBytes: 20};
+  for (const endpoint of ['https://127.0.0.1:1234/v1/chat/completions',
+    'https://foreign.invalid/v1/chat/completions', 'https://api.openai.com/v1/responses']) {
+    assert.throws(() => createOriginalUndiciFetch({endpoint, requestLimits, responseLimits,
+      physicalAcquisitionLimits, registeredCredential}), {code: 'RegisteredSdkCredentialUnavailable'});
   }
 });
 
@@ -139,14 +131,12 @@ async function fixture(t, respond, {transportTimeouts, stalledTls = false} = {})
       maxHeaderBytes: requestLimits.maxHeaderBytes, maxHeaders: requestLimits.maxHeaders,
       notify, async runSdk(intercepted, signal) {
         signals.push(signal);
-        // Deliberately no SDK decode. This finite fixture exercises the actual
-        // SDK-owner interceptor/reader/Undici transport; builder is a double.
-        await intercepted(endpoint, {method: 'POST', body: originalBody,
+        const response = await intercepted(endpoint, {method: 'POST', body: originalBody,
           headers: {'content-type': 'application/json'}, signal});
-        assert.fail('Raw-only transport must not deliver an SDK response copy');
+        return response.text();
       }});
     assert.equal(pollSdkPreparation(handle).kind, 'ready');
-    if (transport) prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'raw-only'});
+    if (transport) prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'saved-sdk'});
     preparations.push(handle);
     return handle;
   }
@@ -202,10 +192,10 @@ test('generic fetch default retirement is not an original physical IO observatio
     maxHeaderBytes: 1024, maxHeaders: 8, notify() {},
     async runSdk(fetch, signal) {
       await fetch(endpoint, {method: 'POST', body: originalBody, signal});
-      assert.fail('Raw-only SDK response copy is unavailable');
+      assert.fail('No Store receipt has been supplied');
     }});
   prepareSdkTransport(handle, {fetch: () => new Response('{}',
-    {headers: {'content-type': 'application/json'}}), responseLimits, responseMode: 'raw-only'});
+    {headers: {'content-type': 'application/json'}}), responseLimits, responseMode: 'saved-sdk'});
   assert.equal(progressSdkOriginalIoCleanup(handle), undefined);
   startSdkTransport(handle);
   await until(() => pollSdkTransport(handle), value => value.kind === 'response');
@@ -234,7 +224,7 @@ test('original Model port drives IO close while the same raw Store save stays pe
   let saves = 0;
   const moon = {
     clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
-    clientProgramModelAsyncPhysicalRequestPlan(actual, bytes, tokens, cost, duration,
+    clientProgramModelStructuredRequestPlan(_admission, actual, bytes, tokens, cost, duration,
       profile, installation, start) {
       assert.strictEqual(actual, request);
       return {start};
@@ -246,11 +236,11 @@ test('original Model port drives IO close while the same raw Store save stays pe
     },
     clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
     clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
-    clientProgramModelPhysicalSavedChat: response => ({kind: 'saved', response}),
+    clientProgramModelPhysicalSavedStructured: (_call, receipt) => ({kind: 'saved', response: receipt}),
     clientProgramModelPhysicalIoObservation: (call, quiescent, inner) =>
       ({kind: 'io', call, quiescent, inner}),
   };
-  const port = createSdkModelPreflight({moon, request, preparation: handle,
+  const port = createSdkStructuredModelPreflight({moon, request, preparation: handle,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n, durationMs: 500n},
     fetch: f.fetch, responseLimits, checked: value => value, notify() {},
     observeAt: () => '2026-10-14T00:00:00.000Z',
@@ -258,7 +248,7 @@ test('original Model port drives IO close while the same raw Store save stays pe
       saves++;
       heldRaw = raw;
       return new Promise(resolve => { completeSave = resolve; });
-    }, cleanupRaw: () => rawReleased});
+    }, cleanupRaw: () => rawReleased}, Object.freeze({}));
   const {_1: plan} = await until(() => port.preflight.advance(), value => value._0);
   const call = plan.start(entry);
   await until(() => { call.poll(); return heldRaw; }, value => value !== undefined);
@@ -276,7 +266,7 @@ test('original Model port drives IO close while the same raw Store save stays pe
   assert.equal(saves, 1);
   assert.equal(f.calls.length, 1);
   assert.equal(plan.start(entry), undefined);
-  completeSave({response: {original: heldRaw, nominal: Symbol('saved double')}});
+  completeSave({receipt: {original: heldRaw, nominal: Symbol('saved double')}, bytes: heldRaw.body});
   await until(() => call.poll(), value => value.inner?.kind === 'saved');
   assert.equal(call.cleanup(), false, 'actual raw alias cleanup remains independent');
   rawReleased = true;
@@ -312,21 +302,21 @@ test('Model port retains its response before same Socket late close and independ
     let raw, released = false, saves = 0;
     const moon = {
       clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
-      clientProgramModelAsyncPhysicalRequestPlan: (...args) => ({start: args.at(-1)}),
+      clientProgramModelStructuredRequestPlan: (...args) => ({start: args.at(-2)}),
       clientProgramModelPhysicalCallForRequest: (entry, request, poll, cancel, cleanup) =>
         ({poll, cancel, cleanup}),
       clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
       clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
-      clientProgramModelPhysicalSavedChat: response => ({kind: 'saved', response}),
+      clientProgramModelPhysicalSavedStructured: (_call, receipt) => ({kind: 'saved', response: receipt}),
       clientProgramModelPhysicalIoObservation: (call, quiescent, inner) =>
         ({kind: 'io', call, quiescent, inner}),
     };
-    const port = createSdkModelPreflight({moon, request: {}, preparation: handle,
+    const port = createSdkStructuredModelPreflight({moon, request: {}, preparation: handle,
       profile: {}, installation: {}, quantities: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       fetch: f.fetch, responseLimits, checked: value => value, notify() {},
       observeAt: () => '2026-10-15T00:00:00.000Z',
-      persistRaw(call, observed) { raw = observed; saves++; return {response: {raw}}; },
-      cleanupRaw: () => released});
+      persistRaw(call, observed) { raw = observed; saves++; return {receipt: {raw}, bytes: raw.body}; },
+      cleanupRaw: () => released}, Object.freeze({}));
     const {_1: plan} = await until(() => port.preflight.advance(), value => value._0);
     const call = plan.start({});
     const first = await until(() => call.poll(), value => value.inner?.kind === 'saved');
@@ -360,14 +350,15 @@ test('missing Common I/O carrier refuses the original physical plan before Entry
     let plans = 0, entries = 0;
     const moon = {
       clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
-      clientProgramModelAsyncPhysicalRequestPlan() { plans++; assert.fail('No physical plan'); },
+      clientProgramModelStructuredRequestPlan() { plans++; assert.fail('No physical plan'); },
+      clientProgramModelPhysicalSavedStructured() { assert.fail('No saved response'); },
       clientProgramModelPhysicalCallForRequest() { entries++; assert.fail('No Entry'); },
     };
-    const port = createSdkModelPreflight({moon, request: {}, preparation: handle,
+    const port = createSdkStructuredModelPreflight({moon, request: {}, preparation: handle,
       profile: {}, installation: {}, quantities: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       fetch: f.fetch, responseLimits, checked: value => value, notify() {},
       observeAt: () => '2026-10-15T00:00:00.000Z', persistRaw() { assert.fail('No raw save'); },
-      cleanupRaw: () => true});
+      cleanupRaw: () => true}, Object.freeze({}));
     assert.deepEqual(await until(() => port.preflight.advance(), value => value._0),
       {_0: true, _1: undefined});
     assert.equal(plans, 0);
@@ -396,7 +387,7 @@ test('per-call Client is prepared without IO and raw response/Unicode stay origi
   assert.equal(f.calls.length, 1);
   assert.equal(f.calls[0].body, originalBody);
   assert.equal(f.calls[0].path, '/chat/completions');
-  await until(() => pollSdkDecode(handle), value => value.kind === 'retired');
+  assert.equal(pollSdkDecode(handle).kind, 'pending');
   assert.equal(cleanupSdkPreparation(handle), false, 'Client retirement has its own ACK');
   await until(() => cleanupSdkPreparation(handle), value => value === true);
   assert.equal(f.sockets.size, 0);
@@ -541,37 +532,41 @@ test('actual header field/value sum below ceiling succeeds while exact ceiling r
   }
 });
 
-test('actual pinned OpenAI SDK resumes only into original loopback raw-only transport', {timeout: 5000}, async t => {
+test('actual pinned OpenAI SDK decodes only after original loopback Raw confirmation', {timeout: 5000}, async t => {
   const f = await fixture(t, (request, response) => {
-    response.end('{"choices":[{"index":0,"message":{"content":"{}"},"finish_reason":"stop"}],"usage":null}');
+    response.setHeader('content-type', 'application/json');
+    response.end('{"id":"original","model":"synthetic-model","choices":[{"index":0,"message":{"role":"assistant","content":"{}"},"finish_reason":"stop"}],"usage":null}');
   });
   const localRequest = {maxBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16};
   const localResponse = {...responseLimits, maxBytes: 4096, maxChunkBytes: 512};
   const fetch = createOriginalUndiciFetch({endpoint: f.endpoint,
     requestLimits: localRequest, responseLimits: localResponse, physicalAcquisitionLimits});
-  const handle = prepareOpenAIChatRequest({modelId: 'synthetic-model',
+  const handle = prepareSelectedChat({selector: 'fixture-task', modelId: 'synthetic-model',
     baseURL: f.endpoint.slice(0, -'/chat/completions'.length), apiKey: 'synthetic-only',
     maxRequestBytes: localRequest.maxBytes, maxHeaderBytes: localRequest.maxHeaderBytes,
-    maxHeaders: localRequest.maxHeaders, notify() {}, options: {
-      prompt: [{role: 'user', content: [{type: 'text', text: 'Original é\r\n'}]}],
-      maxOutputTokens: 16, responseFormat: {type: 'json'},
-    }});
+    maxHeaders: localRequest.maxHeaders, notify() {},
+    options: fixtureStructuredChatOptions('Original é\r\n', 16)});
   t.after(async () => { await until(() => cleanupSdkPreparation(handle), value => value === true); });
   await until(() => pollSdkPreparation(handle), value => value.kind === 'ready');
-  prepareSdkTransport(handle, {fetch, responseLimits: localResponse, responseMode: 'raw-only'});
+  prepareSdkTransport(handle, {fetch, responseLimits: localResponse, responseMode: 'saved-sdk'});
   assert.equal(f.calls.length, 0);
   startSdkTransport(handle);
   await until(() => pollSdkTransport(handle), value => value.kind === 'response');
   const raw = sdkTransportRawObservation(handle);
   assert.equal(raw.transportComplete, true);
   assert.equal(Buffer.from(raw.body).toString(),
-    '{"choices":[{"index":0,"message":{"content":"{}"},"finish_reason":"stop"}],"usage":null}');
-  await until(() => pollSdkDecode(handle), value => value.kind === 'retired');
+    '{"id":"original","model":"synthetic-model","choices":[{"index":0,"message":{"role":"assistant","content":"{}"},"finish_reason":"stop"}],"usage":null}');
+  assert.equal(pollSdkDecode(handle).kind, 'pending');
+  const receipt = Object.freeze({original: Symbol('Store receipt double')});
+  confirmSavedSdkTransportResponse(handle, raw, {receipt, bytes: raw.body});
+  await until(() => pollSdkDecode(handle), value => value.kind === 'ready');
+  assert.deepEqual(takeSavedSdkDecodedResult(handle, receipt, raw.body).content, [{type:'text',text:'{}'}]);
   assert.equal(f.calls.length, 1);
   assert.equal(f.calls[0].headers.authorization, 'Bearer synthetic-only');
   const request = JSON.parse(f.calls[0].body);
   assert.equal(request.model, 'synthetic-model');
-  assert.deepEqual(request.messages, [{role: 'user', content: 'Original é\r\n'}]);
+  assert.deepEqual(request.messages, [{role: 'system', content: 'Return the fixture object.'},
+    {role: 'user', content: 'Original é\r\n'}]);
   t.diagnostic('Actual pinned SDK/loopback; no Common Entry/Store/funding/public acceptance');
 });
 
@@ -606,7 +601,7 @@ test('connecting Client destroy cannot retire the original socket before its rea
     maxHeaderBytes: 1024, maxHeaders: 8, notify() {}, async runSdk(intercepted, signal) {
       await intercepted(endpoint, {method: 'POST', body: '{}', signal});
     }});
-  prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'raw-only'});
+  prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'saved-sdk'});
   startSdkTransport(handle);
   assert.equal(connects, 1);
   assert.equal(cleanupSdkPreparation(handle), false);
@@ -626,6 +621,196 @@ test('connecting Client destroy cannot retire the original socket before its rea
   t.diagnostic('Controlled pending connector/socket; TCP/TLS0, grant0/public0');
 });
 
+
+for (const mode of ['cancel', 'deadline']) {
+  test(`original Undici ${mode} waits for the queued OS lookup after socket retirement`, t => {
+    const root = mkdtempSync(join(tmpdir(), 'actql-undici-lookup-'));
+    t.after(() => rmSync(root, {recursive: true, force: true}));
+    const fifo = join(root, 'sole-libuv-worker');
+    execFileSync('mkfifo', [fifo]);
+    const transport = new URL(import.meta.resolve('@actql/local-node/_internal/model-http-transport')).href;
+    execFileSync(process.execPath, ['--input-type=module', '-e', `
+      import assert from 'node:assert/strict';
+      import {createHook} from 'node:async_hooks';
+      import {closeSync, open, openSync} from 'node:fs';
+      import {once} from 'node:events';
+      import {createServer} from 'node:http';
+      import {setImmediate as turn, setTimeout as wait} from 'node:timers/promises';
+      import {createOriginalUndiciFetch, prepareOriginalUndiciFetch} from ${JSON.stringify(transport)};
+
+      const [mode, fifo] = process.argv.slice(1);
+      const peer = createServer();
+      let tcp = 0, posts = 0;
+      peer.on('connection', () => { tcp++; });
+      peer.on('request', (_, response) => { posts++; response.end('{}'); });
+      peer.listen(0, '127.0.0.1');
+      await once(peer, 'listening');
+
+      const requests = new Set();
+      let returns = 0;
+      const observer = createHook({
+        init(id, type) { if (type === 'GETADDRINFOREQWRAP') requests.add(id); },
+        before(id) { if (requests.has(id)) returns++; },
+      }).enable();
+      // The real Node getaddrinfo request queues behind a single uv worker
+      // held in the OS, even though socket destruction can already settle.
+      const worker = new Promise((resolve, reject) =>
+        open(fifo, 'r', (error, fd) => error ? reject(error) : resolve(fd)));
+      let released = false;
+      function release() {
+        if (!released) {
+          closeSync(openSync(fifo, 'w'));
+          released = true;
+        }
+      }
+      try {
+        const endpoint = 'http://localhost:' + peer.address().port + '/chat/completions';
+        const controller = new AbortController();
+        const limits = ${JSON.stringify(responseLimits)};
+        const fetch = createOriginalUndiciFetch({
+          endpoint, requestLimits: ${JSON.stringify(requestLimits)}, responseLimits: limits,
+          physicalAcquisitionLimits: ${JSON.stringify(physicalAcquisitionLimits)},
+          transportTimeouts: {connectMs: 3000, headersMs: 3000, bodyMs: 3000,
+            ...(mode === 'deadline' ? {callMs: 150} : {})},
+        });
+        const physical = prepareOriginalUndiciFetch(fetch, endpoint,
+          {method: 'POST', body: '{}', headers: [], redirect: 'error', signal: controller.signal},
+          limits, controller);
+        const outcome = physical.invoke().then(() => 'response', () => 'rejected');
+        assert.equal(requests.size, 1, 'Expected exactly one real queued OS lookup');
+        assert.equal(returns, 0);
+        if (mode === 'cancel') controller.abort();
+        else await once(controller.signal, 'abort');
+        const close = physical.cleanup();
+        assert.strictEqual(physical.cleanup(), close, 'Repeated cleanup must borrow the same pending outcome');
+        assert.equal(await outcome, 'rejected');
+        assert.equal(await Promise.race([close, wait(30, 'still-held')]), 'still-held');
+        assert.deepEqual([requests.size, returns, tcp, posts], [1, 0, 0, 0]);
+        release();
+        assert.equal(await close, true);
+        assert.deepEqual([requests.size, returns, tcp, posts], [1, 1, 0, 0]);
+        assert.equal(await physical.cleanup(), true);
+      } finally {
+        release();
+        closeSync(await worker);
+        observer.disable();
+        await new Promise(resolve => peer.close(resolve));
+      }
+    `, mode, fifo], {env: {...process.env, UV_THREADPOOL_SIZE: '1'}, timeout: 5000, stdio: 'pipe'});
+  });
+}
+
+test('original Undici bounds DNS candidates and uses the same authority for one TLS POST', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-undici-lookup-tls-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const key = join(root, 'peer-key.pem'), cert = join(root, 'peer-cert.pem');
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '2',
+    '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost', '-keyout', key, '-out', cert],
+  {timeout: 10_000, stdio: 'ignore'});
+  const transport = new URL(import.meta.resolve('@actql/local-node/_internal/model-http-transport')).href;
+  execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import dns from 'node:dns';
+    import net from 'node:net';
+    import {once} from 'node:events';
+    import {readFileSync} from 'node:fs';
+    import {createServer} from 'node:https';
+    import {syncBuiltinESMExports} from 'node:module';
+
+    const [keyPath, certPath] = process.argv.slice(1);
+    let tcp = 0, posts = 0, host;
+    const names = [];
+    const peer = createServer({key: readFileSync(keyPath), cert: readFileSync(certPath)}, (request, response) => {
+      assert.equal(request.method, 'POST');
+      posts++;
+      host = request.headers.host;
+      response.end('{}');
+    });
+    peer.on('connection', () => { tcp++; });
+    peer.on('secureConnection', socket => { names.push(socket.servername); });
+    peer.listen(0, '127.0.0.1');
+    await once(peer, 'listening');
+    const port = peer.address().port;
+    net.setDefaultAutoSelectFamily(true);
+    let candidates;
+    const lookups = [];
+    const attempts = [];
+    let firstAttemptSocket;
+    const socketConnect = net.Socket.prototype.connect;
+    net.Socket.prototype.connect = function (...args) {
+      const observe = outcome => (address, targetPort, family) => {
+        if (targetPort !== port) return;
+        if (attempts.length === 0) firstAttemptSocket = this;
+        attempts.push({address, family, outcome, sameSocket: this === firstAttemptSocket});
+      };
+      this.on('connectionAttempt', observe('attempt'));
+      // Some loopback stacks refuse an unbound address immediately. Others
+      // time out that candidate before letting the same socket try the peer.
+      this.on('connectionAttemptFailed', observe('unusable'));
+      this.on('connectionAttemptTimeout', observe('unusable'));
+      return Reflect.apply(socketConnect, this, args);
+    };
+    const originalLookup = dns.lookup;
+    dns.lookup = (hostname, options, callback) => {
+      lookups.push(options.all === true);
+      assert.equal(hostname, 'localhost');
+      if (options.all) process.nextTick(callback, null, candidates);
+      else process.nextTick(callback, null, candidates[0].address, candidates[0].family);
+    };
+    syncBuiltinESMExports();
+    try {
+      const {createOriginalUndiciFetch, prepareOriginalUndiciFetch} = await import(${JSON.stringify(transport)});
+      dns.lookup = () => { assert.fail('Late lookup replacement reached the original transport'); };
+      syncBuiltinESMExports();
+      const endpoint = 'https://localhost:' + port + '/chat/completions';
+      const limits = ${JSON.stringify(responseLimits)};
+      const selected = createOriginalUndiciFetch({endpoint, requestLimits: ${JSON.stringify(requestLimits)},
+        responseLimits: limits, physicalAcquisitionLimits: ${JSON.stringify(physicalAcquisitionLimits)}});
+      function prepare(count) {
+        candidates = Array.from({length: count}, (_, index) => ({address: '127.0.0.' + (index + 1), family: 4}));
+        // Bind the peer only on .1. At the admitted ceiling, the first
+        // candidate must fail physically before the original tries .1.
+        if (count > 1) [candidates[0], candidates[1]] = [candidates[1], candidates[0]];
+        return prepareOriginalUndiciFetch(selected, endpoint,
+          {method: 'POST', body: '{}', headers: [], redirect: 'error', signal: new AbortController().signal},
+          limits);
+      }
+      async function complete(physical) {
+        const response = await physical.invoke();
+        assert.equal(response.status, 200);
+        const reader = response.body.getReader();
+        assert.equal(Buffer.from((await reader.read()).value).toString(), '{}');
+        assert.equal((await reader.read()).done, true);
+        reader.releaseLock();
+        assert.equal(await physical.cleanup(), true);
+      }
+      await complete(prepare(16));
+      const expectedAttempts = [
+        {address: '127.0.0.2', family: 4, outcome: 'attempt', sameSocket: true},
+        {address: '127.0.0.2', family: 4, outcome: 'unusable', sameSocket: true},
+        {address: '127.0.0.1', family: 4, outcome: 'attempt', sameSocket: true},
+      ];
+      assert.deepEqual(attempts, expectedAttempts);
+      assert.deepEqual([lookups, tcp, names, posts, host], [[true], 1, ['localhost'], 1, 'localhost:' + port]);
+
+      const excess = prepare(17);
+      await assert.rejects(excess.invoke(), {code: 'UndiciOriginalLookupCandidatesExceeded'});
+      assert.equal(await excess.cleanup(), true);
+      assert.deepEqual(attempts, expectedAttempts);
+      assert.deepEqual([lookups, tcp, names, posts], [[true,true], 1, ['localhost'], 1]);
+
+      net.setDefaultAutoSelectFamily(false);
+      await complete(prepare(1));
+      assert.deepEqual([lookups, tcp, names, posts], [[true,true,false], 2, ['localhost','localhost'], 2]);
+    } finally {
+      net.Socket.prototype.connect = socketConnect;
+      dns.lookup = originalLookup;
+      syncBuiltinESMExports();
+      await new Promise(resolve => peer.close(resolve));
+    }
+  `, key, cert], {env: {...process.env, NODE_EXTRA_CA_CERTS: cert, NODE_TLS_REJECT_UNAUTHORIZED: '1'},
+    timeout: 5000, stdio: 'pipe'});
+});
 
 test('explicit physical timeouts require closed positive DATA and retain a private immutable selection', () => {
   assert.equal(fixedOriginalTransportTimeouts(undefined), undefined);

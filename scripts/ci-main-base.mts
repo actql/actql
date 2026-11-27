@@ -76,7 +76,8 @@ export function fullCheckpointJobs(gateJobs: readonly string[]) {
       ...nativeCoreCiPartitions.map(partition => `core (native ${partition})`)] : name === 'native-separated-network'
       ? ['native-separated-network (direct)', 'native-separated-network (store)']
       : name === 'client-readme-packed'
-        ? ['client-readme-packed (22.22.0)', 'client-readme-packed (24)'] : [name])];
+        ? ['client-readme-packed (22.22.0)', 'client-readme-packed (24)'] : name === 'client-direct-model'
+          ? ['client-direct-model (22.22.0)', 'client-direct-model (24.21.0)'] : [name])];
 }
 
 function validRun(run: RunObservation | null, {repository, repositoryId, workflowId, ancestors}: RunScope): run is RunObservation {

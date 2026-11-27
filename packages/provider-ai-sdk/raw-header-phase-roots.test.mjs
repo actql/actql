@@ -9,7 +9,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 // Observe actual original object identities, not their byte prices. The
 // delegating Client observes WeakRefs only; real close still uses Node's
 // original _destroy/error/callback. No Common/Store/Provider ACK is issued.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const OriginalClient = undici.Client;
 const observations = [];
@@ -49,8 +49,8 @@ undici.Client = new Proxy(OriginalClient, {construct(target, args) {
 }});
 let physical, sdk, intercepted, bounded;
 try {
-  physical = await import('./_internal/original-undici-transport.mjs');
-  sdk = await import('./_internal/openai-chat.mjs');
+  physical = await import('@actql/local-node/_internal/model-http-transport');
+  sdk = await import('./selected-chat.fixture.mjs');
   intercepted = await import('./_internal/intercepted-request.mjs');
   bounded = await import('./_internal/bounded-response.mjs');
 } finally { undici.Client = OriginalClient; }
@@ -105,27 +105,26 @@ async function fixture(t) {
     socket() {assert.equal(sockets.length, firstSocket + 1); return sockets[firstSocket];}};
 }
 
-test('raw-only SDK does not retain unused response maps after actual body close while Socket is pending',
+test('pending Saved SDK does not retain unused response maps after actual body close while Socket is pending',
   {timeout: 15000}, async t => {
     const f = await fixture(t);
-    const handle = sdk.prepareOpenAIChatRequest({modelId: 'synthetic-model',
+    const handle = sdk.prepareSelectedChat({selector: 'fixture-task', modelId: 'synthetic-model',
       baseURL: f.endpoint.slice(0, -'/chat/completions'.length), apiKey: 'synthetic-only',
       maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16, notify() {},
-      options: {prompt: [{role: 'user', content: [{type: 'text', text: 'original'}]}],
-        maxOutputTokens: 16, responseFormat: {type: 'json'}}});
+      options: sdk.fixtureStructuredChatOptions('original', 16)});
     t.after(async () => {
       f.socket().finish?.();
       await until(() => intercepted.cleanupSdkPreparation(handle), value => value === true);
     });
     await until(() => intercepted.pollSdkPreparation(handle), value => value.kind === 'ready');
     intercepted.prepareSdkTransport(handle, {fetch: f.fetch, responseLimits: limits,
-      responseMode: 'raw-only'});
+      responseMode: 'saved-sdk'});
     intercepted.startSdkTransport(handle);
     await until(() => intercepted.pollSdkTransport(handle), value => value.kind === 'response');
     const raw = intercepted.sdkTransportRawObservation(handle);
     assert.equal(raw.transportComplete, true);
     assert.equal(await raw.readerRetirement, true);
-    await until(() => intercepted.pollSdkDecode(handle), value => value.kind === 'retired');
+    assert.equal(intercepted.pollSdkDecode(handle).kind, 'pending');
     const socket = f.socket(), observed = f.observation();
     assert.equal(intercepted.progressSdkOriginalIoCleanup(handle), false);
     await until(() => socket.finish, value => typeof value === 'function');

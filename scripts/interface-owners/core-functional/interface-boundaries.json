@@ -28060,7 +28060,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0916edef8dd3161b53bfc12d074decd0609ca5cc5258c1b2e503f9eb39e9ce5d"
+      "sha256": "578074c68b963b28ac5b685c68c0917315a72cda38f9962dd97734b2e96b4810"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -112684,7 +112684,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_preparation.mbt",
-      "sha256": "208870ade4d5979a3c0ffc0ffe8977e4c9e32e754aba249c8592f0dbba6a35e0",
+      "sha256": "cc16d7059b5d82ed7108ceaff4cde930ff55a5abc44ab8e0df418460f755cca0",
       "exports": [],
       "operations": [
         {
@@ -112694,6 +112694,10 @@
         {
           "name": "native_client_submitted_preparation_intent_cid",
           "declaration": "native_client_submitted_preparation_intent_cid ( value : NativeClientSubmittedPreparation , ) - > String"
+        },
+        {
+          "name": "native_client_submitted_preparation_lowered_effect_query",
+          "declaration": "native_client_submitted_preparation_lowered_effect_query ( value : NativeClientSubmittedPreparation , ) - > Bool"
         },
         {
           "name": "prepare_native_client_submitted_program",
@@ -112709,6 +112713,7 @@
             "<module>",
             "native_client_submitted_preparation",
             "native_client_submitted_preparation_intent_cid",
+            "native_client_submitted_preparation_lowered_effect_query",
             "prepare_native_client_submitted_program"
           ],
           "exports": [],
@@ -112780,7 +112785,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "7530436f6ab4ae7ee22be291497adc43211a6f16622f70ef1310c03ff46a5234",
+      "sha256": "e3327adb44e211bb0aad9fd6367ebc7917828a51c03e82ecfe51fb3e6ca7c2ba",
       "exports": [],
       "operations": [
         {

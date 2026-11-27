@@ -2,7 +2,8 @@
 // physical declarations. This fixture never establishes a normal numerical
 // profile, runtime provenance, public startup or permission for a live service.
 import assert from 'node:assert/strict';
-import {isDeepStrictEqual} from 'node:util';
+import {request as httpRequest} from 'node:http';
+import {Readable} from 'node:stream';
 import {readFileSync} from 'node:fs';
 import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -32,41 +33,57 @@ const seal=body=>{const wire=canonicalJson(body,{dataKeys:true}),identity=hash(w
 const now=()=> '2026-10-12T00:00:00.000Z';
 const bounds={maxWireBytes:10000,maxNodes:1000,maxDepth:30,maxMembers:1000,maxWork:100000};
 
-export function originalSdkCommonFixture(t,moon,options) {
-  return originalCommonFixture(t,moon,options,false);
+// Observe both ends of the direct HTTP fixture with its original Web body reader.
+export function directLoopbackHttpFetch(endpoint, clientSockets) {
+  return (url,init)=>new Promise((resolve,reject)=>{
+    assert.equal(url,endpoint);
+    assert.equal(init.redirect,'error');
+    const request=httpRequest(url,{method:init.method,
+      headers:Object.fromEntries(init.headers),signal:init.signal,agent:false},response=>{
+      resolve(new Response(Readable.toWeb(response),{
+        status:response.statusCode,headers:response.headers}));
+    });
+    request.on('socket',socket=>{
+      clientSockets.add(socket);
+      socket.once('close',()=>clientSockets.delete(socket));
+    });
+    request.once('error',reject);
+    request.end(init.body);
+  });
 }
 
-// Same actual Common/Store/journal fixture without importing either AI SDK
-// branch. SDK-free selection is not a numerical profile or physical ACK.
+export function originalSdkCommonFixture(t,moon,options) {
+  return originalCommonFixture(t,moon,options);
+}
+
+// Direct HTTP shares the same Common/Store/journal fixture and selects its
+// separate transport without loading an SDK.
 export function originalHttpCommonFixture(t,moon,options) {
   return originalCommonFixture(t,moon,options,true);
 }
 
 async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
   storeOriginals=true,beforeOriginalRead,observeSettlement,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical,rowTexts,structuredSdk=false,google=false,foreignRegisteredProfile=false,excludeReportedMetadata=false,
-  overrideCompletion}={},independentHttp) {
+  physical,rowTexts,google=false,foreignRegisteredProfile=false,excludeReportedMetadata=false,
+  overrideCompletion}={},independentHttp=false) {
   // Explicit finite test inventory, not another normal capacity supplier.
   // This route has no installed ModelIoAccess and therefore remains serial;
   // a profile's active_slots declaration alone cannot enable a window.
   const count=rowTexts?.length??1;
-  if (structuredSdk) assert.ok(!independentHttp && !nativeDecision);
+  const registeredSdkMode=!independentHttp && !nativeDecision;
+  if (google) assert(registeredSdkMode);
   assert.ok(count>=1&&count<=2);
   if(rowTexts!==undefined){assert.equal(nativeDecision,false);assert.ok(rowTexts.every(value=>typeof value==='string'));}
   if(independentHttp) {
     assert.equal(nativeDecision,false);
     assert.notEqual(physical,undefined,'Independent HTTP requires its explicit loopback transport');
   }
-  const registeredSdkMode=structuredSdk==='registered';
-  if (google) assert(registeredSdkMode);
   const apiMode=google?'generate_content':'chat_completions';
   const preparePhysical=independentHttp
     ? (await import('../../packages/provider-http/_internal/model-port.mjs')).createHttpChatPreflight
     : nativeDecision
     ? (await import('../../packages/provider-ai-sdk/_internal/native-decision-preflight.mjs')).createAdmittedTypeSafeDecisionPreflight
-    : registeredSdkMode
-    ? (await import('../../packages/provider-ai-sdk/_internal/model-port.mjs')).createAdmittedRegisteredSdkPreflight
-    : (await import('../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs')).createAdmittedOpenAIChatPreflight;
+    : (await import('../../packages/provider-ai-sdk/_internal/model-port.mjs')).createAdmittedRegisteredSdkPreflight;
   const portMoon=overrideCompletion===undefined?moon:Object.create(moon,{
     clientProgramModelStructuredRequestPlan:{value(...args){
       const decode=args.pop();
@@ -82,10 +99,17 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   // original-transport preparation/cleanup membership. No ambient fallback.
   if (physical!==undefined) {
     assert.equal(nativeDecision,false);
-    assert.equal(typeof physical.fetch,'function');
+    if (independentHttp && physical.prepareTransport !== undefined) {
+      assert.equal(typeof physical.prepareTransport, 'function');
+      assert.equal(physical.fetch, undefined);
+    } else {
+      assert.equal(typeof physical.fetch, 'function');
+    }
     const path=google?'/v1beta/models/'+modelId+':generateContent':'/v1/chat/completions';
     const endpoint=new URL(physical.endpoint);
-    assert.match(endpoint.origin,/^http:\/\/127\.0\.0\.1:[1-9][0-9]*$/u);
+    assert.match(endpoint.origin, independentHttp
+      ? /^(?:https?:\/\/127\.0\.0\.1|https:\/\/localhost):[1-9][0-9]*$/u
+      : /^http:\/\/127\.0\.0\.1:[1-9][0-9]*$/u);
     assert.equal(physical.endpoint,endpoint.origin+path);
   }
   const root=await mkdtemp(join(tmpdir(),'actql-original-sdk-common-'));
@@ -154,7 +178,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   // former fixture1024 support declaration correctly failed preflight; tighten
   // the physical selection rather than widening the Host/language budget.
   profileBody.limits.request_bytes=1000;
-  if (structuredSdk) {
+  if (registeredSdkMode) {
     profileBody.adapter.codec_id='fixture/sdk-v4-saved-text';
     profileBody.completion.validator_id='fixture/sdk-v4-saved-text';
     profileBody.observations=profileBody.observations.filter(name=>name!=='provider_metadata');
@@ -201,7 +225,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const structuredCapability=Object.freeze({
     operation:'structured_generate',adapter:'supported',model:'supported',
   });
-  if (structuredSdk) {
+  if (registeredSdkMode) {
     const route={model_id:modelId,api_mode:apiMode,endpoint:installation.endpoint,structured_capability:structuredCapability};
     const wire=canonicalText({...JSON.parse(originals.configuration.wire),adapter_kind:'ai-sdk',
       structured_routes:{[task.authored_model_selector]:route}});
@@ -222,22 +246,18 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
       verifyRequest:(body,options)=>verifyRequest(body,options,route,providerOptions),
       readReportedUsage,readReportedResponse});
   } else if (registeredSdkMode) {
-    const {openAIChatStaticOriginals:{createOpenAI},readReportedUsage,readReportedResponse}=
+    const {createOpenAI}=await import('@ai-sdk/openai');
+    const {sdkProvider,verifyRequest,readReportedUsage,readReportedResponse}=
       await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
     const endpoint=installation.endpoint, baseURL=endpoint.slice(0,-'/chat/completions'.length);
-    registeredSdk=Object.freeze({route:Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,
-      modelId,apiMode:'chat_completions',endpoint}),structuredCapability,sdkProvider:'openai.chat',sdkPackage:installation.sdk.package_name,
+    const route=Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,
+      modelId,apiMode,endpoint});
+    const providerOptions=Object.freeze({openai:Object.freeze({})});
+    registeredSdk=Object.freeze({route,structuredCapability,sdkProvider,sdkPackage:installation.sdk.package_name,
       sdkVersion:installation.sdk.version,lockArtifactCid:installation.sdk.lock_artifact_cid,
-      adapterArtifactCid:installation.build_artifact_cid,providerOptions:Object.freeze({}),
+      adapterArtifactCid:installation.build_artifact_cid,providerOptions,
       createLanguageModel:fetch=>createOpenAI({baseURL,apiKey:'fixture-only',fetch}).chat(modelId),
-      verifyRequest(body,options) {
-        const {seed,maxOutputTokens,topP,temperature,prompt:messages,responseFormat}=options;
-        return isDeepStrictEqual(JSON.parse(body),{model:modelId,max_tokens:maxOutputTokens,
-          temperature,top_p:topP,...(seed===undefined?{}:{seed}),
-          messages:[messages[0],{role:'user',content:messages[1].content[0].text}],
-          response_format:{type:'json_schema',json_schema:{name:responseFormat.name,
-            schema:responseFormat.schema,strict:true}}});
-      },
+      verifyRequest:(body,options)=>verifyRequest(body,options,route,providerOptions),
       readReportedUsage,readReportedResponse});
   }
   let structuredAdmission, registeredProjectionIssue;
@@ -275,7 +295,10 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
         fetch:physical?.fetch ?? ((url,init)=>{sends++;requests.push({url,body:init.body});
           return new Response(responseWire,{headers:{'content-type':'application/json'}});})};
       const port=independentHttp?preparePhysical({...common,endpoint:physical.endpoint,
-        headers:[['content-type','application/json']],requestLimits:{maxBytes:1000,maxHeaderBytes:4096,maxHeaders:16}})
+        ...(physical.prepareTransport === undefined ? {} : {fetch: undefined, prepareTransport: physical.prepareTransport}),
+        ...(physical.credentialHeader === undefined ? {} : {needsCredential:true}),
+        headers:[['content-type','application/json'], ...(physical.credentialHeader === undefined ? [] : [['authorization',physical.credentialHeader]])],
+        requestLimits:{maxBytes:1000,maxHeaderBytes:4096,maxHeaders:16}})
         : registeredSdkMode ? preparePhysical({...common,profile:registeredProfile,admission:structuredAdmission,registeredSdk,
           checked(value) {
             try {return checked(value);}
@@ -286,9 +309,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
               throw error;
             }
           }})
-        : preparePhysical({...common,baseURL:physical!==undefined ? physical.endpoint.slice(0,-'/chat/completions'.length)
-          : nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only',
-          ...(structuredSdk ? {structuredAdmission} : {})});
+        : preparePhysical({...common,baseURL:'https://fixture.invalid',apiKey:'fixture-only'});
       ports.push(port);
       return port.preflight;
     }}]).get('models/fixture');
@@ -296,7 +317,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     execution,prompt.wire,retry.wire,backoff.wire));
   const admittedProvider=admitInstalledModelProvider(moon,execution,dependencies,new Map([['models/fixture',registered]]));
   const providerBinding=admitInstalledModelProviderBinding(moon,'models/fixture',registered);
-  if (structuredSdk) {
+  if (registeredSdkMode) {
     const capability=checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
       registered.provider,providerBinding.value,originals.configuration.wire,
       task.authored_model_selector,modelId,apiMode,installation.endpoint,profile));
@@ -355,8 +376,11 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const values=canonicalText(aoa.execution_contracts['REL.values']);
   const registry=checked(moon.clientPrepareInstalledSequenceContracts(
     registryBody,values,undefined,undefined));
+  const egressAdmission=checked(moon.clientProgramAdmitInferEgress(prepared,step,execution,
+    ()=>({_0:'public',_1:nativeDecision?'fixture':'fixture-region',_2:false,_3:false})));
   const operation=openNodeInferOperation({moon,preparedProgram:prepared,step,graph,registry,values,
     provider:moon.clientProgramAdmittedModelProvider(admittedProvider,execution),
+    ...(physical?.credentialHeader === undefined ? {} : {egressAdmission}),
     originalPreparation,durableCalls:true,quantityCapacity:quantities,signal,ioNotification,
     physicalPreflight:(request,notification,binder)=>registered.physicalPreflight(request,notification,binder,admittedProvider)});
   const plan={compiled,runDefinition,inferGraph:graph};
@@ -382,8 +406,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   assert.equal(boundary.status,'waiting');
   const opened=await controller.open({operation,preparedCallSet:boundary.preparedCallSet,plan,
     selected:{step,graph,providerBinding,observeAccount:()=>account,currentProvider:()=>true,
-      egressAdmission:checked(moon.clientProgramAdmitInferEgress(prepared,step,execution,
-        ()=>({_0:'public',_1:nativeDecision?'fixture':'fixture-region',_2:false,_3:false}))),
+      egressAdmission,
       entryPersistence:'async',rawCaptureSelection:registered.rawCaptureSelection},principalId:'owner',
     declaredResults:['answer'],submission:{fixture:'original-sdk-common'},signal,originalPreparation});
   return {root,operation,opened,controller,cp,store,control,plan,prepared,registered,

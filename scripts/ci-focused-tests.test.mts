@@ -334,10 +334,13 @@ test('full success checkpoint accepts focused-only job skipped but requires ever
   verifyGate({selection: focused, sourceRevision: head}, results(focused), {event: 'push', sourceRevision: head});
   // Scheduling may split a profile, but every selected partition remains a
   // mandatory member of a reusable full checkpoint.
-  for (const partition of nativeCoreCiPartitions) {
-    const job = jobs.find(job => job.name === `core (native ${partition})`);
+  for (const name of [
+    ...nativeCoreCiPartitions.map(partition => `core (native ${partition})`),
+    'client-direct-model (22.22.0)', 'client-direct-model (24.21.0)',
+  ]) {
+    const job = jobs.find(job => job.name === name);
     job!.conclusion = 'skipped';
-    assert.equal((await resolveMainBaseline(options)).baseSha, null, partition);
+    assert.equal((await resolveMainBaseline(options)).baseSha, null, name);
     job!.conclusion = 'success';
   }
 });

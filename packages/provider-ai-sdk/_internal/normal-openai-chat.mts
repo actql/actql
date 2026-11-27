@@ -1,13 +1,11 @@
 import {types} from 'node:util';
-import {fixedOriginalTransportTimeouts, unboundOpenAICredential} from './original-undici-transport.mjs';
-import {createConfiguredUndiciOpenAIChatRegistration,
-  createConfiguredUndiciRegisteredSdkRegistration} from './installed-openai-chat.mjs';
+import {originalLocalModelHttpTransport} from './local-model-http-transport.mjs';
+import {createConfiguredUndiciRegisteredSdkRegistration} from './installed-openai-chat.mjs';
 import {runtimeTupleFromFields} from './compiler-binding.generated.mjs';
 import type {RegisteredSdk} from './model-port.mjs';
-import type {OpenAIChatProviderOptions, RegisteredSdkModelGeneration, RegisteredSdkProviderOptions} from '../index.d.ts';
+import type {RegisteredSdkModelGeneration, RegisteredSdkProviderOptions} from '../index.d.ts';
 
-type ProjectSelection = Readonly<{providerId: string}>;
-type Registration = ReturnType<typeof createConfiguredUndiciOpenAIChatRegistration>;
+type Registration = ReturnType<typeof createConfiguredUndiciRegisteredSdkRegistration>;
 type Entry = ReturnType<Registration>[number];
 type Runtime = Parameters<Registration>[0] & {
   clientProgramInstalledNodeModelSdkV4RequestCapacity?(rows: number, bytes: number, nodes: number, depth: number): unknown;
@@ -20,7 +18,6 @@ interface Task {name: string; providerId: string; taskCid: string; modelSelector
   promptCid: string; outputSchemaCid: string; promptPayloadWire: string}
 interface SelectedTasks {
   tasks: readonly Task[];
-  verifyChatConfiguration(name: string, selector: string, modelId: string, endpoint: string): Promise<void>;
   responseProfileFor(name: string, project: () => string): Promise<{profile: unknown}>;
   executionOriginalsFor(name: string, limits: Readonly<Record<string, bigint>>): Promise<unknown>;
   bindingOriginalsFor(providerId: string): unknown;
@@ -29,13 +26,10 @@ interface SelectedTasks {
 type RegisteredProvider = Readonly<{defaultSelector: string; routes: readonly RegisteredSdk[]}>;
 interface ConfigurationContext {
   [name: string]: unknown;
-  projectOpenAIProvider?(): Promise<ProjectSelection>;
-  registeredSdkSelected?(providerId: string): boolean;
-  prepareRegisteredSdk?(providerId: string): Promise<RegisteredProvider | undefined>;
+  prepareRegisteredSdk(providerId: string): Promise<RegisteredProvider | undefined>;
   prepareConfiguration<T>(project: () => T): Promise<T>;
   runtimeIdentity(): Promise<string>;
   artifactIdentity(path: string): Promise<string>;
-  readText(path: string, limits: {maxBytes: number}): Promise<string>;
   prepareBindingOriginals(project: () => readonly [string, string, string]): Promise<unknown>;
   prepareTasks(bindings: readonly {providerId: string; bindingOriginals: unknown}[]): Promise<SelectedTasks>;
   prepareRawPolicies(originals: typeof policies): Promise<Readonly<Record<string, unknown>>>;
@@ -44,9 +38,7 @@ interface ConfigurationContext {
 const refuse: (code: string) => never = code => {throw Object.assign(new TypeError(code), {code});};
 const maxInt = 2147483647;
 const maxSafe = 9007199254740991n;
-const builderArtifactUrl = new URL('./openai-chat.mjs', import.meta.url).href;
 const layoutArtifactUrl = import.meta.url;
-const lockArtifactUrl = new URL('../npm-shrinkwrap.json', import.meta.url).href;
 const data = (source: unknown, required: readonly string[], optional: readonly string[] = []): Readonly<Record<string, unknown>> => {
   if (source === null || typeof source !== 'object' || Array.isArray(source) || types.isProxy(source)) {
     refuse('InvalidOpenAIProviderConfiguration');
@@ -61,14 +53,6 @@ const text = (value: unknown, length: number) => typeof value === 'string' && va
 const integer = (value: unknown, min: number, max = maxInt) => Number.isSafeInteger(value) && (value as number) >= min && (value as number) <= max;
 const amount = (value: unknown): value is bigint => typeof value === 'bigint' && value > 0n && value <= maxSafe;
 const unboundCid = 'sha256:' + '0'.repeat(64);
-// Public policy DATA, with independently pinned canonical identity. It permits
-// provider-contract retention, never training or nonpublic input. The actual
-// Host observation and Source policy still participate in each Core admission.
-const handling = Object.freeze({schema: 'actql.contract/0.1', id: 'openai-public-provider-contract',
-  version: '1', kind: 'request_data_handling', body: Object.freeze({
-    accepted_classifications: Object.freeze(['public']), allowed_regions: Object.freeze(['global']),
-    retention: 'provider_contract', training_use: 'forbidden'}),
-  cid: 'sha256:2c582952a0c9a6de0dc7fd58b1411207a0eac0c02fe75c2c61a39bf2e6942c54'});
 const policies = Object.freeze({
   retention: Object.freeze({wire: '{"name":"openai-normal-retention","version":"actql-installed-local-policy/0.1"}',
     cid: 'sha256:156c8cd1a13296c1f107bc8ccfa895c2bbf9d117672b2ecf76e40af01a605f22'}),
@@ -125,34 +109,14 @@ function readRegisteredModelGeneration(raw: unknown, maxTokens: bigint) {
   return profiles;
 }
 
-function configuration(options: unknown, project: ProjectSelection | undefined, registeredMode: boolean) {
-  const required = ['generation', 'budget', 'observeEgress'];
-  const optional = ['maxSecretBytes', 'transportTimeouts'];
-  if (registeredMode) {
-    required.push('providerId', 'dataHandlingContractWire');
-    optional.push('modelGeneration');
-  } else {
-    required.push('modelId');
-    optional.push('modelSelector');
-  }
-  if (!registeredMode && project === undefined) {
-    required.push('providerId', 'apiKeyFile');
-    optional.push('baseURL');
-  }
-  const value = data(options, required, optional) as unknown as OpenAIChatProviderOptions &
-    Pick<RegisteredSdkProviderOptions, 'dataHandlingContractWire' | 'modelGeneration'>;
-  const generation = data(value.generation, ['temperature', 'topP', 'maxOutputTokens'], ['seed']) as unknown as OpenAIChatProviderOptions['generation'];
-  const budget = data(value.budget, ['maxCalls', 'maxRows', 'maxTokens', 'maxCostUnits', 'maxDurationMs']) as unknown as OpenAIChatProviderOptions['budget'];
-  const selector = value.modelSelector ?? value.modelId;
-  const baseURL = registeredMode ? undefined
-    : (project === undefined ? value.baseURL : undefined) ?? 'https://api.openai.com/v1';
+function configuration(options: unknown) {
+  const value = data(options, ['providerId', 'dataHandlingContractWire', 'generation', 'budget', 'observeEgress',
+    'transportTimeouts'], ['maxSecretBytes', 'modelGeneration']) as unknown as RegisteredSdkProviderOptions;
+  const generation = data(value.generation, ['temperature', 'topP', 'maxOutputTokens'], ['seed']) as unknown as RegisteredSdkProviderOptions['generation'];
+  const budget = data(value.budget, ['maxCalls', 'maxRows', 'maxTokens', 'maxCostUnits', 'maxDurationMs']) as unknown as RegisteredSdkProviderOptions['budget'];
   const maxSecretBytes = value.maxSecretBytes ?? 4096;
-  const providerId = project === undefined ? value.providerId : project.providerId;
-  const transportTimeouts = fixedOriginalTransportTimeouts(value.transportTimeouts);
-  if (!text(providerId, 256) ||
-      (registeredMode ? !text(value.dataHandlingContractWire, 4096) :
-        !text(value.modelId, 256) || !text(selector, 256) || !text(baseURL, 2048) ||
-        project === undefined && !text(value.apiKeyFile, 4096)) ||
+  const transportTimeouts = originalLocalModelHttpTransport().fixedOriginalTransportTimeouts(value.transportTimeouts);
+  if (!text(value.providerId, 256) || !text(value.dataHandlingContractWire, 4096) ||
       !integer(maxSecretBytes, 1, 4096) || typeof value.observeEgress !== 'function' ||
       !Number.isFinite(generation.temperature) || !Number.isFinite(generation.topP) ||
       !integer(generation.maxOutputTokens, 1) ||
@@ -161,23 +125,13 @@ function configuration(options: unknown, project: ProjectSelection | undefined, 
       ![budget.maxCalls, budget.maxTokens, budget.maxCostUnits, budget.maxDurationMs].every(amount)) {
     refuse('InvalidOpenAIProviderConfiguration');
   }
-  if (transportTimeouts !== undefined && Object.values(transportTimeouts).some(ms => BigInt(ms) > budget.maxDurationMs)) {
+  if (transportTimeouts?.callMs === undefined) refuse('InvalidRegisteredSdkTransportTimeouts');
+  if (Object.values(transportTimeouts).some(ms => BigInt(ms) > budget.maxDurationMs)) {
     refuse('OpenAIProviderTimeoutBudgetExceeded');
   }
-  if (!registeredMode) {
-    const endpoint = new URL(baseURL + '/chat/completions');
-    if (!['https:', 'http:'].includes(endpoint.protocol) || endpoint.username || endpoint.password ||
-        endpoint.search || endpoint.hash || endpoint.href !== baseURL + '/chat/completions' || baseURL!.endsWith('/')) {
-      refuse('InvalidOpenAIProviderConfiguration');
-    }
-  }
-  if ((project !== undefined || registeredMode) && transportTimeouts?.callMs === undefined) {
-    refuse('InvalidProjectOpenAIProviderConfiguration');
-  }
-  return Object.freeze({...value, providerId, modelSelector: selector, baseURL, maxSecretBytes,
-    generation: Object.freeze(generation), budget: Object.freeze(budget),
-    modelGeneration: registeredMode ? readRegisteredModelGeneration(value.modelGeneration, budget.maxTokens) : undefined,
-    ...(transportTimeouts === undefined ? {} : {transportTimeouts})});
+  return Object.freeze({...value, maxSecretBytes, generation: Object.freeze(generation),
+    budget: Object.freeze(budget), transportTimeouts,
+    modelGeneration: readRegisteredModelGeneration(value.modelGeneration, budget.maxTokens)});
 }
 
 function observation(callback: () => unknown) {
@@ -191,22 +145,19 @@ function observation(callback: () => unknown) {
   };
 }
 
-// Ordinary Host configuration, not a runtime factory. All semantic identities
-// come from the actual initial Common owner and each actual Task declaration.
-// The original low-level explicit-material installers remain unchanged.
-export function createOpenAIChatProvider(options: unknown):
-  (moon: Runtime, context: ConfigurationContext) => Promise<readonly Readonly<Record<string, unknown>>[]> {
-  return configureSdkProvider(options, false);
-}
-
-export function createProjectOpenAIChatProvider(options: unknown):
-  (moon: Runtime, context: ConfigurationContext) => Promise<readonly Readonly<Record<string, unknown>>[]> {
-  return configureSdkProvider(options, true);
-}
-
+// Both factories prepare originals using the consuming Host's checked Tasks.
 export function createRegisteredSdkProvider(options: unknown):
   (moon: Runtime, context: ConfigurationContext) => Promise<readonly Readonly<Record<string, unknown>>[]> {
-  return configureSdkProvider(options, false, true);
+  let used = false;
+  return async (moon: Runtime, context: ConfigurationContext) => {
+    if (used) refuse('OpenAIProviderConfigurationReused');
+    used = true;
+    requireConfigurationContext(context);
+    const original = await prepareSdkProvider(moon, context, options);
+    const selected = await context.prepareTasks([original.binding]);
+    const prepared = await prepareSdkProviderTasks(context, selected, original);
+    return selected.providerEntries(() => [createSdkProviderEntry(moon, selected, prepared)]);
+  };
 }
 
 type PreparedProvider = Awaited<ReturnType<typeof prepareSdkProvider>>;
@@ -220,7 +171,7 @@ export function createRegisteredSdkProviders(options: unknown):
   return async (moon: Runtime, context: ConfigurationContext) => {
     if (used) refuse('OpenAIProviderConfigurationReused');
     used = true;
-    requireConfigurationContext(context, false, true);
+    requireConfigurationContext(context);
     const batch = await context.prepareConfiguration<ProviderBatch>(() => {
       if (!Array.isArray(options) || types.isProxy(options) || !Object.isFrozen(options) ||
           !integer(options.length, 1, 64) || Reflect.ownKeys(options).length !== options.length + 1) {
@@ -245,7 +196,7 @@ export function createRegisteredSdkProviders(options: unknown):
       return {configurations, originals: [], bindings: [], installations: []};
     });
     for (const options of batch.configurations) {
-      const original = await prepareSdkProvider(moon, context, options, false, true, true);
+      const original = await prepareSdkProvider(moon, context, options, true);
       batch.originals.push(original);
       batch.bindings.push(original.binding);
     }
@@ -258,37 +209,16 @@ export function createRegisteredSdkProviders(options: unknown):
   };
 }
 
-function configureSdkProvider(options: unknown, projectMode: boolean, registeredMode = false) {
-  let used = false;
-  return async (moon: Runtime, context: ConfigurationContext) => {
-    if (used) refuse('OpenAIProviderConfigurationReused');
-    used = true;
-    requireConfigurationContext(context, projectMode, registeredMode);
-    const original = await prepareSdkProvider(moon, context, options, projectMode, registeredMode);
-    const selected = await context.prepareTasks([original.binding]);
-    const prepared = await prepareSdkProviderTasks(context, selected, original);
-    return selected.providerEntries(() => [createSdkProviderEntry(moon, selected, prepared)]);
-  };
-}
-
-function requireConfigurationContext(context: ConfigurationContext, projectMode: boolean, registeredMode: boolean) {
-  if (!['prepareConfiguration', 'runtimeIdentity', 'artifactIdentity',
+function requireConfigurationContext(context: ConfigurationContext) {
+  if (!['prepareConfiguration', 'runtimeIdentity', 'artifactIdentity', 'prepareRegisteredSdk',
     'prepareBindingOriginals', 'prepareTasks', 'prepareRawPolicies'].every(key => typeof context?.[key] === 'function')) {
     refuse('OpenAIProviderConfigurationContextUnavailable');
   }
-  if (projectMode && typeof context.projectOpenAIProvider !== 'function') {
-    refuse('OpenAIProviderConfigurationContextUnavailable');
-  }
-  if (registeredMode ? typeof context.prepareRegisteredSdk !== 'function' : typeof context.readText !== 'function') {
-    refuse('OpenAIProviderConfigurationContextUnavailable');
-  }
 }
 
-async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, options: unknown,
-  projectMode: boolean, registeredMode: boolean, batch = false) {
-  const project = projectMode ? await context.projectOpenAIProvider!() : undefined;
+async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, options: unknown, batch = false) {
   const config = await context.prepareConfiguration(() => {
-    const selected = configuration(options, project, registeredMode);
+    const selected = configuration(options);
     const maxWireBytes = moon.clientProgramStandardInferModelTransferBytes?.(selected.budget.maxCalls);
     if (!amount(maxWireBytes)) {
       refuse('OpenAIProviderTransferCapacityUnavailable');
@@ -301,18 +231,14 @@ async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, 
     const validQuote = (quote: unknown): quote is readonly [bigint, bigint] => Array.isArray(quote) && quote.length === 2 && quote.every((value: unknown) =>
       typeof value === 'bigint' && value >= 0n && value <= BigInt(maxInt)) && quote[1] >= quote[0];
     if (!validQuote(sdkQuote) || sdkQuote[0] === 0n) refuse('OpenAIProviderRequestCapacityUnavailable');
-    let deadline: readonly [bigint, bigint] = [0n, 0n];
-    if (selected.transportTimeouts?.callMs !== undefined) {
-      if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
-        refuse('OpenAIProviderDeadlineCapacityUnavailable');
-      }
-      deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity() as readonly [bigint, bigint];
-      if (!validQuote(deadline)) refuse('OpenAIProviderDeadlineCapacityUnavailable');
+    if (typeof moon.clientProgramInstalledNodeModelDeadlineCapacity !== 'function') {
+      refuse('OpenAIProviderDeadlineCapacityUnavailable');
     }
+    const deadline = moon.clientProgramInstalledNodeModelDeadlineCapacity();
+    if (!validQuote(deadline)) refuse('OpenAIProviderDeadlineCapacityUnavailable');
     // A prepared request retains the extra callback and header binding.
     // Also cover the bounded key and final Bearer string while they overlap.
-    const credentialHolding = projectMode || registeredMode
-      ? BigInt(selected.budget.maxRows) * (1024n + 8n * BigInt(selected.maxSecretBytes)) : 0n;
+    const credentialHolding = BigInt(selected.budget.maxRows) * (1024n + 8n * BigInt(selected.maxSecretBytes));
     const holding = BigInt(limits.adapter_holding_bytes) + sdkQuote[0] + deadline[0] + credentialHolding;
     const execution = BigInt(limits.adapter_workspace_bytes) + sdkQuote[1] + deadline[1] + credentialHolding;
     if (holding > BigInt(maxInt) || execution > BigInt(maxInt)) {
@@ -331,47 +257,24 @@ async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, 
   });
   const physicalLimits = config.physicalLimits;
   const runtimeCid = await context.runtimeIdentity();
-  const registeredProvider = registeredMode || context.registeredSdkSelected?.(config.providerId)
-    ? await context.prepareRegisteredSdk!(config.providerId) : undefined;
-  const registeredSdk = registeredProvider?.routes.find(item => item.route.selector === registeredProvider.defaultSelector);
-  if (registeredProvider !== undefined && registeredSdk === undefined) {
-    refuse('InstalledModelResolvedConfigurationMismatch');
-  }
-  const builderCid = registeredMode ? registeredSdk?.adapterArtifactCid : await context.artifactIdentity(builderArtifactUrl);
-  const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
-  const lockCid = registeredMode ? registeredSdk?.lockArtifactCid : await context.artifactIdentity(lockArtifactUrl);
-  if (!registeredMode && registeredSdk !== undefined && (!projectMode || registeredProvider!.routes.length !== 1 ||
-      registeredSdk.adapterArtifactCid !== builderCid ||
-      registeredSdk.lockArtifactCid !== lockCid || registeredSdk.sdkPackage !== '@ai-sdk/openai' ||
-      registeredSdk.sdkVersion !== '4.0.91' || registeredSdk.route.selector !== config.modelSelector ||
-      registeredSdk.route.modelId !== config.modelId || registeredSdk.route.apiMode !== 'chat_completions' ||
-      registeredSdk.route.endpoint !== config.baseURL + '/chat/completions')) {
-    refuse('InstalledModelResolvedConfigurationMismatch');
-  }
-  if (registeredMode && (registeredProvider === undefined || registeredProvider.routes.some(item => item.credential === undefined)) ||
-      !registeredMode && registeredSdk?.credential !== undefined && registeredSdk.credential.profile.reference !== 'OPENAI_API_KEY') {
+  const registeredProvider = await context.prepareRegisteredSdk(config.providerId);
+  if (registeredProvider === undefined || registeredProvider.routes.some(item => item.credential === undefined)) {
     refuse('RegisteredSdkCredentialMismatch');
   }
-  const apiKey = registeredMode ? undefined : projectMode ? unboundOpenAICredential
-    : await context.readText(config.apiKeyFile, {maxBytes: config.maxSecretBytes});
-  const route = registeredMode ? registeredSdk!.route : undefined;
-  const endpoint = route?.endpoint ?? config.baseURL + '/chat/completions';
-  const selector = route?.selector ?? config.modelSelector;
-  const modelId = route?.modelId ?? config.modelId;
-  const apiMode = route?.apiMode ?? 'chat_completions';
-  const builderId = registeredMode ? 'actql/registered-sdk' : 'actql/openai-chat';
-  const codecId = registeredMode ? 'actql/registered-sdk-output' : 'actql/openai-chat-envelope';
-  const sdk = Object.freeze({package_name: registeredMode ? registeredSdk!.sdkPackage : '@ai-sdk/openai',
-    version: registeredMode ? registeredSdk!.sdkVersion : '4.0.91', interface: 'v4', lock_artifact_cid: lockCid});
-  // The same original selector could formerly name different Chat models.
-  // Record the resolved route even when the selector equals the model ID so
-  // a current fixed route cannot match a historical selector-only binding.
+  const registeredSdk = registeredProvider.routes.find(item => item.route.selector === registeredProvider.defaultSelector);
+  if (registeredSdk === undefined) refuse('InstalledModelResolvedConfigurationMismatch');
+  const {adapterArtifactCid: builderCid, lockArtifactCid: lockCid, route: {selector}} = registeredSdk;
+  const layoutCid = await context.artifactIdentity(layoutArtifactUrl);
+  const builderId = 'actql/registered-sdk';
+  const codecId = 'actql/registered-sdk-output';
+  const sdk = Object.freeze({package_name: registeredSdk.sdkPackage, version: registeredSdk.sdkVersion,
+    interface: 'v4', lock_artifact_cid: lockCid});
   const bindings = await context.prepareBindingOriginals(() => {
-    const generationConfig = (generation: OpenAIChatProviderOptions['generation']) => ({
+    const generationConfig = (generation: RegisteredSdkProviderOptions['generation']) => ({
       temperature: generation.temperature, top_p: generation.topP, max_output_tokens: generation.maxOutputTokens,
       ...(generation.seed === undefined ? {} : {seed_requested: generation.seed})});
     const defaultGeneration = generationConfig(config.generation);
-    const dataHandling: unknown = registeredMode ? JSON.parse(config.dataHandlingContractWire) : handling;
+    const dataHandling: unknown = JSON.parse(config.dataHandlingContractWire);
     const modelDefault = (model: string) => {
       const selected = config.modelGeneration?.get(model);
       return {model, data_handling: dataHandling,
@@ -379,52 +282,39 @@ async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, 
         ...(selected === undefined ? {} : {max_task_output_tokens: selected.taskMaxOutputTokens})};
     };
     const configuration = {provider_id: config.providerId, adapter_kind: 'ai-sdk',
-      ...(registeredMode ? {} : {endpoint, selector, model_id: modelId, api_mode: apiMode}),
-      ...(!registeredMode && projectMode ? {credential_reference: 'OPENAI_API_KEY'} : {}),
-      ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
-      model_defaults: {default_model: selector, models: registeredMode ? [] : [modelDefault(selector)]}};
-    let configurationWire: string;
-    if (registeredProvider === undefined) {
-      configurationWire = JSON.stringify(configuration);
-    } else {
-      const routes = Object.create(null) as Record<string, unknown>;
-      let modelGenerationMatches = 0;
-      // Bound the aggregate before copying it into one configuration wire.
-      // A partial route encoding is temporary and the policy is parsed once.
-      let remaining = bodyLimits.maxBytes -
-        Buffer.byteLength(JSON.stringify({...configuration, structured_routes: {}}));
-      for (const item of [...registeredProvider.routes].sort((a, b) =>
-        a.route.selector < b.route.selector ? -1 : a.route.selector > b.route.selector ? 1 : 0)) {
-        const alias = item.route.selector;
-        const route = {model_id: item.route.modelId, api_mode: item.route.apiMode, endpoint: item.route.endpoint,
-          provider_options: item.providerOptions, structured_capability: item.structuredCapability,
-          ...(item.credential === undefined ? {} : {registered_credential: item.credential.profile})};
-        const defaults = registeredMode ? modelDefault(alias) : undefined;
-        remaining -= Buffer.byteLength(JSON.stringify({[alias]: route})) +
-          (defaults === undefined ? 0 : Buffer.byteLength(JSON.stringify(defaults)) + 1);
-        if (remaining < 0) refuse('InstalledModelConfigurationSizeLimit');
-        routes[alias] = route;
-        if (defaults !== undefined) {
-          configuration.model_defaults.models.push(defaults);
-          if (defaults.max_task_output_tokens !== undefined) modelGenerationMatches++;
-        }
-      }
-      if (modelGenerationMatches !== (config.modelGeneration?.size ?? 0)) {
-        refuse('InstalledModelGenerationRouteMismatch');
-      }
-      configurationWire = JSON.stringify({...configuration, structured_routes: routes});
+      transport_timeouts: config.transportTimeouts,
+      model_defaults: {default_model: selector, models: [] as ReturnType<typeof modelDefault>[]}};
+    const routes = Object.create(null) as Record<string, unknown>;
+    let modelGenerationMatches = 0;
+    // Bound the aggregate before copying it into one configuration wire.
+    // A partial route encoding is temporary and the policy is parsed once.
+    let remaining = bodyLimits.maxBytes -
+      Buffer.byteLength(JSON.stringify({...configuration, structured_routes: {}}));
+    for (const item of [...registeredProvider.routes].sort((a, b) =>
+      a.route.selector < b.route.selector ? -1 : a.route.selector > b.route.selector ? 1 : 0)) {
+      const alias = item.route.selector;
+      const route = {model_id: item.route.modelId, api_mode: item.route.apiMode, endpoint: item.route.endpoint,
+        provider_options: item.providerOptions, structured_capability: item.structuredCapability,
+        registered_credential: item.credential!.profile};
+      const defaults = modelDefault(alias);
+      remaining -= Buffer.byteLength(JSON.stringify({[alias]: route})) + Buffer.byteLength(JSON.stringify(defaults)) + 1;
+      if (remaining < 0) refuse('InstalledModelConfigurationSizeLimit');
+      routes[alias] = route;
+      configuration.model_defaults.models.push(defaults);
+      if (defaults.max_task_output_tokens !== undefined) modelGenerationMatches++;
     }
+    if (modelGenerationMatches !== (config.modelGeneration?.size ?? 0)) {
+      refuse('InstalledModelGenerationRouteMismatch');
+    }
+    const configurationWire = JSON.stringify({...configuration, structured_routes: routes});
     return [
       JSON.stringify({provider_id: config.providerId, implementation: '@actql/provider-ai-sdk',
         runtime_artifact_cid: runtimeCid, builder_artifact_cid: builderCid, lock_artifact_cid: lockCid,
-        ...(registeredSdk === undefined ? {} : {sdk_entry_artifact_cid: registeredSdk.sdkArtifactCid})}),
+        sdk_entry_artifact_cid: registeredSdk.sdkArtifactCid}),
       JSON.stringify({provider_id: config.providerId,
-        required: registeredMode ? ['model_defaults', 'adapter_kind', 'structured_routes']
-          : ['endpoint', 'selector', 'model_defaults', 'model_id', 'adapter_kind', 'api_mode',
-            ...(registeredProvider === undefined ? [] : ['structured_routes'])],
-        physical_profile: physicalLimits, prepared_rows: config.budget.maxRows,
-        transport: registeredMode ? 'undici-serial-sdk' : 'undici-serial-chat',
-        ...(config.transportTimeouts === undefined ? {} : {transport_timeouts: config.transportTimeouts}),
+        required: ['model_defaults', 'adapter_kind', 'structured_routes'],
+        physical_profile: physicalLimits, prepared_rows: config.budget.maxRows, transport: 'undici-serial-sdk',
+        transport_timeouts: config.transportTimeouts,
         runtime_artifact_cid: runtimeCid, layout_artifact_cid: layoutCid,
         read_retained_bytes: String(config.readRetainedBytes),
         read_execution_bytes: String(config.readExecutionBytes),
@@ -434,35 +324,32 @@ async function prepareSdkProvider(moon: Runtime, context: ConfigurationContext, 
     ];
   });
   const borrow = () => ({binding: {providerId: config.providerId, bindingOriginals: bindings}, config, runtimeCid,
-    builderCid, layoutCid, lockCid, registeredProvider, apiKey, endpoint, selector,
-    modelId, builderId, codecId, sdk, projectMode, registeredMode});
+    builderCid, layoutCid, lockCid, registeredProvider, builderId, codecId, sdk});
   // In a batch these borrowed references survive another Provider's preparation.
   return batch ? context.prepareConfiguration(borrow) : borrow();
 }
 
 async function prepareSdkProviderTasks(context: ConfigurationContext, selected: SelectedTasks,
   original: PreparedProvider, batch = false) {
-  const {config, runtimeCid, builderCid, lockCid, endpoint, selector, modelId, builderId, codecId,
-    sdk, registeredMode} = original;
+  const {config, runtimeCid, builderCid, lockCid, builderId, codecId, sdk} = original;
   const physicalLimits = config.physicalLimits;
   const select = () => ({original,
     owned: selected.tasks.filter(task => task.providerId === config.providerId),
-    profiles: new Map<string, {profile: unknown; selectedSdk: RegisteredSdk | undefined; endpoint: string;
+    profiles: new Map<string, {profile: unknown; selectedSdk: RegisteredSdk; endpoint: string;
       codecId: string}>(), raw: undefined as Awaited<ReturnType<ConfigurationContext['prepareRawPolicies']>> | undefined});
   // The Host caps its Task list. Fund this extra per-Provider index under the
   // initial configuration owner while later Providers prepare their Tasks.
   const prepared = batch ? await context.prepareConfiguration(select) : select();
   const {owned, profiles} = prepared;
   if (owned.length === 0) refuse('OpenAIProviderTasksUnavailable');
-  if (!registeredMode) await selected.verifyChatConfiguration(owned[0].name, selector, modelId, endpoint);
   prepared.raw = await context.prepareRawPolicies(policies);
   for (const task of owned) {
-    const selectedSdk = original.registeredProvider?.routes.find(route => route.route.selector === task.modelSelector);
-    if (original.registeredProvider !== undefined && selectedSdk === undefined) {
+    const selectedSdk = original.registeredProvider.routes.find(route => route.route.selector === task.modelSelector);
+    if (selectedSdk === undefined) {
       refuse('InstalledModelResolvedConfigurationMismatch');
     }
-    const taskEndpoint = selectedSdk?.route.endpoint ?? endpoint;
-    const taskCodec = selectedSdk?.sdkProvider === 'openai.responses' && selectedSdk.route.apiMode === 'responses'
+    const taskEndpoint = selectedSdk.route.endpoint;
+    const taskCodec = selectedSdk.sdkProvider === 'openai.responses' && selectedSdk.route.apiMode === 'responses'
       ? 'actql/openai-responses-envelope' : codecId;
     const profile = await selected.responseProfileFor(task.name, () => JSON.stringify({
       version: 'actql-model-response-profile/0.1', adapter: {builder_id: builderId, builder_revision: '1',
@@ -489,7 +376,7 @@ async function prepareSdkProviderTasks(context: ConfigurationContext, selected: 
 }
 
 function createSdkProviderEntry(moon: Runtime, selected: SelectedTasks, {original, owned, profiles, raw}: PreparedProviderTasks) {
-  const {config, runtimeCid, builderCid, layoutCid, apiKey, builderId, sdk, projectMode} = original;
+  const {config, runtimeCid, builderCid, layoutCid, builderId, sdk} = original;
   const physicalLimits = config.physicalLimits;
   const bindingOriginals = selected.bindingOriginalsFor(config.providerId);
   const now = Date.now(), at = (ms: number) => new Date(ms).toISOString();
@@ -541,14 +428,8 @@ function createSdkProviderEntry(moon: Runtime, selected: SelectedTasks, {origina
         maxHeaderBytes: limits.header_bytes, observedHeaders: ['content-type', 'x-request-id']},
       physicalAcquisitionLimits: {maxPlaintextBytes: 131072, maxBorrowedBackingBytes: 262144, maxReads: 256},
       observeAt: () => new Date().toISOString(), observeEgress: observation(config.observeEgress)};
-    const register = selectedSdk?.credential === undefined
-      ? createConfiguredUndiciOpenAIChatRegistration({...physical,
-        modelSelector: task.modelSelector, modelId: config.modelId, baseURL: config.baseURL, apiKey,
-        originalStringLimits: {maxApiKeyCodeUnits: projectMode ? unboundOpenAICredential.length : config.maxSecretBytes,
-          maxBaseURLCodeUnits: 2048, maxModelIdCodeUnits: 256}},
-      config.transportTimeouts, projectMode ? config.maxSecretBytes : undefined, selectedSdk)
-      : createConfiguredUndiciRegisteredSdkRegistration(physical,
-        config.transportTimeouts, config.maxSecretBytes, selectedSdk);
+    const register = createConfiguredUndiciRegisteredSdkRegistration(physical,
+      config.transportTimeouts, config.maxSecretBytes, selectedSdk);
     return Object.freeze({taskCid: task.taskCid, entry: register(moon)[0]});
   });
   return Object.freeze({...entries[0]!.entry,

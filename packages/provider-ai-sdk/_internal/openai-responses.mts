@@ -1,7 +1,6 @@
 import {createOpenAI} from '@ai-sdk/openai';
 import {isDeepStrictEqual} from 'node:util';
 import type {RegisteredRequestOptions, RegisteredRequestRoute} from './model-port.mjs';
-import {unboundOpenAICredential} from './original-undici-transport.mjs';
 
 export const sdkProvider = 'openai.responses';
 export const optionNamespace = 'openai';
@@ -10,7 +9,7 @@ const endpoint = 'https://api.openai.com/v1/responses';
 const supportedModel = 'gpt-4.1-mini';
 
 export const credentialBinding = Object.freeze({reference: 'OPENAI_API_KEY', header: 'authorization',
-  endpoint, prefix: 'Bearer ', placeholder: unboundOpenAICredential});
+  endpoint, prefix: 'Bearer ', placeholder: 'actql-unbound-openai-credential'});
 
 function matchesRoute(modelId: string, route: RegisteredRequestRoute) {
   return modelId === supportedModel && route.modelId === modelId &&
@@ -22,7 +21,7 @@ export function createLanguageModel(factory: typeof createOpenAI, modelId: strin
   if (factory !== createOpenAI || !matchesRoute(modelId, route)) {
     throw new TypeError('InvalidRegisteredOpenAIResponses');
   }
-  return factory({baseURL: 'https://api.openai.com/v1', apiKey: unboundOpenAICredential, fetch}).responses(modelId);
+  return factory({baseURL: 'https://api.openai.com/v1', apiKey: credentialBinding.placeholder, fetch}).responses(modelId);
 }
 
 export function verifyRequest(wire: string, options: RegisteredRequestOptions, route: RegisteredRequestRoute,

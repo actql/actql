@@ -7,7 +7,7 @@ import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 import * as wire from '../packages/client-wire/interactive-control.generated.js';
 import {validRunStateShape} from '../packages/client-wire/client-host.generated.js';
 import {identityVectors, shapeVectors, negativeVectors, legacyState, profile,
-  command, cid, bindingVectors, running} from './fixtures/interactive-run-control-vectors.mjs';
+  command, confirmWrite, cid, bindingVectors, running, breakpointResume} from './fixtures/interactive-run-control-vectors.mjs';
 import {explanationBody, explanationCid, explanationFacts, explanationLeakageVectors,
   runExplanation, unprojectedRunExplanation} from './fixtures/explanation-facts-vectors.mjs';
 import {relationPrefix, sampleIdentityVectors} from './fixtures/relation-sample-identity-vectors.mjs';
@@ -105,6 +105,70 @@ test('independent canonical preimages distinguish input-only output and operatio
   assert.notEqual(hash({...profile, retain: {samples: {max_items: 1}}}), identityVectors[0].cid);
 });
 
+test('the sealed breakpoint Resume commits to its original map, Step selection and revision', () => {
+  const {breakpoint_selection} = breakpointResume.interval;
+  const sealed = {...breakpointResume, self_cid: hash(breakpointResume)};
+  assert.ok(wire.validWireControlCommandShape(sealed));
+  const original = {
+    run_ref: sealed.run_ref,
+    operation_id: sealed.operation_id,
+    command_cid: sealed.self_cid,
+    accepted_from_revision: sealed.expected_control_revision,
+  };
+  assert.ok(wire.validWireControlOperationRefShape(original));
+  for (const candidate of [
+    {...breakpointResume, interval: {...breakpointResume.interval,
+      breakpoint_selection: {...breakpoint_selection, logical_map_cid: cid('2')}}},
+    {...breakpointResume, interval: {...breakpointResume.interval,
+      breakpoint_selection: {...breakpoint_selection, before_step_ids: [cid('3')]}}},
+    {...breakpointResume, expected_control_revision: 19},
+    {...breakpointResume, run_ref: {...breakpointResume.run_ref, namespaceId: 'foreign'}},
+  ]) {
+    assert.ok(wire.validWireControlCommandShape({...candidate, self_cid: hash(candidate)}));
+    assert.notEqual(hash(candidate), original.command_cid);
+  }
+  const {breakpoint_selection: _, ...unsealedSelection} = breakpointResume.interval;
+  assert.equal(wire.validWireControlCommandShape({...sealed, interval: unsealedSelection}), false);
+  assert.equal(wire.validWireControlCommandShape({...sealed, operation: 'pause'}), false);
+});
+
+test('write confirmation binds one original set/member and has no resume interval or approval', () => {
+  const admit = (body: object) => wire.validWireControlCommandShape({...body, self_cid: hash(body)});
+  const {effect_write, ...missing} = confirmWrite;
+  assert.equal(admit(confirmWrite), true);
+  for (const candidate of [missing,
+    {...confirmWrite, interval: command.interval},
+    {...confirmWrite, expected_control_revision: 1},
+    {...confirmWrite, expected_control_revision: 2147483647},
+    {...confirmWrite, effect_write: {...effect_write, unit_id: 'bad unit'}},
+    {...confirmWrite, effect_write: {...effect_write, member_preview_cid: 'absent'}},
+    {...confirmWrite, effect_write: {...effect_write, approved: true}},
+    {...command, effect_write},
+  ]) assert.equal(admit(candidate), false);
+  for (const different of [{unit_id: 'different'}, {effect_preview_cid: cid('e')}, {member_preview_cid: cid('f')}]) {
+    const candidate = {...confirmWrite, effect_write: {...effect_write, ...different}};
+    assert.equal(admit(candidate), true);
+    assert.notEqual(hash(candidate), hash(confirmWrite));
+  }
+});
+
+test('before-write observation requires the exact typed Effect selection', () => {
+  const observed = shapeVectors.find(vector => vector.name === 'controlled_run_state' && 'boundary' in vector.value);
+  assert.ok(observed);
+  const original = {kind: 'effect_write', step_id: null, position: 'before', consumed_boundary_cid: cid('a'),
+    effect_write: {unit_id: 'write-opportunities', effect_preview_cid: cid('b'), member_preview_cid: cid('c')}};
+  const state = {...observed.value, stop_reason: 'effect_write', boundary: original};
+  assert.equal(wire.validWireControlledRunStateShape(state), true);
+  const {effect_write: _selection, ...withoutSelection} = original;
+  for (const boundary of [withoutSelection, {...original, kind: 'logical_step'},
+    {...original, position: 'after'}, {...original, step_id: cid('d')},
+    {...original, effect_write: {...original.effect_write, unit_id: ''}},
+    {...original, effect_write: {...original.effect_write, current_value: 'secret'}}]) {
+    assert.equal(wire.validWireControlledRunStateShape({...state, boundary}), false);
+  }
+  assert.equal(wire.validWireControlledRunStateShape({...state, stop_reason: 'step'}), false);
+});
+
 test('private Relation Sample seals preserve the current public schema and identity domains', () => {
   const registry = buildControlRegistry();
   const remainingSchemas = {...registry.schema_cids};
@@ -121,7 +185,17 @@ test('private Relation Sample seals preserve the current public schema and ident
     delete remainingDomains[name];
   }
   assert.equal(Object.keys(remainingSchemas).length, 47);
-  assert.equal(hash(remainingSchemas),
+  assert.equal(remainingSchemas.control_interval, 'sha256:1f36e9ba1e0d3de12adc8564ab8b3e401d1eaac2554453665324505254fcdc45');
+  assert.equal(remainingSchemas.control_command, 'sha256:284fa01119e327af0a57cc4a45a288214264573dd5a11c92eda39683fa32208f');
+  assert.equal(remainingSchemas.controlled_run_state, 'sha256:eae860a6f564f069bd1f3cebb06867d14cdb1f3b68488213585485ac66381361');
+  assert.equal(remainingSchemas.run_view, 'sha256:daf99c1333c71d5369c71b9581aaefb894e3d71806def43f6da2db4c76094c15');
+  assert.equal(remainingSchemas.plan_view, 'sha256:96c085e289c370c4156cd5668fc8755512324923e45482b29db84f5a2626bd8a');
+  assert.equal(hash({...remainingSchemas,
+    plan_view: 'sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4',
+    control_interval: 'sha256:96c7f78a4f3b7fa1c28767a62af8bb2b30d9b0e6d149221637161fa661caaa27',
+    control_command: 'sha256:3652d5b0ccd085bcb7077cae918e6c802fa6d8e7d2ef57fdf533b591bcb23365',
+    controlled_run_state: 'sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c',
+    run_view: 'sha256:080a02459f184f92fb956141c2105b3ea36d0ac7f2efd02f06dcc9ac4b08a293'}),
     'sha256:5e1c4b0eb8f19212501a3f2bc30694087948ad335e572275a40f04d2044e2764');
   assert.equal(Object.keys(remainingDomains).length, 10);
   assert.equal(hash(remainingDomains),

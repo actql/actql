@@ -32,10 +32,14 @@ pub fn client_program_installed_chat_configuration_matches(
   selector : String,
   model_id : String,
   endpoint : String,
+  transport : String,
 ) -> Bool {
+  if transport != "portable-http" || !endpoint.has_prefix("https://") {
+    return false
+  }
   @publication_host.client_model_resolved_configuration_matches(
-    binding, configuration_wire, provider_id, selector, model_id, "ai-sdk", "chat_completions",
-    endpoint,
+    binding, configuration_wire, provider_id, selector, model_id, "portable-http",
+    "chat-completions", endpoint,
   )
 }
 

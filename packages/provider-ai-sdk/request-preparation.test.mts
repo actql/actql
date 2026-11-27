@@ -9,12 +9,13 @@ import {isDeepStrictEqual} from 'node:util';
 import {createOpenAI} from '@ai-sdk/openai';
 import {createAnthropic} from '@ai-sdk/anthropic';
 import {createGoogle} from '@ai-sdk/google';
-import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
+import * as chat from './_internal/openai-chat.mjs';
 import * as anthropic from './_internal/anthropic-messages.mjs';
 import * as google from './_internal/google-generate-content.mjs';
 import * as responses from './_internal/openai-responses.mjs';
 import {interceptSdkRequest, prepareRegisteredSdkLanguageModel, pollSdkPreparation, sdkPreparedRequest,
-  deliverSdkResponse, pollSdkDecode, takeSdkDecodedResult,
+  prepareSdkTransport, startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
+  confirmSavedSdkTransportResponse, pollSdkDecode, takeSavedSdkDecodedResult,
   cancelSdkPreparation, cleanupSdkPreparation} from './_internal/intercepted-request.mjs';
 
 type RegisteredOptions = LanguageModelV4CallOptions & RegisteredRequestOptions;
@@ -22,24 +23,34 @@ type DecodedSdk = Awaited<ReturnType<LanguageModelV4['doGenerate']>>;
 const schema: JSONSchema7 = {type: 'object', properties: {assessment: {type: 'string'}},
   required: ['assessment'], additionalProperties: false};
 const text = 'Original e\u0301\r\n =literal';
-const expectedBody = {model: 'gpt-4.1-nano', max_tokens: 16,
+const expectedBody = {model: 'gpt-4.1-nano', max_tokens: 16, temperature: 0, top_p: 1,
   response_format: {type: 'json_schema', json_schema: {schema, strict: true,
     name: 'assessment'}}, store: false,
-  messages: [{role: 'user', content: text}]};
+  messages: [{role: 'system', content: 'Return the assessment.'}, {role: 'user', content: text}]};
 const responseWire = JSON.stringify({id: 'fixture-chat-1', object: 'chat.completion',
   created: 0, model: 'fixture-reported-model', choices: [{index: 0,
     message: {role: 'assistant', content: '{"assessment":"ok"}', refusal: null},
     finish_reason: 'stop'}], usage: {prompt_tokens: 3, completion_tokens: 4,
       total_tokens: 7}});
-function preparation(overrides: Partial<Parameters<typeof prepareOpenAIChatRequest>[0]> = {}) {
-  return prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
-    baseURL: 'https://fixture.invalid/v1', apiKey: 'fixture-secret-never-log',
-    options: {prompt: [{role: 'user', content: [{type: 'text', text}]}],
-      maxOutputTokens: 16, responseFormat: {type: 'json', schema,
-        name: 'assessment'}, providerOptions: {openai: {store: false,
-          strictJsonSchema: true}}},
-    maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16,
-    notify() {}, ...overrides});
+function preparation({maxRequestBytes = 4096} = {}) {
+  const selector = 'fixture-assessment', admission = Object.freeze({});
+  const modelId = 'gpt-4.1-nano';
+  const route = {modelId, apiMode: 'chat_completions', endpoint: chat.credentialBinding.endpoint};
+  const providerOptions = {openai: {store: false, strictJsonSchema: true}};
+  const options: RegisteredOptions = {
+    prompt: [{role: 'system', content: 'Return the assessment.'},
+      {role: 'user', content: [{type: 'text', text}]}],
+    maxOutputTokens: 16, temperature: 0, topP: 1,
+    responseFormat: {type: 'json', schema, name: 'assessment'}, providerOptions,
+  };
+  return prepareRegisteredSdkLanguageModel({
+    moon: {clientProgramAdmittedStructuredSdkRouteMatches: (...actual: unknown[]) =>
+      isDeepStrictEqual(actual, [admission, selector, modelId, route.apiMode, route.endpoint])},
+    admission, selector, ...route, sdkProvider: chat.sdkProvider, options,
+    createLanguageModel: fetch => chat.createLanguageModel(createOpenAI, modelId, fetch, route),
+    verifyRequest: body => chat.verifyRequest(body, options, route, providerOptions),
+    maxRequestBytes, maxHeaderBytes: 4096, maxHeaders: 16, notify() {},
+  });
 }
 async function eventually<T extends {kind: string}, K extends T['kind']>(read: () => T, desired: K): Promise<Extract<T, {kind: K}>> {
   for (let i = 0; i < 30; i++) {
@@ -55,6 +66,30 @@ async function release(handle: unknown) {
     await turn();
   }
   assert.fail('SDK physical preparation did not retire');
+}
+
+// A physical response double supplies one bounded response. The fixture
+// confirms its exact bytes without claiming a Core or durable Store grant.
+async function confirmResponse(handle: unknown, wire: string, status = 200) {
+  const bytes = new TextEncoder().encode(wire);
+  let sends = 0;
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk',
+    responseLimits: {maxBytes: 8192, maxChunkBytes: 8192, maxChunks: 2, maxHeaderBytes: 1024},
+    async fetch() {
+      assert.equal(++sends, 1);
+      return new Response(bytes, {status, headers: {'content-type': 'application/json'}});
+    }});
+  startSdkTransport(handle);
+  await eventually(() => pollSdkTransport(handle), 'response');
+  const raw = sdkTransportRawObservation(handle);
+  assert(raw?.transportComplete);
+  assert.equal(raw.status, status);
+  assert.deepEqual(raw.body, bytes);
+  assert.deepEqual(pollSdkDecode(handle), {kind: 'pending'});
+  assert.equal(sends, 1);
+  const receipt = Object.freeze({});
+  confirmSavedSdkTransportResponse(handle, raw, {receipt, bytes});
+  return {raw, receipt, bytes};
 }
 
 test('registered Anthropic preserves the selected Messages body and refuses non-neutral topP', async () => {
@@ -88,9 +123,10 @@ test('registered Anthropic preserves the selected Messages body and refuses non-
       const reply = {id: 'anthropic-fixture', type: 'message', role: 'assistant', model: modelId,
         stop_reason: 'end_turn', content: [{type: 'text', text: '{"assessment":"ok"}'}],
         usage: {input_tokens: 0, output_tokens: 4}};
-      deliverSdkResponse(handle, new Response(JSON.stringify(reply), {headers: {'content-type': 'application/json'}}));
+      const {receipt, bytes} = await confirmResponse(handle, JSON.stringify(reply));
       await eventually(() => pollSdkDecode(handle), 'ready');
-      assert.equal(((takeSdkDecodedResult(handle) as DecodedSdk).content[0] as {text: string}).text, '{"assessment":"ok"}');
+      const decoded = takeSavedSdkDecodedResult(handle, receipt, bytes) as DecodedSdk;
+      assert.equal((decoded.content[0] as {text: string}).text, '{"assessment":"ok"}');
       assert.deepEqual(anthropic.readReportedUsage(reply), {inputTokens: 0n, outputTokens: 4n});
       assert.equal(anthropic.readReportedUsage({}), undefined);
     } finally {await release(handle);}
@@ -127,9 +163,10 @@ test('registered Google preserves the selected GenerateContent body and reported
     const reply = {modelVersion: modelId, candidates: [{index: 0, finishReason: 'STOP',
       content: {role: 'model', parts: [{text: '{"assessment":"ok"}'}]}}],
     usageMetadata: {promptTokenCount: 0, candidatesTokenCount: 4, thoughtsTokenCount: 2}};
-    deliverSdkResponse(handle, new Response(JSON.stringify(reply), {headers: {'content-type': 'application/json'}}));
+    const {receipt, bytes} = await confirmResponse(handle, JSON.stringify(reply));
     await eventually(() => pollSdkDecode(handle), 'ready');
-    assert.equal(((takeSdkDecodedResult(handle) as DecodedSdk).content[0] as {text: string}).text, '{"assessment":"ok"}');
+    const decoded = takeSavedSdkDecodedResult(handle, receipt, bytes) as DecodedSdk;
+    assert.equal((decoded.content[0] as {text: string}).text, '{"assessment":"ok"}');
     assert.deepEqual(google.readReportedUsage(reply), {inputTokens: 0n, outputTokens: 6n});
     assert.deepEqual(google.readReportedUsage({usageMetadata: {thoughtsTokenCount: 2}}),
       {inputTokens: undefined, outputTokens: undefined});
@@ -146,29 +183,29 @@ test('real pinned SDK captures one exact original request with no ambient networ
   await eventually(() => pollSdkPreparation(handle), 'ready');
   const request = sdkPreparedRequest(handle)!;
   assert.deepEqual(JSON.parse(request.body), expectedBody);
-  assert.equal(request.url, 'https://fixture.invalid/v1/chat/completions');
+  assert.equal(request.url, 'https://api.openai.com/v1/chat/completions');
   assert.equal(request.method, 'POST');
   assert.equal(request.requestBytes, Buffer.byteLength(request.body));
   assert.equal(request.body.includes('e\u0301'), true);
-  assert.equal(JSON.stringify(request).includes('fixture-secret-never-log'), false);
+  assert.equal(JSON.stringify(request).includes(chat.credentialBinding.placeholder), false);
   assert.deepEqual(pollSdkDecode(handle), {kind: 'pending'});
   assert.equal(requests, 0);
 });
 
-test('the same suspended real SDK invocation decodes one supplied response without restart', async t => {
+test('the same suspended real SDK invocation decodes one confirmed response without restart', async t => {
   const handle = preparation();
   t.after(() => release(handle));
   await eventually(() => pollSdkPreparation(handle), 'ready');
-  deliverSdkResponse(handle, new Response(responseWire, {headers: {
-    'content-type': 'application/json'}}));
-  assert.throws(() => deliverSdkResponse(handle, new Response(responseWire)),
-    {code: 'SdkResponseDeliveryRefused'});
+  const {raw, receipt, bytes} = await confirmResponse(handle, responseWire);
+  assert.throws(() => confirmSavedSdkTransportResponse(handle, raw, {receipt, bytes}),
+    {code: 'SdkSavedResponseBindingRefused'});
+  assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
   await eventually(() => pollSdkDecode(handle), 'ready');
-  const value = takeSdkDecodedResult(handle) as Awaited<ReturnType<LanguageModelV4['doGenerate']>>;
+  const value = takeSavedSdkDecodedResult(handle, receipt, bytes) as DecodedSdk;
   assert.deepEqual(value.content, [{type: 'text', text: '{"assessment":"ok"}'}]);
   assert.equal(value.response!.modelId, 'fixture-reported-model');
   assert.deepEqual(value.response!.body, JSON.parse(responseWire));
-  assert.throws(() => takeSdkDecodedResult(handle),
+  assert.throws(() => takeSavedSdkDecodedResult(handle, receipt, bytes),
     {code: 'SdkDecodedResultUnavailable'});
 });
 
@@ -213,11 +250,9 @@ test('a selected registered V4 factory serializes and decodes Responses through 
       type: 'output_text', text: '{"assessment":"ok"}', annotations: [],
     }],
   }], usage: {input_tokens: 3, output_tokens: 4, total_tokens: 7}};
-  deliverSdkResponse(handle, new Response(JSON.stringify(raw), {headers: {
-    'content-type': 'application/json',
-  }}));
+  const {receipt, bytes} = await confirmResponse(handle, JSON.stringify(raw));
   await eventually(() => pollSdkDecode(handle), 'ready');
-  assert.deepEqual((takeSdkDecodedResult(handle) as DecodedSdk).content, [
+  assert.deepEqual((takeSavedSdkDecodedResult(handle, receipt, bytes) as DecodedSdk).content, [
     {type: 'text', text: '{"assessment":"ok"}',
       providerMetadata: {openai: {itemId: 'fixture-message'}}},
   ]);
@@ -295,8 +330,9 @@ test('real SDK cancellation after interception retains cleanup until its Promise
   await eventually(() => pollSdkPreparation(handle), 'ready');
   cancelSdkPreparation(handle);
   assert.equal(cleanupSdkPreparation(handle), false);
-  assert.throws(() => deliverSdkResponse(handle, new Response(responseWire)),
-    {code: 'SdkResponseDeliveryRefused'});
+  const saved = {receipt: Object.freeze({}), bytes: new TextEncoder().encode(responseWire)};
+  assert.throws(() => confirmSavedSdkTransportResponse(handle, undefined, saved),
+    {code: 'SdkSavedResponseBindingRefused'});
   await release(handle);
   assert.equal(cleanupSdkPreparation(handle), true);
   assert.throws(() => pollSdkPreparation(handle), {code: 'ForeignSdkPreparation'});
@@ -310,8 +346,8 @@ test('copied and foreign preparation handles cannot observe, feed or retire a re
     assert.throws(() => pollSdkPreparation(foreign), {code: 'ForeignSdkPreparation'});
     assert.throws(() => sdkPreparedRequest(foreign), {code: 'ForeignSdkPreparation'});
     assert.throws(() => cleanupSdkPreparation(foreign), {code: 'ForeignSdkPreparation'});
-    assert.throws(() => deliverSdkResponse(foreign, new Response(responseWire)),
-      {code: 'ForeignSdkPreparation'});
+    assert.throws(() => confirmSavedSdkTransportResponse(foreign, undefined,
+      {receipt: Object.freeze({}), bytes: new Uint8Array()}), {code: 'ForeignSdkPreparation'});
   }
 });
 
@@ -355,8 +391,9 @@ test('an SDK that returns before its guarded response cannot issue a ready decod
     maxRequestBytes: 10, maxHeaderBytes: 10, maxHeaders: 2, notify() {},
     runSdk: () => ({invented: true})});
   await eventually(() => pollSdkPreparation(handle), 'rejected');
-  assert.throws(() => takeSdkDecodedResult(handle),
-    {code: 'SdkDecodedResultUnavailable'});
+  assert.equal(pollSdkDecode(handle).kind, 'rejected');
+  assert.throws(() => takeSavedSdkDecodedResult(handle, Object.freeze({}), new Uint8Array()),
+    {code: 'SdkSavedResponseBindingRefused'});
   await release(handle);
 });
 
@@ -394,14 +431,14 @@ test('real SDK response rejection is sanitized and never causes another model re
   t.after(() => release(handle));
   await eventually(() => pollSdkPreparation(handle), 'ready');
   const original = sdkPreparedRequest(handle)!;
-  deliverSdkResponse(handle, new Response(JSON.stringify({error: {
+  const {receipt, bytes} = await confirmResponse(handle, JSON.stringify({error: {
     message: 'secret sentinel must not be a diagnostic', type: 'rate_limit',
-    code: 'rate_limit'}}), {status: 429}));
+    code: 'rate_limit'}}), 429);
   const rejected = await eventually(() => pollSdkDecode(handle), 'rejected');
   assert.deepEqual(rejected, {kind: 'rejected', issue: 'SdkPreparationRejected'});
   assert.deepEqual(sdkPreparedRequest(handle), undefined);
   assert.equal(original.body, JSON.stringify(expectedBody));
-  assert.throws(() => takeSdkDecodedResult(handle),
+  assert.throws(() => takeSavedSdkDecodedResult(handle, receipt, bytes),
     {code: 'SdkDecodedResultUnavailable'});
 });
 

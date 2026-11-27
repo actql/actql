@@ -112,6 +112,20 @@ export declare function connect(options: Readonly<{
   mode: 'local'; owner?: 'local'; runtime?: 'embedded'; durability?: 'volatile' | 'durable';
   consentRefs?: readonly string[]; profile?: string; installation?: HostInstallation;
 }>): Promise<Client>;
+/** Configure SDK-free Chat for one protected Local Host deployment. Supply the
+ * returned callback as installation.registerModelProviders. */
+export declare function createHttpChatProvider(options: HttpChatProviderOptions):
+  NonNullable<HostInstallation['registerModelProviders']>;
+export type HttpChatProviderOptions = Readonly<{
+  providerId: string; modelSelector: string; modelId: string; endpoint: string;
+  credentialEnvironment: string;
+  dataHandlingContractWire: string;
+  rawPolicies: Readonly<Record<'retention' | 'metadata' | 'clock' | 'data', Readonly<{wire: string; cid: string}>>>;
+  generation: Readonly<{temperature: number; topP: number; maxOutputTokens: number; seed?: number}>;
+  budget: Readonly<{maxCalls: bigint; maxRows: number; maxTokens: bigint; maxCostUnits: bigint; maxDurationMs: bigint}>;
+  transportTimeouts: Readonly<{connectMs: number; headersMs: number; bodyMs: number; callMs: number}>;
+  observeEgress(): unknown;
+}>;
 export declare function publishSource(options?: Pick<HostInstallation,
   'directory' | 'sourceProfilePath' | 'resolveSourceSecret' | 'connectorTable'> & {signal?: AbortSignal}): Promise<unknown>;
 export declare function publishEffect(options?: Pick<HostInstallation,

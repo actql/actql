@@ -244,79 +244,173 @@ const schemas = {
         }
     },
     "control_interval": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-            "until",
-            "guards"
-        ],
-        "properties": {
-            "until": {
-                "type": "string",
-                "enum": [
-                    "step",
-                    "batch",
-                    "gate",
-                    "boundary",
-                    "breakpoint",
-                    "terminal"
-                ]
-            },
-            "guards": {
-                "oneOf": [
-                    {
-                        "type": "null"
+        "oneOf": [
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "until",
+                    "guards"
+                ],
+                "properties": {
+                    "until": {
+                        "type": "string",
+                        "enum": [
+                            "step",
+                            "batch",
+                            "gate",
+                            "boundary",
+                            "terminal"
+                        ]
                     },
-                    {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                            "estimated_cost_ceiling"
-                        ],
-                        "properties": {
-                            "estimated_cost_ceiling": {
+                    "guards": {
+                        "oneOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
                                 "type": "object",
                                 "additionalProperties": false,
                                 "required": [
-                                    "currency",
-                                    "amount_micro",
-                                    "scope_cids",
-                                    "tariff_revision_cid",
-                                    "valid_until"
+                                    "estimated_cost_ceiling"
                                 ],
                                 "properties": {
-                                    "currency": {
-                                        "type": "string",
-                                        "pattern": "^[A-Z]{3}$(?![\\s\\S])"
-                                    },
-                                    "amount_micro": {
-                                        "type": "string",
-                                        "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])"
-                                    },
-                                    "scope_cids": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string",
-                                            "pattern": "^sha256:[0-9a-f]{64}$"
-                                        },
-                                        "minItems": 1,
-                                        "uniqueItems": true
-                                    },
-                                    "tariff_revision_cid": {
-                                        "type": "string",
-                                        "pattern": "^sha256:[0-9a-f]{64}$"
-                                    },
-                                    "valid_until": {
-                                        "type": "string",
-                                        "format": "date-time"
+                                    "estimated_cost_ceiling": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                            "currency",
+                                            "amount_micro",
+                                            "scope_cids",
+                                            "tariff_revision_cid",
+                                            "valid_until"
+                                        ],
+                                        "properties": {
+                                            "currency": {
+                                                "type": "string",
+                                                "pattern": "^[A-Z]{3}$(?![\\s\\S])"
+                                            },
+                                            "amount_micro": {
+                                                "type": "string",
+                                                "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])"
+                                            },
+                                            "scope_cids": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string",
+                                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                                },
+                                                "minItems": 1,
+                                                "uniqueItems": true
+                                            },
+                                            "tariff_revision_cid": {
+                                                "type": "string",
+                                                "pattern": "^sha256:[0-9a-f]{64}$"
+                                            },
+                                            "valid_until": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        }
                                     }
                                 }
                             }
+                        ]
+                    }
+                }
+            },
+            {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "until",
+                    "guards",
+                    "breakpoint_selection"
+                ],
+                "properties": {
+                    "until": {
+                        "const": "breakpoint"
+                    },
+                    "guards": {
+                        "oneOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                    "estimated_cost_ceiling"
+                                ],
+                                "properties": {
+                                    "estimated_cost_ceiling": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                            "currency",
+                                            "amount_micro",
+                                            "scope_cids",
+                                            "tariff_revision_cid",
+                                            "valid_until"
+                                        ],
+                                        "properties": {
+                                            "currency": {
+                                                "type": "string",
+                                                "pattern": "^[A-Z]{3}$(?![\\s\\S])"
+                                            },
+                                            "amount_micro": {
+                                                "type": "string",
+                                                "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])"
+                                            },
+                                            "scope_cids": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string",
+                                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                                },
+                                                "minItems": 1,
+                                                "uniqueItems": true
+                                            },
+                                            "tariff_revision_cid": {
+                                                "type": "string",
+                                                "pattern": "^sha256:[0-9a-f]{64}$"
+                                            },
+                                            "valid_until": {
+                                                "type": "string",
+                                                "format": "date-time"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "breakpoint_selection": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "logical_map_cid",
+                            "before_step_ids"
+                        ],
+                        "properties": {
+                            "logical_map_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "before_step_ids": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                },
+                                "minItems": 1,
+                                "uniqueItems": true
+                            }
                         }
                     }
-                ]
+                }
             }
-        }
+        ]
     },
     "control_profile": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2640,8 +2734,29 @@ const schemas = {
                         "const": true
                     }
                 }
+            },
+            "entry_breakpoint_profile": {
+                "const": "all_operations"
             }
-        }
+        },
+        "allOf": [
+            {
+                "if": {
+                    "required": [
+                        "entry_breakpoint_profile"
+                    ]
+                },
+                "then": {
+                    "properties": {
+                        "capabilities": {
+                            "required": [
+                                "debug_entry"
+                            ]
+                        }
+                    }
+                }
+            }
+        ]
     },
     "control_resume_origin": {
         "oneOf": [
@@ -3374,7 +3489,8 @@ const schemas = {
                     "breakpoint",
                     "pause",
                     "guard_exceeded",
-                    "guard_unavailable"
+                    "guard_unavailable",
+                    "effect_write"
                 ]
             },
             "boundary": {
@@ -3412,14 +3528,72 @@ const schemas = {
                             "logical_step",
                             "batch",
                             "gate",
-                            "boundary"
+                            "boundary",
+                            "effect_write"
                         ]
                     },
                     "consumed_boundary_cid": {
                         "type": "string",
                         "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "effect_write": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "unit_id",
+                            "effect_preview_cid",
+                            "member_preview_cid"
+                        ],
+                        "properties": {
+                            "unit_id": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+                            },
+                            "effect_preview_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "member_preview_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                        }
                     }
-                }
+                },
+                "allOf": [
+                    {
+                        "if": {
+                            "properties": {
+                                "kind": {
+                                    "const": "effect_write"
+                                }
+                            },
+                            "required": [
+                                "kind"
+                            ]
+                        },
+                        "then": {
+                            "required": [
+                                "effect_write"
+                            ],
+                            "properties": {
+                                "step_id": {
+                                    "type": "null"
+                                },
+                                "position": {
+                                    "const": "before"
+                                }
+                            }
+                        },
+                        "else": {
+                            "not": {
+                                "required": [
+                                    "effect_write"
+                                ]
+                            }
+                        }
+                    }
+                ]
             },
             "matched_breakpoints": {
                 "type": "array",
@@ -3569,6 +3743,42 @@ const schemas = {
                 "if": {
                     "properties": {
                         "stop_reason": {
+                            "const": "effect_write"
+                        }
+                    },
+                    "required": [
+                        "stop_reason"
+                    ]
+                },
+                "then": {
+                    "properties": {
+                        "boundary": {
+                            "properties": {
+                                "kind": {
+                                    "const": "effect_write"
+                                }
+                            }
+                        }
+                    }
+                },
+                "else": {
+                    "properties": {
+                        "boundary": {
+                            "properties": {
+                                "kind": {
+                                    "not": {
+                                        "const": "effect_write"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "if": {
+                    "properties": {
+                        "stop_reason": {
                             "const": "breakpoint"
                         }
                     },
@@ -3608,7 +3818,8 @@ const schemas = {
                 "type": "string",
                 "enum": [
                     "pause",
-                    "resume"
+                    "resume",
+                    "confirm_write"
                 ]
             },
             "run_ref": {
@@ -3646,77 +3857,194 @@ const schemas = {
                 "minLength": 1
             },
             "interval": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": [
-                    "until",
-                    "guards"
-                ],
-                "properties": {
-                    "until": {
-                        "type": "string",
-                        "enum": [
-                            "step",
-                            "batch",
-                            "gate",
-                            "boundary",
-                            "breakpoint",
-                            "terminal"
-                        ]
-                    },
-                    "guards": {
-                        "oneOf": [
-                            {
-                                "type": "null"
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "until",
+                            "guards"
+                        ],
+                        "properties": {
+                            "until": {
+                                "type": "string",
+                                "enum": [
+                                    "step",
+                                    "batch",
+                                    "gate",
+                                    "boundary",
+                                    "terminal"
+                                ]
                             },
-                            {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                    "estimated_cost_ceiling"
-                                ],
-                                "properties": {
-                                    "estimated_cost_ceiling": {
+                            "guards": {
+                                "oneOf": [
+                                    {
+                                        "type": "null"
+                                    },
+                                    {
                                         "type": "object",
                                         "additionalProperties": false,
                                         "required": [
-                                            "currency",
-                                            "amount_micro",
-                                            "scope_cids",
-                                            "tariff_revision_cid",
-                                            "valid_until"
+                                            "estimated_cost_ceiling"
                                         ],
                                         "properties": {
-                                            "currency": {
-                                                "type": "string",
-                                                "pattern": "^[A-Z]{3}$(?![\\s\\S])"
-                                            },
-                                            "amount_micro": {
-                                                "type": "string",
-                                                "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])"
-                                            },
-                                            "scope_cids": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "string",
-                                                    "pattern": "^sha256:[0-9a-f]{64}$"
-                                                },
-                                                "minItems": 1,
-                                                "uniqueItems": true
-                                            },
-                                            "tariff_revision_cid": {
-                                                "type": "string",
-                                                "pattern": "^sha256:[0-9a-f]{64}$"
-                                            },
-                                            "valid_until": {
-                                                "type": "string",
-                                                "format": "date-time"
+                                            "estimated_cost_ceiling": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                    "currency",
+                                                    "amount_micro",
+                                                    "scope_cids",
+                                                    "tariff_revision_cid",
+                                                    "valid_until"
+                                                ],
+                                                "properties": {
+                                                    "currency": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Z]{3}$(?![\\s\\S])"
+                                                    },
+                                                    "amount_micro": {
+                                                        "type": "string",
+                                                        "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])"
+                                                    },
+                                                    "scope_cids": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string",
+                                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                                        },
+                                                        "minItems": 1,
+                                                        "uniqueItems": true
+                                                    },
+                                                    "tariff_revision_cid": {
+                                                        "type": "string",
+                                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                                    },
+                                                    "valid_until": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                }
                                             }
                                         }
                                     }
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                            "until",
+                            "guards",
+                            "breakpoint_selection"
+                        ],
+                        "properties": {
+                            "until": {
+                                "const": "breakpoint"
+                            },
+                            "guards": {
+                                "oneOf": [
+                                    {
+                                        "type": "null"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                            "estimated_cost_ceiling"
+                                        ],
+                                        "properties": {
+                                            "estimated_cost_ceiling": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                    "currency",
+                                                    "amount_micro",
+                                                    "scope_cids",
+                                                    "tariff_revision_cid",
+                                                    "valid_until"
+                                                ],
+                                                "properties": {
+                                                    "currency": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Z]{3}$(?![\\s\\S])"
+                                                    },
+                                                    "amount_micro": {
+                                                        "type": "string",
+                                                        "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])"
+                                                    },
+                                                    "scope_cids": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "string",
+                                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                                        },
+                                                        "minItems": 1,
+                                                        "uniqueItems": true
+                                                    },
+                                                    "tariff_revision_cid": {
+                                                        "type": "string",
+                                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                                    },
+                                                    "valid_until": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
+                            },
+                            "breakpoint_selection": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                    "logical_map_cid",
+                                    "before_step_ids"
+                                ],
+                                "properties": {
+                                    "logical_map_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                    },
+                                    "before_step_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                        },
+                                        "minItems": 1,
+                                        "uniqueItems": true
+                                    }
                                 }
                             }
-                        ]
+                        }
+                    }
+                ]
+            },
+            "effect_write": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "unit_id",
+                    "effect_preview_cid",
+                    "member_preview_cid"
+                ],
+                "properties": {
+                    "unit_id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+                    },
+                    "effect_preview_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "member_preview_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
                     }
                 }
             },
@@ -3746,6 +4074,37 @@ const schemas = {
                     "not": {
                         "required": [
                             "interval"
+                        ]
+                    }
+                }
+            },
+            {
+                "if": {
+                    "properties": {
+                        "operation": {
+                            "const": "confirm_write"
+                        }
+                    },
+                    "required": [
+                        "operation"
+                    ]
+                },
+                "then": {
+                    "required": [
+                        "effect_write"
+                    ],
+                    "properties": {
+                        "expected_control_revision": {
+                            "type": "integer",
+                            "minimum": 2,
+                            "maximum": 2147483646
+                        }
+                    }
+                },
+                "else": {
+                    "not": {
+                        "required": [
+                            "effect_write"
                         ]
                     }
                 }
@@ -4544,7 +4903,8 @@ const schemas = {
                             "breakpoint",
                             "pause",
                             "guard_exceeded",
-                            "guard_unavailable"
+                            "guard_unavailable",
+                            "effect_write"
                         ]
                     },
                     "boundary": {
@@ -4582,14 +4942,72 @@ const schemas = {
                                     "logical_step",
                                     "batch",
                                     "gate",
-                                    "boundary"
+                                    "boundary",
+                                    "effect_write"
                                 ]
                             },
                             "consumed_boundary_cid": {
                                 "type": "string",
                                 "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "effect_write": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                    "unit_id",
+                                    "effect_preview_cid",
+                                    "member_preview_cid"
+                                ],
+                                "properties": {
+                                    "unit_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+                                    },
+                                    "effect_preview_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                    },
+                                    "member_preview_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                    }
+                                }
                             }
-                        }
+                        },
+                        "allOf": [
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "effect_write"
+                                        }
+                                    },
+                                    "required": [
+                                        "kind"
+                                    ]
+                                },
+                                "then": {
+                                    "required": [
+                                        "effect_write"
+                                    ],
+                                    "properties": {
+                                        "step_id": {
+                                            "type": "null"
+                                        },
+                                        "position": {
+                                            "const": "before"
+                                        }
+                                    }
+                                },
+                                "else": {
+                                    "not": {
+                                        "required": [
+                                            "effect_write"
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
                     },
                     "matched_breakpoints": {
                         "type": "array",
@@ -4732,6 +5150,42 @@ const schemas = {
                                 "required": [
                                     "legacy_state"
                                 ]
+                            }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "stop_reason": {
+                                    "const": "effect_write"
+                                }
+                            },
+                            "required": [
+                                "stop_reason"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "boundary": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "effect_write"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "else": {
+                            "properties": {
+                                "boundary": {
+                                    "properties": {
+                                        "kind": {
+                                            "not": {
+                                                "const": "effect_write"
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     },
@@ -5629,7 +6083,8 @@ const schemas = {
                                             "breakpoint",
                                             "pause",
                                             "guard_exceeded",
-                                            "guard_unavailable"
+                                            "guard_unavailable",
+                                            "effect_write"
                                         ]
                                     },
                                     "boundary": {
@@ -5667,14 +6122,72 @@ const schemas = {
                                                     "logical_step",
                                                     "batch",
                                                     "gate",
-                                                    "boundary"
+                                                    "boundary",
+                                                    "effect_write"
                                                 ]
                                             },
                                             "consumed_boundary_cid": {
                                                 "type": "string",
                                                 "pattern": "^sha256:[0-9a-f]{64}$"
+                                            },
+                                            "effect_write": {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                    "unit_id",
+                                                    "effect_preview_cid",
+                                                    "member_preview_cid"
+                                                ],
+                                                "properties": {
+                                                    "unit_id": {
+                                                        "type": "string",
+                                                        "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+                                                    },
+                                                    "effect_preview_cid": {
+                                                        "type": "string",
+                                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                                    },
+                                                    "member_preview_cid": {
+                                                        "type": "string",
+                                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                                    }
+                                                }
                                             }
-                                        }
+                                        },
+                                        "allOf": [
+                                            {
+                                                "if": {
+                                                    "properties": {
+                                                        "kind": {
+                                                            "const": "effect_write"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "kind"
+                                                    ]
+                                                },
+                                                "then": {
+                                                    "required": [
+                                                        "effect_write"
+                                                    ],
+                                                    "properties": {
+                                                        "step_id": {
+                                                            "type": "null"
+                                                        },
+                                                        "position": {
+                                                            "const": "before"
+                                                        }
+                                                    }
+                                                },
+                                                "else": {
+                                                    "not": {
+                                                        "required": [
+                                                            "effect_write"
+                                                        ]
+                                                    }
+                                                }
+                                            }
+                                        ]
                                     },
                                     "matched_breakpoints": {
                                         "type": "array",
@@ -5817,6 +6330,42 @@ const schemas = {
                                                 "required": [
                                                     "legacy_state"
                                                 ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "if": {
+                                            "properties": {
+                                                "stop_reason": {
+                                                    "const": "effect_write"
+                                                }
+                                            },
+                                            "required": [
+                                                "stop_reason"
+                                            ]
+                                        },
+                                        "then": {
+                                            "properties": {
+                                                "boundary": {
+                                                    "properties": {
+                                                        "kind": {
+                                                            "const": "effect_write"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "else": {
+                                            "properties": {
+                                                "boundary": {
+                                                    "properties": {
+                                                        "kind": {
+                                                            "not": {
+                                                                "const": "effect_write"
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     },
@@ -9905,7 +10454,8 @@ const schemas = {
                             "breakpoint",
                             "pause",
                             "guard_exceeded",
-                            "guard_unavailable"
+                            "guard_unavailable",
+                            "effect_write"
                         ]
                     },
                     "boundary": {
@@ -9943,14 +10493,72 @@ const schemas = {
                                     "logical_step",
                                     "batch",
                                     "gate",
-                                    "boundary"
+                                    "boundary",
+                                    "effect_write"
                                 ]
                             },
                             "consumed_boundary_cid": {
                                 "type": "string",
                                 "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "effect_write": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                    "unit_id",
+                                    "effect_preview_cid",
+                                    "member_preview_cid"
+                                ],
+                                "properties": {
+                                    "unit_id": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+                                    },
+                                    "effect_preview_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                    },
+                                    "member_preview_cid": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                    }
+                                }
                             }
-                        }
+                        },
+                        "allOf": [
+                            {
+                                "if": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "effect_write"
+                                        }
+                                    },
+                                    "required": [
+                                        "kind"
+                                    ]
+                                },
+                                "then": {
+                                    "required": [
+                                        "effect_write"
+                                    ],
+                                    "properties": {
+                                        "step_id": {
+                                            "type": "null"
+                                        },
+                                        "position": {
+                                            "const": "before"
+                                        }
+                                    }
+                                },
+                                "else": {
+                                    "not": {
+                                        "required": [
+                                            "effect_write"
+                                        ]
+                                    }
+                                }
+                            }
+                        ]
                     },
                     "matched_breakpoints": {
                         "type": "array",
@@ -10093,6 +10701,42 @@ const schemas = {
                                 "required": [
                                     "legacy_state"
                                 ]
+                            }
+                        }
+                    },
+                    {
+                        "if": {
+                            "properties": {
+                                "stop_reason": {
+                                    "const": "effect_write"
+                                }
+                            },
+                            "required": [
+                                "stop_reason"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "boundary": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "effect_write"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "else": {
+                            "properties": {
+                                "boundary": {
+                                    "properties": {
+                                        "kind": {
+                                            "not": {
+                                                "const": "effect_write"
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     },
@@ -12195,7 +12839,8 @@ const schemas = {
                         "resume",
                         "cancel",
                         "resolve",
-                        "lookup_control_operation"
+                        "lookup_control_operation",
+                        "confirm_write"
                     ]
                 },
                 "minItems": 0,
@@ -12266,8 +12911,127 @@ const schemas = {
                         "const": true
                     }
                 }
+            },
+            "breakpoint_targets": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+            },
+            "entry_breakpoint_selection": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                    "logical_map_cid",
+                    "before_step_ids"
+                ],
+                "properties": {
+                    "logical_map_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "before_step_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "minItems": 1,
+                        "uniqueItems": true,
+                        "maxItems": 32
+                    }
+                }
             }
-        }
+        },
+        "allOf": [
+            {
+                "if": {
+                    "required": [
+                        "breakpoint_targets"
+                    ]
+                },
+                "then": {
+                    "properties": {
+                        "logical_map_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "run_state": {
+                            "properties": {
+                                "status": {
+                                    "const": "paused"
+                                },
+                                "boundary": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "logical_step"
+                                        },
+                                        "position": {
+                                            "const": "before"
+                                        },
+                                        "step_id": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "if": {
+                    "required": [
+                        "entry_breakpoint_selection"
+                    ]
+                },
+                "then": {
+                    "not": {
+                        "required": [
+                            "breakpoint_targets"
+                        ]
+                    },
+                    "properties": {
+                        "logical_map_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "run_state": {
+                            "required": [
+                                "boundary",
+                                "stop_reason"
+                            ],
+                            "properties": {
+                                "status": {
+                                    "const": "paused"
+                                },
+                                "stop_reason": {
+                                    "const": "entry"
+                                },
+                                "boundary": {
+                                    "properties": {
+                                        "kind": {
+                                            "const": "entry"
+                                        },
+                                        "position": {
+                                            "const": "before"
+                                        },
+                                        "step_id": {
+                                            "type": "string",
+                                            "pattern": "^sha256:[0-9a-f]{64}$"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]
     },
     "run_plan_view": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -12814,8 +13578,29 @@ const schemas = {
                                 "const": true
                             }
                         }
+                    },
+                    "entry_breakpoint_profile": {
+                        "const": "all_operations"
                     }
-                }
+                },
+                "allOf": [
+                    {
+                        "if": {
+                            "required": [
+                                "entry_breakpoint_profile"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "capabilities": {
+                                    "required": [
+                                        "debug_entry"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         }
     },
@@ -13368,8 +14153,29 @@ const schemas = {
                                         "const": true
                                     }
                                 }
+                            },
+                            "entry_breakpoint_profile": {
+                                "const": "all_operations"
                             }
-                        }
+                        },
+                        "allOf": [
+                            {
+                                "if": {
+                                    "required": [
+                                        "entry_breakpoint_profile"
+                                    ]
+                                },
+                                "then": {
+                                    "properties": {
+                                        "capabilities": {
+                                            "required": [
+                                                "debug_entry"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        ]
                     }
                 }
             },
@@ -19033,8 +19839,29 @@ const schemas = {
                                         "const": true
                                     }
                                 }
+                            },
+                            "entry_breakpoint_profile": {
+                                "const": "all_operations"
                             }
-                        }
+                        },
+                        "allOf": [
+                            {
+                                "if": {
+                                    "required": [
+                                        "entry_breakpoint_profile"
+                                    ]
+                                },
+                                "then": {
+                                    "properties": {
+                                        "capabilities": {
+                                            "required": [
+                                                "debug_entry"
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        ]
                     },
                     {
                         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -19585,8 +20412,29 @@ const schemas = {
                                                         "const": true
                                                     }
                                                 }
+                                            },
+                                            "entry_breakpoint_profile": {
+                                                "const": "all_operations"
                                             }
-                                        }
+                                        },
+                                        "allOf": [
+                                            {
+                                                "if": {
+                                                    "required": [
+                                                        "entry_breakpoint_profile"
+                                                    ]
+                                                },
+                                                "then": {
+                                                    "properties": {
+                                                        "capabilities": {
+                                                            "required": [
+                                                                "debug_entry"
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
                                     }
                                 }
                             },
@@ -22342,8 +23190,29 @@ const schemas = {
                                                         "const": true
                                                     }
                                                 }
+                                            },
+                                            "entry_breakpoint_profile": {
+                                                "const": "all_operations"
                                             }
-                                        }
+                                        },
+                                        "allOf": [
+                                            {
+                                                "if": {
+                                                    "required": [
+                                                        "entry_breakpoint_profile"
+                                                    ]
+                                                },
+                                                "then": {
+                                                    "properties": {
+                                                        "capabilities": {
+                                                            "required": [
+                                                                "debug_entry"
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
                                     },
                                     "facts": {
                                         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -24168,7 +25037,7 @@ const schemas = {
         }
     }
 };
-export const interactiveControlRegistryCid = "sha256:d83bc96bcf370b40f166ca6d32587aae383f5f822da52648d3ae7aa9a9603f32";
+export const interactiveControlRegistryCid = "sha256:c45b7644c4092d65b7d273c49d8be4f8794640c85ba7244e972c81f9d5088d35";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired", "RunStateVersionUnsupported", "RunNotPaused", "CheckpointPending", "ControlRevisionConflict", "ControlOperationConflict", "ControlRevisionExhausted", "BreakpointUnresolved", "BreakpointAmbiguous", "BreakpointPlanMismatch", "BreakpointUnsupported", "BoundaryUnsupported", "InitialPauseUnsupported", "InspectionRetentionUnsupported", "SampleCaptureRequiredFailed", "GuardExceeded", "GuardUnavailable", "InvalidCostAmount", "ExecutionProfileConflict", "CLIOptionConflict", "InteractiveTTYRequired"]);
 const valid = structuralWireValidator({ schemas, extended: true });
 export function validWireControlQuantityShape(value) {

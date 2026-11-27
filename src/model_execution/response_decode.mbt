@@ -272,7 +272,8 @@ fn advance_model_response_decode(
             }) {
             Ok(admission) => admission
             Err(issue) =>
-              return Err(
+              return fail_model_answer_decode(
+                cursor,
                 model_answer_decode_issue(
                   model_response_admission_issue(issue.kind),
                 ),
@@ -281,10 +282,11 @@ fn advance_model_response_decode(
           cursor.phase = AdmitAnswer(admission)
         }
         Ok(@source.JsonParseFailed(issue, ..)) =>
-          return Err(
+          return fail_model_answer_decode(
+            cursor,
             model_answer_decode_issue(model_response_source_issue(issue.issue)),
           )
-        Err(_) => return Err(OutputIdentity)
+        Err(_) => return fail_model_answer_decode(cursor, OutputIdentity)
       }
     AdmitAnswer(admission) =>
       match @decode.advance_admission(admission, 1) {
@@ -293,17 +295,22 @@ fn advance_model_response_decode(
           let typed = match
             @admitted.start_typed_admission(output, source, value_limits) {
             Ok(typed) => typed
-            Err(issue) => return Err(model_answer_typed_issue(issue))
+            Err(issue) =>
+              return fail_model_answer_decode(
+                cursor,
+                model_answer_typed_issue(issue),
+              )
           }
           cursor.phase = TypeAnswer(typed)
         }
         Ok(@decode.AdmissionFailed(issue, ..)) =>
-          return Err(
+          return fail_model_answer_decode(
+            cursor,
             model_answer_decode_issue(
               model_response_admission_issue(issue.kind),
             ),
           )
-        Err(_) => return Err(OutputIdentity)
+        Err(_) => return fail_model_answer_decode(cursor, OutputIdentity)
       }
     TypeAnswer(typed) =>
       match @admitted.advance_typed_admission(typed) {
@@ -315,12 +322,29 @@ fn advance_model_response_decode(
           return Ok(Some(checked))
         }
         @admitted.TypedAdmissionFailed(issue) =>
-          return Err(model_answer_typed_issue(issue))
-        @admitted.TypedAdmissionTerminal => return Err(OutputIdentity)
+          return fail_model_answer_decode(
+            cursor,
+            model_answer_typed_issue(issue),
+          )
+        @admitted.TypedAdmissionTerminal =>
+          return fail_model_answer_decode(cursor, OutputIdentity)
       }
     DecodeReclaimed => return Err(OutputIdentity)
   }
   Ok(None)
+}
+
+///|
+// Only a structural answer failure needs the original observation for
+// provider settlement. Release the answer cursor on engine refusals now.
+fn fail_model_answer_decode(
+  cursor : ModelResponseDecode,
+  issue : ModelExecutionIssue,
+) -> Result[@admitted.CheckedValue?, ModelExecutionIssue] {
+  if !(issue is Provider(SchemaInvalid)) {
+    cancel_model_response_decode(cursor)
+  }
+  Err(issue)
 }
 
 ///|

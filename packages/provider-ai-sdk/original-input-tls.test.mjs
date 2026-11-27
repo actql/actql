@@ -12,7 +12,7 @@ import {createServer} from 'node:https';
 import {syncBuiltinESMExports} from 'node:module';
 import tls from 'node:tls';
 import {createOriginalUndiciFetch, prepareOriginalUndiciFetch} from
-  './_internal/original-undici-transport.mjs';
+  '@actql/local-node/_internal/model-http-transport';
 
 const execute = promisify(execFile);
 
@@ -59,7 +59,7 @@ async function witness() {
   let clientSocket, closes = 0, preparing = false, call;
   Buffer.allocUnsafeSlow = function(length) {
     const bytes = Reflect.apply(slow, Buffer, [length]);
-    if (new Error().stack.includes('/_internal/original-undici-transport.mjs:')) {
+    if (new Error().stack.includes('/adapters/host-node/original-model-http-transport.mjs:')) {
       allocations.push({bytes, preparation: preparing});
     }
     return bytes;

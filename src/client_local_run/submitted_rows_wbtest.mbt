@@ -470,12 +470,11 @@ test "original submitted rows bind nominal checked input without starting or adm
   // used to choose the flags, initial revision or omitted private originals.
   let run = @json.parse(@utf8.decode(run))
   guard run is Object(run) else { fail("Expected original Run row") }
-  for
-    field in [
-      "dispatch_reserved", "physical_start_claimed", "cancellation_head",
-    ] {
+  for field in ["dispatch_reserved", "physical_start_claimed"] {
     assert_eq(run.get(field), Some(@json.to_json(false)))
   }
+  assert_eq(run.get("cancellation_head"), Some(@json.to_json(())))
+  assert_eq(run.get("cancellation_requested"), None)
   assert_eq(run.get("checkpoint"), Some(@json.to_json(())))
   assert_eq(run.get("publication_binding"), Some(@json.to_json(())))
   assert_eq(run.get("publication_policy_originals"), None)

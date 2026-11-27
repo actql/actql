@@ -20,9 +20,9 @@ before(async () => {
   scratch = await createOwnedScratch({parent: join(root, '..', '.codex-scratch'), prefix: 'actql-numeric-consumer-',
     label: 'Matching normal numeric consumer'});
   prepared = await prepareNumericScaleConsumer({repository: root, directory: scratch.path,
-    command(command, args, {cwd}) {
-      const env = {...process.env}; delete env.NODE_PATH; delete env.NODE_OPTIONS;
-      const child = spawnSync(command, args, {cwd, env, encoding: 'utf8', timeout: 120000,
+    command(command, args, {cwd, env = process.env}) {
+      const environment = {...env}; delete environment.NODE_PATH; delete environment.NODE_OPTIONS;
+      const child = spawnSync(command, args, {cwd, env: environment, encoding: 'utf8', timeout: 120000,
         maxBuffer: 8 * 1024 * 1024});
       assert.ifError(child.error); assert.equal(child.signal, null, child.stderr);
       assert.equal(child.status, 0, child.stderr);

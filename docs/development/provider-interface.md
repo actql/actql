@@ -15,15 +15,15 @@ and Unit Option are not generalized to diagnostic enum tags.
 | Attribute | Existing authority and executable reference |
 | --- | --- |
 | Responsibility | `src/model_execution/physical_call_request.mbt`; Provider `_internal/model-port.mjs`: `start`, `poll`, `cleanup` |
-| Inputs/outputs | `adapters/host-common/model-original-materials.mts.in`: `admit__PROVIDER__OriginalMaterials`; HTTP `original-chat-request.mjs`: `prepareOriginalHttpChatRequest`; SDK `original-openai-chat.mjs`: `prepareOriginalOpenAIChatRequest` |
-| Identity | `packages/provider-http/original-materials.test.mjs`: `actual HTTP Common readers`; `packages/provider-ai-sdk/original-materials.test.mjs`: `actual Common` |
-| Ownership | `src/model_execution/raw_capture_save.mbt`; `packages/provider-ai-sdk/original-materials-retirement.test.mjs`; Provider `_internal/model-port.mjs`: `rawCaptureBinder`, `cleanupRaw` |
+| Inputs/outputs | `adapters/host-common/model-original-materials.mts.in`: `admitHTTPOriginalMaterials`; HTTP `original-chat-request.mjs`: `prepareOriginalHttpChatRequest`; registered SDK `model-port.mts`: `createAdmittedRegisteredSdkPreflight` |
+| Identity | `packages/provider-http/original-materials.test.mjs`: `actual HTTP Common readers`; `adapters/host-node/infer-original-http-common.test.mjs`: separate equal profile refusal |
+| Ownership | `src/model_execution/raw_capture_save.mbt`; `adapters/host-node/infer-original-multi-call-store.test.mjs`; Provider `_internal/model-port.mjs`: `rawCaptureBinder`, `cleanupRaw` |
 | Synchronization | `packages/provider-http/model-port.test.mjs`; `packages/provider-ai-sdk/model-port.test.mjs`; SDK `_internal/native-decision-preflight.mjs`: `advance` |
 | Failure | Provider `_internal/model-port.mjs`: `failure`, `reconcileRaw`; `packages/provider-ai-sdk/model-port-retirement.test.mjs`: `failed save` |
 | Cancellation | Provider `_internal/model-port.mjs`: `abort`, `cleanup`; `packages/provider-http/model-port.test.mjs`: `cancellation` |
-| Resources | Provider `_internal/model-port.mjs`: `requestLimits`, `responseLimits`; SDK `_internal/original-openai-chat.mjs`: `projectionLimits`; SDK `model-port-retirement.test.mjs` |
+| Resources | Provider `_internal/model-port.mjs`: `requestLimits`, `responseLimits`; SDK `_internal/model-port.mts`: `projectionLimits`; SDK `model-port-retirement.test.mjs` |
 | Extension | `scripts/generate-js-compiler-bindings.mjs`: `generateCompilerBindings`; `scripts/generate-model-original-materials.mjs`; `scripts/provider-entrypoints.test.mjs` |
-| Verification | `scripts/js-compiler-binding-runtime.test.mjs`; `scripts/model-original-materials.test.mjs`; Provider `original-materials.test.mjs`, `model-port.test.mjs`; SDK `admitted-native-decision.test.mjs` |
+| Verification | `scripts/js-compiler-binding-runtime.test.mjs`; `scripts/model-original-materials.test.mjs`; HTTP `original-materials.test.mts`, `model-port.test.mts`; SDK `admitted-native-decision.test.mjs` |
 
 These references are review/discovery inputs, not a second operation contract or
 an execution receipt. Actual Common/Host tests, controlled SDK/HTTP fixtures,

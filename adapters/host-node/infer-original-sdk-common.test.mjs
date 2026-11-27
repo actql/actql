@@ -44,7 +44,7 @@ test('actual original policy body absence refuses before Approval Entry or SDK f
   assert.equal(f.opened.entry(0),undefined);
 });
 
-test('selected service uses the original Common Task and saved raw response without SDK answer adoption',async t=>{
+test('registered route uses the original Common Task and adopts the SDK answer from saved Raw',async t=>{
   const f=await originalSdkCommonFixture(t,moon,{responseWire,
     modelId:'gpt-4.1-mini-2025-04-14'});
   assert.equal(f.sends(),0);

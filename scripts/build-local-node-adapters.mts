@@ -5,7 +5,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {build} from 'esbuild';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
-import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {localNodeModelHttpCopySources, localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {assembleNodeDirectoryNative, buildNodeDirectoryNative, observeOrdinaryCompatibilityEngine}
   from './build-node-directory-native.mjs';
 import {initialControlPackageOriginal, renderInitialControlPackageOriginal}
@@ -25,6 +25,7 @@ type PackageManifest = {name: string; dependencies?: Record<string, unknown>;
   exports?: Record<string, string | {default?: unknown}>};
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const modelHttpEntry = 'adapters/host-node/original-model-http-transport.mjs';
 const inside = (root: string, path: string) => {
   const suffix = relative(root, path);
   return suffix === '' || !isAbsolute(suffix) && suffix !== '..' && !suffix.startsWith('..' + sep);
@@ -38,7 +39,10 @@ function declaredLocalNodePackageImport(inputs: ExternalInputs) {
   const read = (path: string) => JSON.parse(readFileSync(resolved.resolveFile(core.namespace, path), 'utf8')) as PackageManifest;
   const local = read('packages/local-node/package.json');
   const manifests = new Map<string, PackageManifest>();
-  return (specifier: string, originalSource?: string) => {
+  return (specifier: string, originalSource?: string, importer?: string) => {
+    if (specifier === 'undici') return originalSource === undefined &&
+      importer === join(inputs.coreRoot, modelHttpEntry) &&
+      Object.hasOwn(local.dependencies ?? {}, specifier);
     const match = /^(@[a-z0-9_-]+\/[a-z0-9_-]+)(\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*)?$/u.exec(specifier);
     if (!match || match[2]?.split('/').some(part => part === '.' || part === '..')) return false;
     const [, name, suffix = ''] = match;
@@ -88,7 +92,7 @@ export async function inspectExternalLocalNodeAdapterGraph(inputs: ExternalInput
         if (/^@actql\/sdk\/_internal(?:\/|$)/u.test(args.path) && importerOwner?.root !== inputs.coreRoot) {
           throw new Error(`UndeclaredLocalNodeDependency:${args.path}`);
         }
-        if (isBuiltin(args.path) || publicPackage(args.path)) return {path: args.path, external: true};
+        if (isBuiltin(args.path) || publicPackage(args.path, undefined, args.importer)) return {path: args.path, external: true};
         if (args.kind === 'entry-point') return {path: resolveInput(resolve(args.path))};
         if (!/^\.\.?\//u.test(args.path)) throw new Error(`UndeclaredLocalNodeDependency:${args.path}`);
         const url = new URL(args.path, pathToFileURL(args.importer));
@@ -140,6 +144,15 @@ export async function localNodeAdapterSourceInputs({root = repository, inputs = 
   if (sourcePaths.length < entries.length ||
       entries.some(path => !sourcePaths.some(entry => entry.path === path))) {
     throw new Error('IncompleteLocalNodeAdapterGraph');
+  }
+  // The private HTTP package and Local share the exact emitted implementation.
+  // Copy this closed cohort into the existing Local image. The consumer has no
+  // private provider package dependency or source-tree path.
+  const core = external?.modules.find(module => module.root === inputs.coreRoot);
+  if (external !== undefined && core === undefined) throw new Error('MissingLocalNodeModelHttpSourceOwner');
+  for (const {path,source} of localNodeModelHttpCopySources) {
+    sourcePaths.push({path,
+      source: core === undefined ? join(root, source) : external!.resolveFile(core.namespace, source)});
   }
   sourcePaths.push(...(external === undefined
     ? inputs.dataFiles.filter(path => path.startsWith('adapters/'))
@@ -272,5 +285,16 @@ checkConnectorData();
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await buildLocalNodeAdapters({check: process.argv.includes('--check')});
+  if (process.argv.length === 3 && process.argv[2] === '--stage-host-model-http-test') {
+    // Source-backed Common tests borrow the same Local peer export as the
+    // provider package. Stage just its emitted module graph, without building
+    // the unrelated directory companion or packing a second Client cohort.
+    const destination = join(repository, 'packages/local-node');
+    for (const path of adapterModuleGraph(repository, [modelHttpEntry])) {
+      const source = readFileSync(join(repository, path), 'utf8');
+      const output = join(destination, path);
+      mkdirSync(join(output, '..'), {recursive: true});
+      writeFileSync(output, rewriteLocalNodePackageImports(source, path));
+    }
+  } else await buildLocalNodeAdapters({check: process.argv.includes('--check')});
 }
