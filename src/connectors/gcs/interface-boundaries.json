@@ -105,7 +105,7 @@
                 "anchor": "## Collection target material"
               },
               {
-                "path": "scripts/mapping-contract.mjs",
+                "path": "scripts/mapping-contract.mts",
                 "anchor": "collection_resource_identity:"
               },
               {
@@ -2382,7 +2382,7 @@
                 "anchor": "## Collection target material"
               },
               {
-                "path": "scripts/mapping-contract.mjs",
+                "path": "scripts/mapping-contract.mts",
                 "anchor": "collection_resource_identity:"
               }
             ],
@@ -5015,7 +5015,7 @@
                 "anchor": "## Collection target material"
               },
               {
-                "path": "scripts/mapping-contract.mjs",
+                "path": "scripts/mapping-contract.mts",
                 "anchor": "collection_resource_identity:"
               },
               {
@@ -6422,7 +6422,7 @@
                 "anchor": "## Collection target material"
               },
               {
-                "path": "scripts/mapping-contract.mjs",
+                "path": "scripts/mapping-contract.mts",
                 "anchor": "collection_resource_identity:"
               }
             ],
@@ -7692,7 +7692,7 @@
                 "anchor": "## Collection target material"
               },
               {
-                "path": "scripts/mapping-contract.mjs",
+                "path": "scripts/mapping-contract.mts",
                 "anchor": "collection_resource_identity:"
               },
               {
