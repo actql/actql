@@ -281,10 +281,23 @@ fn portable_file_model_compute_plan(
   @local_host.ClientInstalledManagedRunIssue,
 ] {
   guard run.members is [selected_task] else { return Err(ForeignOriginal) }
-  let module_ = match @local_host.prepare_request_model_capture_module(
-      parent, slot, run.request, run.compiled, run.definition,
-      compilation, [], "", "", [file.transfer], [file.execution],
-      value.installed_sequences.contracts, true, 1, _ => [],
+  let module_ = match
+    @local_host.prepare_request_model_capture_module(
+      parent,
+      slot,
+      run.request,
+      run.compiled,
+      run.definition,
+      compilation,
+      [],
+      "",
+      "",
+      [file.transfer],
+      [file.execution],
+      value.installed_sequences.contracts,
+      true,
+      1,
+      _ => [],
       whole_sources=[file.capacity],
       component_factory=Some((_, prefix, suffix) => {
         portable_model_module_provider(run, selected_task, prefix, suffix)
@@ -295,16 +308,28 @@ fn portable_file_model_compute_plan(
   }
   let limits = selected_task.limits
   guard @local_host.portable_file_model_scope_inventory(
-      module_, limits.model.ledger.attempts.to_int64(),
+      module_,
+      limits.model.ledger.attempts.to_int64(),
       limits.model.ledger.holdings.to_int64(),
-    ) is Some((reservations, holdings, delegations)) else {
+    )
+    is Some((reservations, holdings, delegations)) else {
     return Err(InsufficientCapacity)
   }
   @local_host.prepare_request_model_capture_plan(
-    parent, slot, module_, run.request, run.compiled, run.definition,
-    selected_task.graph.occurrence, selected_task.graph, limits.model.ledger,
-    limits.mapping.logical.max_live_value_bytes, limits.identity.wire.max_bytes.to_int64(),
-    reservations, holdings, delegations,
+    parent,
+    slot,
+    module_,
+    run.request,
+    run.compiled,
+    run.definition,
+    selected_task.graph.occurrence,
+    selected_task.graph,
+    limits.model.ledger,
+    limits.mapping.logical.max_live_value_bytes,
+    limits.identity.wire.max_bytes.to_int64(),
+    reservations,
+    holdings,
+    delegations,
   )
 }
 
@@ -351,8 +376,13 @@ fn configure_portable_model_compute(
   guard value.preparations.get(original.preparation) is Some(preparation) &&
     original.sdk_submission is Some(submission) &&
     retained_sdk_portable_request(
-      value, preparation, original.configuration, current, submission,
-    ) is Some(held) &&
+      value,
+      preparation,
+      original.configuration,
+      current,
+      submission,
+    )
+    is Some(held) &&
     held.model_run_handle == Some(run_handle) &&
     held.model_run is None &&
     held.parent is Some(parent) &&
@@ -527,49 +557,53 @@ fn configure_portable_model_compute(
   execution.bounds = None
   let slot = preparation.slot
   let model_plan_result = if execution.file is Some(file) {
-    guard project_request_configuration(value, preparation.environment) is Some((configuration, check)) &&
+    guard project_request_configuration(value, preparation.environment)
+      is Some((configuration, check)) &&
       physical_equal(configuration, current) &&
-      check.local_file is Some(checker) && file.selection.matches_check(checker) else {
+      check.local_file is Some(checker) &&
+      file.selection.matches_check(checker) else {
       return Err(Configuration)
     }
-    portable_file_model_compute_plan(value, parent, slot, run, compilation, file)
+    portable_file_model_compute_plan(
+      value, parent, slot, run, compilation, file,
+    )
   } else {
     let selected_module = match
-    @local_host.prepare_request_model_source_free_module(
-      parent,
-      slot,
-      run.request,
-      run.compiled,
-      run.definition,
-      compilation,
-      value.installed_sequences.contracts,
-      true,
-      if count == 1 {
-        1
-      } else {
-        0
-      },
-      _ => [],
-      component_factory=if count == 1 {
-        Some((_, prefix, suffix) => {
-          portable_model_module_provider(run, run.members[0], prefix, suffix)
-        })
-      } else {
-        None
-      },
-      components_factory=if count > 1 {
-        Some((index, _, prefix, suffix) => {
-          portable_model_module_provider(
-            run,
-            run.members[index],
-            prefix,
-            suffix,
-          )
-        })
-      } else {
-        None
-      },
-    ) {
+      @local_host.prepare_request_model_source_free_module(
+        parent,
+        slot,
+        run.request,
+        run.compiled,
+        run.definition,
+        compilation,
+        value.installed_sequences.contracts,
+        true,
+        if count == 1 {
+          1
+        } else {
+          0
+        },
+        _ => [],
+        component_factory=if count == 1 {
+          Some((_, prefix, suffix) => {
+            portable_model_module_provider(run, run.members[0], prefix, suffix)
+          })
+        } else {
+          None
+        },
+        components_factory=if count > 1 {
+          Some((index, _, prefix, suffix) => {
+            portable_model_module_provider(
+              run,
+              run.members[index],
+              prefix,
+              suffix,
+            )
+          })
+        } else {
+          None
+        },
+      ) {
       Err(_) => return Err(Configuration)
       Ok(selected_module) => selected_module
     }
@@ -634,13 +668,19 @@ fn configure_portable_model_compute(
     return Err(AuthorizationMismatch)
   }
   if execution.file is Some(selected) {
-    guard physical.model_file is None && physical.file_managed is None &&
+    guard physical.model_file is None &&
+      physical.file_managed is None &&
       physical.run == run_handle else {
       return Err(Configuration)
     }
     physical.model_file = Some({
-      compute_handle, compute, selected, runtime: run, adopted, model: model_plan,
-      source: { capture: None, csv_read: None },
+      compute_handle,
+      compute,
+      selected,
+      runtime: run,
+      adopted,
+      model: model_plan,
+      source: { capture: None, csv_read: None, },
       sealing: false,
       evidence_capacity: None,
     })

@@ -307,7 +307,11 @@ test "claimed live continuation reads its actual Run locator and cancellation wi
       row => {
         match
           @host.retain_client_run_journal_row_original(
-            if stale_original.val { admitted.body } else { row.body },
+            if stale_original.val {
+              admitted.body
+            } else {
+              row.body
+            },
             plan.request,
             plan.definition,
           ) {
@@ -347,26 +351,31 @@ test "claimed live continuation reads its actual Run locator and cancellation wi
   stale_original.val = false
   let census : () -> Result[(Int, Int64), String] = () => Ok((0, 0L))
   guard @host.prepare_client_cancellation_journal_append(
-    plan.request,
-    @publication.run_definition_namespace(plan.definition).unwrap(),
-    "original-claimed-cancellation",
-    8,
-    1024,
-    run.publication_binding,
-    census,
-    () => Ok(Some(run)),
-    value => {
-      request: value.request,
-      definition: value.definition,
-      revision: 8L,
-      cancellation_requested: false,
-      publication_binding: value.publication_binding,
-    },
-    _ => Ok(None),
-    _ => Ok(false),
-    () => true,
-  ) is Ok(@host.AppendCancellation(cancel)) else { fail("missing original accepted cancellation") }
-  let (cancel_key, receipt, witness, _, _) = @host.client_cancellation_append_rows(cancel).unwrap()
+      plan.request,
+      @publication.run_definition_namespace(plan.definition).unwrap(),
+      "original-claimed-cancellation",
+      8,
+      1024,
+      run.publication_binding,
+      census,
+      () => Ok(Some(run)),
+      value => {
+        request: value.request,
+        definition: value.definition,
+        revision: 8L,
+        cancellation_requested: false,
+        publication_binding: value.publication_binding,
+      },
+      _ => Ok(None),
+      _ => Ok(false),
+      () => true,
+    )
+    is Ok(@host.AppendCancellation(cancel)) else {
+    fail("missing original accepted cancellation")
+  }
+  let (cancel_key, receipt, witness, _, _) = @host.client_cancellation_append_rows(
+    cancel,
+  ).unwrap()
   let cancelled = @host.client_run_journal_row_body(
     {
       ..run,
@@ -378,16 +387,35 @@ test "claimed live continuation reads its actual Run locator and cancellation wi
     run_observation_originals=observation,
   ).unwrap()
   physical[2] = ("client_runs", { ..admitted, body: cancelled, })
-  let exact_receipt : @host.ClientJournalPhysicalRow = { key: cancel_key, body: receipt, revision: 0L, }
-  let exact_witness : @host.ClientJournalPhysicalRow = { key: cancel_key, body: witness, revision: 0L, }
+  let exact_receipt : @host.ClientJournalPhysicalRow = {
+    key: cancel_key,
+    body: receipt,
+    revision: 0L,
+  }
+  let exact_witness : @host.ClientJournalPhysicalRow = {
+    key: cancel_key,
+    body: witness,
+    revision: 0L,
+  }
   physical.push(("client_cancellations", exact_receipt))
   physical.push(("client_cancel_originals", exact_witness))
   // A different operation is the explicit whole-Store audit's concern.
-  physical.push(("client_cancellations", { ..exact_receipt, key: "unrelated", body: b"unrelated", }))
+  physical.push(
+    (
+      "client_cancellations",
+      { ..exact_receipt, key: "unrelated", body: b"unrelated", },
+    ),
+  )
   assert_true(check(preparation, false) is Ok(_))
-  assert_eq(queries, [..selected, "client_cancellations", "client_cancel_originals"])
+  assert_eq(
+    queries,
+    [..selected, "client_cancellations", "client_cancel_originals"],
+  )
   assert_true(check(preparation, true) is Err(Inspection("cancel-read")))
-  assert_eq(queries, [..selected, "client_cancellations", "client_cancel_originals"])
+  assert_eq(
+    queries,
+    [..selected, "client_cancellations", "client_cancel_originals"],
+  )
   physical[6] = ("client_cancel_originals", { ..exact_witness, revision: 1L, })
   assert_true(check(preparation, false) is Err(Inspection("custody")))
   physical[5] = ("client_cancellations", { ..exact_receipt, key: "foreign", })
@@ -412,7 +440,9 @@ test "first admitted Run reobserves exact original generations without visiting 
   let preparation = submitted_rows_preparation("SELECT 1 AS n")
   let plan = submitted_rows_plan(preparation)
   let rows = submitted_rows_prepare(
-    plan, preparation, submitted_rows_before(preparation),
+    plan,
+    preparation,
+    submitted_rows_before(preparation),
   ).unwrap()
   let physical = local_observation_rows(rows, plan, preparation)
   let (_, run) = physical[2]
@@ -422,16 +452,22 @@ test "first admitted Run reobserves exact original generations without visiting 
   physical[2] = ("client_runs", run)
   physical[3] = ("client_submitted_intents", submitted)
   let (key, body) = @host.client_saved_run_reference_locator(
-    rows.reference, plan.request, plan.definition,
+    rows.reference,
+    plan.request,
+    plan.definition,
   ).unwrap()
   let locator : @host.ClientJournalPhysicalRow = { key, body, revision: 0L, }
   physical.push(("client_run_reference_index", locator))
-  physical.push(("client_runs", { ..run, key: "unrelated", body: b"unrelated", }))
+  physical.push(
+    ("client_runs", { ..run, key: "unrelated", body: b"unrelated", }),
+  )
   let queries : Array[String] = []
   let observe = (candidate, fail_locator) => {
     queries.clear()
     read_local_first_saved_submission(
-      rows, plan, candidate,
+      rows,
+      plan,
+      candidate,
       (table, key) => {
         queries.push(table)
         if table == "client_run_reference_index" && fail_locator {

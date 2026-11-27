@@ -202,7 +202,8 @@ pub fn produce_publication_sdk_live_return_control(
   if output.closing || output.output_closed || first.closing || first.pending {
     return -5
   }
-  if output.invoked || output.pending ||
+  if output.invoked ||
+    output.pending ||
     @buffers.buffer_output_limit(value.pool, output.slot) != Some(107) {
     return -33
   }
@@ -211,18 +212,28 @@ pub fn produce_publication_sdk_live_return_control(
   output.sdk_payload_parent = Some(first_handle)
   output.pending = true
   let result = with_sdk_export_transport_capacity(value, output, 4096L, () => {
-    let context = match original_sdk_read_context(
-      value, first, run, current_configuration, same_reader_census=true,
-    ) {
+    let context = match
+      original_sdk_read_context(
+        value,
+        first,
+        run,
+        current_configuration,
+        same_reader_census=true,
+      ) {
       Ok(context) => context
       Err(code) => return Err(code)
     }
-    let wire = match with_sdk_run_state_snapshot(
-      value, first, run, current_configuration,
-      (_, _, snapshot) => {
+    let wire = match
+      with_sdk_run_state_snapshot(value, first, run, current_configuration, (
+        _,
+        _,
+        snapshot,
+      ) => {
         guard @host.client_saved_submission_run_row(snapshot) is Some(row) &&
-          row.key.length() == 71 && row.revision >= 0L &&
-          row.body.length() > 0 && row.body.length() <= 262144 else {
+          row.key.length() == 71 &&
+          row.revision >= 0L &&
+          row.body.length() > 0 &&
+          row.body.length() <= 262144 else {
           return Err(-32)
         }
         let key = @utf8.encode(row.key)
@@ -240,8 +251,7 @@ pub fn produce_publication_sdk_live_return_control(
           }
         })
         Ok(key + coordinates + deadline)
-      },
-    ) {
+      }) {
       Ok(wire) => wire
       Err(code) => return Err(code)
     }
@@ -249,8 +259,14 @@ pub fn produce_publication_sdk_live_return_control(
       Ok(_) => ()
       Err(code) => return Err(code)
     }
-    let code = status(@buffers.supply_buffer_output(value.pool, output.slot, wire))
-    if code == 0 { Ok(()) } else { Err(code) }
+    let code = status(
+      @buffers.supply_buffer_output(value.pool, output.slot, wire),
+    )
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(code)
+    }
   })
   output.pending = false
   match result {

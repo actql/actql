@@ -655,16 +655,26 @@ pub fn confirm_saved_effect_file_outcome(
   max_nodes : Int,
   max_depth : Int,
 ) -> Bool {
-  guard @json.object_field(response.contract.value, "typed_outcome") is Some(outcome) else {
+  guard @json.object_field(response.contract.value, "typed_outcome")
+    is Some(outcome) else {
     return false
   }
   let operation = response.operation
-  match seal_effect_local_row_outcome(
-    operation.effect_preview_cid, operation.member_preview_cid,
-    operation.row_preview_cid, operation.dispatch_entry_cid,
-    response.contract, outcome, max_bytes, max_nodes, max_depth,
-  ) {
-    Ok(expected) => expected.identity == identity && expected.wire == wire &&
+  match
+    seal_effect_local_row_outcome(
+      operation.effect_preview_cid,
+      operation.member_preview_cid,
+      operation.row_preview_cid,
+      operation.dispatch_entry_cid,
+      response.contract,
+      outcome,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(expected) =>
+      expected.identity == identity &&
+      expected.wire == wire &&
       effect_row_outcome_receipt_terminal_state(expected) == Some("applied")
     Err(_) => false
   }
@@ -680,6 +690,9 @@ pub fn saved_file_final_receipt_matches(
 ) -> Bool {
   receipt.name == "run_receipt" &&
   contract_string(receipt, "effect_preview_cid") == Some(preview) &&
-  contract_string(receipt, "effect_set_apply_receipt_cid").map(valid_contract_cid) == Some(true) &&
+  contract_string(receipt, "effect_set_apply_receipt_cid").map(
+    valid_contract_cid,
+  ) ==
+  Some(true) &&
   contract_string(receipt, "captured_run_cid") == Some(captured)
 }

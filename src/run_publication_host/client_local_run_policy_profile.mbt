@@ -35,9 +35,14 @@ fn run_profile_value(wire : String) -> @canonical.CanonicalValue? {
   })
   .to_option()
   .bind(value => {
-    Some(@canonical.from_source(
-      value, LOCAL_POLICY_JSON_NODES, LOCAL_POLICY_JSON_DEPTH, LOCAL_POLICY_JSON_BYTES,
-    )) catch {
+    Some(
+      @canonical.from_source(
+        value,
+        LOCAL_POLICY_JSON_NODES,
+        LOCAL_POLICY_JSON_DEPTH,
+        LOCAL_POLICY_JSON_BYTES,
+      ),
+    ) catch {
       _ => None
     }
   })

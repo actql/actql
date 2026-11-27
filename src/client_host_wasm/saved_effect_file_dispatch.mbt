@@ -25,7 +25,8 @@ fn produce_saved_effect_file_dispatch(
 ) -> Int {
   guard !record.invoked && !record.output_closed else { return -33 }
   record.invoked = true
-  let candidate = match select_saved_effect_file_dispatch(value, record, configuration) {
+  let candidate = match
+    select_saved_effect_file_dispatch(value, record, configuration) {
     Ok(value) => value
     Err(code) => return code
   }
@@ -110,7 +111,9 @@ fn produce_saved_effect_file_dispatch(
   } else {
     validate_saved_effect_application(value, holder, configuration)
   }
-  if validated != 0 { return validated }
+  if validated != 0 {
+    return validated
+  }
   let account = configuration.account
   let tuple : @authorization.AccessTuple = {
     principal: configuration.tuple.principal,
@@ -138,7 +141,8 @@ fn produce_saved_effect_file_dispatch(
     return if denied.val { -4 } else { -32 }
   }
   let check = () => submission_lookup_current(value, holder, configuration)
-  let (run_key, run_extent, witness_key, witness_extent) = match candidate.previous {
+  let (run_key, run_extent, witness_key, witness_extent) = match
+    candidate.previous {
     None => {
       let (prior, next) = claim.original.rows()
       let (witness_key, witness_extent) = application.original.empty_ledger_coordinate()
@@ -146,21 +150,36 @@ fn produce_saved_effect_file_dispatch(
     }
     Some(previous) => {
       let rows = previous.rows()
-      (rows[0].key, rows[0].successor.length(), rows[1].key, rows[1].successor.length())
+      (
+        rows[0].key,
+        rows[0].successor.length(),
+        rows[1].key,
+        rows[1].successor.length(),
+      )
     }
   }
-  let run = match physical_journal_row(
-    current.physical, check, 1, "client_runs", run_key,
-    expected_body_length=Some(run_extent),
-  ) {
+  let run = match
+    physical_journal_row(
+      current.physical,
+      check,
+      1,
+      "client_runs",
+      run_key,
+      expected_body_length=Some(run_extent),
+    ) {
     Ok(Some(row)) => row
     Ok(None) => return -32
     Err(code) => return code
   }
-  let witness = match physical_journal_row(
-    current.physical, check, 1, "client_effect_custody", witness_key,
-    expected_body_length=Some(witness_extent),
-  ) {
+  let witness = match
+    physical_journal_row(
+      current.physical,
+      check,
+      1,
+      "client_effect_custody",
+      witness_key,
+      expected_body_length=Some(witness_extent),
+    ) {
     Ok(Some(row)) => row
     Ok(None) => return -32
     Err(code) => return code
@@ -231,7 +250,11 @@ fn produce_saved_effect_file_dispatch(
   )
   if code == 0 {
     record.append_plan = EffectFileDispatch({
-      parent:candidate.parent, application:candidate.application, index, capacity, original,
+      parent: candidate.parent,
+      application: candidate.application,
+      index,
+      capacity,
+      original,
       operation_attempted: false,
     })
     record.produced = true
@@ -254,7 +277,13 @@ fn observe_saved_effect_file_dispatch(
   }
   let check = () => submission_lookup_current(value, holder, configuration)
   if dispatch.index > 0 {
-    match require_saved_effect_file_prefix(value, dispatch.parent, current.physical, check) {
+    match
+      require_saved_effect_file_prefix(
+        value,
+        dispatch.parent,
+        current.physical,
+        check,
+      ) {
       Ok(_) => ()
       Err(code) => return Err(code)
     }
@@ -371,30 +400,47 @@ fn select_saved_effect_file_dispatch(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
 ) -> Result[SavedEffectDispatchEntry, Int] {
-  if saved_effect_decision_parent(
-      value, record, SAVED_EFFECT_APPLICATION_KIND,
-    )
+  if saved_effect_decision_parent(value, record, SAVED_EFFECT_APPLICATION_KIND)
     is Some((parent, holder, input)) &&
     holder.append_plan is EffectApplication(application) {
-    guard input.length() == 28 && !application.dispatch_attempted
-      else { return Err(-33) }
+    guard input.length() == 28 && !application.dispatch_attempted else {
+      return Err(-33)
+    }
     application.dispatch_attempted = true
-    return Ok({ parent, holder, input, application: parent, index: 0, previous: None, })
+    return Ok({
+      parent,
+      holder,
+      input,
+      application: parent,
+      index: 0,
+      previous: None,
+    })
   }
-  guard saved_effect_decision_parent(value, record, SAVED_EFFECT_FILE_TERMINAL_KIND)
+  guard saved_effect_decision_parent(
+      value,
+      record,
+      SAVED_EFFECT_FILE_TERMINAL_KIND,
+    )
     is Some((parent, holder, input)) &&
     input.length() == 28 &&
     holder.append_plan is EffectFileTerminal(terminal) &&
     !terminal.successor_attempted &&
     value.submissions.get(terminal.dispatch) is Some(dispatch_holder) &&
     dispatch_holder.append_plan is EffectFileDispatch(dispatch) &&
-    physical_equal(configuration, value.run_configurations[holder.configuration]) else {
+    physical_equal(
+      configuration,
+      value.run_configurations[holder.configuration],
+    ) else {
     return Err(-32)
   }
   terminal.successor_attempted = true
   Ok({
-    parent, holder, input, application: dispatch.application,
-    index: dispatch.index + 1, previous: Some(terminal.original),
+    parent,
+    holder,
+    input,
+    application: dispatch.application,
+    index: dispatch.index + 1,
+    previous: Some(terminal.original),
   })
 }
 
@@ -423,7 +469,12 @@ fn require_saved_effect_file_prefix(
         Err(code) => return Err(code)
       }
     }
-    match saved_file_journal_coordinate(physical, check, terminal.original.rows()[2]) {
+    match
+      saved_file_journal_coordinate(
+        physical,
+        check,
+        terminal.original.rows()[2],
+      ) {
       Ok(true) => ()
       Ok(false) => return Err(-32)
       Err(code) => return Err(code)

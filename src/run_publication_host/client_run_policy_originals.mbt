@@ -58,7 +58,8 @@ pub fn client_task_policy_construction_capacity(
           bytes,
           Int::min(bytes, 512),
           8,
-        ) is Some(packet) else {
+        )
+        is Some(packet) else {
         return None
       }
       // The outer source/index and extracted body strings survive the
@@ -540,7 +541,9 @@ pub fn read_client_run_policy_originals(
   if fund is Some(quote) {
     let mut references = 0
     for body in bodies {
-      let count = @publication.captured_effect_dependency_body_reference_count(body)
+      let count = @publication.captured_effect_dependency_body_reference_count(
+        body,
+      )
       if count > 512 - references {
         return Err(CustodyLost)
       }

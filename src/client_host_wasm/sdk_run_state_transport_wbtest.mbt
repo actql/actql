@@ -30,7 +30,13 @@ test "SDK RunState transport refuses foreign extents and revisions" {
   let body = b"{}"
   let state = "{}"
   let bytes = 88
-  assert_eq(sdk_run_state_transport_packet(key, 15L, 16L, body, state, bytes - 1), None)
-  assert_eq(sdk_run_state_transport_packet(key, 15L, 17L, body, state, bytes), None)
+  assert_eq(
+    sdk_run_state_transport_packet(key, 15L, 16L, body, state, bytes - 1),
+    None,
+  )
+  assert_eq(
+    sdk_run_state_transport_packet(key, 15L, 17L, body, state, bytes),
+    None,
+  )
   assert_eq(sdk_run_state_transport_extent(key, body, ""), None)
 }

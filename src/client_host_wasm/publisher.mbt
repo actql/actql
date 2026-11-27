@@ -141,7 +141,10 @@ pub fn reserve_publisher(
     return -5
   }
   if preflight.origin is FilePublicationPreflight(file) &&
-    (file.request_started || value.publishers.values().any(child => child.parent == parent)) {
+    (
+      file.request_started ||
+      value.publishers.values().any(child => child.parent == parent)
+    ) {
     return -3
   }
   if physical_ticket <= 0 ||
@@ -205,12 +208,17 @@ pub fn install_publisher(
     return -3
   }
   if parent.origin is SavedEffectPublicationPreflight(original) {
-    return install_saved_effect_preflight_publisher(value, child, original, current_configuration, current)
+    return install_saved_effect_preflight_publisher(
+      value, child, original, current_configuration, current,
+    )
   }
   if parent.origin is FilePublicationPreflight(file) {
-    return install_file_preflight_publisher(value, child, file, current_configuration, current)
+    return install_file_preflight_publisher(
+      value, child, file, current_configuration, current,
+    )
   }
-  guard parent.origin is ComputePublicationPreflight({ prepared: Some(preflight), compute, .. }) else {
+  guard parent.origin
+    is ComputePublicationPreflight({ prepared: Some(preflight), compute, .. }) else {
     return -2
   }
   // Follow the original Run's retained configuration. A newer current Account
@@ -286,12 +294,17 @@ pub fn authorize_publisher(
     return -5
   }
   if parent.origin is SavedEffectPublicationPreflight(original) {
-    if child.configuration != current_configuration { return -32 }
+    if child.configuration != current_configuration {
+      return -32
+    }
     if stage == 0 && publication == 0 {
-      return authorize_saved_effect_preflight_request(value, handle, child, original, port, current)
+      return authorize_saved_effect_preflight_request(
+        value, handle, child, original, port, current,
+      )
     }
     return authorize_saved_effect_publication(
-      value, handle, child, original, port, current_configuration, current, stage, publication,
+      value, handle, child, original, port, current_configuration, current, stage,
+      publication,
     )
   }
   if parent.origin is FilePublicationPreflight(file) {
@@ -302,22 +315,30 @@ pub fn authorize_publisher(
         )
       1 | 2 => {
         guard value.publications.get(publication) is Some(captured) &&
-          captured.preflight == child.parent else { return -2 }
+          captured.preflight == child.parent else {
+          return -2
+        }
         if stage == 1 {
           return authorize_sdk_file_commit(
-            value, captured, handle, child, parent, file, port, current_configuration, current,
+            value, captured, handle, child, parent, file, port, current_configuration,
+            current,
           )
         }
-        guard captured.observation_checked && captured.observation_publisher == Some(handle) &&
-          captured.observation_index is Some(index) else { return -7 }
+        guard captured.observation_checked &&
+          captured.observation_publisher == Some(handle) &&
+          captured.observation_index is Some(index) else {
+          return -7
+        }
         return authorize_sdk_file_observed_index(
-          value, captured, handle, child, parent, file, port, current_configuration, index,
+          value, captured, handle, child, parent, file, port, current_configuration,
+          index,
         )
       }
       _ => return -3
     }
   }
-  guard parent.origin is ComputePublicationPreflight({ prepared: Some(preflight), compute, .. }) else {
+  guard parent.origin
+    is ComputePublicationPreflight({ prepared: Some(preflight), compute, .. }) else {
     return -2
   }
   if !stored_preflight_current(value, parent, current.account) {

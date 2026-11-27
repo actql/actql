@@ -68,7 +68,12 @@ pub fn reserve_material(
     value.runs.get(run) is Some(record) &&
     sdk_whole_file_rows_handle(value, run, record.configuration) is Some(rows) {
     return reserve_sdk_file_publication(
-      value, run, record.configuration, rows, physical_ticket, physical_copy_bytes,
+      value,
+      run,
+      record.configuration,
+      rows,
+      physical_ticket,
+      physical_copy_bytes,
     )
   }
   guard selected(nonce) is Some(value) &&
@@ -121,9 +126,12 @@ fn reserve_material_record(
     return -5
   }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, wire_limit, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      wire_limit,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }
@@ -172,14 +180,19 @@ pub fn reserve_submitted_rows_material(
         record.sdk_submission is Some(submission) &&
         retained_sdk_portable_request(
           value, preparation, current_configuration, configuration, submission,
-        ) is Some({ model_run_handle: Some(original), .. }) &&
-        original == run && !physical_equal(record.slot, slot) &&
-        !physical_equal(preparation.slot, slot) else { return -35 }
+        )
+        is Some({ model_run_handle: Some(original), .. }) &&
+        original == run &&
+        !physical_equal(record.slot, slot) &&
+        !physical_equal(preparation.slot, slot) else {
+        return -35
+      }
       true
     }
     _ => false
   }
-  let (selected_effect, selected_file) = if preparation.kind == RETAINED_MOCK_REQUEST_KIND &&
+  let (selected_effect, selected_file) = if preparation.kind ==
+    RETAINED_MOCK_REQUEST_KIND &&
     !selected_model {
     guard record.configuration == current_configuration &&
       preparation.project_request is Some(held) else {
@@ -196,7 +209,8 @@ pub fn reserve_submitted_rows_material(
         (Some(journal), None)
       }
       None => {
-        guard record.invoked && record.restoration is None &&
+        guard record.invoked &&
+          record.restoration is None &&
           record.sdk_submission is Some(original) &&
           configuration.host_current is Some(_) &&
           held.whole_file_sdk_run == Some(run) &&
@@ -205,7 +219,8 @@ pub fn reserve_submitted_rows_material(
           sdk_whole_file_request(value, preparation, configuration) is Some(_) &&
           sdk_whole_file_preparing_submission(
             value, preparation, current_configuration, original,
-          ) is Some(_) else {
+          )
+          is Some(_) else {
           return -2
         }
         match held.whole_file_sdk_phase {
@@ -338,9 +353,16 @@ fn submitted_rows_material_wire(
       run.configuration == submission.current_configuration &&
       run.sdk_submission is Some(selected) &&
       retained_sdk_portable_request(
-        value, preparation, run.configuration, current, selected,
-      ) is Some({ parent: Some(parent), model_run_handle: Some(original), .. }) &&
-      original == material.run else { return Err(-35) }
+        value,
+        preparation,
+        run.configuration,
+        current,
+        selected,
+      )
+      is Some({ parent: Some(parent), model_run_handle: Some(original), .. }) &&
+      original == material.run else {
+      return Err(-35)
+    }
     Some(parent)
   } else {
     None
@@ -370,10 +392,13 @@ fn submitted_rows_material_wire(
       None => {
         let captured = if portable_parent is Some(parent) {
           @local_run.capture_local_portable_run_task_materials_original(
-            plan, parent, preparation.slot,
+            plan,
+            parent,
+            preparation.slot,
           )
         } else {
-          guard value.environments.get(preparation.environment) is Some(environment) else {
+          guard value.environments.get(preparation.environment)
+            is Some(environment) else {
             return Err(-2)
           }
           let bindings = match
@@ -382,7 +407,10 @@ fn submitted_rows_material_wire(
             Err(_) => return Err(-31)
           }
           @local_run.capture_local_run_task_materials_original(
-            plan, environment.environment, environment.wire, bindings,
+            plan,
+            environment.environment,
+            environment.wire,
+            bindings,
           )
         }
         match captured {
@@ -561,10 +589,15 @@ fn read_submitted_run_definition_collision(
       material.submission is Some(original) &&
       physical_equal(original, submission) &&
       submission.journal_workspace is Some(token) &&
-      physical_equal(token, workspace) else { return Err(-9) }
+      physical_equal(token, workspace) else {
+      return Err(-9)
+    }
     run_configuration_current(value, configuration).bind(_ => {
-      if physical_journal_current(physical.physical) == 0 { Ok(()) }
-      else { Err(-41) }
+      if physical_journal_current(physical.physical) == 0 {
+        Ok(())
+      } else {
+        Err(-41)
+      }
     })
   }
   match current() {
@@ -572,17 +605,15 @@ fn read_submitted_run_definition_collision(
     Ok(_) => ()
   }
   let (request, definition) = if submission.effect {
-    let original = match mock_effect_journal_observation_original(
-        value, handle, run.configuration,
-      ) {
+    let original = match
+      mock_effect_journal_observation_original(value, handle, run.configuration) {
       Ok(value) => value
       Err(code) => return Err(code)
     }
     (original.effect.request, original.journal.materials.run_definition)
   } else if submission.journal_candidate is Some(RetainedFile(_, _, _)) {
-    let original = match sdk_whole_file_journal_material_original(
-        value, handle, run.configuration,
-      ) {
+    let original = match
+      sdk_whole_file_journal_material_original(value, handle, run.configuration) {
       Ok(value) => value
       Err(code) => return Err(code)
     }
@@ -599,8 +630,13 @@ fn read_submitted_run_definition_collision(
   }
   let cid = @publication.publication_contract_identity(definition)
   let row = match
-    physical_journal_row(physical.physical, current, 1,
-      "client_sqlite_run_definition_owner", cid) {
+    physical_journal_row(
+      physical.physical,
+      current,
+      1,
+      "client_sqlite_run_definition_owner",
+      cid,
+    ) {
     Ok(Some(row)) => row
     Ok(None) => return Err(-41)
     Err(code) => return Err(code)
@@ -609,8 +645,12 @@ fn read_submitted_run_definition_collision(
     return Err(-31)
   }
   if @resources.grow_capacity_reservation(
-      value.root, workspace, 512L + retained, 512L + retained + execution,
-    ) is Err(_) {
+      value.root,
+      workspace,
+      512L + retained,
+      512L + retained + execution,
+    )
+    is Err(_) {
     return Err(-4)
   }
   guard @host.decode_client_run_journal_row_with_observation_originals(row.body)
@@ -621,11 +661,15 @@ fn read_submitted_run_definition_collision(
   }
   if policy is Some(wire) &&
     @host.validate_client_local_run_policy_original_run(
-      @utf8.encode(wire), owner.request, owner.definition,
-    ) is Err(_) {
+      @utf8.encode(wire),
+      owner.request,
+      owner.definition,
+    )
+    is Err(_) {
     return Err(-31)
   }
-  let kind = match @host.client_request_identity_relation(request, owner.request) {
+  let kind = match
+    @host.client_request_identity_relation(request, owner.request) {
     @host.SameRequest => 1
     @host.DifferentRequest => 2
     @host.ChangedIntent => 3
@@ -656,7 +700,9 @@ fn inspect_submitted_rows_material(
     )
   }
   if submission.journal_candidate is Some(RetainedFile(_, _, _)) {
-    return validate_sdk_whole_file_journal_rows(value, handle, material, submission)
+    return validate_sdk_whole_file_journal_rows(
+      value, handle, material, submission,
+    )
   }
   guard submission.sdk_wire is Some(expected) &&
     record.outcome is Some(Ok(plan)) &&
@@ -668,8 +714,11 @@ fn inspect_submitted_rows_material(
     match sdk_journal_reader_serial(value, configuration) {
       Ok(serial) if serial == submission.length_reader_serial => {
         guard record.sdk_submission is Some(held) &&
-          value.submissions.get(held) is Some(observation) else { return -31 }
-        return match submission_append_current(value, observation, configuration) {
+          value.submissions.get(held) is Some(observation) else {
+          return -31
+        }
+        return match
+          submission_append_current(value, observation, configuration) {
           Ok(_) => 0
           Err(code) => code
         }
@@ -715,12 +764,16 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
       value, handle, material, submission, record, preparation,
     )
   }
-  if material.kind == 6 && material.produced &&
-    material.submission is Some({ journal_candidate: Some(RetainedFile(_, _, _)), .. }) {
+  if material.kind == 6 &&
+    material.produced &&
+    material.submission
+    is Some({ journal_candidate: Some(RetainedFile(_, _, _)), .. }) {
     return validate_submitted_rows_material(nonce, handle)
   }
-  if material.kind == 6 && preparation.kind == RETAINED_MOCK_REQUEST_KIND &&
-    material.submission is Some(submission) && !submission.portable_model {
+  if material.kind == 6 &&
+    preparation.kind == RETAINED_MOCK_REQUEST_KIND &&
+    material.submission is Some(submission) &&
+    !submission.portable_model {
     return stage_sdk_whole_file_journal_rows(
       value, handle, material, submission, record, preparation,
     )
@@ -744,14 +797,26 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
     // Portable Model owns a checked Project instead of a conventional
     // Environment buffer. All five projections borrow the same Run and
     // original Submission; Environment export still needs its real input.
-    guard (material.kind == 5 || material.kind == 6 || material.kind == 7 ||
-        material.kind == 8 || material.kind == 9) &&
+    guard (
+        material.kind == 5 ||
+        material.kind == 6 ||
+        material.kind == 7 ||
+        material.kind == 8 ||
+        material.kind == 9
+      ) &&
       record.sdk_submission is Some(submission) &&
       value.run_configurations.get(record.configuration) is Some(current) &&
       retained_sdk_portable_request(
-        value, preparation, record.configuration, current, submission,
-      ) is Some({ model_run_handle: Some(original), .. }) &&
-      original == material.run else { return -2 }
+        value,
+        preparation,
+        record.configuration,
+        current,
+        submission,
+      )
+      is Some({ model_run_handle: Some(original), .. }) &&
+      original == material.run else {
+      return -2
+    }
   }
   if value.closing ||
     value.runtime_closing ||
@@ -867,7 +932,8 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
       return code
     }
   }
-  if material.sdk_start is Some(_) || material.mock_start is Some(_) ||
+  if material.sdk_start is Some(_) ||
+    material.mock_start is Some(_) ||
     material.file_start is Some(_) {
     let code = validate_sdk_start_material(nonce, handle)
     if code != 0 {
@@ -875,9 +941,16 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
     }
   }
   if material.submission is Some(submission) &&
-    (submission.sdk_wire is Some(_) ||
-      (material.produced &&
-        (submission.effect || submission.journal_candidate is Some(RetainedFile(_, _, _))))) {
+    (
+      submission.sdk_wire is Some(_) ||
+      (
+        material.produced &&
+        (
+          submission.effect ||
+          submission.journal_candidate is Some(RetainedFile(_, _, _))
+        )
+      )
+    ) {
     let code = inspect_submitted_rows_material(nonce, handle, true)
     if code != 0 {
       return code
@@ -922,7 +995,10 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
       ) ||
       (
         child.file_start is Some(start) &&
-        (start.publication_material == handle || start.dispatch_material == Some(handle))
+        (
+          start.publication_material == handle ||
+          start.dispatch_material == Some(handle)
+        )
       ) ||
       (
         child.mock_start is Some(start) &&

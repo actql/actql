@@ -15,13 +15,17 @@ fn sdk_file_source_current(
   Int,
 ] {
   guard value.physical_starts.get(start) is Some(custody) &&
-    custody.file_managed is Some(managed) && !managed.closing &&
+    custody.file_managed is Some(managed) &&
+    !managed.closing &&
     sdk_file_physical_claim(value, custody) is Some((step, claim)) else {
     return Err(-2)
   }
   let ready = check_sdk_file_physical_start(value, start, custody, step, claim)
-  if ready != 0 { return Err(ready) }
-  guard value.physical_starts.get(start) is Some(active) && physical_equal(active, custody) &&
+  if ready != 0 {
+    return Err(ready)
+  }
+  guard value.physical_starts.get(start) is Some(active) &&
+    physical_equal(active, custody) &&
     value.runs.get(custody.run) is Some(run) &&
     value.preparations.get(run.preparation) is Some(preparation) &&
     preparation.project_request is Some(held) &&
@@ -99,16 +103,27 @@ fn advance_original_file_capture(
   occurrence : Int,
   wire : Bytes,
 ) -> Int {
-  if occurrence != 0 { return -20 }
-  let (custody, managed, owner, journal, source) = match sdk_file_source_current(value, start) {
+  if occurrence != 0 {
+    return -20
+  }
+  let (custody, managed, owner, journal, source) = match
+    sdk_file_source_current(value, start) {
     Ok(value) => value
     Err(code) => return code
   }
   let materials = journal.candidate.task_materials.plan
   if !record.invoked {
-    let child = match reserve_sdk_whole_source_capture(
-        value, handle, record, start, occurrence, wire, managed.source,
-        materials.compiled, materials.definition,
+    let child = match
+      reserve_sdk_whole_source_capture(
+        value,
+        handle,
+        record,
+        start,
+        occurrence,
+        wire,
+        managed.source,
+        materials.compiled,
+        materials.definition,
       ) {
       Ok(child) => child
       Err(code) => return code
@@ -120,8 +135,13 @@ fn advance_original_file_capture(
         )
       LocalCsv(original) =>
         open_sdk_local_csv_rows(
-          managed.source, owner, materials.compiled.owner, materials.request,
-          child, original, handle,
+          managed.source,
+          owner,
+          materials.compiled.owner,
+          materials.request,
+          child,
+          original,
+          handle,
         )
     }
     if opened != 0 {
@@ -138,8 +158,13 @@ fn advance_original_file_capture(
     match sdk_file_source_current(value, start) {
       Err(code) => code
       Ok((active, current, _, _, retained)) =>
-        if physical_equal(active, custody) && physical_equal(current, managed) &&
-          physical_equal(retained, source) { 0 } else { -9 }
+        if physical_equal(active, custody) &&
+          physical_equal(current, managed) &&
+          physical_equal(retained, source) {
+          0
+        } else {
+          -9
+        }
     }
   })
 }
@@ -203,7 +228,8 @@ fn advance_sdk_whole_source_rows(
   if source.csv_read is Some(csv) {
     guard csv.capture == handle else { return -35 }
     match csv.phase {
-      AwaitingOffer | PreparingOffer | Offered(_) | ReadyToRead(_, _) => return 1
+      AwaitingOffer | PreparingOffer | Offered(_) | ReadyToRead(_, _) =>
+        return 1
       Supplying(_) | ReservingExtent => return -33
       Failed(code, _) => return code
       Received => ()
@@ -221,11 +247,19 @@ fn advance_sdk_whole_source_rows(
   }
   if child.identity_scan is Some(scan) {
     let advanced = advance_mock_effect_source_identity(value, child, scan)
-    if advanced != 0 { return advanced }
+    if advanced != 0 {
+      return advanced
+    }
     let current = require_current()
-    if current != 0 { return current }
-    let code = status(@buffers.supply_buffer_output(value.pool, record.slot, b""))
-    if code == 0 { record.produced = true }
+    if current != 0 {
+      return current
+    }
+    let code = status(
+      @buffers.supply_buffer_output(value.pool, record.slot, b""),
+    )
+    if code == 0 {
+      record.produced = true
+    }
     return code
   }
   guard child.advancing && child.rows is Some(rows) else { return -33 }

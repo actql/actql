@@ -48,7 +48,13 @@ pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
   fund_row? : ((Int64) -> Result[Unit, E])? = None,
 ) -> Result[(Int, Int64), E] {
   inspect_client_cancellation_journal_inventory_original(
-    max_records, scan, read, validate_run, custody_lost, fund_row, None,
+    max_records,
+    scan,
+    read,
+    validate_run,
+    custody_lost,
+    fund_row,
+    None,
   )
 }
 
@@ -99,7 +105,8 @@ fn[E] inspect_client_cancellation_journal_inventory_original(
     observed += 1
     if fund_row is Some(fund) {
       guard row.revision == 0L &&
-        client_cancellation_journal_scan_workspace(row.body.length()) is Some(bytes) else {
+        client_cancellation_journal_scan_workspace(row.body.length())
+        is Some(bytes) else {
         return Err(custody_lost)
       }
       match fund(bytes) {

@@ -207,7 +207,13 @@ test "File prepublication unwind retires only the selected synchronous Read and 
   let pool = @buffers.open_pool_on_ledger(root, 8388608L, 16, 1048576).unwrap()
   assert_eq(
     install_buffer_instance(
-      nonce, root, capacity, None, pool, 16, prepare_product_sequence_contracts().unwrap(),
+      nonce,
+      root,
+      capacity,
+      None,
+      pool,
+      16,
+      prepare_product_sequence_contracts().unwrap(),
     ),
     0,
   )
@@ -216,52 +222,92 @@ test "File prepublication unwind retires only the selected synchronous Read and 
     #|{"version":"actql/0.1","id":"terminal-control","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":3}]},"as":"out"}],"results":{"rows":{"from":"out","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"s","result":"rows"}}}}
   let prepared = @host.prepare_effect_free_client_program(
     document,
-    Json, local_check_test_environment(), None, @host.client_standard_program_preparation_limits(),
+    Json,
+    local_check_test_environment(),
+    None,
+    @host.client_standard_program_preparation_limits(),
   ).unwrap()
   let request = @host.prepare_source_free_client_request_identity(
-    prepared, "sha256:" + "a".repeat(64), "terminal-control",
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "terminal-control",
   ).unwrap()
   let work_capacity = @resources.reserve_capacity(root, 4096L, 4096L).unwrap()
   let read_capacity = @resources.reserve_capacity(root, 2048L, 2048L).unwrap()
   let work : StoredSDKFileCaptureWork = {
-    source: 8, prepared, request, capacity: work_capacity,
-    host: None, tasks: None, task_capacity: None, result: None,
-    invocation: None, invocation_capacity: None, invocation_ready: true,
-    results_ready: true, stepping: false, failed: false, closing: false,
+    source: 8,
+    prepared,
+    request,
+    capacity: work_capacity,
+    host: None,
+    tasks: None,
+    task_capacity: None,
+    result: None,
+    invocation: None,
+    invocation_capacity: None,
+    invocation_ready: true,
+    results_ready: true,
+    stepping: false,
+    failed: false,
+    closing: false,
   }
   // The fixture fixes the already-selected nominal owners; it does not
   // simulate a physical File source, Wasm trap or transaction acknowledgement.
   let file : StoredFilePublicationPreflight = {
-    start: 7, work, prepared: None, capacity: None, request_started: false,
-    request_failure: None, request_publisher: None, capture_started: false,
+    start: 7,
+    work,
+    prepared: None,
+    capacity: None,
+    request_started: false,
+    request_failure: None,
+    request_publisher: None,
+    capture_started: false,
   }
   let foreign_file : StoredFilePublicationPreflight = {
-    start: file.start, work, prepared: None, capacity: None, request_started: false,
-    request_failure: None, request_publisher: None, capture_started: false,
+    start: file.start,
+    work,
+    prepared: None,
+    capacity: None,
+    request_started: false,
+    request_failure: None,
+    request_publisher: None,
+    capture_started: false,
   }
   let ready = Ref(false)
   let slot = @buffers.reserve_output_buffer(pool, 64, 64L, () => ready.val).unwrap()
   let chunk_slot = @buffers.reserve_output_buffer(pool, 64, 64L, () => true).unwrap()
   @buffers.supply_buffer_output(pool, chunk_slot, b"[]").unwrap()
   let parent : StoredPublicationPreflight = {
-    origin: FilePublicationPreflight(file), borrow: Err(CleanupPending),
-    slot, invoked: true, pending: true, closing: false, produced: false,
+    origin: FilePublicationPreflight(file),
+    borrow: Err(CleanupPending),
+    slot,
+    invoked: true,
+    pending: true,
+    closing: false,
+    produced: false,
     output_closed: false,
   }
   let handle = 10
   value.publication_preflights[handle] = parent
   let publication_handle = 41
   let returned = Ref(false)
-  let publication_slot = @buffers.reserve_output_buffer(
-    pool, 0, 64L, () => returned.val,
-  ).unwrap()
+  let publication_slot = @buffers.reserve_output_buffer(pool, 0, 64L, () => {
+    returned.val
+  }).unwrap()
   let publication = stored_publication_output(
-    file.start, handle,
+    file.start,
+    handle,
     Some({
-      original: file, results: [], manifest: None, capacity: None,
-      retained: 0L, execution: 0L, state_export: None,
+      original: file,
+      results: [],
+      manifest: None,
+      capacity: None,
+      retained: 0L,
+      execution: 0L,
+      state_export: None,
     }),
-    Err(CleanupPending), publication_slot,
+    Err(CleanupPending),
+    publication_slot,
   )
   value.publications[publication_handle] = publication
   value.copies[publication_handle] = (publication_slot, 51)
@@ -296,21 +342,47 @@ test "File prepublication unwind retires only the selected synchronous Read and 
   assert_false(value.publications.contains(publication_handle))
 
   let claim : StoredSDKFileStart = {
-    publication_material: 9, dispatch_material: None, capacity: Some(read_capacity),
-    step: None, observed: None, reading: Some(FileStartMaterialRead),
+    publication_material: 9,
+    dispatch_material: None,
+    capacity: Some(read_capacity),
+    step: None,
+    observed: None,
+    reading: Some(FileStartMaterialRead),
   }
-  let captured_export = reserve_result_export_record(value, 0, FileNamedResult({
-    parent: handle, start: 7, work, preparation: None, capacity: None,
-    retained: 0L, initial_execution: 0L, execution: 0L, quote_failure: None,
-    retiring: false,
-  }))
+  let captured_export = reserve_result_export_record(
+    value,
+    0,
+    FileNamedResult({
+      parent: handle,
+      start: 7,
+      work,
+      preparation: None,
+      capacity: None,
+      retained: 0L,
+      initial_execution: 0L,
+      execution: 0L,
+      quote_failure: None,
+      retiring: false,
+    }),
+  )
   let result = value.result_exports.get(captured_export).unwrap()
   result.pending = true
-  let retiring_export = reserve_result_export_record(value, 1, FileNamedResult({
-    parent: handle, start: 7, work, preparation: None, capacity: None,
-    retained: 0L, initial_execution: 0L, execution: 0L, quote_failure: None,
-    retiring: true,
-  }))
+  let retiring_export = reserve_result_export_record(
+    value,
+    1,
+    FileNamedResult({
+      parent: handle,
+      start: 7,
+      work,
+      preparation: None,
+      capacity: None,
+      retained: 0L,
+      initial_execution: 0L,
+      execution: 0L,
+      quote_failure: None,
+      retiring: true,
+    }),
+  )
   let retiring = value.result_exports.get(retiring_export).unwrap()
   retiring.pending = true
   let unrelated_export = reserve_result_export_record(value, 0, TaskResult(300))
@@ -318,8 +390,15 @@ test "File prepublication unwind retires only the selected synchronous Read and 
   unrelated.pending = true
   let chunk_handle = 42
   let chunk : StoredResultChunk = {
-    result: captured_export, physical_ticket: 52, slot: Some(chunk_slot), reservation_issue: 0,
-    invoked: true, pending: true, produced: true, final_chunk: false, closing: false,
+    result: captured_export,
+    physical_ticket: 52,
+    slot: Some(chunk_slot),
+    reservation_issue: 0,
+    invoked: true,
+    pending: true,
+    produced: true,
+    final_chunk: false,
+    closing: false,
   }
   value.result_chunks[chunk_handle] = chunk
   value.copies[chunk_handle] = (chunk_slot, chunk.physical_ticket)
@@ -337,9 +416,15 @@ test "File prepublication unwind retires only the selected synchronous Read and 
   chunk.pending = true
 
   assert_eq(begin_file_prepublication_cleanup_after_unwind(nonce, handle), -2)
-  assert_eq(seal_interrupted_file_prepublication(value, handle, parent, file, claim), -9)
+  assert_eq(
+    seal_interrupted_file_prepublication(value, handle, parent, file, claim),
+    -9,
+  )
   claim.reading = Some(FileStartPreflightRead(foreign_file))
-  assert_eq(seal_interrupted_file_prepublication(value, handle, parent, file, claim), -35)
+  assert_eq(
+    seal_interrupted_file_prepublication(value, handle, parent, file, claim),
+    -35,
+  )
   assert_true(parent.pending && !parent.closing && !work.closing)
   assert_true(result.pending && chunk.pending && !result.closing)
   assert_eq(result_chunk_length(nonce, chunk_handle), -33)
@@ -351,10 +436,15 @@ test "File prepublication unwind retires only the selected synchronous Read and 
   claim.reading = Some(FileStartPreflightRead(file))
   let allocated = @buffers.buffer_pool_usage(pool).allocated
   let debt = @resources.ledger_usage(root)
-  assert_eq(seal_interrupted_file_prepublication(value, handle, parent, file, claim), 0)
+  assert_eq(
+    seal_interrupted_file_prepublication(value, handle, parent, file, claim),
+    0,
+  )
   assert_true(parent.closing && !parent.pending && work.closing)
   assert_true(claim.reading is None)
-  assert_true(result.closing && !result.pending && chunk.closing && !chunk.pending)
+  assert_true(
+    result.closing && !result.pending && chunk.closing && !chunk.pending,
+  )
   assert_true(retiring.pending && retiring.closing)
   assert_true(unrelated.pending && !unrelated.closing)
   assert_eq(@buffers.buffer_pool_usage(pool).allocated, allocated)

@@ -24,7 +24,8 @@ fn saved_effect_attestation_use_parent(
     return None
   }
   let id = mock_effect_descriptor_field(packet, 0)
-  guard id > 0 && instance.submissions.get(id) is Some(parent) &&
+  guard id > 0 &&
+    instance.submissions.get(id) is Some(parent) &&
     parent.kind == SAVED_EFFECT_RESOLUTION_PROOF_KIND &&
     parent.configuration == record.configuration &&
     parent.produced &&
@@ -34,8 +35,7 @@ fn saved_effect_attestation_use_parent(
     return None
   }
   let end = packet.length() - verified_wire.length()
-  guard end > 4 + 106 && end <= 4 + 234 &&
-    packet[end:] == verified_wire[:] else {
+  guard end > 4 + 106 && end <= 4 + 234 && packet[end:] == verified_wire[:] else {
     return None
   }
   Some((id, parent, proof, packet[4:end].to_owned()))
@@ -45,14 +45,22 @@ fn saved_effect_attestation_use_parent(
 fn saved_effect_attestation_initialization(bytes : Bytes) -> String? {
   guard bytes.length() <= 8192 &&
     @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes: 8192, max_nodes: 32, max_depth: 4,
-    }) is Ok(source) &&
+      max_input_bytes: 8192,
+      max_nodes: 32,
+      max_depth: 4,
+    })
+    is Ok(source) &&
     @decode.admit(source, {
-      max_nodes: 32, max_depth: 4, max_string_bytes: 512, max_total_string_bytes: 4096,
-    }) is Ok(cursor) &&
+      max_nodes: 32,
+      max_depth: 4,
+      max_string_bytes: 512,
+      max_total_string_bytes: 4096,
+    })
+    is Ok(cursor) &&
     @decode.closed_object(cursor, [
       "configuration_custody_cid", "device", "inode", "intent_cid", "version",
-    ]) is Ok(fields) else {
+    ])
+    is Ok(fields) else {
     return None
   }
   required_text(fields, "intent_cid")
@@ -64,7 +72,9 @@ fn produce_saved_effect_attestation_use(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
 ) -> Int {
-  if record.invoked || record.output_closed { return -33 }
+  if record.invoked || record.output_closed {
+    return -33
+  }
   record.invoked = true
   let check = () => submission_lookup_current(instance, record, configuration)
   match check() {
@@ -91,9 +101,16 @@ fn produce_saved_effect_attestation_use(
     return -32
   }
   proof.use_attempted = true
-  let current_proof = validate_saved_effect_resolution_proof(instance, parent, configuration)
-  if current_proof != 0 { return current_proof }
-  let role = match sdk_selected_original(instance, current, "effect-host-attestation.json", 8192) {
+  let current_proof = validate_saved_effect_resolution_proof(
+    instance, parent, configuration,
+  )
+  if current_proof != 0 {
+    return current_proof
+  }
+  let role = match
+    sdk_selected_original(
+      instance, current, "effect-host-attestation.json", 8192,
+    ) {
     Ok(bytes) => bytes
     Err(code) => return code
   }
@@ -103,11 +120,10 @@ fn produce_saved_effect_attestation_use(
   // Its transfer repeats that exact funded descriptor and cannot substitute
   // an alternate preimage, proof key, generation, or waiting Run.
   let (_, first, second) = proof.challenge.proofs()
-  let attestation = match proof.challenge.verified(
-    () => check() is Ok(_),
-    (key, cid, signature) => first == (key, cid, signature) ||
-      second == Some((key, cid, signature)),
-  ) {
+  let attestation = match
+    proof.challenge.verified(() => check() is Ok(_), (key, cid, signature) => {
+      first == (key, cid, signature) || second == Some((key, cid, signature))
+    }) {
     Ok(value) => value
     Err(_) => return -47
   }
@@ -125,23 +141,30 @@ fn produce_saved_effect_attestation_use(
     key_id: proof.selection.host_key_id,
     key_public: proof.selection.host_public_key,
   }
-  let original = match attestation.prepare_use(selected, at, () => check() is Ok(_)) {
+  let original = match
+    attestation.prepare_use(selected, at, () => check() is Ok(_)) {
     Ok(value) => value
     Err(_) => return -32
   }
-  guard original.originals() is Ok((grant_cid, grant, use_cid, use_entry, preimage)) else {
+  guard original.originals()
+    is Ok((grant_cid, grant, use_cid, use_entry, preimage)) else {
     return -31
   }
   guard original.window() is Some((sampled, expiry)) else { return -31 }
   let wire = try {
     let writer = @encode.writer(SAVED_EFFECT_ATTESTATION_USE_MAX, 32, 3)
     @encode.begin_object(writer)
-    for (name, body) in [
-      ("checkpointCid", original.checkpoint_cid()),
-      ("grantCid", grant_cid), ("grant", grant), ("useCid", use_cid),
-      ("use", use_entry), ("preimage", preimage),
-      ("keyId", selected.key_id), ("publicKey", selected.key_public),
-    ] {
+    for
+      (name, body) in [
+        ("checkpointCid", original.checkpoint_cid()),
+        ("grantCid", grant_cid),
+        ("grant", grant),
+        ("useCid", use_cid),
+        ("use", use_entry),
+        ("preimage", preimage),
+        ("keyId", selected.key_id),
+        ("publicKey", selected.key_public),
+      ] {
       @encode.key(writer, name)
       @encode.string_value(writer, body)
     }
@@ -154,9 +177,16 @@ fn produce_saved_effect_attestation_use(
   } catch {
     _ => return -34
   }
-  let code = status(@buffers.supply_buffer_output(instance.pool, record.slot, wire))
+  let code = status(
+    @buffers.supply_buffer_output(instance.pool, record.slot, wire),
+  )
   if code == 0 {
-    record.append_plan = EffectAttestationUse({ parent: id, capacity, original, decision_attempted: false })
+    record.append_plan = EffectAttestationUse({
+      parent: id,
+      capacity,
+      original,
+      decision_attempted: false,
+    })
     record.produced = true
   }
   code

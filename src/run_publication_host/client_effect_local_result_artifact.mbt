@@ -945,7 +945,10 @@ pub fn client_effect_dependency_result_definition(
   artifact : ClientEffectLocalResultArtifact,
   exported : @strategy.CapturedEffectLocalResultExport,
   receipt : @execution.CompletedRelationExportReceipt,
-) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultArtifactIssue] {
+) -> Result[
+  ClientEffectLocalResultDefinition,
+  ClientEffectLocalResultArtifactIssue,
+] {
   guard artifact.custody is EffectInputs(original) &&
     physical_equal(original, inputs) &&
     physical_equal(artifact.invocation.owner, owner) &&

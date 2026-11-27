@@ -36,7 +36,12 @@ fn validate_original_payload_record_snapshot(
     return -5
   }
   if record.source is SavedResult(_, _) {
-    if !saved_payload_record_current(value, record, current_configuration, same_reader_census~) {
+    if !saved_payload_record_current(
+        value,
+        record,
+        current_configuration,
+        same_reader_census~,
+      ) {
       return -32
     }
   } else {

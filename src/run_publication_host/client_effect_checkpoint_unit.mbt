@@ -7,7 +7,12 @@ pub fn client_effect_review_checkpoint_unit_definition_cid(
   definition : @publication.PublicationContract,
   artifact : @checkpoint.SealedCheckpoint,
 ) -> Result[String, ClientEffectCheckpointBindingIssue] {
-  match bind_client_effect_compiled_run(allowed.compilation.owner, allowed, definition) {
+  match
+    bind_client_effect_compiled_run(
+      allowed.compilation.owner,
+      allowed,
+      definition,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Run(issue))
   }
@@ -31,7 +36,8 @@ pub fn client_local_effect_review_unit_definition_cid(
   allowed : ClientEffectAllowedRun,
 ) -> Result[String, ClientEffectCheckpointBindingIssue] {
   client_effect_allowed_unit_definition_cid(
-    allowed, client_effect_compilation_unit_id(allowed.compilation),
+    allowed,
+    client_effect_compilation_unit_id(allowed.compilation),
   )
 }
 

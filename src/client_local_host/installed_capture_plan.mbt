@@ -912,19 +912,24 @@ pub fn stop_installed_pure_capture_host_after_unwind(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Bool {
-  guard owner.original is Some(original) && physical_equal(owner, original) &&
+  guard owner.original is Some(original) &&
+    physical_equal(owner, original) &&
     owner.publication is None &&
     owner.preparation is Some(PureManaged(_, actual)) &&
     physical_equal(actual, prepared) &&
     owner.captured_preparation is Some(plan) &&
     physical_equal(plan.prepared, prepared) &&
-    physical_equal(plan.request, request) && physical_equal(owner.request, request) &&
-    !plan.whole_sources.is_empty() && owner.ledger is Some(ledger) else {
+    physical_equal(plan.request, request) &&
+    physical_equal(owner.request, request) &&
+    !plan.whole_sources.is_empty() &&
+    owner.ledger is Some(ledger) else {
     return false
   }
   if owner.source_free_captured is Some(run) &&
-    (!physical_equal(plan.graph, @strategy.captured_dag_graph(run)) ||
-      !physical_equal(ledger, @strategy.captured_dag_ledger(run))) {
+    (
+      !physical_equal(plan.graph, @strategy.captured_dag_graph(run)) ||
+      !physical_equal(ledger, @strategy.captured_dag_ledger(run))
+    ) {
     return false
   }
   owner.effect_operation_closing = true

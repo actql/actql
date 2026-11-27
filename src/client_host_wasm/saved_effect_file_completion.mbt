@@ -19,7 +19,11 @@ fn produce_saved_effect_file_completion(
 ) -> Int {
   guard !record.invoked && !record.output_closed else { return -33 }
   record.invoked = true
-  guard saved_effect_decision_parent(value, record, SAVED_EFFECT_FILE_TERMINAL_KIND)
+  guard saved_effect_decision_parent(
+      value,
+      record,
+      SAVED_EFFECT_FILE_TERMINAL_KIND,
+    )
     is Some((parent, holder, input)) &&
     input.length() == 4 &&
     holder.append_plan is EffectFileTerminal(terminal) &&
@@ -40,7 +44,8 @@ fn produce_saved_effect_file_completion(
     Err(code) => return code
   }
   let check = () => submission_lookup_current(value, holder, configuration)
-  match require_saved_effect_file_prefix(value, parent, current.physical, check) {
+  match
+    require_saved_effect_file_prefix(value, parent, current.physical, check) {
     Ok(_) => ()
     Err(code) => return code
   }
@@ -58,11 +63,16 @@ fn produce_saved_effect_file_completion(
       value.submissions.get(current_terminal.dispatch) is Some(current_holder) &&
       current_holder.append_plan is EffectFileDispatch(current_dispatch) &&
       current_dispatch.application == dispatch.application &&
-      current_dispatch.index == application.files.length() - 1 - originals.length() else {
+      current_dispatch.index ==
+      application.files.length() - 1 - originals.length() else {
       return -32
     }
     originals.push(current_terminal.original)
-    selected = if current_dispatch.index == 0 { None } else { Some(current_dispatch.parent) }
+    selected = if current_dispatch.index == 0 {
+      None
+    } else {
+      Some(current_dispatch.parent)
+    }
   }
   originals.rev_in_place()
   let retained = Ref(initial)
@@ -70,10 +80,19 @@ fn produce_saved_effect_file_completion(
   let refused = Ref(false)
   let measured_issue = Ref(-52602)
   let fund_exact = (bytes : Int64) => {
-    guard @execution.checked_preparation_add_product(retained.val, 1L, bytes) is Some(requested)
-      else { refused.val = true; return false }
+    guard @execution.checked_preparation_add_product(retained.val, 1L, bytes)
+      is Some(requested) else {
+      refused.val = true
+      return false
+    }
     if requested > peak.val {
-      if @resources.grow_capacity_reservation(value.root, capacity, 0L, requested) is Err(_) {
+      if @resources.grow_capacity_reservation(
+          value.root,
+          capacity,
+          0L,
+          requested,
+        )
+        is Err(_) {
         refused.val = true
         return false
       }
@@ -82,45 +101,67 @@ fn produce_saved_effect_file_completion(
     true
   }
   let fund = (bytes : Int, nodes : Int, _) => {
-    guard @host.client_protocol_metadata_construction_bytes(bytes, nodes.to_int64())
+    guard @host.client_protocol_metadata_construction_bytes(
+        bytes,
+        nodes.to_int64(),
+      )
       is Some((scratch, backing)) &&
       fund_exact(scratch) &&
       @execution.checked_preparation_add_product(
-        retained.val, 1L, backing + 4L * bytes.to_int64(),
-      ) is Some(next) else {
+        retained.val,
+        1L,
+        backing + 4L * bytes.to_int64(),
+      )
+      is Some(next) else {
       refused.val = true
       return false
     }
     retained.val = next
     true
   }
-  let work_remaining = Ref(@host.client_standard_effect_computation_limits().effects.max_work)
+  let work_remaining = Ref(
+    @host.client_standard_effect_computation_limits().effects.max_work,
+  )
   let work = (units : Int) => {
-    if units < 0 || units > work_remaining.val { return false }
+    if units < 0 || units > work_remaining.val {
+      return false
+    }
     work_remaining.val -= units
     true
   }
-  let original = match application.original.complete_file_evidence(
-    originals,
-    { max_wire_bytes: SAVED_EFFECT_REVIEW_PRIVATE_MAX, max_nodes: 100000, max_depth: 64 },
-    fund,
-    bytes => {
-      measured_issue.val = -52603
-      fund_exact(bytes)
-    },
-    work,
-  ) {
+  let original = match
+    application.original.complete_file_evidence(
+      originals,
+      {
+        max_wire_bytes: SAVED_EFFECT_REVIEW_PRIVATE_MAX,
+        max_nodes: 100000,
+        max_depth: 64,
+      },
+      fund,
+      bytes => {
+        measured_issue.val = -52603
+        fund_exact(bytes)
+      },
+      work,
+    ) {
     Ok(value) => value
     Err(_) => return if refused.val { measured_issue.val } else { -31 }
   }
   let count = original.result_count()
   let receipt = original.final_receipt_cid()
-  guard count > 0 && count <= value.workspace_slots && receipt.length() == 71 &&
-    check() is Ok(_) else { return -32 }
-  let header = Bytes::makei(4, index => (count >> (index * 8)).to_byte()) + @utf8.encode(receipt)
-  let code = status(@buffers.supply_buffer_output(value.pool, record.slot, header))
+  guard count > 0 &&
+    count <= value.workspace_slots &&
+    receipt.length() == 71 &&
+    check() is Ok(_) else {
+    return -32
+  }
+  let header = Bytes::makei(4, index => (count >> (index * 8)).to_byte()) +
+    @utf8.encode(receipt)
+  let code = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, header),
+  )
   if code == 0 {
-    record.append_plan = EffectFileCompletion({ parent, capacity, original })
+    record.append_plan = EffectFileCompletion({ parent, capacity, original, })
     record.produced = true
   }
   code

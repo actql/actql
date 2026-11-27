@@ -81,29 +81,42 @@ fn local_policy_contract_parse_workspace(
   guard @publication.publication_contract_wire_usage(contract)
     is Some((bytes, nodes, depth)) &&
     @scalar.admit_utf8_length(wire, LOCAL_POLICY_JSON_BYTES) is Ok(actual_bytes) &&
-    actual_bytes == bytes && bytes > 0 &&
-    nodes > 0 && nodes <= LOCAL_POLICY_JSON_NODES &&
-    depth > 0 && depth <= LOCAL_POLICY_JSON_DEPTH else {
+    actual_bytes == bytes &&
+    bytes > 0 &&
+    nodes > 0 &&
+    nodes <= LOCAL_POLICY_JSON_NODES &&
+    depth > 0 &&
+    depth <= LOCAL_POLICY_JSON_DEPTH else {
     return None
   }
   // The original encoder counted one node per value and container depth
   // on this exact retained wire, the same grammar the preserving parser uses.
-  guard @decode.preserving_json_parser_construction_inventory(bytes, nodes, depth)
+  guard @decode.preserving_json_parser_construction_inventory(
+      bytes, nodes, depth,
+    )
     is Some(source) &&
     @canonical.source_conversion_construction_extent(
       nodes, nodes, nodes, nodes, depth, bytes,
-    ) is Some(canonical) else {
+    )
+    is Some(canonical) else {
     return None
   }
   Some({
-    record_headers: source.record_headers + canonical.retained.record_headers +
-      canonical.scratch.record_headers + 6L,
-    reference_slots: source.reference_slots + canonical.retained.reference_slots +
-      canonical.scratch.reference_slots + 8L,
-    scalar_words: source.scalar_words + canonical.retained.scalar_words +
-      canonical.scratch.scalar_words + 9L,
-    owned_utf16_units: source.owned_utf16_units + canonical.retained_utf16_units +
-      canonical.scratch_utf16_units,
+    record_headers: source.record_headers +
+    canonical.retained.record_headers +
+    canonical.scratch.record_headers +
+    6L,
+    reference_slots: source.reference_slots +
+    canonical.retained.reference_slots +
+    canonical.scratch.reference_slots +
+    8L,
+    scalar_words: source.scalar_words +
+    canonical.retained.scalar_words +
+    canonical.scratch.scalar_words +
+    9L,
+    owned_utf16_units: source.owned_utf16_units +
+    canonical.retained_utf16_units +
+    canonical.scratch_utf16_units,
     // The encoded input is built before the preserving parser. Neither the
     // original contract nor one of its two admitted trees pays for this copy.
     owned_wire_bytes: 2L * bytes.to_int64(),
@@ -120,7 +133,8 @@ pub fn client_local_run_policy_original_construction_capacity(
   retention : @publication.PublicationContract,
 ) -> (Int64, Int64)? {
   guard @publication.publication_contract_name(definition) == "run_definition" &&
-    @publication.publication_contract_name(retention) == "result_retention_policy" &&
+    @publication.publication_contract_name(retention) ==
+    "result_retention_policy" &&
     local_policy_contract_parse_workspace(retention) is Some(policy_parse) &&
     local_policy_contract_parse_workspace(definition) is Some(run_parse) &&
     // client_request_identity_record_wire and client_local_original_record_body
@@ -142,21 +156,33 @@ pub fn client_local_run_policy_original_construction_capacity(
     // Two field arrays and their seven/nine tuples; packet conversion and
     // binder Result/Option controls. Timestamp parsing plus three calendar
     // renderers include all 12-month arrays and component/concat strings.
-    record_headers: request.record_headers + packet.record_headers +
-      hash.record_headers + 48L + 3L * 28L,
-    reference_slots: request.reference_slots + packet.reference_slots +
-      hash.reference_slots + 64L + 3L * 4L,
-    scalar_words: request.scalar_words + packet.scalar_words +
-      hash.scalar_words + 128L + 3L * 24L,
-    owned_utf16_units: request.owned_utf16_units + packet.owned_utf16_units +
-      hash.owned_utf16_units + 3L * 24L * 24L,
+    record_headers: request.record_headers +
+    packet.record_headers +
+    hash.record_headers +
+    48L +
+    3L * 28L,
+    reference_slots: request.reference_slots +
+    packet.reference_slots +
+    hash.reference_slots +
+    64L +
+    3L * 4L,
+    scalar_words: request.scalar_words +
+    packet.scalar_words +
+    hash.scalar_words +
+    128L +
+    3L * 24L,
+    owned_utf16_units: request.owned_utf16_units +
+    packet.owned_utf16_units +
+    hash.owned_utf16_units +
+    3L * 24L * 24L,
     owned_wire_bytes: hash.owned_wire_bytes + 8192L,
   }
   // The accepted policy tree is still live when the definition is read.
   // Account for both full readers along with the encoder and SHA workspace.
   guard @execution.compose_preparation_representation([
       policy_parse, run_parse, encoding,
-    ]) is Some(workspace) &&
+    ])
+    is Some(workspace) &&
     @execution.preparation_representation_cost(retained) is Some(held) &&
     @execution.preparation_representation_cost(workspace) is Some(scratch) else {
     return None

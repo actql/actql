@@ -442,7 +442,14 @@ pub fn ClientEffectResolutionJournalDecision::prepare_resume_claim(
     still_current() else {
     return Err(Encoding)
   }
-  Ok({ before: actual, body, claim, verified: self.verified, lease_expires_ms: expires, settlement_only, })
+  Ok({
+    before: actual,
+    body,
+    claim,
+    verified: self.verified,
+    lease_expires_ms: expires,
+    settlement_only,
+  })
 }
 
 ///|

@@ -273,7 +273,9 @@ fn prepare_original_project_model_http_task(
         required_int32(fields, "input") is Some(input) &&
         !inputs.contains(input) &&
         required_text(fields, "sha256") is Some(digest) &&
-        valid_portable_local_source_policy_digest(digest) else { return -31 }
+        valid_portable_local_source_policy_digest(digest) else {
+        return -31
+      }
       inputs.push(input)
       Some((input, digest))
     }
@@ -300,14 +302,20 @@ fn prepare_original_project_model_http_task(
       return -31
     }
     if source_catalog is Some((policy_input, expected)) && input == policy_input {
-      if body.length() <= 0 || body.length() > 8192 { return -31 }
+      if body.length() <= 0 || body.length() > 8192 {
+        return -31
+      }
       guard portable_local_source_policy_capacity(body.length()) is Some(extra) &&
-        @execution.checked_preparation_add_product(prefix, extra, 1L) is Some(peak) &&
-        @resources.grow_capacity_reservation(value.root, capacity, peak, peak) is Ok(_) else {
+        @execution.checked_preparation_add_product(prefix, extra, 1L)
+        is Some(peak) &&
+        @resources.grow_capacity_reservation(value.root, capacity, peak, peak)
+        is Ok(_) else {
         return -4
       }
       guard "sha256:" + @sha.hex(body) == expected &&
-        admit_portable_local_source_policy(body) is Some(policy) else { return -31 }
+        admit_portable_local_source_policy(body) is Some(policy) else {
+        return -31
+      }
       original.source_policy = Some(policy)
       component_prefix = peak
     } else if index == 4 {
@@ -332,7 +340,9 @@ fn prepare_original_project_model_http_task(
       credential_file,
       limits,
       extra => {
-        guard @execution.checked_preparation_add_product(component_prefix, 1L, extra)
+        guard @execution.checked_preparation_add_product(
+            component_prefix, 1L, extra,
+          )
           is Some(peak) else {
           return false
         }

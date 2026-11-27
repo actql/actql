@@ -591,7 +591,8 @@ pub fn close_original_metadata(nonce : Int64, handle : Int) -> Int {
       match child.project {
         Some(ModelTask(held)) => held.parent == handle
         Some(LocalInputs(held)) =>
-          held.local_inputs is Some(file_inputs) && file_inputs.model_registry == Some(handle)
+          held.local_inputs is Some(file_inputs) &&
+          file_inputs.model_registry == Some(handle)
         _ => false
       }
     }) {
@@ -644,7 +645,8 @@ pub fn close_original_metadata(nonce : Int64, handle : Int) -> Int {
     record.project = None
   }
   if record.project is Some(FileCapture(capture)) {
-    if value.physical_starts.get(capture.start) is Some({ model_file: Some(work), .. }) {
+    if value.physical_starts.get(capture.start)
+      is Some({ model_file: Some(work), .. }) {
       if work.source.capture != Some(handle) ||
         value.computes.contains(work.compute_handle) {
         return -9

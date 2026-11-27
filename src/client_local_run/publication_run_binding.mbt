@@ -81,8 +81,7 @@ fn[Store, E] local_publication_store_current(
     resource: "run",
     operation: "publish",
   }
-  match
-    @host.client_local_adopted_account_outcome(material, store, tuple) {
+  match @host.client_local_adopted_account_outcome(material, store, tuple) {
     Ok(@authorization.Allow(_)) => ()
     Ok(_) => return Err(AuthorizationMismatch)
     Err(issue) => return Err(Current(issue))

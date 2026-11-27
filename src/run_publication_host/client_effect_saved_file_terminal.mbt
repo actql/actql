@@ -159,8 +159,15 @@ pub fn ClientEffectSavedFileResponse::prepare_terminal(
     },
   ]
   Ok({
-    response: self, receipt, terminal, writes, evidence,
-    checkpoint: next, run, policy, observation,
+    response: self,
+    receipt,
+    terminal,
+    writes,
+    evidence,
+    checkpoint: next,
+    run,
+    policy,
+    observation,
   })
 }
 

@@ -255,8 +255,7 @@ fn close_installed_effect_catalog_references(
       // This late edge needs its entry and does not start a second frame.
       guard installed_effect_catalog_index_capacity(2, 0, 2L * names)
         is Some(keys) &&
-        installed_effect_dependency_catalog_entry_capacity()
-        is Some(slots) &&
+        installed_effect_dependency_catalog_entry_capacity() is Some(slots) &&
         standard_create_sum_capacities(
           [capacity, keys, slots],
           sequential_workspace=true,

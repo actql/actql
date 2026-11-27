@@ -322,7 +322,8 @@ pub fn original_issued_invocation_matches_run(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Bool {
-  binding.issuance is Some({ state: { funding: Some(Original(_)), sources, .. }, .. }) &&
+  binding.issuance
+  is Some({ state: { funding: Some(Original(_)), sources, .. }, .. }) &&
   sources.is_empty() &&
   invocation_binding_matches_run(binding, compiled, definition)
 }
@@ -337,15 +338,20 @@ pub fn original_issued_whole_source_invocation_matches_run(
   source : @publication.RunEvidenceValue,
   logical : @publication.RunEvidenceValue,
 ) -> Bool {
-  guard binding.issuance is Some({ state: { funding: Some(Original(_)), sources: [original], .. }, .. }) else {
+  guard binding.issuance
+    is Some(
+      { state: { funding: Some(Original(_)), sources: [original], .. }, .. }
+    ) else {
     return false
   }
-  let (actual_source, actual_logical, _, _) =
-    @publication.model_source_observation_originals(original)
+  let (actual_source, actual_logical, _, _) = @publication.model_source_observation_originals(
+    original,
+  )
   physical_equal(actual_source, source) &&
-    physical_equal(actual_logical, logical) &&
-    invocation_binding_matches_run(binding, compiled, definition)
+  physical_equal(actual_logical, logical) &&
+  invocation_binding_matches_run(binding, compiled, definition)
 }
+
 ///|
 // Cheap post-callback fence over the SAME immutable execution binding. This
 // never caches availability or repeats admitted Definition wire comparison.

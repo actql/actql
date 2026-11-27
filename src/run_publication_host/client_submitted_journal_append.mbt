@@ -232,8 +232,8 @@ pub fn[Plan, E] prepare_client_submitted_journal_append_with_task_original(
       match observe() {
         // Fresh stores seed both counters at generation zero and advance them
         // together. Native's explicit migration can have a different origin.
-        Ok(Some(row)) if !fresh_store_usage ||
-          row.revision == issuance.1 => Some(row)
+        Ok(Some(row)) if !fresh_store_usage || row.revision == issuance.1 =>
+          Some(row)
         Ok(_) => return Err(Observation(custody_lost))
         Err(issue) => return Err(Observation(issue))
       }

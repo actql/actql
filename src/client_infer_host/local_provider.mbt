@@ -263,9 +263,16 @@ pub fn composed_local_provider(
   )? = None,
 ) -> @local.ManagedProvider {
   composed_local_provider_with_workspace(
-    occurrence, limits, (_, inputs, _) => open(inputs), project_issue,
-    retain_completed~, allow_cleanup~, boundary_only~, input_prefix~,
-    host_await_io~, original_step~,
+    occurrence,
+    limits,
+    (_, inputs, _) => open(inputs),
+    project_issue,
+    retain_completed~,
+    allow_cleanup~,
+    boundary_only~,
+    input_prefix~,
+    host_await_io~,
+    original_step~,
   )
 }
 

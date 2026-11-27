@@ -221,7 +221,10 @@ pub fn validate_client_saved_run_state_update_original(
     update.definition_cid {
     return Err(ForeignRun)
   }
-  validate_client_saved_run_state_update_predecessor(update, snapshot.submission)
+  validate_client_saved_run_state_update_predecessor(
+    update,
+    snapshot.submission,
+  )
 }
 
 ///|

@@ -346,7 +346,8 @@ fn PublicationCommitPreparation::advance_bindings(
       )
       if done {
         child.cancel()
-        if preparation.checked_effectful_receipt is Some(receipt) && physical_equal(receipt, chain.receipt) {
+        if preparation.checked_effectful_receipt is Some(receipt) &&
+          physical_equal(receipt, chain.receipt) {
           // The same typed final original already proves computation. Keep
           // all remaining request/attempt/index work in the bounded checker.
           preparation.phase = BeginReferences

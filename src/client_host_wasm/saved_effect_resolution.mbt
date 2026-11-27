@@ -147,7 +147,12 @@ fn prepare_saved_effect_resolution_proof(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  record.append_plan = EffectProof({ capacity, challenge, selection, use_attempted: false })
+  record.append_plan = EffectProof({
+    capacity,
+    challenge,
+    selection,
+    use_attempted: false,
+  })
   Ok(wire)
 }
 

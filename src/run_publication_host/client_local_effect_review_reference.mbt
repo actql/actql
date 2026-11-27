@@ -193,9 +193,10 @@ pub fn seal_client_local_effect_review_checkpoint(
   ).map_err(issue => Checkpoint(issue))
 }
 
-
 ///|
 /// Select the checked Program name from the same bound original.
-pub fn client_local_effect_review_program_id(allowed : ClientEffectAllowedRun) -> String {
+pub fn client_local_effect_review_program_id(
+  allowed : ClientEffectAllowedRun,
+) -> String {
   allowed.compilation.owner.source.id
 }

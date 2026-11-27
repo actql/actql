@@ -84,11 +84,15 @@ pub fn ClientProjectLocalFiles::prepare_catalog_specification(
       let mut found = None
       for index, table in self.csv_tables {
         if table.view.resource == resource {
-          if found is Some(_) { return Err(@row_host.InvalidSpecification) }
+          if found is Some(_) {
+            return Err(@row_host.InvalidSpecification)
+          }
           found = Some(index)
         }
       }
-      guard found is Some(index) else { return Err(@row_host.InvalidSpecification) }
+      guard found is Some(index) else {
+        return Err(@row_host.InvalidSpecification)
+      }
       Some((index, classification))
     }
   }
@@ -344,7 +348,9 @@ pub fn ClientProjectLocalCsvSelection::read_current(
 ///|
 /// Complete paid setup before the installed owner performs any physical read.
 /// Return the held Root and declared relative path with the same Run receiver.
-pub fn ClientProjectLocalCsvSelection::file_locator(self : Self) -> (String, String) {
+pub fn ClientProjectLocalCsvSelection::file_locator(
+  self : Self,
+) -> (String, String) {
   (self.source.catalog.resolved_root, self.source.table.path)
 }
 
@@ -355,7 +361,9 @@ pub fn ClientProjectLocalCsvSelection::observed_extent_transport(
 ) -> (@row_host.LocalCsvPageTransport, Int)? {
   let source = self.source
   source.table.observed_extent_transport(
-    source.transport, source.max_page_bytes, observed_bytes,
+    source.transport,
+    source.max_page_bytes,
+    observed_bytes,
   )
 }
 

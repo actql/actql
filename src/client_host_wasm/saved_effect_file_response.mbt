@@ -76,7 +76,11 @@ fn observe_saved_effect_file_response(
     return Err(-32)
   }
   let check = () => submission_lookup_current(value, record, configuration)
-  observe_saved_file_journal_rows(current.physical, check, response.original.rows())
+  observe_saved_file_journal_rows(
+    current.physical,
+    check,
+    response.original.rows(),
+  )
 }
 
 ///|
@@ -227,7 +231,11 @@ fn produce_saved_effect_file_response(
   )
   if code == 0 {
     record.append_plan = EffectFileResponse({
-      parent, dispatch: operation.parent, capacity, original, terminal_attempted: false,
+      parent,
+      dispatch: operation.parent,
+      capacity,
+      original,
+      terminal_attempted: false,
     })
     record.produced = true
   }
@@ -247,19 +255,24 @@ fn produce_saved_effect_file_response_field(
     Err(issue) => return issue_code(issue)
   }
   guard @buffers.filled_payload_input_bytes(value.pool, borrow) is Some(input) &&
-    input.length() == 16 else { return -31 }
-  let parent = mock_effect_descriptor_field(input, 0)
-  guard value.submissions.get(parent) is Some(holder) else {
-    return -32
+    input.length() == 16 else {
+    return -31
   }
-  guard holder.configuration == record.configuration && holder.produced && !holder.output_closed else {
+  let parent = mock_effect_descriptor_field(input, 0)
+  guard value.submissions.get(parent) is Some(holder) else { return -32 }
+  guard holder.configuration == record.configuration &&
+    holder.produced &&
+    !holder.output_closed else {
     return -32
   }
   let field = mock_effect_descriptor_field(input, 4)
   let bytes = match holder.append_plan {
-    EffectFileResponse(response) => response.original.rows().get(field).map(row => row.successor)
-    EffectFileTerminal(terminal) => terminal.original.rows().get(field).map(row => row.successor)
-    EffectFilePublished(published) => published.rows.get(field).map(row => row.successor)
+    EffectFileResponse(response) =>
+      response.original.rows().get(field).map(row => row.successor)
+    EffectFileTerminal(terminal) =>
+      terminal.original.rows().get(field).map(row => row.successor)
+    EffectFilePublished(published) =>
+      published.rows.get(field).map(row => row.successor)
     EffectFileReplacement(replacement) if field == 0 => Some(replacement.body)
     _ => None
   }
@@ -272,8 +285,12 @@ fn produce_saved_effect_file_response_field(
     offset <= body.length() - count else {
     return -31
   }
-  let validation = validate_saved_effect_file_field_parent(value, holder, configuration)
-  if validation != 0 { return validation }
+  let validation = validate_saved_effect_file_field_parent(
+    value, holder, configuration,
+  )
+  if validation != 0 {
+    return validation
+  }
   let code = status(
     @buffers.supply_buffer_output(
       value.pool,
@@ -295,9 +312,12 @@ fn observe_saved_effect_file_journal(
   configuration : StoredRunConfiguration,
 ) -> Result[Bool, Int] {
   match record.append_plan {
-    EffectFileResponse(_) => observe_saved_effect_file_response(value, record, configuration)
-    EffectFileTerminal(_) => observe_saved_effect_file_terminal(value, record, configuration)
-    EffectFilePublished(_) => observe_saved_effect_file_published(value, record, configuration)
+    EffectFileResponse(_) =>
+      observe_saved_effect_file_response(value, record, configuration)
+    EffectFileTerminal(_) =>
+      observe_saved_effect_file_terminal(value, record, configuration)
+    EffectFilePublished(_) =>
+      observe_saved_effect_file_published(value, record, configuration)
     _ => Err(-32)
   }
 }

@@ -46,7 +46,8 @@ fn client_task_material_original_construction_capacity(
   wire : String,
 ) -> (Int64, Int64)? {
   guard @scalar.admit_utf8_length(wire, @remote.REMOTE_RUN_MATERIALS_MAX_BYTES)
-    is Ok(bytes) && bytes > 0 &&
+    is Ok(bytes) &&
+    bytes > 0 &&
     @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) else {
     return None
   }
@@ -59,8 +60,7 @@ fn client_task_material_original_construction_capacity(
   } else {
     3L
   }
-  guard @shape.reference_array_retained_extent(1L, 8L)
-    is Some(pairs) else {
+  guard @shape.reference_array_retained_extent(1L, 8L) is Some(pairs) else {
     return None
   }
   let bytes = bytes.to_int64()
@@ -272,8 +272,10 @@ fn client_task_material_original_read_workspace(
   total : Int,
   count : Int,
 ) -> Int64? {
-  guard total >= 0 && total <= @remote.REMOTE_RUN_MATERIALS_MAX_BYTES &&
-    count >= 0 && count <= 3 &&
+  guard total >= 0 &&
+    total <= @remote.REMOTE_RUN_MATERIALS_MAX_BYTES &&
+    count >= 0 &&
+    count <= 3 &&
     @shape.reference_array_retained_extent(1L, 8L) is Some(entries) else {
     return None
   }
@@ -395,8 +397,10 @@ fn[Plan, E] read_task_material_original_slots(
       is Some(read) &&
       client_task_material_original_construction_capacity(wire)
       is Some((retained, scratch)) &&
-      @execution.checked_preparation_add_product(read, retained, 1L) is Some(base) &&
-      @execution.checked_preparation_add_product(base, scratch, 1L) is Some(peak) else {
+      @execution.checked_preparation_add_product(read, retained, 1L)
+      is Some(base) &&
+      @execution.checked_preparation_add_product(base, scratch, 1L)
+      is Some(peak) else {
       return Err(custody_lost)
     }
     match fund(peak) {

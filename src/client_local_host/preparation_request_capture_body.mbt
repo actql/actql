@@ -110,8 +110,11 @@ pub fn[I] begin_request_capture_managed_run(
     return Err(ForeignOriginal)
   }
   if transfer is Some(original) {
-    guard physical_equal(original.parent, owner) && !original.attempted &&
-      original.run is None else { return Err(ForeignOriginal) }
+    guard physical_equal(original.parent, owner) &&
+      !original.attempted &&
+      original.run is None else {
+      return Err(ForeignOriginal)
+    }
     original.attempted = true
   }
   owner.phase = Selecting
@@ -131,7 +134,9 @@ pub fn[I] begin_request_capture_managed_run(
     Ok(run) => {
       // Publish custody BEFORE clearing any original parent aliases. If the
       // caller was interrupted after adoption, only this owner can retire it.
-      if transfer is Some(original) { original.run = Some(run) }
+      if transfer is Some(original) {
+        original.run = Some(run)
+      }
       clear_transferred_request_capture(owner)
       Ok(run)
     }
@@ -139,7 +144,9 @@ pub fn[I] begin_request_capture_managed_run(
 }
 
 ///|
-fn[I] clear_transferred_request_capture(owner : ClientRequestPreparation[I]) -> Unit {
+fn[I] clear_transferred_request_capture(
+  owner : ClientRequestPreparation[I],
+) -> Unit {
   owner.program_capacity = None
   owner.program_normalization = None
   owner.program_authoring = None
@@ -170,7 +177,9 @@ pub fn[I] observe_request_capture_transfer(
   let parent = transfer.parent
   match transfer.run {
     Some(run) => {
-      if parent.phase == Selecting { clear_transferred_request_capture(parent) }
+      if parent.phase == Selecting {
+        clear_transferred_request_capture(parent)
+      }
       guard parent.phase == Selected else { return Err(ForeignOriginal) }
       Ok(Some(run))
     }

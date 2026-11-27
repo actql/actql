@@ -44,7 +44,10 @@ pub fn prepare_client_waiting_checkpoint_record(
   binding : @checkpoint.ResumeBinding,
   updated_at : String,
   ledger_limits : @checkpoint.WireLimits,
-) -> Result[(ClientCheckpointJournalRecord, String), ClientWaitingCheckpointRecordIssue] {
+) -> Result[
+  (ClientCheckpointJournalRecord, String),
+  ClientWaitingCheckpointRecordIssue,
+] {
   let artifact = persisted.artifact
   if updated_at < artifact.checkpoint.created_at ||
     @checkpoint.checkpoint_expired_at(artifact, updated_at) != Ok(false) {
@@ -76,9 +79,8 @@ pub fn prepare_client_waiting_checkpoint_record(
     effect_ledger: [],
   }
   guard client_checkpoint_journal_row_body(record) is Ok(body) &&
-    decode_client_checkpoint_journal_row(
-      body, definition, ledger_limits,
-    ) is Ok(_) else {
+    decode_client_checkpoint_journal_row(body, definition, ledger_limits)
+    is Ok(_) else {
     return Err(InvalidMaterial)
   }
   Ok((record, body))

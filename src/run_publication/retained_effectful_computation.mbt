@@ -24,7 +24,8 @@ pub fn admit_retained_effectful_computation(
   max_depth : Int,
   prepared? : PreparedCapturedEffectRun? = None,
 ) -> Result[RetainedEffectfulComputation, RunEvidenceChainIssue] {
-  if prepared is Some(original) && !physical_equal(captured_run, original.captured) {
+  if prepared is Some(original) &&
+    !physical_equal(captured_run, original.captured) {
     return Err(EvidenceInventoryMismatch("effect_dependency_inventory"))
   }
   let inputs : ComputationEvidenceInputs = {

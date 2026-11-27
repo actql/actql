@@ -149,7 +149,9 @@ pub fn[I] prepare_request_file_source_inputs(
       admit_request_query_acquisition_contracts_for_original(
         owner, input, prepared, direct, query, evidence,
       )
-      .map(value => ClientRequestFileSourceInputs::QuerySourceInputs(value.0, value.1))
+      .map(value => {
+        ClientRequestFileSourceInputs::QuerySourceInputs(value.0, value.1)
+      })
       .map_err(issue => FileQueryContracts(issue))
     },
     () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
@@ -977,7 +979,11 @@ pub fn[I] prepare_request_native_file_source_inputs(
         return reserve_request_selected_whole_source_inputs(
             owner, input, sources,
           )
-          .map(_ => ClientRequestNativeFileSourceInputs::WholeSourceInputs(direct, sources))
+          .map(_ => {
+            ClientRequestNativeFileSourceInputs::WholeSourceInputs(
+              direct, sources,
+            )
+          })
           .map_err(issue => NativeFileWholeConstruction(issue))
       }
       // The selector requires at least one original and refuses mixed routes.
@@ -993,7 +999,9 @@ pub fn[I] prepare_request_native_file_source_inputs(
       admit_request_query_acquisition_contracts_for_original(
         owner, input, prepared, direct, query, evidence,
       )
-      .map(value => ClientRequestNativeFileSourceInputs::QuerySourceInputs(value.0, value.1))
+      .map(value => {
+        ClientRequestNativeFileSourceInputs::QuerySourceInputs(value.0, value.1)
+      })
       .map_err(issue => NativeFileQueryContracts(issue))
     },
     () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },

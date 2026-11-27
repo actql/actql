@@ -44,7 +44,9 @@ fn portable_model_file_source_current(
     !compute.closing &&
     compute.current_configuration == Some(run.configuration) &&
     value.preparations.get(run.preparation)
-      is Some({ project_request: Some({ model_run: Some(runtime), .. }), .. } as preparation) &&
+    is Some(
+      { project_request: Some({ model_run: Some(runtime), .. }), .. } as preparation
+    ) &&
     physical_equal(runtime, work.runtime) &&
     runtime.adopted is Some(adopted) &&
     physical_equal(adopted, work.adopted) &&
@@ -53,7 +55,7 @@ fn portable_model_file_source_current(
     physical_equal(runtime.definition, @local_run.local_run_definition(plan)) &&
     value.run_configurations.get(run.configuration) is Some(configuration) &&
     project_request_configuration(value, preparation.environment)
-      is Some((selected, check)) &&
+    is Some((selected, check)) &&
     physical_equal(selected, configuration) &&
     configuration.local_project == Some(check.project) &&
     check.local_file is Some(checker) &&
@@ -62,14 +64,22 @@ fn portable_model_file_source_current(
     current.account is Some(account) else {
     return Err(-2)
   }
-  if value.closing || value.runtime_closing { return Err(-5) }
+  if value.closing || value.runtime_closing {
+    return Err(-5)
+  }
   match run_configuration_current(value, configuration) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }
   let claim = validate_sdk_start_claim(value, step, plan)
-  if claim != 0 { return Err(claim) }
-  if !work.selected.selection.read_current(checker, account, configuration.tuple.principal) {
+  if claim != 0 {
+    return Err(claim)
+  }
+  if !work.selected.selection.read_current(
+      checker,
+      account,
+      configuration.tuple.principal,
+    ) {
     return Err(-20)
   }
   guard value.physical_starts.get(start) is Some(actual) &&
@@ -93,24 +103,41 @@ fn advance_original_portable_model_file_source(
   occurrence : Int,
   wire : Bytes,
 ) -> Int {
-  if occurrence != 0 { return -20 }
+  if occurrence != 0 {
+    return -20
+  }
   let (custody, work) = match portable_model_file_source_current(value, start) {
     Ok(original) => original
     Err(code) => return code
   }
   if !record.invoked {
-    let child = match reserve_sdk_whole_source_capture(
-        value, handle, record, start, occurrence, wire, work.source,
-        work.runtime.compiled, work.runtime.definition,
+    let child = match
+      reserve_sdk_whole_source_capture(
+        value,
+        handle,
+        record,
+        start,
+        occurrence,
+        wire,
+        work.source,
+        work.runtime.compiled,
+        work.runtime.definition,
       ) {
       Ok(child) => child
       Err(code) => return code
     }
     let opened = open_sdk_local_csv_rows(
-      work.source, work.adopted, work.runtime.compiled.owner, work.runtime.request,
-      child, work.selected.selection, handle,
+      work.source,
+      work.adopted,
+      work.runtime.compiled.owner,
+      work.runtime.request,
+      child,
+      work.selected.selection,
+      handle,
     )
-    if opened != 0 { return opened }
+    if opened != 0 {
+      return opened
+    }
   }
   guard work.source.capture == Some(handle) &&
     record.project is Some(FileCapture(child)) &&
@@ -150,7 +177,15 @@ fn seal_original_portable_model_file_source(
     custody.outcome is Some(Ok(start_proof)) &&
     value.runs.get(custody.run) is Some({ outcome: Some(Ok(plan)), .. }) &&
     work.source.capture is Some(handle) &&
-    value.original_metadata.get(handle) is Some({ project: Some(FileCapture(child)), produced: true, output_closed: false, .. }) &&
+    value.original_metadata.get(handle)
+    is Some(
+      {
+        project: Some(FileCapture(child)),
+        produced: true,
+        output_closed: false,
+        ..
+      }
+    ) &&
     child.start == start &&
     child.captured is Some(capture) &&
     child.identity is Some(identity) &&
@@ -168,8 +203,13 @@ fn seal_original_portable_model_file_source(
     return -32
   }
   work.sealing = true
-  let host = match @local_run.configure_local_whole_source_model_compute(
-      plan, start_proof, work.adopted, work.model, input,
+  let host = match
+    @local_run.configure_local_whole_source_model_compute(
+      plan,
+      start_proof,
+      work.adopted,
+      work.model,
+      input,
     ) {
     Ok(host) => host
     Err(issue) => {
@@ -186,11 +226,22 @@ fn seal_original_portable_model_file_source(
   let declared = work.selected.selection.source_acquisition()
   let facts = @row_host.row_input_acquisition_facts(acquisition)
   let scope = @host.client_request_authority_scope_cid(request)
-  guard @local_host.installed_managed_source_occurrence(work.adopted, prepared, request, 0)
+  guard @local_host.installed_managed_source_occurrence(
+      work.adopted,
+      prepared,
+      request,
+      0,
+    )
     is Ok((_, _, producer)) &&
     @row_host.row_input_acquisition_matches_source(acquisition, declared) &&
-    sdk_file_invocation_capacity(graph, facts.source_ref, facts.data_classification, child.started_at, at)
-      is Some((retained, scratch)) else {
+    sdk_file_invocation_capacity(
+      graph,
+      facts.source_ref,
+      facts.data_classification,
+      child.started_at,
+      at,
+    )
+    is Some((retained, scratch)) else {
     return -35
   }
   let ledger = @strategy.captured_dag_ledger(run)
@@ -199,22 +250,44 @@ fn seal_original_portable_model_file_source(
     Err(_) => return -4
   }
   work.evidence_capacity = Some((ledger, capacity))
-  guard @host.issue_captured_whole_source_input_logical(graph, input, identity, declared, task=producer)
-      is Ok(logical) else {
+  guard @host.issue_captured_whole_source_input_logical(
+      graph,
+      input,
+      identity,
+      declared,
+      task=producer,
+    )
+    is Ok(logical) else {
     return -31
   }
-  let evidence = match @row_host.issue_row_input_source_evidence(
-      acquisition, capture, identity, logical, scope, facts.source_data_policy_cid, at,
+  let evidence = match
+    @row_host.issue_row_input_source_evidence(
+      acquisition,
+      capture,
+      identity,
+      logical,
+      scope,
+      facts.source_data_policy_cid,
+      at,
     ) {
     Ok(evidence) => evidence
     Err(issue) => return mock_effect_capture_issue(issue)
   }
   guard @host.admit_client_infer_composed_whole_sources(
-      task.graph.occurrence, [input], [identity], [declared], [logical], [evidence],
-      scope, child.started_at, at,
-    ) is Ok(sources) &&
+      task.graph.occurrence,
+      [input],
+      [identity],
+      [declared],
+      [logical],
+      [evidence],
+      scope,
+      child.started_at,
+      at,
+    )
+    is Ok(sources) &&
     @host.client_infer_composed_whole_sources_match_run(sources, run) &&
-    portable_model_file_source_current(value, start) is Ok((active, retained_work)) &&
+    portable_model_file_source_current(value, start)
+    is Ok((active, retained_work)) &&
     physical_equal(active, custody) &&
     physical_equal(retained_work, work) else {
     return -32
@@ -226,10 +299,16 @@ fn seal_original_portable_model_file_source(
       return -32
     }
   }
-  if @resources.shrink_capacity_reservation(ledger, capacity, retained, 0L) is Err(_) {
+  if @resources.shrink_capacity_reservation(ledger, capacity, retained, 0L)
+    is Err(_) {
     return -4
   }
-  work.runtime.sources = Some({ selection: sources, source: evidence, logical, identity })
+  work.runtime.sources = Some({
+    selection: sources,
+    source: evidence,
+    logical,
+    identity,
+  })
   let code = status(@buffers.supply_buffer_output(value.pool, record.slot, b""))
   if code == 0 {
     work.compute.start = Some(activated)
@@ -242,9 +321,13 @@ fn seal_original_portable_model_file_source(
 ///|
 fn retire_portable_model_file_source(custody : StoredPhysicalStart) -> Int {
   guard custody.model_file is Some(work) else { return 0 }
-  if work.source.csv_read is Some(_) { return -9 }
+  if work.source.csv_read is Some(_) {
+    return -9
+  }
   if work.evidence_capacity is Some((ledger, capacity)) {
-    if @resources.settle_capacity(ledger, capacity) is Err(_) { return -4 }
+    if @resources.settle_capacity(ledger, capacity) is Err(_) {
+      return -4
+    }
     work.evidence_capacity = None
   }
   work.runtime.sources = None

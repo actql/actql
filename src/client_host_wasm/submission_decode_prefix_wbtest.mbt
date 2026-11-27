@@ -239,7 +239,9 @@ test "scanned prefix restores same previous Ready plan after original-token sett
     )
     .unwrap()
     .unwrap()
-  let previous : StoredSubmissionAppend = Ready(@host.ClientSubmittedJournalAppendPlan::Retained(prior))
+  let previous : StoredSubmissionAppend = Ready(
+    @host.ClientSubmittedJournalAppendPlan::Retained(prior),
+  )
   record.append_plan = previous
   let capacity = open_submission_decode_prefix(value, record).unwrap()
   assert_eq(prepare_submission_decode_prefix(value, record, capacity, 2), 0)

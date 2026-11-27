@@ -61,8 +61,20 @@ pub fn[I, E] prepare_request_effect_journal_append(
   }
   let candidate = match
     @publication_host.prepare_client_effect_run_journal_append(
-      snapshot, intent, materials, profile, retention, host_adoption_cid, read_selection_cid,
-      now, max_records, scan, read, validate_run, confirm_cancellation, custody_lost,
+      snapshot,
+      intent,
+      materials,
+      profile,
+      retention,
+      host_adoption_cid,
+      read_selection_cid,
+      now,
+      max_records,
+      scan,
+      read,
+      validate_run,
+      confirm_cancellation,
+      custody_lost,
       indexed_store~,
     ) {
     Ok(value) => value

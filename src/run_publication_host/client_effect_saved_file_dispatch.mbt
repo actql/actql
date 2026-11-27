@@ -37,7 +37,9 @@ pub fn ClientEffectSavedFileRow::prepare_dispatch(
   let original = review.waiting
   let claim = application.claim.claim
   let ledger = client_effect_ledger_wire_limits()
-  guard exact_retained_file_dispatch_predecessor(self, actual_run, actual_witness, previous, index)
+  guard exact_retained_file_dispatch_predecessor(
+      self, actual_run, actual_witness, previous, index,
+    )
     is Some(earlier_evidence) &&
     now >= 0L &&
     now < application.claim.lease_expires_ms &&
@@ -59,11 +61,7 @@ pub fn ClientEffectSavedFileRow::prepare_dispatch(
       Int::min(wire.length(), limits.max_nodes),
       limits.max_depth,
     ) &&
-    decode_client_checkpoint_journal_row(
-      wire,
-      run.definition,
-      ledger,
-    )
+    decode_client_checkpoint_journal_row(wire, run.definition, ledger)
     is Ok(checkpoint) &&
     checkpoint.artifact.checkpoint_cid ==
     original.checkpoint.artifact.checkpoint_cid &&
@@ -76,7 +74,7 @@ pub fn ClientEffectSavedFileRow::prepare_dispatch(
     checkpoint.effect_ledger.length() <= 125 &&
     client_effect_ledger_base_witness(run.request, run.definition, checkpoint)
     is Some(base) &&
-    (base + @utf8.encode(earlier_evidence)) == actual_witness.body &&
+    base + @utf8.encode(earlier_evidence) == actual_witness.body &&
     checkpoint.resolution_cid is Some(resolution) else {
     return Err(InvalidOriginal)
   }
@@ -230,7 +228,7 @@ fn exact_retained_file_dispatch_predecessor(
     return None
   }
   match previous {
-    None => {
+    None =>
       if index == 0 &&
         row.application.claim.confirmed(run) is Some(_) &&
         witness.revision == 0L {
@@ -238,7 +236,6 @@ fn exact_retained_file_dispatch_predecessor(
       } else {
         None
       }
-    }
     Some(original) => {
       let dispatch = original.response.dispatch
       if index != dispatch.index + 1 ||

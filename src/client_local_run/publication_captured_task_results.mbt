@@ -669,9 +669,18 @@ pub fn[Store, E] prepare_local_captured_task_commit_candidate(
   // Only the newly issued Index owns a new protocol representation.
   let geometry = match
     @publication.public_index_entry_construction_geometry(
-      run.definition, preflight.invocation, manifest.manifest, receipt,
-      captured_run, bindings, request, attempt, committed_at,
-      limits.max_wire_bytes, limits.max_nodes, limits.max_depth,
+      run.definition,
+      preflight.invocation,
+      manifest.manifest,
+      receipt,
+      captured_run,
+      bindings,
+      request,
+      attempt,
+      committed_at,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Intent(CommitCandidate(issue)))
@@ -688,7 +697,8 @@ pub fn[Store, E] prepare_local_captured_task_commit_candidate(
       scalar_words: writer.scalar_words,
       owned_utf16_units: writer.owned_utf16_units,
       owned_wire_bytes: 0L,
-    }) is Some(writer_bytes) &&
+    })
+    is Some(writer_bytes) &&
     @execution.checked_preparation_add_product(retained_bytes, codec_bytes, 1L)
     is Some(construction) &&
     @execution.checked_preparation_add_product(construction, writer_bytes, 1L)

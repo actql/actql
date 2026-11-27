@@ -171,7 +171,9 @@ pub fn admit_local_sdk_result_read_selection(
     is Ok(expected) &&
     expected == wire {
     RequestedOriginal
-  } else if !accepted_run_policy && connection == "local" && local_sdk_result_read_wire(
+  } else if !accepted_run_policy &&
+    connection == "local" &&
+    local_sdk_result_read_wire(
       run_policy_profile_cid,
       data_policy_cid,
       WorkerAnswer,
@@ -184,9 +186,11 @@ pub fn admit_local_sdk_result_read_selection(
   } else {
     return Err(ForeignOriginal)
   }
-  Ok(seal_local_sdk_result_read_selection(
-    wire, data_policy_cid, scope, connection, accepted_run_policy,
-  ))
+  Ok(
+    seal_local_sdk_result_read_selection(
+      wire, data_policy_cid, scope, connection, accepted_run_policy,
+    ),
+  )
 }
 
 ///|

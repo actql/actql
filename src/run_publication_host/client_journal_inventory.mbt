@@ -162,7 +162,7 @@ pub fn[E] capture_client_sdk_run_journal_inventory(
     task_original,
     task_material_count=Some(task_material_count),
     validate_cancellation_run=Some(validate_cancellation_run),
-  ).map(pair => { count: pair.0, revision: pair.1, maximum: max_records })
+  ).map(pair => { count: pair.0, revision: pair.1, maximum: max_records, })
 }
 
 ///|
@@ -191,7 +191,8 @@ fn[Plan, E] inspect_client_run_journal_inventory_with_index_funding(
   scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   validate_run : (ClientJournalPhysicalRow) -> Result[
-    ClientRunJournalInspection, E,
+    ClientRunJournalInspection,
+    E,
   ],
   confirm_cancellation : () -> Result[Unit, E],
   custody_lost : E,
@@ -249,7 +250,9 @@ fn[Plan, E] inspect_client_run_journal_inventory_with_index_funding(
     if record.cancellation_head is Some(_) {
       cancellation_heads += 1
     }
-    let definition = @publication.publication_contract_identity(record.definition)
+    let definition = @publication.publication_contract_identity(
+      record.definition,
+    )
     if fund_task_indexes is Some(_) &&
       (record.checkpoint is Some(_) || !valid_client_request_cid(definition)) {
       return Err(custody_lost)

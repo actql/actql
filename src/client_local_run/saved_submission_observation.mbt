@@ -75,10 +75,13 @@ pub fn[E] read_local_first_saved_submission(
   let first_read = (table, key) => {
     read(table, key).bind(observed => {
       guard observed is Some(row) else { return Ok(None) }
-      if (table == "client_runs" &&
-          (row.revision != 0L || row.body != rows.run)) ||
-        (table == "client_submitted_intents" &&
-          (row.revision != 1L || row.body != rows.submitted)) {
+      if (
+          table == "client_runs" && (row.revision != 0L || row.body != rows.run)
+        ) ||
+        (
+          table == "client_submitted_intents" &&
+          (row.revision != 1L || row.body != rows.submitted)
+        ) {
         return Err(custody_lost)
       }
       Ok(observed)
@@ -86,11 +89,17 @@ pub fn[E] read_local_first_saved_submission(
   }
   observe_local_saved_submission(rows, plan, preparation, () => {
     @host.read_client_saved_submission_with_task_original(
-      rows.reference, first_read, validate_run, custody_lost, rows.task_materials,
+      rows.reference,
+      first_read,
+      validate_run,
+      custody_lost,
+      rows.task_materials,
     )
   }).bind(original => {
-    confirm_local_saved_submission_locator(rows, plan, read, custody_lost)
-    .map(_ => original)
+    let confirmed = confirm_local_saved_submission_locator(
+      rows, plan, read, custody_lost,
+    )
+    confirmed.map(_ => original)
   })
 }
 
@@ -101,9 +110,12 @@ fn[E] confirm_local_saved_submission_locator(
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   custody_lost : E,
 ) -> Result[Unit, LocalSavedSubmissionObservationIssue[E]] {
-  let (key, body) = match @host.client_saved_run_reference_locator(
-    rows.reference, plan.request, plan.definition,
-  ) {
+  let (key, body) = match
+    @host.client_saved_run_reference_locator(
+      rows.reference,
+      plan.request,
+      plan.definition,
+    ) {
     Ok(value) => value
     Err(_) => return Err(Rows(CustodyLost))
   }
@@ -217,8 +229,10 @@ fn[E] observe_local_saved_submission(
     None => None
     Some(retained) =>
       match retained() {
-        Some(value) if @host.client_run_journal_row_original_matches(value, run.body) =>
-          Some(value)
+        Some(value) if @host.client_run_journal_row_original_matches(
+            value,
+            run.body,
+          ) => Some(value)
         _ => return Err(Rows(CustodyLost))
       }
   }
@@ -235,7 +249,8 @@ fn[E] observe_local_saved_submission(
       submission.body,
       decode_run=body => {
         @host.decode_client_run_journal_row_with_observation_originals(
-          body, original~,
+          body,
+          original~,
         )
       },
     ) {

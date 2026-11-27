@@ -295,10 +295,22 @@ pub fn[E] read_stored_effect_publication(
   max_workspace : Int,
   completed_preview : String,
 ) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]] {
-  if !valid_contract_cid(completed_preview) { return Err(References) }
+  if !valid_contract_cid(completed_preview) {
+    return Err(References)
+  }
   read_stored_publication(
-    namespace_id, authority_scope_cid, definition_cid, read, current,
-    max_contracts, max_total_bytes, max_wire_bytes, max_nodes, max_depth, max_workspace, Some(completed_preview),
+    namespace_id,
+    authority_scope_cid,
+    definition_cid,
+    read,
+    current,
+    max_contracts,
+    max_total_bytes,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    Some(completed_preview),
   )
 }
 
@@ -477,7 +489,8 @@ fn stored_file_effect_computation_matches(
     @json.object_without_field(original, "receipt_identity_cid") is Some(before) &&
     @json.object_without_field(receipt.value, "receipt_identity_cid")
     is Some(final_body) &&
-    @json.object_without_field(final_body, "effect_preview_cid") is Some(final_body) &&
+    @json.object_without_field(final_body, "effect_preview_cid")
+    is Some(final_body) &&
     @json.object_without_field(final_body, "effect_set_apply_receipt_cid")
     is Some(final_body) &&
     @json.object_without_field(final_body, "captured_run_cid") is Some(after) else {

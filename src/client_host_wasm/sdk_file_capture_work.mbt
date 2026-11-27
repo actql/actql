@@ -195,13 +195,17 @@ fn sdk_file_invocation_capacity(
   // verification vectors are temporary and follow the admitted graph.
   guard bytes <= 2147483647L &&
     @host.client_protocol_metadata_construction_bytes(
-      bytes.to_int(), 64L, copies=2,
-    ) is Some((retained, _)) &&
+      bytes.to_int(),
+      64L,
+      copies=2,
+    )
+    is Some((retained, _)) &&
     @host.client_protocol_metadata_construction_bytes(
       bytes.to_int(),
       128L + 4L * tasks + 8L * results + 4L * sources,
       copies=4,
-    ) is Some((execution, _)) else {
+    )
+    is Some((execution, _)) else {
     return None
   }
   Some((retained, execution))
@@ -238,7 +242,11 @@ fn bind_sdk_file_invocation(
   let scope = @host.client_request_authority_scope_cid(materials.request)
   let graph = @strategy.captured_dag_graph(dag)
   guard sdk_file_invocation_capacity(
-      graph, facts.source_ref, facts.data_classification, child.started_at, at,
+      graph,
+      facts.source_ref,
+      facts.data_classification,
+      child.started_at,
+      at,
     )
     is Some((retained, execution)) else {
     return -4

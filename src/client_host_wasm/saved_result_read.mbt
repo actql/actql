@@ -624,7 +624,8 @@ fn finish_saved_result_read(
   // Only the two coordinates cross the transport. Their original checked
   // view and contract bodies stay owned by this Saved operation in Common.
   guard retained.coordinates_capacity is None else { return Err(-33) }
-  let coordinates_capacity = match @resources.reserve_capacity(value.root, 0L, 4096L) {
+  let coordinates_capacity = match
+    @resources.reserve_capacity(value.root, 0L, 4096L) {
     Ok(capacity) => capacity
     Err(_) => return Err(-4)
   }
@@ -632,11 +633,15 @@ fn finish_saved_result_read(
   guard @host.client_saved_submission_run_row(snapshot) is Some(run) else {
     return Err(-32)
   }
-  let wire = match saved_result_coordinates_header(
-    @publication.publication_contract_identity(definition),
-    result_name, result_ordinal, binding_ordinal, run,
-    @host.client_local_run_policy_original_read_expires_at(finite),
-  ) {
+  let wire = match
+    saved_result_coordinates_header(
+      @publication.publication_contract_identity(definition),
+      result_name,
+      result_ordinal,
+      binding_ordinal,
+      run,
+      @host.client_local_run_policy_original_read_expires_at(finite),
+    ) {
     Ok(wire) => wire
     Err(code) => return Err(code)
   }
@@ -662,11 +667,15 @@ fn saved_result_coordinates_header(
   expires_at : String,
 ) -> Result[Bytes, Int] {
   guard definition_cid.length() == 71 &&
-    run.key.length() == 71 && run.revision >= 0L &&
-    run.body.length() > 0 && run.body.length() <= 262144 &&
+    run.key.length() == 71 &&
+    run.revision >= 0L &&
+    run.body.length() > 0 &&
+    run.body.length() <= 262144 &&
     expires_at.length() == 24 &&
-    result_ordinal >= 0 && result_ordinal <= 7 &&
-    binding_ordinal >= 0 && binding_ordinal <= 7 &&
+    result_ordinal >= 0 &&
+    result_ordinal <= 7 &&
+    binding_ordinal >= 0 &&
+    binding_ordinal <= 7 &&
     @sha.text_hex(result_name) is Ok(name_digest) else {
     return Err(-34)
   }
@@ -675,7 +684,10 @@ fn saved_result_coordinates_header(
   guard identity.length() == 206 && deadline.length() == 24 else {
     return Err(-34)
   }
-  let header : FixedArray[Byte] = FixedArray::make(SAVED_RESULT_COORDINATES_BYTES, 0)
+  let header : FixedArray[Byte] = FixedArray::make(
+    SAVED_RESULT_COORDINATES_BYTES,
+    0,
+  )
   header[0] = 2
   header[1] = result_ordinal.to_byte()
   header[2] = binding_ordinal.to_byte()
@@ -798,18 +810,29 @@ fn reobserve_saved_result_read(
   let read_identity = if targeted_identity_rows {
     let submission = @host.client_saved_submission_row(retained.snapshot)
     guard @host.client_saved_submission_run_row(retained.snapshot) is Some(run) &&
-      submission.key.length() == 71 && run.key.length() == 71 else {
+      submission.key.length() == 71 &&
+      run.key.length() == 71 else {
       return Err(-32)
     }
     let keys = @utf8.encode(submission.key + run.key)
     Some((table, key) => {
       if table == "client_submitted_intents" && key == submission.key {
         physical_journal_saved_identity_row(
-          current.physical, check, keys, 0, submission.body.length(), run.body.length(),
+          current.physical,
+          check,
+          keys,
+          0,
+          submission.body.length(),
+          run.body.length(),
         )
       } else if table == "client_runs" && key == run.key {
         physical_journal_saved_identity_row(
-          current.physical, check, keys, 1, submission.body.length(), run.body.length(),
+          current.physical,
+          check,
+          keys,
+          1,
+          submission.body.length(),
+          run.body.length(),
         )
       } else {
         Err(-32)
@@ -839,7 +862,10 @@ fn rebind_saved_result_originals(
   catalog_status : Int,
   scan : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
-  read_identity? : ((String, String) -> Result[@host.ClientJournalPhysicalRow?, Int])? = None,
+  read_identity? : ((String, String) -> Result[
+    @host.ClientJournalPhysicalRow?,
+    Int,
+  ])? = None,
   read_task_slots? : (
     (String, Int) -> Result[@host.ClientJournalPhysicalRow?, Int],
     Int,
@@ -903,7 +929,8 @@ fn rebind_saved_result_originals(
     }
   }
   if !same {
-    let audit = () => @host.inspect_client_cancellation_journal_inventory_with_run_identity(
+    let audit = () => {
+      @host.inspect_client_cancellation_journal_inventory_with_run_identity(
         1024,
         scan,
         read,
@@ -916,9 +943,14 @@ fn rebind_saved_result_originals(
         },
         -31,
       ).map(_ => ())
-    match confirm_submission_cancellation(
-      Some(retained.snapshot), read, audit, target_cancellation,
-    ) {
+    }
+    match
+      confirm_submission_cancellation(
+        Some(retained.snapshot),
+        read,
+        audit,
+        target_cancellation,
+      ) {
       Err(code) => return Err(code)
       Ok(_) => ()
     }

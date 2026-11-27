@@ -163,12 +163,18 @@ fn accept_original_mock_effect_capture(
     Err(_) => return -20
   }
   accept_original_project_capture_rows(
-    value, child, selected, read, acquisition, original.effect.data,
+    value,
+    child,
+    selected,
+    read,
+    acquisition,
+    original.effect.data,
     _ => {
       value.physical_starts.get(child.start) is Some(custody) &&
       custody.mock_managed is Some(owner) &&
       physical_equal(owner, managed) &&
-      !value.closing && !value.runtime_closing
+      !value.closing &&
+      !value.runtime_closing
     },
   )
 }
@@ -591,10 +597,14 @@ fn advance_original_project_capture(
   let occurrence = mock_effect_descriptor_field(wire, 4)
   guard start > 0 && occurrence >= 0 else { return -31 }
   if value.physical_starts.get(start) is Some({ model_file: Some(_), .. }) {
-    return advance_original_portable_model_file_source(value, handle, record, start, occurrence, wire)
+    return advance_original_portable_model_file_source(
+      value, handle, record, start, occurrence, wire,
+    )
   }
   if value.physical_starts.get(start) is Some({ file_managed: Some(_), .. }) {
-    return advance_original_file_capture(value, handle, record, start, occurrence, wire)
+    return advance_original_file_capture(
+      value, handle, record, start, occurrence, wire,
+    )
   }
   advance_original_mock_effect_capture(value, record, start, occurrence, wire)
 }

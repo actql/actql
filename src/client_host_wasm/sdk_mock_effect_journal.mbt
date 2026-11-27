@@ -666,9 +666,7 @@ fn[Plan, T] with_sdk_run_journal_snapshot(
     Ok(_) => ()
   }
   let task_read : SDKTaskJournalReadFunding? = if task_original is Some(_) {
-    Some({
-      task: 0L,
-    })
+    Some({ task: 0L, })
   } else {
     None
   }
@@ -677,15 +675,9 @@ fn[Plan, T] with_sdk_run_journal_snapshot(
     extra_retained : Int64,
     extra_scratch : Int64,
   ) -> Result[Unit, Int] {
-    guard @execution.checked_preparation_add_product(
-        prefix, extra_retained, 1L,
-      )
+    guard @execution.checked_preparation_add_product(prefix, extra_retained, 1L)
       is Some(retained) &&
-      @execution.checked_preparation_add_product(
-        retained,
-        sizes.task,
-        1L,
-      )
+      @execution.checked_preparation_add_product(retained, sizes.task, 1L)
       is Some(work) &&
       @execution.checked_preparation_add_product(work, extra_scratch, 1L)
       is Some(execution) else {
@@ -712,14 +704,19 @@ fn[Plan, T] with_sdk_run_journal_snapshot(
   ) -> Result[@host.ClientRunJournalInspection, Int] {
     // The original issued/claimed row must match before using its nominal
     // definition or material. A changed cancellation advances that same row.
-    guard row.key == expected.key && row.revision == expected.revision &&
-      row.body == expected.body else { return Err(-31) }
+    guard row.key == expected.key &&
+      row.revision == expected.revision &&
+      row.body == expected.body else {
+      return Err(-31)
+    }
     Ok({
       request,
       definition,
       checkpoint: None,
       cancellation_head: None,
-      task_materials_cid: task_original.map(@host.client_task_materials_original_cid),
+      task_materials_cid: task_original.map(
+        @host.client_task_materials_original_cid,
+      ),
     })
   }
   let task_funding = task_read.map(sizes => {

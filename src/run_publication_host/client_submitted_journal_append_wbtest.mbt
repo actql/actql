@@ -585,19 +585,34 @@ test "fresh adopted usage and issuance must share a generation, including after 
   }
   let body = client_submitted_journal_usage_body(count, 7000L, 1024).unwrap()
   guard decide(Some(inventory_row("retained", body, revision=1000L)))
-    is Ok(Append(candidate)) else { fail("same original usage refused") }
+    is Ok(Append(candidate)) else {
+    fail("same original usage refused")
+  }
   let (revision, successor) = client_submitted_journal_append_usage(candidate).unwrap()
   assert_eq(revision, 1000L)
-  let (_, _, issued_revision, issued_body) = client_submitted_journal_append_rows(candidate)
+  let (_, _, issued_revision, issued_body) = client_submitted_journal_append_rows(
+    candidate,
+  )
   assert_eq(issued_revision, revision)
   assert_eq(issued_body, b"1001")
   assert_eq(
     client_submitted_journal_usage(
-      inventory_row("retained", successor, revision=1001L), 1001, 1024,
+      inventory_row("retained", successor, revision=1001L),
+      1001,
+      1024,
     ).unwrap(),
-    7000L + @utf8.encode(client_submitted_intent_wire(original.intent)).length().to_int64(),
+    7000L +
+    @utf8.encode(client_submitted_intent_wire(original.intent))
+    .length()
+    .to_int64(),
   )
-  assert_true(decide(Some(inventory_row("retained", body, revision=999L))) is Err(Observation("custody")))
-  assert_true(decide(Some(inventory_row("retained", b"999:7000", revision=1000L))) is Err(Observation("custody")))
+  assert_true(
+    decide(Some(inventory_row("retained", body, revision=999L)))
+    is Err(Observation("custody")),
+  )
+  assert_true(
+    decide(Some(inventory_row("retained", b"999:7000", revision=1000L)))
+    is Err(Observation("custody")),
+  )
   assert_true(decide(None) is Err(Observation("custody")))
 }

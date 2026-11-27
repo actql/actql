@@ -102,10 +102,7 @@ pub fn[E] prepare_client_run_journal_append(
     ClientCancellationRunJournalInspection,
     E,
   ])? = None,
-  inventory_original? : (() -> Result[
-    ClientRunJournalInventoryOriginal,
-    E,
-  ])? = None,
+  inventory_original? : (() -> Result[ClientRunJournalInventoryOriginal, E])? = None,
 ) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]] {
   match
     read_client_retained_run_journal(request, read, validate_run, custody_lost) {
@@ -162,19 +159,23 @@ pub fn[E] prepare_indexed_client_run_journal_append(
   publication_policy_originals : String?,
 ) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]] {
   let issuance = match
-    journal_issuance_anchor("client_run_custody", max_records, read, custody_lost) {
+    journal_issuance_anchor(
+      "client_run_custody", max_records, read, custody_lost,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
-  match read_client_retained_run_journal(request, read, validate_run, custody_lost) {
-    Ok(Some(retained)) => {
-      if @publication.publication_contract_identity(retained.original.definition) !=
+  match
+    read_client_retained_run_journal(request, read, validate_run, custody_lost) {
+    Ok(Some(retained)) =>
+      if @publication.publication_contract_identity(
+          retained.original.definition,
+        ) !=
         @publication.publication_contract_identity(definition) {
         Err(ForeignRun)
       } else {
         Ok(Retained(retained))
       }
-    }
     Err(issue) => Err(issue)
     Ok(None) => {
       if issuance.0 == max_records {
@@ -502,10 +503,12 @@ pub fn[E] prepare_client_captured_task_first_run_rows(
             }
           }),
           Some(policy_collection),
-        ).map(original => {
+        )
+        .map(original => {
           policy_root.val = Some(original.1)
           original.0
-        }).map_err(issue => {
+        })
+        .map_err(issue => {
           match packet_failure.val {
             Some(original) => ClientRunJournalAppendIssue::Observation(original)
             None =>
@@ -785,14 +788,14 @@ fn[E] observe_client_first_run_append_issuance(
     ClientCancellationRunJournalInspection,
     E,
   ])? = None,
-  inventory_original? : (() -> Result[
-    ClientRunJournalInventoryOriginal,
-    E,
-  ])? = None,
+  inventory_original? : (() -> Result[ClientRunJournalInventoryOriginal, E])? = None,
   indexed_store? : Bool = false,
 ) -> Result[(Int, Int64), ClientRunJournalAppendIssue[E]] {
   if indexed_store {
-    match journal_issuance_anchor("client_run_custody", max_records, read, custody_lost) {
+    match
+      journal_issuance_anchor(
+        "client_run_custody", max_records, read, custody_lost,
+      ) {
       Ok((count, _)) if count == max_records => return Err(CapacityExceeded)
       Ok(issuance) => return Ok(issuance)
       Err(issue) => return Err(Observation(issue))
@@ -804,7 +807,8 @@ fn[E] observe_client_first_run_append_issuance(
   let (count, revision) = match inventory_original {
     Some(observe) =>
       match observe() {
-        Ok(proof) if proof.maximum == max_records => (proof.count, proof.revision)
+        Ok(proof) if proof.maximum == max_records =>
+          (proof.count, proof.revision)
         Ok(_) => return Err(Observation(custody_lost))
         Err(issue) => return Err(Observation(issue))
       }
@@ -907,10 +911,7 @@ fn[E] project_client_run_journal_append(
     Unit,
     ClientRunJournalAppendIssue[E],
   ])? = None,
-  inventory_original? : (() -> Result[
-    ClientRunJournalInventoryOriginal,
-    E,
-  ])? = None,
+  inventory_original? : (() -> Result[ClientRunJournalInventoryOriginal, E])? = None,
   indexed_store? : Bool = false,
 ) -> Result[ClientRunJournalAppend, ClientRunJournalAppendIssue[E]] {
   let issuance = match
@@ -934,14 +935,8 @@ fn[E] project_client_run_journal_append(
     Err(issue) => return Err(issue)
   }
   encode_client_run_journal_append(
-    request,
-    definition,
-    issuance,
-    local_policy_original,
-    run_observation_originals,
-    task_materials_cid,
-    publication_policy_originals,
-    effect_material_originals,
+    request, definition, issuance, local_policy_original, run_observation_originals,
+    task_materials_cid, publication_policy_originals, effect_material_originals,
     before_row_encoding,
   )
 }

@@ -1275,7 +1275,6 @@ fn reserve_installed_effect_result_view(
   })
 }
 
-
 ///|
 // Price one exact pinned producer Result. The view/codec and bridge overlap
 // regardless of which caller owns the original Unit's Open.

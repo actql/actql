@@ -13,9 +13,7 @@ fn advance_original_mock_effect_plan_proofs(
   targets : StoredMockEffectTargetDrive,
   original : MockEffectJournalObservationOriginal,
 ) -> Int {
-  guard targets.bound is Some(preview) else {
-    return -32
-  }
+  guard targets.bound is Some(preview) else { return -32 }
   let count = targets.members.length()
   // Once all proofs return, the next Result snapshot may own this workspace
   // across advances. Only the incomplete proof may require it to be empty.
@@ -24,7 +22,11 @@ fn advance_original_mock_effect_plan_proofs(
   }
   guard targets.workspace is None else { return -32 }
   guard targets.plan_proofs is Some(proofs) else {
-    guard @execution.preparation_array_representation(1L, count.to_int64(), false)
+    guard @execution.preparation_array_representation(
+        1L,
+        count.to_int64(),
+        false,
+      )
       is Some(array) &&
       fund_original_mock_effect_target_data(drive, {
         ..array,
@@ -51,9 +53,13 @@ fn advance_original_mock_effect_plan_proofs(
       fund_original_mock_effect_target_bytes(drive, charge) else {
       return -4
     }
-    let verifier = match @strategy.prepare_captured_effect_plan_verifier(
-      preview, index, fields, limits.max_work,
-    ) {
+    let verifier = match
+      @strategy.prepare_captured_effect_plan_verifier(
+        preview,
+        index,
+        fields,
+        limits.max_work,
+      ) {
       Ok(verifier) => verifier
       Err(_) => return -31
     }
@@ -77,48 +83,72 @@ fn advance_original_mock_effect_plan_proofs(
     target.capture.proposal_row(index, active.row) is Some(proposal) &&
     physical_equal(row.proposal, proposal) &&
     @execution.completed_relation_export_snapshot_extent(stream, receipt)
-    is Ok((bytes, nodes, count, depth)) && count == target.count else {
+    is Ok((bytes, nodes, count, depth)) &&
+    count == target.count else {
     return -32
   }
   let max_bytes = limits.max_admission_text_bytes
   let max_nodes = limits.max_admission_nodes
   let depth = Int::min(depth, limits.max_admission_depth)
   let projected = Int64::min(
-    max_bytes.to_int64(), 3L * row.request.length().to_int64() + 128L,
+    max_bytes.to_int64(),
+    3L * row.request.length().to_int64() + 128L,
   ).to_int()
-  guard @encode.measuring_writer_construction_extent(depth, depth) is Some(writer) &&
-    @values.wire_emit_workspace_construction_inventory(4 * (depth + 4)) is Some(emit) &&
+  guard @encode.measuring_writer_construction_extent(depth, depth)
+    is Some(writer) &&
+    @values.wire_emit_workspace_construction_inventory(4 * (depth + 4))
+    is Some(emit) &&
     @execution.preparation_representation_cost({
       record_headers: writer.record_headers + emit.record_headers + 16L,
       reference_slots: writer.reference_slots + emit.reference_slots + 32L,
       scalar_words: writer.scalar_words + emit.scalar_words + 20L,
       owned_utf16_units: emit.owned_utf16_units,
       owned_wire_bytes: 0L,
-    }) is Some(peak) &&
+    })
+    is Some(peak) &&
     @resources.reserve_capacity(drive.ledger, 0L, peak) is Ok(workspace) else {
     return -4
   }
   targets.workspace = Some(workspace)
-  let selected = match @execution.read_completed_relation_export_canonical_row(
-    stream, receipt, active.row, Int::min(bytes, max_bytes), Int::min(nodes, max_nodes), depth,
-    (row_bytes, row_nodes, _) => {
-      @host.client_protocol_metadata_construction_bytes(
-        Int::max(row_bytes, projected),
-        row_nodes.to_int64() + 16L * depth.to_int64() + 16L * fields.to_int64() + 64L,
-        copies=4,
-      ) is Some((construction, _)) &&
-      @execution.checked_preparation_add_product(peak, 1L, construction) is Some(total) &&
-      @resources.grow_capacity_reservation(drive.ledger, workspace, 0L, total) is Ok(_)
-    },
-  ) {
+  let selected = match
+    @execution.read_completed_relation_export_canonical_row(
+      stream,
+      receipt,
+      active.row,
+      Int::min(bytes, max_bytes),
+      Int::min(nodes, max_nodes),
+      depth,
+      (row_bytes, row_nodes, _) => {
+        @host.client_protocol_metadata_construction_bytes(
+          Int::max(row_bytes, projected),
+          row_nodes.to_int64() +
+          16L * depth.to_int64() +
+          16L * fields.to_int64() +
+          64L,
+          copies=4,
+        )
+        is Some((construction, _)) &&
+        @execution.checked_preparation_add_product(peak, 1L, construction)
+        is Some(total) &&
+        @resources.grow_capacity_reservation(drive.ledger, workspace, 0L, total)
+        is Ok(_)
+      },
+    ) {
     Ok(value) => value
     Err(@execution.Admission(@execution.CaptureLimit)) => return -4
     Err(_) => return -31
   }
   if @strategy.check_captured_effect_plan_row(
-      active.verifier, selected, active.row, fields, limits.max_work, projected,
-      max_nodes, limits.max_admission_depth,
-    ) is Err(_) {
+      active.verifier,
+      selected,
+      active.row,
+      fields,
+      limits.max_work,
+      projected,
+      max_nodes,
+      limits.max_admission_depth,
+    )
+    is Err(_) {
     return -31
   }
   if !release_original_mock_effect_target_document(drive, targets) {

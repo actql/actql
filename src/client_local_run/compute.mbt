@@ -207,7 +207,10 @@ pub fn local_compute_wasm_publication_limits(
     CapturedSource(original) =>
       original.wasm_publication_limits(host.plan.prepared)
     SourceFreeModel(adopted) | WholeSourceModel(adopted) =>
-      @local.installed_model_wasm_publication_limits(adopted, host.plan.prepared)
+      @local.installed_model_wasm_publication_limits(
+        adopted,
+        host.plan.prepared,
+      )
   }
 }
 

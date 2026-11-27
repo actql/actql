@@ -53,8 +53,9 @@ pub fn[E] observe_client_decided_effect_checkpoint(
     checkpoint.unknown_effects.is_empty() &&
     (if completed {
       checkpoint.state.status == @publication.Succeeded &&
-        checkpoint.resume_intent is Some(intent) &&
-        intent.state == @checkpoint.ResumeCompleted && intent.generation > 0L
+      checkpoint.resume_intent is Some(intent) &&
+      intent.state == @checkpoint.ResumeCompleted &&
+      intent.generation > 0L
     } else {
       checkpoint.effect_ledger.is_empty() &&
       (match (checkpoint.state.status, checkpoint.resume_intent) {
@@ -117,13 +118,27 @@ pub fn[E] observe_client_decided_effect_checkpoint(
     _ => return Err(custody_lost)
   }
   let custody = if completed {
-    confirm_client_completed_file_effect(row, run, checkpoint, read, fund, custody_lost)
-      .bind(_ => observe_client_effect_completion_index(
-        namespace_id, authority_scope_cid, definition_cid, row.key, checkpoint, read, fund, custody_lost,
-      ))
+    confirm_client_completed_file_effect(
+      row, run, checkpoint, read, fund, custody_lost,
+    ).bind(_ => {
+      observe_client_effect_completion_index(
+        namespace_id,
+        authority_scope_cid,
+        definition_cid,
+        row.key,
+        checkpoint,
+        read,
+        fund,
+        custody_lost,
+      )
+    })
   } else {
     confirm_client_empty_effect_ledger_witness(
-      request, run.definition, checkpoint, read, custody_lost,
+      request,
+      run.definition,
+      checkpoint,
+      read,
+      custody_lost,
     )
   }
   match custody {

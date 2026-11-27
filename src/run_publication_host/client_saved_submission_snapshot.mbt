@@ -71,14 +71,22 @@ pub fn[E] confirm_client_saved_submission_cancellation(
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   custody_lost : E,
 ) -> Result[Bool, E] {
-  guard value.run is Some(row) &&
-    value.inspection is Some(original) else { return Ok(false) }
+  guard value.run is Some(row) && value.inspection is Some(original) else {
+    return Ok(false)
+  }
   guard original.cancellation_head is Some(head) else { return Ok(true) }
   guard @publication.run_definition_namespace(original.definition)
-    is Some(namespace_id) else { return Err(custody_lost) }
+    is Some(namespace_id) else {
+    return Err(custody_lost)
+  }
   observe_client_accepted_cancellation_original(
-    head, namespace_id, original.request, original.definition, row.revision,
-    read, custody_lost,
+    head,
+    namespace_id,
+    original.request,
+    original.definition,
+    row.revision,
+    read,
+    custody_lost,
   ).map(_ => true)
 }
 
@@ -92,8 +100,13 @@ pub fn[E] confirm_client_saved_submission_locator(
 ) -> Result[Unit, E] {
   guard value.inspection is Some(original) &&
     client_saved_run_reference_locator(
-      value.record.reference, original.request, original.definition,
-    ) is Ok((key, body)) else { return Err(custody_lost) }
+      value.record.reference,
+      original.request,
+      original.definition,
+    )
+    is Ok((key, body)) else {
+    return Err(custody_lost)
+  }
   match read("client_run_reference_index", key) {
     Ok(Some(row)) if row.key == key && row.revision == 0L && row.body == body =>
       Ok(())
@@ -509,7 +522,13 @@ pub fn[E] inspect_client_saved_submission(
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
   let original : ClientTaskMaterialsOriginal[Unit]? = None
   inspect_client_saved_submission_with_task_original(
-    reference, max_records, scan, read, validate_run, confirm_cancellation, custody_lost,
+    reference,
+    max_records,
+    scan,
+    read,
+    validate_run,
+    confirm_cancellation,
+    custody_lost,
     original,
     task_material_count~,
   )

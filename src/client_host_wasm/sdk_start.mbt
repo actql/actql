@@ -56,7 +56,12 @@ fn sdk_saved_original_snapshot(
     return Err(-2)
   }
   let saved = match
-    observe_submission_append(value, observation, current, original_run=Some(run)) {
+    observe_submission_append(
+      value,
+      observation,
+      current,
+      original_run=Some(run),
+    ) {
     Ok(@host.Retained(saved)) => saved
     Ok(@host.Append(_)) => return Err(-35)
     Err(code) => return Err(code)

@@ -31,7 +31,9 @@ fn derive_effect_target_canonical_row_inventory(
 }
 
 ///|
-fn order_effect_target_inventory(targets : Array[(String, Int)]) -> Result[Array[Int], EffectPreviewIdentityIssue] {
+fn order_effect_target_inventory(
+  targets : Array[(String, Int)],
+) -> Result[Array[Int], EffectPreviewIdentityIssue] {
   targets.sort_by((left, right) => @canonical.compare_utf16(left.0, right.0))
   let result : Array[Int] = []
   let mut previous : String? = None

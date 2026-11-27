@@ -34,8 +34,12 @@ fn sdk_local_model_file_read_selection_needed(
   configuration.mock_project is None &&
   sdk.portable_model is Some(_) &&
   connection == configuration.tuple.connection &&
-  @publication.local_sdk_result_read_selection_uses_installed_result_authority(sdk.read) &&
-  !@publication.local_sdk_result_read_selection_uses_accepted_run_policy(sdk.read)
+  @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+    sdk.read,
+  ) &&
+  !@publication.local_sdk_result_read_selection_uses_accepted_run_policy(
+    sdk.read,
+  )
 }
 
 ///|
@@ -44,7 +48,9 @@ fn sdk_accepted_file_read_selection_capacity(
 ) -> (Int64, Int64)? {
   // Both canonical wires have the same bounded literals and adopted profile.
   // The accepted-policy flag replaces the singleton fixed SHA-256 CID array.
-  let (_, connection, _, _, _, _, _) = @publication.local_sdk_result_read_selection_parameters(sdk.read)
+  let (_, connection, _, _, _, _, _) = @publication.local_sdk_result_read_selection_parameters(
+    sdk.read,
+  )
   let units = @publication.local_sdk_result_read_selection_wire(sdk.read).length()
   // A non-ASCII control connection can take three octets per UTF-16 unit.
   let bytes = if connection == "local" { units } else { 3 * units }
@@ -84,7 +90,9 @@ fn issue_sdk_accepted_file_read_selection(
     sdk_local_model_file_read_selection_needed(configuration, sdk) else {
     return Err(-32)
   }
-  let (_, connection, _, _, _, _, _) = @publication.local_sdk_result_read_selection_parameters(sdk.read)
+  let (_, connection, _, _, _, _, _) = @publication.local_sdk_result_read_selection_parameters(
+    sdk.read,
+  )
   @publication.issue_local_sdk_result_read_selection(
     @host.client_local_run_policy_profile_cid(sdk.profile),
     @publication.local_sdk_result_read_selection_data_policy_cid(sdk.read),

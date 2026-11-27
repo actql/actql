@@ -32,7 +32,11 @@ fn bind_managed_producer_handle(
     // Only the graph's explicit supplied Source marker can remain -1.
     return if task == -1 &&
       original.host is Some(host) &&
-      @local_run.local_compute_uses_whole_model_source(host) { -1 } else { -2 }
+      @local_run.local_compute_uses_whole_model_source(host) {
+      -1
+    } else {
+      -2
+    }
   }
   // Captured task zero is the Source prefix. Source-free task zero has its
   // own registered handle, just like any other completed predecessor.
@@ -407,9 +411,9 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
   // Seal new task/export admission immediately, but preserve the original
   // output's liveness and reservation until its existing pins are returned.
   record.closing = true
-  if value.result_exports.values().any(result => {
-      result.origin is TaskResult(task) && task == handle
-    }) ||
+  if value.result_exports
+    .values()
+    .any(result => result.origin is TaskResult(task) && task == handle) ||
     value.run_invocations
     .values()
     .any(invocation => {

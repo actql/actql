@@ -226,10 +226,13 @@ pub fn produce_result_chunk(nonce : Int64, handle : Int) -> Int {
     Ok((wire, final_chunk)) => {
       if record.origin is FileNamedResult(file) {
         let code = check_sdk_file_result_current(value, file)
-        if code != 0 { record.issue = Some(FileCurrent(code)) }
+        if code != 0 {
+          record.issue = Some(FileCurrent(code))
+        }
       }
       if record.issue is None {
-        match @buffers.supply_buffer_output(value.pool, slot, @utf8.encode(wire)) {
+        match
+          @buffers.supply_buffer_output(value.pool, slot, @utf8.encode(wire)) {
           Err(issue) => record.issue = Some(Buffer(issue))
           Ok(_) => {
             chunk.final_chunk = final_chunk
@@ -252,7 +255,7 @@ pub fn produce_result_chunk(nonce : Int64, handle : Int) -> Int {
 ///|
 fn result_chunk_read_status(value : Instance, chunk : StoredResultChunk) -> Int {
   match value.result_exports.get(chunk.result) {
-    Some({ origin: FileNamedResult(_), closing, pending, .. }) => {
+    Some({ origin: FileNamedResult(_), closing, pending, .. }) =>
       if value.closing || value.runtime_closing || closing || chunk.closing {
         -5
       } else if pending || chunk.pending || !chunk.produced {
@@ -260,7 +263,6 @@ fn result_chunk_read_status(value : Instance, chunk : StoredResultChunk) -> Int 
       } else {
         0
       }
-    }
     _ => 0
   }
 }
@@ -274,7 +276,9 @@ pub fn result_chunk_length(nonce : Int64, handle : Int) -> Int {
     return -33
   }
   let current = result_chunk_read_status(value, chunk)
-  if current != 0 { return current }
+  if current != 0 {
+    return current
+  }
   @buffers.buffer_length(value.pool, slot).unwrap_or(-33)
 }
 
@@ -288,7 +292,9 @@ pub fn result_chunk_final(nonce : Int64, handle : Int) -> Int {
     return -33
   }
   let current = result_chunk_read_status(value, chunk)
-  if current != 0 { return current }
+  if current != 0 {
+    return current
+  }
   if chunk.final_chunk {
     1
   } else {
@@ -325,11 +331,15 @@ pub fn close_result_chunk(nonce : Int64, handle : Int) -> Int {
 ///|
 pub fn start_result_export(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.result_exports.get(handle) is Some(record) else { return -2 }
+    value.result_exports.get(handle) is Some(record) else {
+    return -2
+  }
   if record.origin is FileNamedResult(file) {
     return start_sdk_file_result_export(value, record, file)
   }
-  guard record.origin is TaskResult(task) && value.tasks.get(task) is Some(
+  guard record.origin is TaskResult(task) &&
+    value.tasks.get(task)
+    is Some(
       { completed: Some(completed), operations: Some(operations), compute, .. }
     ) &&
     value.computes.get(compute)
@@ -383,12 +393,21 @@ pub fn start_result_export(nonce : Int64, handle : Int) -> Int {
 /// them. The scalar position is a transfer cursor, not execution progress.
 pub fn feed_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.result_exports.get(handle) is Some(record) else { return -2 }
+    value.result_exports.get(handle) is Some(record) else {
+    return -2
+  }
   if record.origin is FileNamedResult(file) {
-    return advance_sdk_file_result_export(value, record, file, quantum, feed=true)
+    return advance_sdk_file_result_export(
+      value,
+      record,
+      file,
+      quantum,
+      feed=true,
+    )
   }
   guard record.bridge is Some(bridge) &&
-    record.origin is TaskResult(task_handle) && value.tasks.get(task_handle) is Some(task) &&
+    record.origin is TaskResult(task_handle) &&
+    value.tasks.get(task_handle) is Some(task) &&
     task.completed is Some(completed) &&
     task.operations is Some(operations) &&
     value.computes.get(task.compute) is Some({ host: Some(host), .. }) else {
@@ -478,15 +497,27 @@ pub fn result_export_inputs_ready(nonce : Int64, handle : Int) -> Int {
     FileNamedResult(file) =>
       file.preparation is Some(owner) && owner.inputs_ready()
   }
-  if ready { 0 } else { -7 }
+  if ready {
+    0
+  } else {
+    -7
+  }
 }
 
 ///|
 pub fn advance_result_export(nonce : Int64, handle : Int, quantum : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.result_exports.get(handle) is Some(record) else { return -2 }
+    value.result_exports.get(handle) is Some(record) else {
+    return -2
+  }
   if record.origin is FileNamedResult(file) {
-    return advance_sdk_file_result_export(value, record, file, quantum, feed=false)
+    return advance_sdk_file_result_export(
+      value,
+      record,
+      file,
+      quantum,
+      feed=false,
+    )
   }
   guard record.preparation is Some(preparation) else { return -2 }
   if value.closing || record.closing || record.stream is Some(_) {
@@ -533,7 +564,9 @@ pub fn result_export_progress(nonce : Int64, handle : Int, field : Int) -> Int {
 ///|
 pub fn finish_result_export_preparation(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.result_exports.get(handle) is Some(record) else { return -2 }
+    value.result_exports.get(handle) is Some(record) else {
+    return -2
+  }
   if record.origin is FileNamedResult(file) {
     return finish_sdk_file_result_export(value, record, file)
   }
@@ -594,9 +627,15 @@ pub fn close_result_export(nonce : Int64, handle : Int) -> Int {
   record.pending = true
   let retired = match record.origin {
     TaskResult(_) => {
-      if record.stream is Some(stream) { stream.cancel() }
-      if record.preparation is Some(preparation) { preparation.cancel() }
-      if record.bridge is Some(bridge) { @execution.close_managed_publication_bridge(bridge) }
+      if record.stream is Some(stream) {
+        stream.cancel()
+      }
+      if record.preparation is Some(preparation) {
+        preparation.cancel()
+      }
+      if record.bridge is Some(bridge) {
+        @execution.close_managed_publication_bridge(bridge)
+      }
       0
     }
     FileNamedResult(file) => retire_sdk_file_result_export(record, file)
@@ -605,7 +644,9 @@ pub fn close_result_export(nonce : Int64, handle : Int) -> Int {
   if record.origin is FileNamedResult(file) {
     file.retiring = false
   }
-  if retired != 0 { return retired }
+  if retired != 0 {
+    return retired
+  }
   value.result_exports.remove(handle) |> ignore
   0
 }
@@ -622,8 +663,11 @@ pub fn reserve_result_from_compute(
   guard selected(nonce) is Some(value) &&
     !value.closing &&
     !value.runtime_closing &&
-    value.run_configurations.get(current_configuration) is Some(current) else { return -2 }
-  if value.physical_starts.get(compute) is Some({ file_managed: Some(file), .. }) {
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if value.physical_starts.get(compute)
+    is Some({ file_managed: Some(file), .. }) {
     return reserve_sdk_file_named_result(value, compute, file, result, current)
   }
   guard value.computes.get(compute)

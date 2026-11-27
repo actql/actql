@@ -1008,7 +1008,6 @@ pub fn release_captured_output_pin(pin : CapturedOutputPin) -> Bool {
   true
 }
 
-
 ///|
 fn drop_captured_output_pin(pin : CapturedOutputPin) -> Bool {
   if !pin.live || pin.run.effect_pin_admission is Some(_) {
@@ -1018,7 +1017,6 @@ fn drop_captured_output_pin(pin : CapturedOutputPin) -> Bool {
   pin.run.lifetimes[pin.task].pins -= 1
   true
 }
-
 
 ///|
 /// Acquire every exact checked Result occurrence before a multi-consumer

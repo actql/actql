@@ -29,8 +29,7 @@ fn installed_sample_seal_construction(bytes : Int, nodes : Int) -> Int64? {
       bytes, nodes, 4,
     )
     is Some(evidence) &&
-    @encode.text_writer_construction_inventory(bytes, nodes, 4)
-    is Some(body) else {
+    @encode.text_writer_construction_inventory(bytes, nodes, 4) is Some(body) else {
     return None
   }
   @execution.preparation_representation_cost({
@@ -50,23 +49,19 @@ fn installed_sample_adoption_construction(
   prefix_depth : Int,
 ) -> Int64? {
   guard installed_sample_seal_construction(
-      generation_bytes,
-      installed_sample_generation_nodes,
+      generation_bytes, installed_sample_generation_nodes,
     )
     is Some(generation) &&
     installed_sample_seal_construction(
-      installed_sample_capture_bytes,
-      installed_sample_capture_nodes,
+      installed_sample_capture_bytes, installed_sample_capture_nodes,
     )
     is Some(capture) &&
     installed_sample_seal_construction(
-      installed_sample_emission_bytes,
-      installed_sample_emission_nodes,
+      installed_sample_emission_bytes, installed_sample_emission_nodes,
     )
     is Some(emission) &&
     installed_sample_seal_construction(
-      reference_bytes,
-      installed_sample_reference_nodes,
+      reference_bytes, installed_sample_reference_nodes,
     )
     is Some(reference) &&
     @encode.hash_writer_construction_inventory(prefix_nodes, prefix_depth)

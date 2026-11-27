@@ -199,7 +199,11 @@ fn sdk_journal_reader_serial(
     Ok(0L) => Ok(0L)
     Ok(_) => {
       let serial = physical_journal_saved_reader(current.physical)
-      if serial < 0L { Err(-41) } else { Ok(serial) }
+      if serial < 0L {
+        Err(-41)
+      } else {
+        Ok(serial)
+      }
     }
   }
 }
@@ -251,8 +255,12 @@ fn submission_snapshot_is_preparing(
 fn submission_append_input(
   cursor : @decode.Cursor,
 ) -> Result[(@decode.ObjectView, Bool), Int] {
-  guard @decode.closed_object(cursor, ["reference", "intent", "now", "observe_only"])
-    is Ok(object) else { return Err(-31) }
+  guard @decode.closed_object(cursor, [
+      "reference", "intent", "now", "observe_only",
+    ])
+    is Ok(object) else {
+    return Err(-31)
+  }
   match @decode.lookup(object, "observe_only") {
     None => Ok((object, false))
     Some(field) if @decode.boolean(field) is Ok(true) => Ok((object, true))
@@ -443,11 +451,15 @@ fn observe_submission_append_body(
     if plan is @host.Retained(snapshot) {
       let saved = @host.client_saved_submission_record(snapshot)
       if saved.run_admission is Some(_) {
-        match @host.confirm_client_saved_submission_locator(snapshot, read, -31) {
+        match
+          @host.confirm_client_saved_submission_locator(snapshot, read, -31) {
           Ok(_) => ()
           Err(code) => return Err(code)
         }
-        match @host.confirm_client_saved_submission_cancellation(snapshot, read, -31) {
+        match
+          @host.confirm_client_saved_submission_cancellation(
+            snapshot, read, -31,
+          ) {
           Ok(true) => ()
           Ok(false) => return Err(-31)
           Err(code) => return Err(code)
@@ -614,7 +626,10 @@ pub fn validate_submission_append(
       kind == SAVED_EFFECT_DECISION_KIND ||
       kind == SAVED_EFFECT_DECISION_FIELD_KIND ||
       kind == SAVED_EFFECT_RESUME_KIND ||
-      kind == SAVED_EFFECT_APPLICATION_KIND || saved_effect_file_dispatch_kind(kind) || saved_effect_file_operation_kind(kind) || saved_effect_file_response_kind(kind)
+      kind == SAVED_EFFECT_APPLICATION_KIND ||
+      saved_effect_file_dispatch_kind(kind) ||
+      saved_effect_file_operation_kind(kind) ||
+      saved_effect_file_response_kind(kind)
     ) {
     return validate_submission_lookup(nonce, handle, current)
   }

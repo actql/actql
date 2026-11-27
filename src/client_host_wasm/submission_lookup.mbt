@@ -77,11 +77,13 @@ fn observe_submission_lookup(
   // Saved readers require only their own head. Writers and explicit
   // cancellation lookup retain the complete operation census.
   let target_cancellation = configuration.sdk is Some(_) &&
-    (record.kind == 4 ||
-    record.kind == 5 ||
-    record.kind == 7 ||
-    record.kind == 8 ||
-    saved_result_projection_kind(record.kind))
+    (
+      record.kind == 4 ||
+      record.kind == 5 ||
+      record.kind == 7 ||
+      record.kind == 8 ||
+      saved_result_projection_kind(record.kind)
+    )
   // Incremental Saved can reuse the catalog check already made on this
   // same current Reader. Authorization and original row checks still run.
   if !(record.kind == INCREMENTAL_SAVED_RESULT_KIND && catalog_checked) &&
@@ -210,9 +212,10 @@ fn observe_submission_lookup(
     @host.read_client_saved_submission(reference, read, inspect_run, -31) {
     Err(code) => Err(code)
     Ok(snapshot) =>
-      match confirm_submission_cancellation(
-        snapshot, read, cancellation, target_cancellation,
-      ) {
+      match
+        confirm_submission_cancellation(
+          snapshot, read, cancellation, target_cancellation,
+        ) {
         Ok(_) => Ok(snapshot)
         Err(code) => Err(code)
       }
@@ -249,8 +252,10 @@ fn confirm_submission_cancellation(
   match snapshot {
     None => Ok(())
     Some(original) =>
-      @host.confirm_client_saved_submission_cancellation(original, read, -31)
-      .map(_ => ())
+      @host.confirm_client_saved_submission_cancellation(original, read, -31).map(_ => {
+          ()
+        },
+      )
   }
 }
 
@@ -293,9 +298,13 @@ fn submission_run_reference_snapshot(
       Ok(value) => value
       Err(code) => return Err(code)
     }
-    return match confirm_submission_cancellation(
-      Some(selected), read, cancellation, target_cancellation,
-    ) {
+    return match
+      confirm_submission_cancellation(
+        Some(selected),
+        read,
+        cancellation,
+        target_cancellation,
+      ) {
       Ok(_) => Ok(Some(selected))
       Err(code) => Err(code)
     }
@@ -364,9 +373,10 @@ fn submission_run_reference_snapshot(
     Ok(value) => value
     Err(code) => return Err(code)
   }
-  match confirm_submission_cancellation(
-    observed, read, cancellation, target_cancellation,
-  ) {
+  match
+    confirm_submission_cancellation(
+      observed, read, cancellation, target_cancellation,
+    ) {
     Ok(_) => ()
     Err(code) => return Err(code)
   }
@@ -396,7 +406,11 @@ fn submission_lookup_wire(
   attachment? : Bool = false,
 ) -> Result[Bytes, Int] {
   try {
-    let limit = if attachment { SAVED_RUN_ATTACHMENT_WIRE_BYTES } else { 1048576 }
+    let limit = if attachment {
+      SAVED_RUN_ATTACHMENT_WIRE_BYTES
+    } else {
+      1048576
+    }
     let writer = @encode.writer(limit, 8, 1)
     @encode.begin_object(writer)
     if expected is Some(expected) {
@@ -732,7 +746,8 @@ fn validate_submission_lookup(
       physical_equal(parent, record) else {
       return -32
     }
-    return match observe_saved_result_run_control(value, record, configuration, saved) {
+    return match
+      observe_saved_result_run_control(value, record, configuration, saved) {
       Ok(_) => 0
       Err(code) => code
     }

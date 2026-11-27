@@ -105053,7 +105053,7 @@
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "@buffers.reserve_output_buffer(value.pool, wire_limit, physical_copy_bytes"
+                "anchor": "@buffers.reserve_output_buffer(\n      value.pool,\n      wire_limit,\n      physical_copy_bytes,"
               },
               {
                 "path": "src/run_publication_host/client_task_material_original.mbt",
@@ -106342,7 +106342,7 @@
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "@buffers.reserve_output_buffer(value.pool, wire_limit, physical_copy_bytes"
+                "anchor": "@buffers.reserve_output_buffer(\n      value.pool,\n      wire_limit,\n      physical_copy_bytes,"
               },
               {
                 "path": "src/run_publication_host/client_task_material_original.mbt",
@@ -107192,7 +107192,7 @@
               },
               {
                 "path": "src/client_host_wasm/materials.mbt",
-                "anchor": "@buffers.reserve_output_buffer(value.pool, wire_limit, physical_copy_bytes"
+                "anchor": "@buffers.reserve_output_buffer(\n      value.pool,\n      wire_limit,\n      physical_copy_bytes,"
               },
               {
                 "path": "src/run_publication_host/client_task_material_original.mbt",

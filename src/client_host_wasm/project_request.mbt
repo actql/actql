@@ -30,7 +30,9 @@ priv struct StoredMockProjectRequest {
   mut model_ready : Bool
   mut model_run_handle : Int?
   mut model_run : StoredPortableModelRun?
-  mut model_input : @resources.PreparationBodyBorrow[@host.PreparedClientProgram]?
+  mut model_input : @resources.PreparationBodyBorrow[
+    @host.PreparedClientProgram,
+  ]?
   mut portable_execution : StoredPortableExecution?
   mut effect_plan : StoredMockProjectEffectPlan?
   mut whole_file_sdk_run : Int?
@@ -427,7 +429,9 @@ fn prepare_project_request(value : Instance, record : StoredPreparation) -> Int 
   }
   if configuration.sdk is Some({ portable_model: Some(_), .. }) {
     if computation is Pure {
-      return prepare_retained_portable_model(value, configuration, held, parent, slot)
+      return prepare_retained_portable_model(
+        value, configuration, held, parent, slot,
+      )
     }
     return -20
   }
@@ -618,7 +622,10 @@ fn prepare_retained_mock_project_file(
 }
 
 ///|
-fn stop_mock_project_request(root : @resources.Ledger, held : StoredMockProjectRequest) -> Int {
+fn stop_mock_project_request(
+  root : @resources.Ledger,
+  held : StoredMockProjectRequest,
+) -> Int {
   guard held.frame is Some(frame) else { return 0 }
   if held.model_run is Some(run) {
     if !quiesce_portable_model_run(root, run) {

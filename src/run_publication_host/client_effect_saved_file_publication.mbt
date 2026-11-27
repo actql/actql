@@ -211,7 +211,10 @@ pub fn ClientEffectSavedFilePublication::bind_sealed_payload(
   self : ClientEffectSavedFilePublication,
   ordinal : Int,
   payload : @payload.PublicationPayloadRecord,
-) -> Result[@publication.PublicationContract, ClientEffectResolutionOriginalIssue] {
+) -> Result[
+  @publication.PublicationContract,
+  ClientEffectResolutionOriginalIssue,
+] {
   let computation = self.completion.application.computation
   let run = computation.preview.waiting.run
   let request = @payload.publication_payload_record_request(payload)
@@ -223,21 +226,35 @@ pub fn ClientEffectSavedFilePublication::bind_sealed_payload(
     computation.schemas.get(ordinal) is Some(schema) &&
     @payload.publication_payload_record_state(payload) is @payload.Sealed &&
     @payload.publication_payload_record_generation(payload) is Some(generation) &&
-    self.payload_intent(ordinal, self.target, material, generation.size) is Ok(expected) &&
+    self.payload_intent(ordinal, self.target, material, generation.size)
+    is Ok(expected) &&
     @payload.publication_payload_request_identity(request) ==
-      @payload.publication_payload_request_identity(expected) &&
+    @payload.publication_payload_request_identity(expected) &&
     @payload.publication_payload_record_actual_bytes(payload) == generation.size else {
     return Err(InvalidOriginal)
   }
   let digest = @payload.publication_payload_record_digest(payload)
-  guard digest.has_prefix("sha256:") && digest.length() == 71 &&
-    generation.size > 0L && generation.size <= 2147483647L else {
+  guard digest.has_prefix("sha256:") &&
+    digest.length() == 71 &&
+    generation.size > 0L &&
+    generation.size <= 2147483647L else {
     return Err(InvalidOriginal)
   }
   @publication.issue_durable_result_binding_from_snapshot(
-    snapshot, run.definition, computation.invocation, ordering, retention,
-    codec, schema, material, self.target, generation.size.to_int(),
-    digest[7:].to_owned(), 65536, 4096, 64,
+    snapshot,
+    run.definition,
+    computation.invocation,
+    ordering,
+    retention,
+    codec,
+    schema,
+    material,
+    self.target,
+    generation.size.to_int(),
+    digest[7:].to_owned(),
+    65536,
+    4096,
+    64,
   ).map_err(_ => InvalidOriginal)
 }
 
@@ -249,8 +266,11 @@ pub fn ClientEffectSavedFilePublication::result_schema(
   wire : Bool,
 ) -> String? {
   guard self.snapshot(ordinal) is Some(snapshot) &&
-    self.completion.application.computation.schemas.get(ordinal) is Some(schema)
-    else { return None }
-  let (_, _, identity, _, _) = @publication.captured_result_snapshot_payload_identity(snapshot)
+    self.completion.application.computation.schemas.get(ordinal) is Some(schema) else {
+    return None
+  }
+  let (_, _, identity, _, _) = @publication.captured_result_snapshot_payload_identity(
+    snapshot,
+  )
   Some(if wire { schema } else { identity })
 }

@@ -79,9 +79,15 @@ pub fn configure_local_whole_source_model_compute(
   source : @query.CapturedInputSource,
 ) -> Result[LocalComputeHost, LocalComputeIssue] {
   guard physical_equal(start.plan, plan) else { return Err(StartNotPermitted) }
-  let (setup, run, _) = match @local.open_installed_model_whole_source_compute(
-      adopted, model, plan.prepared, plan.request, plan.compiled,
-      plan.definition, source,
+  let (setup, run, _) = match
+    @local.open_installed_model_whole_source_compute(
+      adopted,
+      model,
+      plan.prepared,
+      plan.request,
+      plan.compiled,
+      plan.definition,
+      source,
     ) {
     Ok(opened) => opened
     Err(Run(issue)) => return Err(Task(issue))

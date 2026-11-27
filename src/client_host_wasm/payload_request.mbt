@@ -30,7 +30,8 @@ pub fn reserve_payload_request(
   guard selected(nonce) is Some(value) &&
     value.publications.get(publication)
     is Some({ closing: false, produced: true, .. } as parent) &&
-    index >= 0 && index < publication_result_count(parent) &&
+    index >= 0 &&
+    index < publication_result_count(parent) &&
     value.copies.get(input) is Some((input_slot, physical)) else {
     return -2
   }
@@ -50,9 +51,12 @@ pub fn reserve_payload_request(
     return -3
   }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, @payload.publication_payload_record_transport_bytes, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      @payload.publication_payload_record_transport_bytes,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }
@@ -124,16 +128,37 @@ pub fn produce_payload_request(
   let request = match preflight.origin {
     ComputePublicationPreflight({ prepared: Some(original), .. }) =>
       @local_run.prepare_local_preflight_payload_request(
-        original, record.index, parent.publications[record.index], current.account,
-        store, material, max_bytes.to_int64(),
+        original,
+        record.index,
+        parent.publications[record.index],
+        current.account,
+        store,
+        material,
+        max_bytes.to_int64(),
       ).map_err(_ => -32)
     FilePublicationPreflight(file) =>
-      with_sdk_file_payload_result(value, parent, file, record.index, current.account,
-        (original, result, recheck) => @local_run.prepare_local_captured_task_payload_request(
-          original, record.index, result, store, material, max_bytes.to_int64(), recheck,
-        ))
+      with_sdk_file_payload_result(
+        value,
+        parent,
+        file,
+        record.index,
+        current.account,
+        (original, result, recheck) => {
+          @local_run.prepare_local_captured_task_payload_request(
+            original,
+            record.index,
+            result,
+            store,
+            material,
+            max_bytes.to_int64(),
+            recheck,
+          )
+        },
+      )
     SavedEffectPublicationPreflight({ prepared: Some(original), .. }) =>
-      original.payload_intent(record.index, store, material, max_bytes.to_int64()).map_err(_ => -32)
+      original
+      .payload_intent(record.index, store, material, max_bytes.to_int64())
+      .map_err(_ => -32)
     _ => Err(-2)
   }
   let request = match request {
@@ -148,13 +173,28 @@ pub fn produce_payload_request(
   // A copied wire or a newly decoded request cannot replace this custody.
   record.request = Some(request)
   if parent.file is Some(file) {
-    if record.closing { return -5 }
-    let checked = sdk_file_capture_publication_current(value, parent, file, current.account)
-    if checked != 0 { return checked }
+    if record.closing {
+      return -5
+    }
+    let checked = sdk_file_capture_publication_current(
+      value,
+      parent,
+      file,
+      current.account,
+    )
+    if checked != 0 {
+      return checked
+    }
   }
   if parent.saved_effect is Some(effect) {
-    let code = saved_effect_publication_preflight_current(value, effect, current.account)
-    if code != 0 { return code }
+    let code = saved_effect_publication_preflight_current(
+      value,
+      effect,
+      current.account,
+    )
+    if code != 0 {
+      return code
+    }
   }
   let code = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),

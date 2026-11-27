@@ -344,13 +344,19 @@ pub fn[I] bind_original_portable_model_local_run(
     return Err(AuthorizationMismatch)
   }
   guard @host.client_request_input_cid(request) ==
-    @host.client_submitted_intent_cid(@input.local_submitted_preparation_intent(submitted)) &&
+    @host.client_submitted_intent_cid(
+      @input.local_submitted_preparation_intent(submitted),
+    ) &&
     @host.validate_client_run_binding(request, prepared, compiled, definition)
     is Ok(_) else {
     return Err(UnsupportedCapability)
   }
   let plan : LocalRunPlan = {
-    input, prepared, request, compilation, compiled,
+    input,
+    prepared,
+    request,
+    compilation,
+    compiled,
     admission: @host.client_compiled_run_admission(compiled),
     definition,
     account_id: current.account_id(),
@@ -451,7 +457,10 @@ pub fn[I] capture_local_portable_run_task_materials_original(
 ) -> Result[LocalRunTaskMaterialsOriginal, LocalRunIssue] {
   guard @local.request_portable_model_run_original(owner, input, plan.request)
     is Ok((submitted, compilation, compiled, definition, wire)) &&
-    physical_equal(plan.input, @input.local_submitted_preparation_input(submitted)) &&
+    physical_equal(
+      plan.input,
+      @input.local_submitted_preparation_input(submitted),
+    ) &&
     physical_equal(plan.compilation, compilation) &&
     physical_equal(plan.compiled, compiled) &&
     physical_equal(plan.definition, definition) else {

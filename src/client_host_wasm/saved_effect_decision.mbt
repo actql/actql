@@ -59,12 +59,20 @@ fn require_saved_effect_signing_use(
   }
   let check = () => submission_lookup_current(value, child, configuration)
   let read = (table, key, extent) => {
-    if observed_run is Some(actual) && table == "client_runs" &&
-      actual.key == key && actual.body.length() == extent {
+    if observed_run is Some(actual) &&
+      table == "client_runs" &&
+      actual.key == key &&
+      actual.body.length() == extent {
       check().map(_ => Some(actual))
     } else {
-      physical_journal_row(current.physical, check, 1, table, key,
-        expected_body_length=Some(extent))
+      physical_journal_row(
+        current.physical,
+        check,
+        1,
+        table,
+        key,
+        expected_body_length=Some(extent),
+      )
     }
   }
   match proof.challenge.require_waiting(read, -32, observed_run~) {
@@ -181,7 +189,8 @@ fn produce_saved_effect_decision(
   let (before, body) = decision.rows()
   let (checkpoint, resolution, approved) = decision.candidate_coordinates()
   guard before.revision == 3L &&
-    saved_effect_journal_header(before, body, checkpoint, resolution, approved) is Some(header) else {
+    saved_effect_journal_header(before, body, checkpoint, resolution, approved)
+    is Some(header) else {
     return -31
   }
   let accepted = status(
@@ -217,7 +226,8 @@ fn saved_effect_journal_header(
     resolution.length() == 71 else {
     return None
   }
-  Some(Bytes::makei(13, index => {
+  Some(
+    Bytes::makei(13, index => {
       if index < 8 {
         (before.revision >> (index * 8)).to_int().to_byte()
       } else if index < 12 {
@@ -230,7 +240,8 @@ fn saved_effect_journal_header(
     }) +
     stored_key +
     checkpoint +
-    resolution)
+    resolution,
+  )
 }
 
 ///|
@@ -251,8 +262,16 @@ fn validate_saved_effect_decision(
   let (before, successor) = decision.original.rows()
   let check = () => submission_lookup_current(value, record, configuration)
   let actual = match
-    physical_journal_row(current.physical, check, 1, "client_runs", before.key,
-      expected_successor_lengths=Some((before.revision, before.body.length(), successor.length()))) {
+    physical_journal_row(
+      current.physical,
+      check,
+      1,
+      "client_runs",
+      before.key,
+      expected_successor_lengths=Some(
+        (before.revision, before.body.length(), successor.length()),
+      ),
+    ) {
     Err(code) => return code
     Ok(Some(row)) => row
     _ => return -32
@@ -285,22 +304,43 @@ fn saved_effect_decision_field(
   record : StoredSubmissionProjection,
   configuration : StoredRunConfiguration,
 ) -> Result[Bytes, Int] {
-  let requested = saved_effect_decision_parent(value, record, SAVED_EFFECT_DECISION_KIND)
+  let requested = saved_effect_decision_parent(
+    value,
+    record,
+    SAVED_EFFECT_DECISION_KIND,
+  )
   let selection = match requested {
     Some((id, parent, input)) if parent.append_plan is EffectDecision(decision) =>
-      Some((id, input, decision.original.rows().1,
-        validate_saved_effect_decision(value, parent, configuration)))
-    _ => match saved_effect_decision_parent(value, record, SAVED_EFFECT_RESUME_KIND) {
-      Some((id, parent, input)) if parent.append_plan is EffectResumeClaim(claim) =>
-        Some((id, input, claim.original.rows().1,
-          validate_saved_effect_resume_claim(value, parent, configuration)))
-      _ => None
-    }
+      Some(
+        (
+          id,
+          input,
+          decision.original.rows().1,
+          validate_saved_effect_decision(value, parent, configuration),
+        ),
+      )
+    _ =>
+      match
+        saved_effect_decision_parent(value, record, SAVED_EFFECT_RESUME_KIND) {
+        Some((id, parent, input)) if parent.append_plan
+          is EffectResumeClaim(claim) =>
+          Some(
+            (
+              id,
+              input,
+              claim.original.rows().1,
+              validate_saved_effect_resume_claim(value, parent, configuration),
+            ),
+          )
+        _ => None
+      }
   }
   guard selection is Some((_, input, body, code)) && input.length() == 12 else {
     return Err(-32)
   }
-  if code != 0 { return Err(code) }
+  if code != 0 {
+    return Err(code)
+  }
   let offset = mock_effect_descriptor_field(input, 4)
   let count = mock_effect_descriptor_field(input, 8)
   guard offset >= 0 &&
@@ -332,7 +372,9 @@ fn produce_saved_effect_decision_field(
       @buffers.filled_payload_input_bytes(value.pool, borrow) is Some(packet) else {
       return -32
     }
-    record.append_plan = EffectDecisionField(mock_effect_descriptor_field(packet, 0))
+    record.append_plan = EffectDecisionField(
+      mock_effect_descriptor_field(packet, 0),
+    )
     record.produced = true
   }
   code

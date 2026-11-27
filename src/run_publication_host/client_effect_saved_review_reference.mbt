@@ -114,11 +114,13 @@ pub fn admit_client_effect_saved_review_reference(
   }
   let program_id = match @decode.field(fields, "program_id") {
     Missing => None
-    Present(value) => match @decode.text(value) {
-      Ok(name) if !name.is_empty() && !name.contains("\u{0000}") &&
-        @scalar.admit_utf8_length(name, 512) is Ok(_) => Some(name)
-      _ => return Err(InvalidMaterial)
-    }
+    Present(value) =>
+      match @decode.text(value) {
+        Ok(name) if !name.is_empty() &&
+          !name.contains("\u{0000}") &&
+          @scalar.admit_utf8_length(name, 512) is Ok(_) => Some(name)
+        _ => return Err(InvalidMaterial)
+      }
     ExplicitNull => return Err(InvalidMaterial)
   }
   Ok({
@@ -128,7 +130,8 @@ pub fn admit_client_effect_saved_review_reference(
     preview_original,
     preview_wire,
     capture_cid,
-    unit_definition_cid, program_id,
+    unit_definition_cid,
+    program_id,
   })
 }
 

@@ -61,10 +61,8 @@ fn prepare_original_local_project_inputs(
     Err(code) => return code
   }
   let grow = units => grow_original_project_input(value, original, units)
-  let (registry, model_registry) = match (
-    configuration.model_tasks_file(),
-    @decode.lookup(object, "model_registry"),
-  ) {
+  let (registry, model_registry) = match
+    (configuration.model_tasks_file(), @decode.lookup(object, "model_registry")) {
     (None, None) => {
       guard @decode.is_null(registry_input) else { return -31 }
       (None, None)
@@ -73,7 +71,9 @@ fn prepare_original_local_project_inputs(
       guard @decode.is_null(registry_input) &&
         @decode.int32(selected) is Ok(registry_handle) &&
         value.original_metadata.get(registry_handle) is Some(record) &&
-        record.kind == 11 && record.produced && !record.output_closed &&
+        record.kind == 11 &&
+        record.produced &&
+        !record.output_closed &&
         record.project is Some(ModelRegistry(registered)) &&
         registered.parent == original.parent &&
         registered.registry is Some(registry) &&
@@ -103,7 +103,8 @@ fn prepare_original_local_project_inputs(
     }
     (None, Some(_)) => return -31
   }
-  let (model_configuration, source_policy) = match @decode.lookup(object, "model_configuration") {
+  let (model_configuration, source_policy) = match
+    @decode.lookup(object, "model_configuration") {
     None => {
       guard model_registry is None else { return -31 }
       (None, None)
@@ -111,17 +112,25 @@ fn prepare_original_local_project_inputs(
     Some(selected) => {
       guard model_registry is Some(registry) &&
         @decode.int32(selected) is Ok(model) &&
-        value.original_metadata.get(model) is Some({ project: Some(ModelHttpTask(installed)), .. }) &&
+        value.original_metadata.get(model)
+        is Some({ project: Some(ModelHttpTask(installed)), .. }) &&
         installed.host_current is Some(current) &&
         installed_portable_model_task(value, model, current) is Some(retained) &&
         physical_equal(retained, installed) &&
-        value.original_metadata.get(installed.parent) is Some({ project: Some(ModelTask(task)), .. }) &&
-        task.parent == registry else { return -31 }
+        value.original_metadata.get(installed.parent)
+        is Some({ project: Some(ModelTask(task)), .. }) &&
+        task.parent == registry else {
+        return -31
+      }
       let status = validate_host_current(value.nonce, current)
-      if status != 0 { return status }
+      if status != 0 {
+        return status
+      }
       if installed.source_policy is Some(policy) {
         guard @sha.text_hex(connections.original_wire()) is Ok(digest) &&
-          "sha256:" + digest == policy.connectors_sha256 else { return -31 }
+          "sha256:" + digest == policy.connectors_sha256 else {
+          return -31
+        }
       }
       (Some(model), installed.source_policy)
     }
@@ -144,8 +153,11 @@ fn prepare_original_local_project_inputs(
   let mut policy_matched = false
   for index in 0..<count {
     let policy = match (source_policy, connections.at(index)) {
-      (Some(policy), Some((connection, "local", _))) if connection == policy.connection => {
-        if policy_matched { return -31 }
+      (Some(policy), Some((connection, "local", _))) if connection ==
+        policy.connection => {
+        if policy_matched {
+          return -31
+        }
         policy_matched = true
         Some(policy)
       }
@@ -153,21 +165,32 @@ fn prepare_original_local_project_inputs(
     }
     match
       prepare_original_local_file_catalog(
-        value, original, connections, index, directory,
+        value,
+        original,
+        connections,
+        index,
+        directory,
         policy~,
       ) {
       Ok(catalog) => catalogs.push(catalog)
       Err(code) => return code
     }
   }
-  if source_policy is Some(_) && !policy_matched { return -31 }
+  if source_policy is Some(_) && !policy_matched {
+    return -31
+  }
   if model_configuration is Some(model) {
-    guard value.original_metadata.get(model) is Some({ project: Some(ModelHttpTask(installed)), .. }) &&
+    guard value.original_metadata.get(model)
+      is Some({ project: Some(ModelHttpTask(installed)), .. }) &&
       installed.host_current is Some(current) &&
       installed_portable_model_task(value, model, current) is Some(retained) &&
-      physical_equal(retained, installed) else { return -31 }
+      physical_equal(retained, installed) else {
+      return -31
+    }
     let status = validate_host_current(value.nonce, current)
-    if status != 0 { return status }
+    if status != 0 {
+      return status
+    }
   }
   original.local_inputs = Some({
     _connections: connections,
@@ -222,7 +245,9 @@ fn prepare_original_local_file_catalog(
   let classification = match policy {
     None => None
     Some(selected) => {
-      if selected.root != root { return Err(-31) }
+      if selected.root != root {
+        return Err(-31)
+      }
       Some((selected.resource, selected.classification))
     }
   }
@@ -240,7 +265,11 @@ fn prepare_original_local_file_catalog(
     return Err(-31)
   }
   grow_original_project_input_bytes(value, original, first).bind(_ => {
-    guard local_files.prepare_catalog_specification(root, limits, csv_classification=classification)
+    guard local_files.prepare_catalog_specification(
+        root,
+        limits,
+        csv_classification=classification,
+      )
       is Ok(prepared) &&
       prepared.construction_capacity() is Ok(issuance) else {
       return Err(-31)

@@ -68,7 +68,9 @@ fn fund_installed_relation_sample_journal(
     is Some(with_prefix) &&
     @execution.checked_preparation_add_product(with_prefix, readmission, 1L)
     is Some(with_readmission) &&
-    @execution.checked_preparation_add_product(with_readmission, receipt_charge, 2L)
+    @execution.checked_preparation_add_product(
+      with_readmission, receipt_charge, 2L,
+    )
     is Some(total) else {
     return Err(SampleAdoptionLimits)
   }

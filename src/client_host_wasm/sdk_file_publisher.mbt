@@ -406,16 +406,24 @@ fn authorize_sdk_file_observed_index(
       value.physical_starts.get(record.source) is Some({ run, .. }) else {
       return -35
     }
-    match sdk_file_live_state_read_current(
-      value, handle, record, capture, run, configuration,
-      confirm_update=Some(update),
-    ) {
+    match
+      sdk_file_live_state_read_current(
+        value,
+        handle,
+        record,
+        capture,
+        run,
+        configuration,
+        confirm_update=Some(update),
+      ) {
       Err(code) => return code
       Ok(_) => ()
     }
   } else {
     let checked = file_publication_preflight_current(
-      value, file, configuration.account,
+      value,
+      file,
+      configuration.account,
     )
     if checked != 0 {
       return checked

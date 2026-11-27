@@ -250,11 +250,7 @@ test "metadata capacity controls preserve successful scalar and general layouts"
       let result_schema_bytes = plan.publication.unwrap().schema_bytes
       assert_true(result_schema_bytes < client_node_publication_schema_bytes())
       assert_eq(
-        client_local_result_metadata_retained(
-          envelope,
-          1,
-          result_schema_bytes,
-        ),
+        client_local_result_metadata_retained(envelope, 1, result_schema_bytes),
         Some(plan.metadata_retained_bytes),
       )
     }
@@ -413,7 +409,12 @@ test "metadata quote distinguishes required failure absent role and genuine zero
   let original = metadata_capacity_prepared("SELECT 7 AS x", 100)
   let graph = @publication_host.prepared_client_graph(original)
   let envelope = client_local_result_envelope(graph, 1).unwrap()
-  let layout = client_local_result_publication_plan(graph, 1, Some(envelope), 1000)
+  let layout = client_local_result_publication_plan(
+    graph,
+    1,
+    Some(envelope),
+    1000,
+  )
   assert_true(layout.schema_bytes < client_node_publication_schema_bytes())
   assert_true(
     client_local_result_metadata_quote(None, true, None, 1)

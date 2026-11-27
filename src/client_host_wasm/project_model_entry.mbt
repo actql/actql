@@ -257,7 +257,8 @@ fn portable_entry_dimensions(
   let wire = body +
     @publication.model_invocation_scope_cid(scope).length() +
     @publication.run_evidence_value_identity(attempt).length() +
-    26 + trust_bytes
+    26 +
+    trust_bytes
   Some((body, wire))
 }
 
@@ -429,7 +430,8 @@ fn build_portable_model_entry(
   guard @model.model_call_entry_current(entry, prepared) &&
     @model.model_call_entry_persistence_originals(entry, prepared, admission)
     is Some((count, slot, _, attempt, _, scope)) &&
-    @publication.model_invocation_scope_slot(scope, slot) is Some((slot_cid, _, _)) else {
+    @publication.model_invocation_scope_slot(scope, slot)
+    is Some((slot_cid, _, _)) else {
     return -32
   }
   output.invoked = true

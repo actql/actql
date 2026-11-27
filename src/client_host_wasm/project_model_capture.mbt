@@ -59,33 +59,53 @@ fn portable_model_capture_capacity(backed : Bool) -> (Int64, Int64)? {
     is Some(peak) else {
     return None
   }
-  if !backed { return Some((retained, peak)) }
+  if !backed {
+    return Some((retained, peak))
+  }
   // The acquired Run issues and admits one effective policy from its
   // checked compilation while the finite Raw constructor is still live.
   let policy_bytes = 4096
   let policy_nodes = 128
   let policy_depth = 8
-  guard @publication.run_evidence_admission_construction_inventory(policy_bytes, policy_nodes, policy_depth)
+  guard @publication.run_evidence_admission_construction_inventory(
+      policy_bytes, policy_nodes, policy_depth,
+    )
     is Some(policy_body) &&
-    @encode.text_writer_construction_inventory(policy_bytes, policy_nodes, policy_depth)
+    @encode.text_writer_construction_inventory(
+      policy_bytes, policy_nodes, policy_depth,
+    )
     is Some(policy_writer) &&
     @execution.preparation_representation_cost({
       record_headers: policy_body.retained.record_headers + 4L,
       reference_slots: policy_body.retained.reference_slots + 8L,
       scalar_words: policy_body.retained.scalar_words + 4L,
-      owned_utf16_units: policy_body.retained_utf16_units + policy_bytes.to_int64(),
+      owned_utf16_units: policy_body.retained_utf16_units +
+      policy_bytes.to_int64(),
       owned_wire_bytes: 0L,
-    }) is Some(policy_retained) &&
+    })
+    is Some(policy_retained) &&
     @execution.preparation_representation_cost({
-      record_headers: 2L * policy_body.record_headers + policy_writer.record_headers + 32L,
-      reference_slots: 2L * policy_body.reference_slots + policy_writer.reference_slots + 64L,
-      scalar_words: 2L * policy_body.scalar_words + policy_writer.scalar_words + 64L,
-      owned_utf16_units: 2L * policy_body.owned_utf16_units + policy_writer.owned_utf16_units,
-      owned_wire_bytes: 2L * policy_body.owned_wire_bytes + policy_bytes.to_int64(),
-    }) is Some(policy_scratch) &&
-    @execution.checked_preparation_add_product(retained, policy_retained, 1L) is Some(held) &&
-    @execution.checked_preparation_add_product(peak, policy_retained, 1L) is Some(base) &&
-    @execution.checked_preparation_add_product(base, policy_scratch, 1L) is Some(live) else {
+      record_headers: 2L * policy_body.record_headers +
+      policy_writer.record_headers +
+      32L,
+      reference_slots: 2L * policy_body.reference_slots +
+      policy_writer.reference_slots +
+      64L,
+      scalar_words: 2L * policy_body.scalar_words +
+      policy_writer.scalar_words +
+      64L,
+      owned_utf16_units: 2L * policy_body.owned_utf16_units +
+      policy_writer.owned_utf16_units,
+      owned_wire_bytes: 2L * policy_body.owned_wire_bytes +
+      policy_bytes.to_int64(),
+    })
+    is Some(policy_scratch) &&
+    @execution.checked_preparation_add_product(retained, policy_retained, 1L)
+    is Some(held) &&
+    @execution.checked_preparation_add_product(peak, policy_retained, 1L)
+    is Some(base) &&
+    @execution.checked_preparation_add_product(base, policy_scratch, 1L)
+    is Some(live) else {
     return None
   }
   Some((held, live))
@@ -109,7 +129,8 @@ fn register_portable_model_capture(
     value.computes.get(task.compute) is Some(compute) &&
     stored_compute_original_run(value, compute)
     is Some({ finite_policy: Some(finite), .. }) &&
-    portable_model_capture_capacity(run.sources is Some(_)) is Some((retained, peak)) else {
+    portable_model_capture_capacity(run.sources is Some(_))
+    is Some((retained, peak)) else {
     return Err(-32)
   }
   let capacity = match @resources.reserve_capacity(value.root, retained, peak) {

@@ -206,7 +206,10 @@ pub fn prepared_model_http_chat_plan(
   measured_transfer? : Bool = false,
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   prepare_original_model_http_chat_plan(
-    original, installation, quantities, Some((_, entry) => start(entry)),
+    original,
+    installation,
+    quantities,
+    Some((_, entry) => start(entry)),
     measured_transfer~,
   )
 }

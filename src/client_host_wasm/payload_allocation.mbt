@@ -76,9 +76,12 @@ pub fn reserve_payload_allocation(
     return -3
   }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, max_wire_bytes, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      max_wire_bytes,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }

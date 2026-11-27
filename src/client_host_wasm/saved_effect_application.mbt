@@ -138,17 +138,19 @@ fn prepare_saved_effect_application(
     ) {
     Ok(value) => value
     Err(_) =>
-      return if refused.val {
-        -4
-      } else if work_refused.val {
-        -10
-      } else {
-        -32
-      }
+      return if refused.val { -4 } else if work_refused.val { -10 } else { -32 }
   }
-  let files = match prepare_saved_effect_file_targets(
-    value, configuration, claim.environment, application, clock, now, work, fund,
-  ) {
+  let files = match
+    prepare_saved_effect_file_targets(
+      value,
+      configuration,
+      claim.environment,
+      application,
+      clock,
+      now,
+      work,
+      fund,
+    ) {
     Ok(files) => files
     Err(_) if refused.val => return -4
     Err(code) => return code
@@ -192,11 +194,13 @@ fn validate_saved_effect_application(
     application.original.ordered_count() is (members, rows) &&
     members > 0 &&
     application.files.length() == rows &&
-    application.files.all(file => file.row.matches_target(
-      file.selected.binding_cid,
-      file.selected.write.mapping.mapping_ref,
-      file.selected.write.mapping.mapping_cid,
-    )) else {
+    application.files.all(file => {
+      file.row.matches_target(
+        file.selected.binding_cid,
+        file.selected.write.mapping.mapping_ref,
+        file.selected.write.mapping.mapping_cid,
+      )
+    }) else {
     return -32
   }
   validate_saved_effect_resume_claim(value, claim, configuration)

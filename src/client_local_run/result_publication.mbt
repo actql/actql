@@ -168,7 +168,9 @@ pub fn issue_local_result_publication(
   }
   let plan = host.plan
   issue_local_result_material(
-    output, invocation.invocation, retention,
+    output,
+    invocation.invocation,
+    retention,
     @publication.publication_contract_identity(
       @host.client_task_compilation_compiled_plan(plan.compilation),
     ),
@@ -176,9 +178,18 @@ pub fn issue_local_result_publication(
     @publication.publication_contract_identity(plan.definition),
     invocation.data_policy_cid,
     @host.client_request_authority_scope_cid(plan.request),
-    max_wire_bytes, max_nodes, max_depth,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
     (definition, artifact, derivation, ordering, retention) => {
-      host, invocation, output, definition, artifact, derivation, ordering, retention,
+      host,
+      invocation,
+      output,
+      definition,
+      artifact,
+      derivation,
+      ordering,
+      retention,
     },
   )
 }
@@ -219,25 +230,15 @@ fn[T] issue_local_result_material(
   }
   match
     output.issue_result_evidence(
-      computation_contract_cid,
-      input_relation_cids,
-      scope_cid,
-      effective_data_policy_cid,
-      authority_scope_cid,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      computation_contract_cid, input_relation_cids, scope_cid, effective_data_policy_cid,
+      authority_scope_cid, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Output(issue))
   }
   let artifact = match
     output.issue_artifact(
-      invocation,
-      retention,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      invocation, retention, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(artifact) => artifact
     Err(issue) => return Err(Output(issue))

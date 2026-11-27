@@ -21,7 +21,11 @@ fn installed_sample_issuance_capacity(
     Int::max(3 * reference_units + 1024, 3 * profile_units + 1024),
   )
   let bytes = Int::max(bytes, namespace_bytes + 1024)
-  let profile_nodes = if constructing_profile { 128 + 7 * breakpoint_slots } else { 128 }
+  let profile_nodes = if constructing_profile {
+    128 + 7 * breakpoint_slots
+  } else {
+    128
+  }
   let nodes = Int::max(profile_nodes, output_count + 32 + 4 * breakpoint_slots)
   let depth = 12
   guard @publication.run_evidence_admission_construction_inventory(
@@ -151,11 +155,18 @@ pub fn issue_installed_relation_sample_profile_journal_reference(
     return Err(SampleProfileLimits)
   }
   let map_cid = @publication.run_evidence_value_identity(map)
-  let (profile_map, breakpoint_slots, profile_units) = match submitted_breakpoints {
+  let (profile_map, breakpoint_slots, profile_units) = match
+    submitted_breakpoints {
     Some(intent) => {
-      let count = @publication_host.client_submitted_intent_entry_breakpoint_count(intent)
-      guard expected_breakpoint_map_cid is None && count >= 1 && count <= 32 &&
-        @publication_host.client_submitted_intent_breakpoint_map_matches(intent, map_cid) else {
+      let count = @publication_host.client_submitted_intent_entry_breakpoint_count(
+        intent,
+      )
+      guard expected_breakpoint_map_cid is None &&
+        count >= 1 &&
+        count <= 32 &&
+        @publication_host.client_submitted_intent_breakpoint_map_matches(
+          intent, map_cid,
+        ) else {
         return Err(
           SampleProfileBinding(
             RunEvidenceReferenceMismatch("control_admission.breakpoint_map"),
@@ -173,7 +184,11 @@ pub fn issue_installed_relation_sample_profile_journal_reference(
           ),
         )
       }
-      let slots = if expected_breakpoint_map_cid is Some(_) { profile_wire.length() / 71 } else { 0 }
+      let slots = if expected_breakpoint_map_cid is Some(_) {
+        profile_wire.length() / 71
+      } else {
+        0
+      }
       (expected_breakpoint_map_cid, slots, profile_wire.length())
     }
   }
@@ -260,7 +275,10 @@ pub fn issue_installed_relation_sample_profile_journal_reference(
       // Each bounded ASCII identity is copied once. The marked quote pays
       // selector materialization, the two schema checks and both emissions.
       match
-        @resources.charge_planning(ledger, 8 * profile_units + 64 * marked_nodes) {
+        @resources.charge_planning(
+          ledger,
+          8 * profile_units + 64 * marked_nodes,
+        ) {
         Err(issue) => return Err(SampleProfileWork(issue))
         Ok(_) => ()
       }
@@ -269,14 +287,19 @@ pub fn issue_installed_relation_sample_profile_journal_reference(
       ) else {
         return Err(ForeignSampleProfile)
       }
-      match @publication.issue_interactive_entry_breakpoint_profile(
-        profile,
-        breakpoint_slots,
-        index => @publication_host.client_submitted_intent_breakpoint_step(intent, index),
-        Int::min(max_bytes, profile_units),
-        Int::min(max_nodes, marked_nodes),
-        Int::min(depth, 12),
-      ) {
+      match
+        @publication.issue_interactive_entry_breakpoint_profile(
+          profile,
+          breakpoint_slots,
+          index => {
+            @publication_host.client_submitted_intent_breakpoint_step(
+              intent, index,
+            )
+          },
+          Int::min(max_bytes, profile_units),
+          Int::min(max_nodes, marked_nodes),
+          Int::min(depth, 12),
+        ) {
         Err(issue) => return Err(SampleProfileBinding(issue))
         Ok(value) => value
       }

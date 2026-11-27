@@ -577,21 +577,25 @@ test "shared Run census verifies accepted cancellation reverse coverage once" {
           inventory_read(selected, table, key)
         }
       },
-      row => run(row).map(value => {
-        request: value.request,
-        definition: value.definition,
-        checkpoint: None,
-        cancellation_head: value.cancellation_head,
-        task_materials_cid: None,
-      }),
+      row => {
+        run(row).map(value => {
+          request: value.request,
+          definition: value.definition,
+          checkpoint: None,
+          cancellation_head: value.cancellation_head,
+          task_materials_cid: None,
+        })
+      },
       () => Err("separate reverse census must not run"),
       "custody",
       original,
-      validate_cancellation_run=Some(row => run(row).map(value => {
-        request: value.request,
-        definition: value.definition,
-        cancellation_head: value.cancellation_head,
-      })),
+      validate_cancellation_run=Some(row => {
+        run(row).map(value => {
+          request: value.request,
+          definition: value.definition,
+          cancellation_head: value.cancellation_head,
+        })
+      }),
     )
   }
   assert_eq(observe(rows, false), Ok((1, 0L)))

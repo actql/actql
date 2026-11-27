@@ -22,13 +22,10 @@ pub fn[E] inspect_client_submitted_name_inventory(
 ) -> Result[ClientSubmittedNameInventory, E] {
   let (issued, revision) = match
     journal_inventory_count(
-      "client_submission_name_custody",
-      max_records,
-      scan_control,
-      read,
-      custody_lost,
+      "client_submission_name_custody", max_records, scan_control, read, custody_lost,
     ) {
-    Ok((issued, revision)) if revision == issued.to_int64() => (issued, revision)
+    Ok((issued, revision)) if revision == issued.to_int64() =>
+      (issued, revision)
     Err(issue) => return Err(issue)
     _ => return Err(custody_lost)
   }
@@ -114,7 +111,8 @@ pub fn[E] inspect_client_submitted_name_selection(
     row.binding.intent_cid != client_submitted_intent_cid(intent) {
     return Ok(NameConflict)
   }
-  let saved = match read("client_submitted_intents", row.binding.submission_id) {
+  let saved = match
+    read("client_submitted_intents", row.binding.submission_id) {
     Ok(Some(value)) if value.key == row.binding.submission_id => value
     Ok(None) => return Ok(NameHistoryUnavailable)
     Ok(Some(_)) => return Err(custody_lost)

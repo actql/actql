@@ -429,11 +429,13 @@ test "complete SDK inventory supplies counts before the fresh Definition check" 
       (table, cursor) => inventory_scan(rows, table, cursor),
       read,
       run_append_validate,
-      row => run_append_validate(row).map(value => {
-        request: value.request,
-        definition: value.definition,
-        cancellation_head: value.cancellation_head,
-      }),
+      row => {
+        run_append_validate(row).map(value => {
+          request: value.request,
+          definition: value.definition,
+          cancellation_head: value.cancellation_head,
+        })
+      },
       _ => Ok(Some(true)),
       "custody",
     ).unwrap()
@@ -460,8 +462,18 @@ test "complete SDK inventory supplies counts before the fresh Definition check" 
   assert_eq(revision, original.revision)
   assert_eq(count, b"2")
   assert_true(run(Ok(original), Ok(Some(true)), 2) is Err(ForeignRun))
-  assert_true(run(Ok(original), Err("definition-query"), 2) is Err(Observation("definition-query")))
-  assert_true(run(Ok(capture(1)), Err("definition-query"), 1) is Err(CapacityExceeded))
-  assert_true(run(Ok(original), Err("definition-query"), 1) is Err(Observation("custody")))
-  assert_true(run(Err("inventory-query"), Ok(Some(false)), 2) is Err(Observation("inventory-query")))
+  assert_true(
+    run(Ok(original), Err("definition-query"), 2)
+    is Err(Observation("definition-query")),
+  )
+  assert_true(
+    run(Ok(capture(1)), Err("definition-query"), 1) is Err(CapacityExceeded),
+  )
+  assert_true(
+    run(Ok(original), Err("definition-query"), 1) is Err(Observation("custody")),
+  )
+  assert_true(
+    run(Err("inventory-query"), Ok(Some(false)), 2)
+    is Err(Observation("inventory-query")),
+  )
 }

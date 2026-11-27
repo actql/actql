@@ -288,10 +288,14 @@ pub fn reserve_run(
     return -2
   }
   if selected_configuration.sdk is Some({ portable_model: Some(_), .. }) {
-    guard prepared.project_request is Some({ submission: Some((submission, _)), .. }) &&
+    guard prepared.project_request
+      is Some({ submission: Some((submission, _)), .. }) &&
       retained_sdk_portable_request(
         value, prepared, configuration, selected_configuration, submission,
-      ) is Some(_) else { return -2 }
+      )
+      is Some(_) else {
+      return -2
+    }
     if value.runs.values().any(run => run.preparation == preparation) {
       return -3
     }

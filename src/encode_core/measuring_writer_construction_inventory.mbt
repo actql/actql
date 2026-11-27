@@ -9,14 +9,21 @@ pub fn measuring_writer_construction_extent(
   depth : Int,
   unordered_depth? : Int = depth,
 ) -> @shape.CollectionConstructionExtent? {
-  if live_keys < 0 || depth < 0 || unordered_depth < 0 || unordered_depth > depth ||
+  if live_keys < 0 ||
+    depth < 0 ||
+    unordered_depth < 0 ||
+    unordered_depth > depth ||
     (unordered_depth == 0 && live_keys != 0) {
     return None
   }
   // MeasureOutput is a payload-free variant. The Writer/frame owner already
   // includes Writer.output. Conservatively count a sink header, plus the
   // three-word tuple returned by finish_measurement_usage.
-  let frames = writer_frame_construction_extent(live_keys, depth, unordered_depth~)
+  let frames = writer_frame_construction_extent(
+    live_keys,
+    depth,
+    unordered_depth~,
+  )
   guard @shape.collection_construction_extent({
       records: 2L,
       record_references: 0L,

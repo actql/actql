@@ -335,7 +335,9 @@ pub fn client_compiled_run_evaluation_policy_body(
       }
       if @checked.publication_source_policy(publication) is Some(policy) &&
         policy.cid == cid {
-        let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch { _ => return None }
+        let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+          _ => return None
+        }
         @checked.emit_publication_source_policy(policy, writer) catch {
           _ => return None
         }

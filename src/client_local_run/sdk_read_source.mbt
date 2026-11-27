@@ -344,12 +344,14 @@ fn LocalSDKReadSource::validate_current(
         Err(issue) => return Err(StoredChain(issue))
       }
       if saved.accepted_retention is Some(retention) &&
-        (materials.read.effective_data_policy_cid !=
+        (
+          materials.read.effective_data_policy_cid !=
           @publication.captured_effect_dependency_body_cid(saved.policy) ||
           !@publication.result_retention_bounds_equal(
             materials.retention,
             retention,
-          )) {
+          )
+        ) {
         return Err(PolicyUnavailable)
       }
       let tuple : @authorization.AccessTuple = {

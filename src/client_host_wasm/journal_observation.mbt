@@ -269,9 +269,13 @@ fn physical_journal_saved_identity_row(
     Ok(_) => ()
     Err(code) => return Err(code)
   }
-  if keys.length() != 142 || ordinal < 0 || ordinal > 1 ||
-    submission_bytes <= 0 || submission_bytes > 262144 ||
-    run_bytes <= 0 || run_bytes > 262144 {
+  if keys.length() != 142 ||
+    ordinal < 0 ||
+    ordinal > 1 ||
+    submission_bytes <= 0 ||
+    submission_bytes > 262144 ||
+    run_bytes <= 0 ||
+    run_bytes > 262144 {
     return Err(-41)
   }
   let header : FixedArray[Byte] = FixedArray::make(16, 0)
@@ -294,7 +298,13 @@ fn physical_journal_saved_identity_row(
     current,
     code,
     header,
-    expected_body_length=Some(if ordinal == 0 { submission_bytes } else { run_bytes }),
+    expected_body_length=Some(
+      if ordinal == 0 {
+        submission_bytes
+      } else {
+        run_bytes
+      },
+    ),
   )
 }
 
@@ -473,7 +483,8 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
   let selected_sdk = value.run_configurations.get(child.configuration)
     is Some({ sdk: Some(_), .. }) &&
     record.configuration == child.configuration
-  let first = selected_sdk && material.output_closed &&
+  let first = selected_sdk &&
+    material.output_closed &&
     submission.sdk_wire is Some(_) &&
     submission.current_configuration == child.configuration &&
     !submission.first_journal_observed &&

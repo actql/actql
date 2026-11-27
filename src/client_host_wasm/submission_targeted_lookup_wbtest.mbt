@@ -743,6 +743,8 @@ test "an absent indexed submission has no cancellation to inspect" {
   let read = (_, _) => Err(-98)
   assert_true(confirm_submission_cancellation(None, read, audit, true) is Ok(_))
   assert_eq(audits, 0)
-  assert_true(confirm_submission_cancellation(None, read, audit, false) is Err(-97))
+  assert_true(
+    confirm_submission_cancellation(None, read, audit, false) is Err(-97),
+  )
   assert_eq(audits, 1)
 }

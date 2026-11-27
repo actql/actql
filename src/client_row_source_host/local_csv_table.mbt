@@ -77,8 +77,11 @@ pub fn LocalCsvTable::observed_extent_transport(
   let mut key_bytes = 0L
   for name in self.column_names {
     guard @execution.checked_preparation_add_product(
-        key_bytes, name.length().to_int64(), 6L,
-      ) is Some(total) else {
+        key_bytes,
+        name.length().to_int64(),
+        6L,
+      )
+      is Some(total) else {
       return None
     }
     key_bytes = total
@@ -95,14 +98,14 @@ pub fn LocalCsvTable::observed_extent_transport(
   // keys and all object, member, string, array and comma punctuation.
   guard @execution.checked_preparation_add_product(key_bytes + 3L, width, 6L)
     is Some(row_overhead) &&
-    @execution.checked_preparation_add_product(2L, raw, 6L)
-    is Some(value_bytes) &&
+    @execution.checked_preparation_add_product(2L, raw, 6L) is Some(value_bytes) &&
     @execution.checked_preparation_add_product(value_bytes, rows, row_overhead)
     is Some(wire_upper) else {
     return None
   }
   let page = Int64::min(declared_page_bytes.to_int64(), wire_upper)
-  self.page_transport(raw, page, rows, rows)
+  self
+  .page_transport(raw, page, rows, rows)
   .map(quote => (quote, page.to_int()))
 }
 

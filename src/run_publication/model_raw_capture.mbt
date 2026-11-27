@@ -330,7 +330,6 @@ pub fn model_raw_response_store_plaintext(
   Some(descriptor + "\n" + @base64.encode(bytes))
 }
 
-
 ///|
 /// Use only authenticated plaintext from an actual private Store read. The
 /// same admitted descriptor, length and hash bind the decoded body to its

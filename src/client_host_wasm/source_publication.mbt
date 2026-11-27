@@ -380,9 +380,12 @@ fn close_run_invocation(
   if record.pending {
     return -33
   }
-  if value.publication_preflights.values().any(child => {
-    child.origin is ComputePublicationPreflight({ source, .. }) && source == handle
-  }) ||
+  if value.publication_preflights
+    .values()
+    .any(child => {
+      child.origin is ComputePublicationPreflight({ source, .. }) &&
+      source == handle
+    }) ||
     value.publications.values().any(publication => publication.source == handle) {
     return -9
   }

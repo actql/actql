@@ -116,12 +116,8 @@ fn sdk_run_append_candidate(
       -31,
       original,
       observation,
-      task_materials.map(
-        @local_run.local_run_task_materials_original_cid,
-      ),
-      task_materials.map(
-        @local_run.local_run_task_materials_original_policy,
-      ),
+      task_materials.map(@local_run.local_run_task_materials_original_cid),
+      task_materials.map(@local_run.local_run_task_materials_original_policy),
     ) {
     Ok(Append(candidate)) => Ok(candidate)
     // A saved Run cannot be backfilled into a preparing Submission or replaced
@@ -585,7 +581,12 @@ pub fn prepare_sdk_run(nonce : Int64, handle : Int, submission : Int) -> Int {
   let request = @local_run.local_run_request(plan)
   let definition = @local_run.local_run_definition(plan)
   let read_selection = match portable {
-    Some({ portable_execution: Some({ file: Some({ read_selection, .. }), .. }), .. }) => read_selection
+    Some(
+      {
+        portable_execution: Some({ file: Some({ read_selection, .. }), .. }),
+        ..
+      }
+    ) => read_selection
     _ => sdk.read
   }
   let packet = match
@@ -1057,7 +1058,8 @@ fn issue_sdk_whole_file_materials(
     Ok(_) => ()
   }
   let read_selection = if held.whole_file_source is Some(MockFile(_)) {
-    guard sdk_accepted_file_read_selection_capacity(sdk) is Some((held, scratch)) else {
+    guard sdk_accepted_file_read_selection_capacity(sdk)
+      is Some((held, scratch)) else {
       return Err(-4)
     }
     match

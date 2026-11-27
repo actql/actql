@@ -279,7 +279,9 @@ fn product_assemble_common(
       let selected = match preparation {
         Some((targets, prepare)) => {
           guard @authorization.local_mock_account_configuration_prepared(
-              subjects, targets, prepare,
+              subjects,
+              targets,
+              prepare,
               original_result_read~,
             )
             is Some(result) else {

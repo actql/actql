@@ -623,7 +623,9 @@ pub fn read_block(
     return -5
   }
   let readable = file_projection_read_status(value, handle)
-  if readable != 0 { return readable }
+  if readable != 0 {
+    return readable
+  }
   guard @buffers.buffer_wire(value.pool, slot) is Some(bytes) &&
     start <= bytes.length() &&
     length <= bytes.length() - start else {
@@ -644,7 +646,9 @@ pub fn byte(nonce : Int64, handle : Int, index : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
   let readable = file_projection_read_status(value, handle)
-  if readable != 0 { return readable }
+  if readable != 0 {
+    return readable
+  }
   match @buffers.buffer_byte(value.pool, slot, index) {
     Some(value) => value.to_int()
     None => -5
@@ -666,7 +670,9 @@ pub fn read_packed(
     return -6L
   }
   let readable = file_projection_read_status(value, handle)
-  if readable != 0 { return readable.to_int64() }
+  if readable != 0 {
+    return readable.to_int64()
+  }
   let mut packed = 0L
   for offset in 0..<count {
     guard @buffers.buffer_byte(value.pool, slot, start + offset) is Some(byte) else {
@@ -684,7 +690,9 @@ pub fn borrow(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   let readable = file_projection_read_status(value, handle)
-  if readable != 0 { return readable }
+  if readable != 0 {
+    return readable
+  }
   if value.next_handle == 2147483647 {
     return -4
   }

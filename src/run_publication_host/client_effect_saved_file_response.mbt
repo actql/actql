@@ -60,28 +60,41 @@ pub fn ClientEffectSavedFileDispatch::prepare_response(
     fund(replacement.length() + self.row.target.length() * 6, 128, 8) &&
     @sha.hex(replacement) == physical_digest &&
     @publication.admit_effect_file_replacement_evidence(
-      replacement, device.to_string(), inode.to_string(),
-      replacement.length().to_int64(), max_bytes,
+      replacement,
+      device.to_string(),
+      inode.to_string(),
+      replacement.length().to_int64(),
+      max_bytes,
     )
     is Ok(evidence) &&
     effect_file_update_outcome_wire(self.row.target, limits.max_wire_bytes)
     is Some(outcome) &&
     fund(outcome.length() * 6 + 4096, 256, limits.max_depth) &&
     @publication.prepare_effect_file_operation_receipt(
-      self.operation, evidence, outcome,
-      limits.max_wire_bytes, limits.max_nodes, limits.max_depth,
+      self.operation,
+      evidence,
+      outcome,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
     )
     is Ok(response) else {
     return Err(InvalidOriginal)
   }
-  let metadata = @utf8.encode(@publication.effect_file_operation_receipt_wire(response))
+  let metadata = @utf8.encode(
+    @publication.effect_file_operation_receipt_wire(response),
+  )
   let witness_prefix = @utf8.decode(self.next_witness) catch {
     _ => return Err(Encoding)
   }
   let dispatch = self.dispatching.cid
-  let witness = @utf8.encode(witness_prefix + "\nresponse\n" + dispatch + "\n" + @sha.hex(metadata))
+  let witness = @utf8.encode(
+    witness_prefix + "\nresponse\n" + dispatch + "\n" + @sha.hex(metadata),
+  )
   let run : ClientJournalPhysicalRow = {
-    key: self.before_run.key, revision: self.before_run.revision + 1L, body: self.next_run,
+    key: self.before_run.key,
+    revision: self.before_run.revision + 1L,
+    body: self.next_run,
   }
   let prior_witness : ClientJournalPhysicalRow = {
     key: self.before_witness.key,
@@ -89,12 +102,32 @@ pub fn ClientEffectSavedFileDispatch::prepare_response(
     body: self.next_witness,
   }
   let writes : Array[ClientEffectFileJournalWrite] = [
-    {table: "client_runs", key: run.key, before: Some(run), successor: run.body},
-    {table: "client_effect_custody", key: prior_witness.key, before: Some(prior_witness), successor: witness},
-    {table: "client_effect_response_meta", key: dispatch, before: None, successor: metadata},
-    {table: "client_effect_response_bytes", key: dispatch, before: None, successor: replacement},
+    {
+      table: "client_runs",
+      key: run.key,
+      before: Some(run),
+      successor: run.body,
+    },
+    {
+      table: "client_effect_custody",
+      key: prior_witness.key,
+      before: Some(prior_witness),
+      successor: witness,
+    },
+    {
+      table: "client_effect_response_meta",
+      key: dispatch,
+      before: None,
+      successor: metadata,
+    },
+    {
+      table: "client_effect_response_bytes",
+      key: dispatch,
+      before: None,
+      successor: replacement,
+    },
   ]
-  Ok({ dispatch: self, response, writes })
+  Ok({ dispatch: self, response, writes, })
 }
 
 ///|

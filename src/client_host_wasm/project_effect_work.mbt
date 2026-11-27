@@ -815,7 +815,9 @@ fn produce_original_mock_effect_work(
   let start = mock_effect_descriptor_field(wire, 0)
   let at = @utf8.decode(wire[4:]) catch { _ => return -31 }
   if value.physical_starts.get(start) is Some({ model_file: Some(_), .. }) {
-    if record.kind != MOCK_EFFECT_SOURCE_EVIDENCE_KIND { return -20 }
+    if record.kind != MOCK_EFFECT_SOURCE_EVIDENCE_KIND {
+      return -20
+    }
     return seal_original_portable_model_file_source(value, start, at, record)
   }
   if value.physical_starts.get(start) is Some({ file_managed: Some(_), .. }) {

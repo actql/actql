@@ -209,17 +209,27 @@ pub fn ClientEffectHostAttestationUse::prepare_decision(
   signature : String,
   current : () -> Bool,
   limits : @checkpoint.WireLimits,
-  before_decode : (ClientRunJournalConstruction) -> Result[Unit, ClientJournalDecodingIssue],
+  before_decode : (ClientRunJournalConstruction) -> Result[
+    Unit,
+    ClientJournalDecodingIssue,
+  ],
   before_encode : (Int, Int, Int) -> Result[Unit, ClientJournalEncodingIssue],
-) -> Result[ClientEffectResolutionJournalDecision, ClientEffectResolutionOriginalIssue] {
+) -> Result[
+  ClientEffectResolutionJournalDecision,
+  ClientEffectResolutionOriginalIssue,
+] {
   let scope = @credential.local_signing_credential_grant_scope(self.grant)
   if scope.purpose != @credential.HostAttestation ||
     scope.preimage != self.attestation.attestation_preimage() {
     return Err(InvalidOriginal)
   }
   self.attestation.prepare_journal_decision(
-    scope.key_id, signature, current, limits,
-    before_decode=Some(before_decode), before_encode=Some(before_encode),
+    scope.key_id,
+    signature,
+    current,
+    limits,
+    before_decode=Some(before_decode),
+    before_encode=Some(before_encode),
   )
 }
 
@@ -229,6 +239,9 @@ pub fn ClientEffectHostAttestationUse::prepare_decision(
 pub fn ClientEffectResolutionJournalDecision::candidate_coordinates(
   self : ClientEffectResolutionJournalDecision,
 ) -> (String, String, Bool) {
-  (self.verified.checkpoint_cid, self.verified.resolution_cid,
-    self.verified.decision == @checkpoint.Approved)
+  (
+    self.verified.checkpoint_cid,
+    self.verified.resolution_cid,
+    self.verified.decision == @checkpoint.Approved,
+  )
 }

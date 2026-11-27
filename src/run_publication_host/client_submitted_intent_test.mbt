@@ -287,7 +287,9 @@ test "submitted Debug marks bind the original map and ordered step choices" {
   assert_eq(client_submitted_intent_breakpoint_step(original, 2), None)
   let matches = fn(map, steps : Array[String]) {
     client_submitted_intent_breakpoint_selection_matches(
-      original, map, ReadOnlyArray::from_array(steps),
+      original,
+      map,
+      ReadOnlyArray::from_array(steps),
     )
   }
   assert_true(matches(c, [a, b]))
@@ -302,20 +304,24 @@ test "submitted Debug marks bind the original map and ordered step choices" {
   for change in [intent(c, b, a), intent(b, a, b)] {
     let changed = prepare_client_submitted_intent(change, 4096, 128, 16).unwrap()
     assert_true(
-      client_submitted_intent_cid(changed) != client_submitted_intent_cid(original),
+      client_submitted_intent_cid(changed) !=
+      client_submitted_intent_cid(original),
     )
   }
-  for invalid in [
-    intent(c, a, a),
-    intent(c, a, "short"),
-    intent("unbound", a, b),
-    wire.replace(old="\"executionProfile\":\"debug\",", new=""),
-    wire.replace(old="\"logical_map_cid\"",
-      new="\"extra\":true,\"logical_map_cid\""),
-  ] {
+  for
+    invalid in [
+      intent(c, a, a),
+      intent(c, a, "short"),
+      intent("unbound", a, b),
+      wire.replace(old="\"executionProfile\":\"debug\",", new=""),
+      wire.replace(
+        old="\"logical_map_cid\"",
+        new="\"extra\":true,\"logical_map_cid\"",
+      ),
+    ] {
     assert_true(
       prepare_client_submitted_intent(invalid, 4096, 128, 16)
-        is Err(InvalidEnvelope),
+      is Err(InvalidEnvelope),
     )
   }
 }

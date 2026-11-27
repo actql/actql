@@ -885,7 +885,9 @@ pub fn read_completed_relation_export_canonical_row(
     return Err(Closed)
   }
   stream.reading = true
-  defer { stream.reading = false }
+  defer {
+    stream.reading = false
+  }
   if !physical_equal(stream.export_identity, receipt.rows.export_identity) {
     return Err(ForeignMaterial)
   }

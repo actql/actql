@@ -62,12 +62,25 @@ fn prepare_portable_model_file_request(
     Err(_) => return -20
   }
   let (source, limits) = match
-    select_paid_local_csv_source(checker, account, configuration.tuple.principal, parent, slot, chosen) {
+    select_paid_local_csv_source(
+      checker,
+      account,
+      configuration.tuple.principal,
+      parent,
+      slot,
+      chosen,
+    ) {
     Ok(value) => value
     Err(code) => return code
   }
-  let capacity = match @local_host.prepare_request_portable_model_whole_source_capacity(
-      parent, slot, chosen, source.declaration(), value.installed_sequences.contracts, limits,
+  let capacity = match
+    @local_host.prepare_request_portable_model_whole_source_capacity(
+      parent,
+      slot,
+      chosen,
+      source.declaration(),
+      value.installed_sequences.contracts,
+      limits,
     ) {
     Ok(value) => value
     Err(InsufficientCapacity | MetadataCapacityUnavailable)
@@ -79,19 +92,25 @@ fn prepare_portable_model_file_request(
   let input = @local_host.installed_whole_source_acquisition(capacity)
   // The exact selected declaration must classify the input before this
   // Request can become ready. Provider observations never replace this policy.
-  if @row_host.row_input_acquisition_facts(input).data_classification == "unknown" {
+  if @row_host.row_input_acquisition_facts(input).data_classification ==
+    "unknown" {
     return -20
   }
-  guard source.bind_input(input) is Ok(selection) && selection.matches_check(checker) else {
+  guard source.bind_input(input) is Ok(selection) &&
+    selection.matches_check(checker) else {
     return -2
   }
   match run_configuration_current(value, configuration) {
     Err(code) => return code
     Ok(_) => ()
   }
-  let derives_read = sdk_local_model_file_read_selection_needed(configuration, sdk)
+  let derives_read = sdk_local_model_file_read_selection_needed(
+    configuration, sdk,
+  )
   let (read_retained, read_scratch) = if derives_read {
-    guard sdk_accepted_file_read_selection_capacity(sdk) is Some(quote) else { return -4 }
+    guard sdk_accepted_file_read_selection_capacity(sdk) is Some(quote) else {
+      return -4
+    }
     quote
   } else {
     (0L, 0L)
@@ -102,12 +121,25 @@ fn prepare_portable_model_file_request(
       scalar_words: 2L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
-    }) is Some(file_extent) &&
-    @execution.checked_preparation_add_product(binding.retained_bytes, file_extent, 1L)
-      .bind(total => @execution.checked_preparation_add_product(total, read_retained, 1L))
-      is Some(bytes) &&
-    @execution.checked_preparation_add_product(bytes, read_scratch, 1L) is Some(peak) &&
-    @resources.grow_capacity_reservation(value.root, binding.capacity, bytes, peak) is Ok(_) else {
+    })
+    is Some(file_extent) &&
+    @execution.checked_preparation_add_product(
+      binding.retained_bytes,
+      file_extent,
+      1L,
+    ).bind(total => {
+      @execution.checked_preparation_add_product(total, read_retained, 1L)
+    })
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(bytes, read_scratch, 1L)
+    is Some(peak) &&
+    @resources.grow_capacity_reservation(
+      value.root,
+      binding.capacity,
+      bytes,
+      peak,
+    )
+    is Ok(_) else {
     return -4
   }
   let read_selection = if derives_read {
@@ -116,16 +148,27 @@ fn prepare_portable_model_file_request(
       Err(code) => return code
     }
   } else {
-    guard @publication.local_sdk_result_read_selection_uses_accepted_run_policy(sdk.read) else {
+    guard @publication.local_sdk_result_read_selection_uses_accepted_run_policy(
+      sdk.read,
+    ) else {
       return -32
     }
     sdk.read
   }
   binding.file = Some({
-    selection, read_selection, capacity, transfer: source.transport.transfer_bytes,
+    selection,
+    read_selection,
+    capacity,
+    transfer: source.transport.transfer_bytes,
     execution: source.transport.execution_bytes,
   })
-  if @resources.shrink_capacity_reservation(value.root, binding.capacity, bytes, bytes) is Err(_) {
+  if @resources.shrink_capacity_reservation(
+      value.root,
+      binding.capacity,
+      bytes,
+      bytes,
+    )
+    is Err(_) {
     return -4
   }
   binding.retained_bytes = bytes
@@ -520,15 +563,15 @@ fn retained_sdk_portable_request(
     configuration.sdk is Some({ portable_model: Some(task), .. }) &&
     configuration.host_current is Some(current) &&
     installed_portable_model_task(value, task, current) is Some(provider) &&
-    value.original_metadata.get(preparation.environment)
-      is Some(metadata) &&
+    value.original_metadata.get(preparation.environment) is Some(metadata) &&
     project_request_configuration(value, preparation.environment)
-      is Some((selected, check)) &&
+    is Some((selected, check)) &&
     check.configuration == configuration_handle &&
     physical_equal(selected, configuration) &&
     sdk_whole_file_preparing_submission(
       value, preparation, configuration_handle, submission,
-    ) is Some(_) else {
+    )
+    is Some(_) else {
     return None
   }
   match metadata.project {
@@ -557,8 +600,12 @@ fn prepare_retained_portable_identity(
 ) -> Result[@host.ClientRequestIdentity, Int] {
   guard original.portable_execution is Some(held) else { return Err(-35) }
   if held.request is Some(request) {
-    return if @host.client_submission_reference_matches_request(saved.reference, request) &&
-      @host.client_request_input_cid(request) == @host.client_submitted_intent_cid(saved.intent) {
+    return if @host.client_submission_reference_matches_request(
+        saved.reference,
+        request,
+      ) &&
+      @host.client_request_input_cid(request) ==
+      @host.client_submitted_intent_cid(saved.intent) {
       Ok(request)
     } else {
       Err(-35)
@@ -575,18 +622,26 @@ fn prepare_retained_portable_identity(
     is Ok(_) else {
     return Err(-4)
   }
-  let request = match @host.prepare_client_request_identity(
-    prepared,
-    configuration.authority_scope_cid,
-    @host.client_submission_reference_record_request_id(saved.reference),
-    @host.client_submitted_intent_cid(saved.intent),
-  ) {
+  let request = match
+    @host.prepare_client_request_identity(
+      prepared,
+      configuration.authority_scope_cid,
+      @host.client_submission_reference_record_request_id(saved.reference),
+      @host.client_submitted_intent_cid(saved.intent),
+    ) {
     Ok(request) => request
     Err(_) => return Err(-31)
   }
   held.request = Some(request)
-  guard @resources.shrink_capacity_reservation(value.root, held.capacity, bytes, bytes)
-    is Ok(_) else { return Err(-4) }
+  guard @resources.shrink_capacity_reservation(
+      value.root,
+      held.capacity,
+      bytes,
+      bytes,
+    )
+    is Ok(_) else {
+    return Err(-4)
+  }
   held.retained_bytes = bytes
   Ok(request)
 }

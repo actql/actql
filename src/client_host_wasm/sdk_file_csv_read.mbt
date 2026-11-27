@@ -34,7 +34,9 @@ priv struct StoredSDKWholeSourceTransfer {
 }
 
 ///|
-fn sdk_whole_source_transfer(start : StoredPhysicalStart) -> StoredSDKWholeSourceTransfer? {
+fn sdk_whole_source_transfer(
+  start : StoredPhysicalStart,
+) -> StoredSDKWholeSourceTransfer? {
   match (start.file_managed, start.model_file) {
     (Some(file), None) if !file.closing => Some(file.source)
     (None, Some(model)) => Some(model.source)
@@ -54,15 +56,14 @@ fn open_sdk_local_csv_rows(
   selected : @host.ClientProjectLocalCsvSelection,
   handle : Int,
 ) -> Int {
-  guard source.capture == Some(handle) && source.csv_read is None else { return -2 }
+  guard source.capture == Some(handle) && source.csv_read is None else {
+    return -2
+  }
   let declared = selected.source_acquisition()
   let declaration = selected.declaration()
   let (read, original, acquisition, _) = match
     @local_host.begin_installed_managed_whole_source_read(
-      owner,
-      prepared,
-      request,
-      declaration,
+      owner, prepared, request, declaration,
     ) {
     Ok(read) => read
     Err(AlreadyBound) => return -35
@@ -147,8 +148,10 @@ fn fund_sdk_local_csv_extent(
     Ok(_) => ()
     Err(issue) => return mock_effect_capture_issue(issue)
   }
-  let prepared = match csv.selected.prepare_response(response, observed_bytes=Some(extent)) {
-    Ok((root, path, prepared)) if root == csv.root && path == csv.path => prepared
+  let prepared = match
+    csv.selected.prepare_response(response, observed_bytes=Some(extent)) {
+    Ok((root, path, prepared)) if root == csv.root && path == csv.path =>
+      prepared
     Ok(_) => return -35
     Err(issue) => return local_csv_capture_issue(issue)
   }
@@ -204,7 +207,9 @@ fn sdk_local_csv_capture_current(
     Ok(original) => original
     Err(code) => return Err(code)
   }
-  guard value.physical_starts.get(child.start) is Some(start) else { return Err(-2) }
+  guard value.physical_starts.get(child.start) is Some(start) else {
+    return Err(-2)
+  }
   let source = match start.model_file {
     Some(_) =>
       match portable_model_file_source_current(value, child.start) {
@@ -397,16 +402,24 @@ fn produce_sdk_local_csv_response(
         return -35
       }
     }
-    let code = status(@buffers.supply_buffer_output(value.pool, record.slot, b""))
-    csv.phase = if code == 0 { ReadyToRead(offer, extent) } else {
+    let code = status(
+      @buffers.supply_buffer_output(value.pool, record.slot, b""),
+    )
+    csv.phase = if code == 0 {
+      ReadyToRead(offer, extent)
+    } else {
       Failed(code, Some(0L))
     }
-    if code == 0 { record.produced = true }
+    if code == 0 {
+      record.produced = true
+    }
     return code
   }
   guard csv.phase is ReadyToRead(_, extent) &&
     csv.response is Some(response) &&
-    child.rows is Some(rows) else { return -33 }
+    child.rows is Some(rows) else {
+    return -33
+  }
   match delivery {
     Complete(bytes) if bytes.length().to_int64() != extent => {
       csv.phase = Failed(-35, None)
@@ -473,8 +486,7 @@ fn accept_sdk_local_csv_response(
   response : @row_host.LocalCsvWholeResponse,
   bytes : BytesView,
 ) -> Int {
-  match
-    @row_host.accept_local_csv_whole_response(response, bytes.to_owned()) {
+  match @row_host.accept_local_csv_whole_response(response, bytes.to_owned()) {
     Err(issue) => return local_csv_capture_issue(issue)
     Ok(_) => ()
   }

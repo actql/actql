@@ -826,8 +826,15 @@ fn LocalValuesExecution::prepare_publication_bridge_for_original(
   LocalValuesPublicationBridgeIssue,
 ] {
   prepare_publication_bridge_for_original(
-    self.available, operations, completed, row_limits, bridge_max_entries,
-    bridge_max_name_bytes, limits, before_row~, reserve_row_copy~,
+    self.available,
+    operations,
+    completed,
+    row_limits,
+    bridge_max_entries,
+    bridge_max_name_bytes,
+    limits,
+    before_row~,
+    reserve_row_copy~,
   )
 }
 
@@ -868,12 +875,7 @@ fn prepare_publication_bridge_for_original(
     }
     match
       append_local_publication_bridge_row(
-        available,
-        bridge,
-        row,
-        row_limits,
-        index,
-        copy_funding,
+        available, bridge, row, row_limits, index, copy_funding,
       ) {
       Err(issue) => {
         @execution.close_managed_publication_bridge(bridge)
@@ -907,8 +909,14 @@ fn LocalValuesExecution::open_publication_bridge_for_original(
   LocalValuesPublicationBridgeIssue,
 ] {
   open_publication_bridge_for_original(
-    self.available, operations, completed, row_limits, bridge_max_entries,
-    bridge_max_name_bytes, limits, reserve_row_copy,
+    self.available,
+    operations,
+    completed,
+    row_limits,
+    bridge_max_entries,
+    bridge_max_name_bytes,
+    limits,
+    reserve_row_copy,
   )
 }
 

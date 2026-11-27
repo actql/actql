@@ -51,12 +51,14 @@ pub fn issue_local_source_free_model_invocation(
     return Err(AuthorizationMismatch)
   }
   guard @infer.original_issued_invocation_matches_run(
-      binding, host.plan.compiled, host.plan.definition,
+      binding,
+      host.plan.compiled,
+      host.plan.definition,
     ) &&
     @infer.invocation_binding_observation(binding) is Some(observation) &&
     @infer.invocation_binding_invocation(binding) is Some(invocation) &&
     @host.client_compiled_run_source_free_result_policy_body(host.plan.compiled)
-      is Some(policy) else {
+    is Some(policy) else {
     return Err(MissingFacts)
   }
   Ok({
@@ -87,11 +89,16 @@ pub fn issue_local_whole_source_model_invocation(
     return Err(AuthorizationMismatch)
   }
   guard @infer.original_issued_whole_source_invocation_matches_run(
-      binding, host.plan.compiled, host.plan.definition, source, logical,
+      binding,
+      host.plan.compiled,
+      host.plan.definition,
+      source,
+      logical,
     ) &&
     @infer.invocation_binding_observation(binding) is Some(observation) &&
     @infer.invocation_binding_invocation(binding) is Some(invocation) &&
-    @host.client_compiled_run_infer_observation_policy(host.plan.compiled) is Some(policy) else {
+    @host.client_compiled_run_infer_observation_policy(host.plan.compiled)
+    is Some(policy) else {
     return Err(MissingFacts)
   }
   Ok({
@@ -132,9 +139,13 @@ fn validate_local_run_invocation_current(
       guard physical_equal(start.host, host) &&
         host.publication is WholeSourceModel(_) &&
         @host.client_compiled_run_infer_observation_policy(host.plan.compiled) ==
-          Some(invocation.data_policy_cid) &&
+        Some(invocation.data_policy_cid) &&
         @infer.original_issued_whole_source_invocation_matches_run(
-          binding, host.plan.compiled, host.plan.definition, source, logical,
+          binding,
+          host.plan.compiled,
+          host.plan.definition,
+          source,
+          logical,
         ) else {
         return Err(MissingFacts)
       }
@@ -155,7 +166,9 @@ fn validate_local_run_invocation_current(
       }
       if invocation.origin is SourceFreeModel(_, binding) &&
         !@infer.original_issued_invocation_matches_run(
-          binding, invocation.host.plan.compiled, invocation.host.plan.definition,
+          binding,
+          invocation.host.plan.compiled,
+          invocation.host.plan.definition,
         ) {
         return Err(MissingFacts)
       }

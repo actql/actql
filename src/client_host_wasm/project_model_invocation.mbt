@@ -28,7 +28,9 @@ fn portable_model_invocation_limits(
   // One checked Whole Source adds its evidence CID, two UTC stamps and the
   // longer consistency literal in the same observation writer.
   let source = if run.sources is Some(_) { 144L } else { 0L }
-  let wire = 577L + 74L * (slots.to_int64() + run.members.length().to_int64()) + source
+  let wire = 577L +
+    74L * (slots.to_int64() + run.members.length().to_int64()) +
+    source
   if wire > 16384L {
     return None
   }
@@ -171,12 +173,20 @@ fn advance_portable_model_invocation(
   let issued = match run.sources {
     Some(evidence) =>
       @local_run.issue_local_whole_source_model_invocation(
-        host, start, binding, evidence.source, evidence.logical,
-        evidence.identity, current.account,
+        host,
+        start,
+        binding,
+        evidence.source,
+        evidence.logical,
+        evidence.identity,
+        current.account,
       )
     None =>
       @local_run.issue_local_source_free_model_invocation(
-        host, start, binding, current.account,
+        host,
+        start,
+        binding,
+        current.account,
       )
   }
   match issued {

@@ -175,8 +175,16 @@ fn original_mock_project_input_capacity(
   bytes : Int,
   check_installation? : Bool = false,
 ) -> Int64? {
-  let (nodes, depth, fields) = if check_installation { (7, 3, 5) } else { (7, 2, 6) }
-  let extents = @decode.closed_object_field_construction_extent(Some(fields), fields, 0L)
+  let (nodes, depth, fields) = if check_installation {
+    (7, 3, 5)
+  } else {
+    (7, 2, 6)
+  }
+  let extents = @decode.closed_object_field_construction_extent(
+    Some(fields),
+    fields,
+    0L,
+  )
   guard @decode.preserving_json_admission_construction_inventory(
       bytes, nodes, depth,
     )
@@ -264,8 +272,10 @@ fn original_portable_model_project_selection(
 ) -> Bool {
   original_model_project_selection(value, handle) is Some(original) &&
   original.configuration is Some(configuration) &&
-    (configuration.connectors_file() is None ||
-      original.selection.selected_profile() == Ok(None))
+  (
+    configuration.connectors_file() is None ||
+    original.selection.selected_profile() == Ok(None)
+  )
 }
 
 ///|
@@ -545,7 +555,9 @@ fn prepare_original_mock_project_inputs(
       guard @decode.int32(registry_input) is Ok(ticket) &&
         ticket != input &&
         ticket != connection_input &&
-        ticket != catalog_input else { return -31 }
+        ticket != catalog_input else {
+        return -31
+      }
       let wire = match
         original_project_input_wire(value, original, handle, ticket) {
         Ok(wire) => wire

@@ -17,7 +17,9 @@ fn payload_binding_parent(
   parent : Int,
 ) -> StoredPayloadRecord? {
   guard value.payload_records.get(parent)
-    is Some({ confirmed: true, closing: false, record: Some(original), .. } as record) &&
+    is Some(
+      { confirmed: true, closing: false, record: Some(original), .. } as record
+    ) &&
     @payload.publication_payload_record_state(original) is Sealed &&
     @payload.publication_payload_record_generation(original) is Some(_) &&
     @payload.publication_payload_record_ownership(original) is Some(_) &&
@@ -28,13 +30,17 @@ fn payload_binding_parent(
 }
 
 ///|
-fn payload_binding_wire_limit(value : Instance, record : StoredPayloadRecord) -> Int {
+fn payload_binding_wire_limit(
+  value : Instance,
+  record : StoredPayloadRecord,
+) -> Int {
   guard record.source is LiveRequest &&
     value.payload_requests.get(record.request) is Some(request) &&
     value.publications.get(request.publication) is Some(publication) &&
     publication.publications.get(request.index) is Some(result) &&
     @local_run.local_result_publication_schema_bytes(result) is Some(bytes) &&
-    bytes > 0 && bytes <= 65536 - 2048 else {
+    bytes > 0 &&
+    bytes <= 65536 - 2048 else {
     return 65536
   }
   // The only variable fields are names already counted as escaped keys in the
@@ -173,16 +179,38 @@ pub fn produce_payload_binding(
   let binding = match preflight.origin {
     ComputePublicationPreflight({ prepared: Some(prepared), .. }) =>
       @local_run.issue_local_preflight_sealed_result_binding(
-        prepared, request.index, publication.publications[request.index], original,
-        current.account, 65536, 4096, 64,
+        prepared,
+        request.index,
+        publication.publications[request.index],
+        original,
+        current.account,
+        65536,
+        4096,
+        64,
       ).map_err(_ => -32)
     FilePublicationPreflight(file) =>
-      with_sdk_file_payload_result(value, publication, file, request.index, current.account,
-        (prepared, result, recheck) => @local_run.issue_local_captured_task_sealed_result_binding(
-          prepared, request.index, result, original,
-          { max_results: value.workspace_slots, max_wire_bytes: 65536, max_nodes: 4096, max_depth: 64, },
-          recheck,
-        ))
+      with_sdk_file_payload_result(
+        value,
+        publication,
+        file,
+        request.index,
+        current.account,
+        (prepared, result, recheck) => {
+          @local_run.issue_local_captured_task_sealed_result_binding(
+            prepared,
+            request.index,
+            result,
+            original,
+            {
+              max_results: value.workspace_slots,
+              max_wire_bytes: 65536,
+              max_nodes: 4096,
+              max_depth: 64,
+            },
+            recheck,
+          )
+        },
+      )
     SavedEffectPublicationPreflight({ prepared: Some(prepared), .. }) =>
       prepared.bind_sealed_payload(request.index, original).map_err(_ => -32)
     _ => Err(-2)
@@ -193,14 +221,29 @@ pub fn produce_payload_binding(
   }
   let wire = @publication.publication_contract_json(binding)
   if publication.file is Some(file) {
-    if child.closing || parent.closing { return -5 }
-    let checked = sdk_file_capture_publication_current(value, publication, file, current.account)
-    if checked != 0 { return checked }
+    if child.closing || parent.closing {
+      return -5
+    }
+    let checked = sdk_file_capture_publication_current(
+      value,
+      publication,
+      file,
+      current.account,
+    )
+    if checked != 0 {
+      return checked
+    }
     child.file_binding = Some(binding)
   }
   if publication.saved_effect is Some(effect) {
-    let code = saved_effect_publication_preflight_current(value, effect, current.account)
-    if code != 0 { return code }
+    let code = saved_effect_publication_preflight_current(
+      value,
+      effect,
+      current.account,
+    )
+    if code != 0 {
+      return code
+    }
     child.file_binding = Some(binding)
   }
   let result = status(

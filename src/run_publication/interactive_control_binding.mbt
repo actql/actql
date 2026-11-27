@@ -596,7 +596,8 @@ pub fn issue_interactive_entry_breakpoint_profile(
   max_depth : Int,
 ) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
   guard interactive_profile_requires_entry_stop(policy) &&
-    count >= 1 && count <= 32 &&
+    count >= 1 &&
+    count <= 32 &&
     @json.object_field(policy.value, "execution") is Some(execution) &&
     @json.object_without_field(policy.value, "self_cid") is Some(body) else {
     return Err(RunEvidenceReferenceMismatch("control_profile.installed_sample"))
@@ -612,30 +613,24 @@ pub fn issue_interactive_entry_breakpoint_profile(
       "select": { "by": "id", "step_id": step_id },
     })
   }
-  let (targets, until) = try {
-    (
-      @json.from_json(Json::array(values), max_nodes, max_depth, max_bytes),
-      @json.from_json(Json::string("breakpoint"), 1, 1, 16),
-    )
-  } catch {
+  let (targets, until) = (
+    @json.from_json(Json::array(values), max_nodes, max_depth, max_bytes),
+    @json.from_json(Json::string("breakpoint"), 1, 1, 16),
+  ) catch {
     _ => return Err(RunEvidenceEncoding)
   }
   guard @json.object_with_replaced_fields(execution, [
-      ("breakpoints", targets), ("default_until", until),
-    ]) is Some(marked_execution) &&
+      ("breakpoints", targets),
+      ("default_until", until),
+    ])
+    is Some(marked_execution) &&
     @json.object_with_replaced_fields(body, [("execution", marked_execution)])
     is Some(marked_body) else {
     return Err(RunEvidenceReferenceMismatch("control_profile.installed_sample"))
   }
   seal_original_run_evidence_body(
-    "control_profile",
-    "self_cid",
-    marked_body,
-    max_bytes,
-    max_nodes,
-    max_depth,
-    @json.cid_value,
-    @json.stringify_value_with_usage,
+    "control_profile", "self_cid", marked_body, max_bytes, max_nodes, max_depth,
+    @json.cid_value, @json.stringify_value_with_usage,
   )
 }
 

@@ -60,18 +60,37 @@ fn publication_preflight_input(
     let retention = if publication_has_model_source(value, origin.source) {
       guard origin.capacity is None &&
         compute.host is Some(host) &&
-        @host.client_compiled_run_infer_observation_policy(@local_run.local_run_compiled(plan))
+        @host.client_compiled_run_infer_observation_policy(
+          @local_run.local_run_compiled(plan),
+        )
         is Some(policy) &&
-        checked_publication_preflight_capacity(@local_run.local_run_prepared(plan), original.run_namespace,
-          clock, count, limits, retention) is Some((retained, execution)) else { return Err(-4) }
-      let ledger = @strategy.captured_dag_ledger(@local_run.local_compute_run(host))
-      let reservation = match @resources.reserve_capacity(ledger, retained, execution) {
+        checked_publication_preflight_capacity(
+          @local_run.local_run_prepared(plan),
+          original.run_namespace,
+          clock,
+          count,
+          limits,
+          retention,
+        )
+        is Some((retained, execution)) else {
+        return Err(-4)
+      }
+      let ledger = @strategy.captured_dag_ledger(
+        @local_run.local_compute_run(host),
+      )
+      let reservation = match
+        @resources.reserve_capacity(ledger, retained, execution) {
         Ok(value) => value
         Err(_) => return Err(-4)
       }
       origin.capacity = Some((ledger, reservation, retained))
-      match @publication.issue_result_retention_for_data_policy(
-          retention, policy, limits.max_wire_bytes, limits.max_nodes, limits.max_depth,
+      match
+        @publication.issue_result_retention_for_data_policy(
+          retention,
+          policy,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
         ) {
         Ok(value) => value
         Err(_) => return Err(-32)
@@ -154,5 +173,10 @@ fn sdk_publication_preflight_clock(
     optional_text(object, "external_idempotency_key") is Ok(idempotency) else {
     return Err(-31)
   }
-  Ok({ at, attempt_id, fence_cid: fence, external_idempotency_key: idempotency, })
+  Ok({
+    at,
+    attempt_id,
+    fence_cid: fence,
+    external_idempotency_key: idempotency,
+  })
 }

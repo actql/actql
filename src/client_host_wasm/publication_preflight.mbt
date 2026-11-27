@@ -40,7 +40,9 @@ priv struct StoredFilePublicationPreflight {
 }
 
 ///|
-fn stored_publication_preflight_prepared(record : StoredPublicationPreflight) -> Bool {
+fn stored_publication_preflight_prepared(
+  record : StoredPublicationPreflight,
+) -> Bool {
   match record.origin {
     ComputePublicationPreflight(compute) => compute.prepared is Some(_)
     FilePublicationPreflight(file) => file.prepared is Some(_)
@@ -54,7 +56,8 @@ fn compute_publication_preflight(
   compute : Int,
 ) -> (Int, StoredPublicationPreflight)? {
   for handle, record in value.publication_preflights {
-    if record.origin is ComputePublicationPreflight(original) && original.compute == compute {
+    if record.origin is ComputePublicationPreflight(original) &&
+      original.compute == compute {
       return Some((handle, record))
     }
   }
@@ -92,27 +95,68 @@ pub fn reserve_publication_preflight(
   if value.closing || value.runtime_closing {
     return -5
   }
-  let origin : StoredPublicationPreflightOrigin = if value.run_invocations.get(source)
-    is Some({ closing: false, produced: true, invocation: Some(_), compute, .. }) &&
+  let origin : StoredPublicationPreflightOrigin = if value.run_invocations.get(
+      source,
+    )
+    is Some(
+      { closing: false, produced: true, invocation: Some(_), compute, .. }
+    ) &&
     value.computes.get(compute) is Some({ closing: false, host: Some(_), .. }) {
-    if compute_publication_preflight(value, compute) is Some(_) { return -3 }
-    ComputePublicationPreflight({ source, compute, prepared: None, capacity: None, })
+    if compute_publication_preflight(value, compute) is Some(_) {
+      return -3
+    }
+    ComputePublicationPreflight({
+      source,
+      compute,
+      prepared: None,
+      capacity: None,
+    })
   } else if value.submissions.get(source)
-    is Some({ append_plan: EffectFileCompletion(_), produced: true, output_closed: false, .. }) {
-    if value.publication_preflights.values().any(record => {
-        record.origin is SavedEffectPublicationPreflight(original) && original.source == source
-      }) { return -3 }
+    is Some(
+      {
+        append_plan: EffectFileCompletion(_),
+        produced: true,
+        output_closed: false,
+        ..
+      }
+    ) {
+    if value.publication_preflights
+      .values()
+      .any(record => {
+        record.origin is SavedEffectPublicationPreflight(original) &&
+        original.source == source
+      }) {
+      return -3
+    }
     SavedEffectPublicationPreflight({
-      source, capacity: None, prepared: None, publisher: None, request_attempted: false, request_allowed: false,
+      source,
+      capacity: None,
+      prepared: None,
+      publisher: None,
+      request_attempted: false,
+      request_allowed: false,
     })
   } else {
-    guard value.physical_starts.get(source) is Some({ file_managed: Some(managed), .. }) &&
-      !managed.closing && managed.capture_work is Some(work) &&
-      work.invocation_ready && !work.closing && !work.failed else { return -2 }
-    if file_publication_preflight(value, work) { return -3 }
+    guard value.physical_starts.get(source)
+      is Some({ file_managed: Some(managed), .. }) &&
+      !managed.closing &&
+      managed.capture_work is Some(work) &&
+      work.invocation_ready &&
+      !work.closing &&
+      !work.failed else {
+      return -2
+    }
+    if file_publication_preflight(value, work) {
+      return -3
+    }
     FilePublicationPreflight({
-      start: source, work, prepared: None, capacity: None,
-      request_started: false, request_failure: None, request_publisher: None,
+      start: source,
+      work,
+      prepared: None,
+      capacity: None,
+      request_started: false,
+      request_failure: None,
+      request_publisher: None,
       capture_started: false,
     })
   }
@@ -129,11 +173,18 @@ pub fn reserve_publication_preflight(
     return -3
   }
   let wire_limit = if origin is SavedEffectPublicationPreflight(_) ||
-    publication_has_model_source(value, source) { 0 } else { 1048576 }
+    publication_has_model_source(value, source) {
+    0
+  } else {
+    1048576
+  }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, wire_limit, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      wire_limit,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }
@@ -216,11 +267,15 @@ fn prepare_compute_publication_preflight(
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) else { return -31 }
   let limits : @local_run.LocalPublicationIntentLimits = {
-    max_results: value.workspace_slots, max_wire_bytes: 1048576,
-    max_nodes: 100000, max_depth: 64,
+    max_results: value.workspace_slots,
+    max_wire_bytes: 1048576,
+    max_nodes: 100000,
+    max_depth: 64,
   }
   let input = match
-    publication_preflight_input(value, compute, original_run, plan, cursor, origin, limits) {
+    publication_preflight_input(
+      value, compute, original_run, plan, cursor, origin, limits,
+    ) {
     Ok(input) => input
     Err(code) => return code
   }
@@ -261,15 +316,20 @@ fn prepare_compute_publication_preflight(
   origin.prepared = Some(preflight)
   record.pending = false
   if origin.capacity is Some((ledger, reservation, retained)) &&
-    @resources.shrink_capacity_reservation(ledger, reservation, retained, 0L) is Err(_) {
+    @resources.shrink_capacity_reservation(ledger, reservation, retained, 0L)
+    is Err(_) {
     return -4
   }
   if !stored_preflight_original_current(value, record, current.account) {
     return -32
   }
   if publication_has_model_source(value, origin.source) {
-    let result = status(@buffers.supply_buffer_output(value.pool, record.slot, b""))
-    if result == 0 { record.produced = true }
+    let result = status(
+      @buffers.supply_buffer_output(value.pool, record.slot, b""),
+    )
+    if result == 0 {
+      record.produced = true
+    }
     return result
   }
   let (request, attempt) = @local_run.local_publication_preflight_contracts(
@@ -319,14 +379,19 @@ fn stored_preflight_original_current(
   let origin = match record.origin {
     ComputePublicationPreflight(origin) => origin
     SavedEffectPublicationPreflight(origin) =>
-      return !record.closing && saved_effect_publication_preflight_current(value, origin, account) == 0
+      return !record.closing &&
+        saved_effect_publication_preflight_current(value, origin, account) == 0
     FilePublicationPreflight(origin) =>
-      return !record.closing && !pending_confirmation &&
+      return !record.closing &&
+        !pending_confirmation &&
         file_publication_preflight_current(value, origin, account) == 0
   }
   guard origin.prepared is Some(preflight) &&
-    value.run_invocations.get(origin.source) is Some(source) && source.produced &&
-    value.computes.get(origin.compute) is Some(compute) else { return false }
+    value.run_invocations.get(origin.source) is Some(source) &&
+    source.produced &&
+    value.computes.get(origin.compute) is Some(compute) else {
+    return false
+  }
   // Parent close seals new work before it waits for retained children. Only
   // confirmation of an already-begun original write may use that custody.
   if !pending_confirmation {
@@ -365,7 +430,9 @@ pub fn retire_publication_preflight_output(nonce : Int64, handle : Int) -> Int {
     value.publication_preflights.get(handle) is Some(record) else {
     return -2
   }
-  if record.pending || !record.produced || !stored_publication_preflight_prepared(record) {
+  if record.pending ||
+    !record.produced ||
+    !stored_publication_preflight_prepared(record) {
     return -33
   }
   if record.output_closed {
@@ -391,7 +458,8 @@ pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
-  if record.origin is FilePublicationPreflight(file) && file_preflight_read_active(value, file) {
+  if record.origin is FilePublicationPreflight(file) &&
+    file_preflight_read_active(value, file) {
     return -9
   }
   // A Model task starts before its publication preflight exists. The
@@ -399,20 +467,28 @@ pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
   // downstream preflight first. Ordinary tasks keep their prior dependency.
   let task_borrow = if record.origin is ComputePublicationPreflight(original) {
     let completed_model_source = value.run_invocations.get(original.source)
-      is Some({ compute, source_free: true, produced: true, model_issuance: Some(_), .. }) &&
+      is Some(
+        {
+          compute,
+          source_free: true,
+          produced: true,
+          model_issuance: Some(_),
+          ..
+        }
+      ) &&
       compute == original.compute &&
       value.computes.get(compute) is Some({ host: Some(host), .. }) &&
       @local_run.local_compute_model_run(host) is Some(_)
     !completed_model_source &&
-      value.tasks.values().any(child => child.compute == original.compute)
+    value.tasks.values().any(child => child.compute == original.compute)
   } else {
     false
   }
   if value.publishers.values().any(child => child.parent == handle) ||
     value.publications.values().any(child => child.preflight == handle) ||
-    value.result_exports.values().any(child => {
-      child.origin is FileNamedResult(file) && file.parent == handle
-    }) ||
+    value.result_exports
+    .values()
+    .any(child => child.origin is FileNamedResult(file) && file.parent == handle) ||
     task_borrow {
     return -9
   }
@@ -425,16 +501,23 @@ pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
   }
   if record.origin is FilePublicationPreflight(file) {
     let settled = retire_file_publication_preflight(file)
-    if settled != 0 { return settled }
+    if settled != 0 {
+      return settled
+    }
   }
   if record.origin is ComputePublicationPreflight(compute) &&
     compute.capacity is Some((ledger, reservation, _)) {
     compute.prepared = None
-    if @resources.settle_capacity(ledger, reservation) is Err(_) { return -4 }
+    if @resources.settle_capacity(ledger, reservation) is Err(_) {
+      return -4
+    }
     compute.capacity = None
   }
-  if record.origin is SavedEffectPublicationPreflight(effect) && effect.capacity is Some(capacity) {
-    if @resources.settle_capacity(value.root, capacity) is Err(_) { return -4 }
+  if record.origin is SavedEffectPublicationPreflight(effect) &&
+    effect.capacity is Some(capacity) {
+    if @resources.settle_capacity(value.root, capacity) is Err(_) {
+      return -4
+    }
     effect.capacity = None
   }
   let result = match record.borrow {
@@ -475,7 +558,8 @@ pub fn publication_preflight_result_count(
       @local_run.local_publication_preflight_count(preflight)
     FilePublicationPreflight({ prepared: Some(preflight), .. }) =>
       @local_run.local_captured_task_publication_preflight_count(preflight)
-    SavedEffectPublicationPreflight({ prepared: Some(preflight), .. }) => preflight.result_count()
+    SavedEffectPublicationPreflight({ prepared: Some(preflight), .. }) =>
+      preflight.result_count()
     _ => -2
   }
 }

@@ -102,38 +102,47 @@ fn select_paid_local_csv_source(
   selected : @local_host.ClientRequestWholeFileInput[@buffers.BufferSlot],
 ) -> Result[(@host.ClientProjectLocalCsvSource, @row_host.RowInputLimits), Int] {
   let acquisition = @local_host.client_request_whole_file_source(selected)
-  checker.prepare_csv_source(
-      acquisition,
-      account,
-      principal,
-      {
-        max_file_bytes: 16777216L,
-        max_page_bytes: 1048576,
-        max_files: 1000L,
-        max_page_rows: 256L,
-      },
-      demand => {
-        @local_host.reserve_request_whole_file_provider_selection(
-          parent, slot, selected, demand,
-        ).map_err(issue => {
-          match issue {
-            Preparation(cause) => mock_project_request_issue(cause)
-            _ => -20
-          }
-        })
-      },
-      issue => {
+  checker
+  .prepare_csv_source(
+    acquisition,
+    account,
+    principal,
+    {
+      max_file_bytes: 16777216L,
+      max_page_bytes: 1048576,
+      max_files: 1000L,
+      max_page_rows: 256L,
+    },
+    demand => {
+      @local_host.reserve_request_whole_file_provider_selection(
+        parent, slot, selected, demand,
+      ).map_err(issue => {
         match issue {
-          ForeignOriginal => -2
-          InvalidLimits => -4
-          SourceUnavailable | ReadDenied => -20
+          Preparation(cause) => mock_project_request_issue(cause)
+          _ => -20
         }
-      },
-    ).map(source => {
+      })
+    },
+    issue => {
+      match issue {
+        ForeignOriginal => -2
+        InvalidLimits => -4
+        SourceUnavailable | ReadDenied => -20
+      }
+    },
+  )
+  .map(source => {
     let bound = source.transport.max_rows.to_int()
-    (source, @local_host.installed_row_input_policy(
-      bound, source.max_page_bytes, 100000, 32, bound,
-    ))
+    (
+      source,
+      @local_host.installed_row_input_policy(
+        bound,
+        source.max_page_bytes,
+        100000,
+        32,
+        bound,
+      ),
+    )
   })
 }
 
@@ -172,8 +181,14 @@ fn prepare_retained_local_csv_file(
     Err(code) => return code
   }
   let (source, input_limits) = match
-    select_paid_local_csv_source(checker, account, configuration.tuple.principal,
-      parent, slot, selected) {
+    select_paid_local_csv_source(
+      checker,
+      account,
+      configuration.tuple.principal,
+      parent,
+      slot,
+      selected,
+    ) {
     Ok(original) => original
     Err(code) => return code
   }

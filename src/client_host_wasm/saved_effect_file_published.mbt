@@ -117,7 +117,9 @@ fn produce_saved_effect_file_published(
   }
   let index_cid = @publication.publication_contract_identity(index)
   let anchor = prepared.prepare_completion_anchor(index_cid)
-  if anchor.key != row.key { return -32 }
+  if anchor.key != row.key {
+    return -32
+  }
   let rows = [row, anchor]
   guard @publication.publication_index_storage_key(index, 1048576, 100000, 64)
     is Ok(index_key) &&
@@ -162,8 +164,14 @@ fn observe_saved_effect_file_published(
     ) {
     Ok(Some(index)) if index.revision == 0L &&
       index.body == @utf8.encode(published.index_cid) =>
-      observe_saved_file_journal_rows(current.physical, check, published.rows)
-        .map_err(code => if code == -32 { -53104 } else { code })
+      observe_saved_file_journal_rows(current.physical, check, published.rows).map_err(code => {
+          if code == -32 {
+            -53104
+          } else {
+            code
+          }
+        },
+      )
     Ok(None) => Err(-53102)
     Ok(Some(_)) => Err(-53103)
     Err(code) => Err(code)

@@ -107,18 +107,26 @@ fn inspect_sdk_unpublished_model_entry(
     @publication.model_scoped_private_holding_cid(
       retained.publication.run.definition,
       sdk.store_authority_cid,
-      scope, slot, attempt, 1, "entered", "model_raw_response",
-    ) is Some(raw) else {
+      scope,
+      slot,
+      attempt,
+      1,
+      "entered",
+      "model_raw_response",
+    )
+    is Some(raw) else {
     return Err(-35)
   }
-  let read = (table, key, extent) => sdk_run_journal_port(
-    value,
-    configuration,
-    1,
-    table,
-    key,
-    expected_body_length=Some(extent),
-  )
+  let read = (table, key, extent) => {
+    sdk_run_journal_port(
+      value,
+      configuration,
+      1,
+      table,
+      key,
+      expected_body_length=Some(extent),
+    )
+  }
   match read("client_model_call_originals", attempt, entry.entry_extent) {
     Ok(Some(row)) if row.key == attempt &&
       row.revision == 0L &&
@@ -126,9 +134,11 @@ fn inspect_sdk_unpublished_model_entry(
     Err(code) => return Err(code)
     _ => return Err(-35)
   }
-  for (table, key) in [
-    ("client_model_raw_responses", raw), ("client_model_call_settlements", attempt),
-  ] {
+  for
+    (table, key) in [
+      ("client_model_raw_responses", raw),
+      ("client_model_call_settlements", attempt),
+    ] {
     match read(table, key, 0) {
       Ok(None) => ()
       Err(code) => return Err(code)
@@ -149,11 +159,12 @@ fn sdk_unpublished_candidate_wire(
   let prepared = @local_run.local_run_prepared(plan)
   let execution_unknown = retained.model_entry is Some(_)
   if @host.prepared_client_acquisition_count(prepared) != 0 ||
-    @host.prepared_client_composed_infer_count(prepared) != Some(
-      if execution_unknown { 1 } else { 0 },
+    @host.prepared_client_composed_infer_count(prepared) !=
+    Some(if execution_unknown { 1 } else { 0 }) ||
+    (
+      execution_unknown &&
+      !(encoding.dispatch_reserved && encoding.physical_start_claimed)
     ) ||
-    (execution_unknown &&
-      !(encoding.dispatch_reserved && encoding.physical_start_claimed)) ||
     encoding.checkpoint is Some(_) ||
     encoding.effect_material_originals is Some(_) {
     return Err(-42)
@@ -266,7 +277,8 @@ fn sdk_unpublished_state_current(
   if code != 0 {
     return code
   }
-  match inspect_sdk_unpublished_model_entry(value, configuration, retained, plan) {
+  match
+    inspect_sdk_unpublished_model_entry(value, configuration, retained, plan) {
     Ok(_) => ()
     Err(code) => return code
   }
@@ -349,7 +361,8 @@ fn produce_sdk_unpublished_run_state(
   if committed {
     return -42
   }
-  match inspect_sdk_unpublished_model_entry(value, configuration, retained, plan) {
+  match
+    inspect_sdk_unpublished_model_entry(value, configuration, retained, plan) {
     Ok(_) => ()
     Err(code) => return code
   }

@@ -545,7 +545,12 @@ pub fn[I] prepare_request_model_capture_plan(
   max_delegations : Int,
   bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
-  guard request_model_module_invocation_matches(owner.phase, request, compiled, definition) &&
+  guard request_model_module_invocation_matches(
+      owner.phase,
+      request,
+      compiled,
+      definition,
+    ) &&
     owner.input is Some(same_input) &&
     physical_equal(same_input, input) &&
     owner.program_captured is Some(selected_module) &&
@@ -646,10 +651,17 @@ fn[P, C, I] fund_request_portable_model_run(
   plan : ClientInstalledManagedModelPlan,
   access : @resources.BackedExecutionLiveAccess[P, C, I],
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  let same_module = match (owner.program_captured, plan.captured,
-                          owner.program_source_free, plan.source_free) {
-    (Some(original), Some(selected), None, None) => physical_equal(original, selected)
-    (None, None, Some(original), Some(selected)) => physical_equal(original, selected)
+  let same_module = match
+    (
+      owner.program_captured,
+      plan.captured,
+      owner.program_source_free,
+      plan.source_free,
+    ) {
+    (Some(original), Some(selected), None, None) =>
+      physical_equal(original, selected)
+    (None, None, Some(original), Some(selected)) =>
+      physical_equal(original, selected)
     _ => false
   }
   guard (

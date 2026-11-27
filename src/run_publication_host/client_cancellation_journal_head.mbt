@@ -67,7 +67,13 @@ pub fn[E] observe_client_accepted_cancellation_head(
   custody_lost : E,
 ) -> Result[ClientCancellationJournalEncoding, E] {
   observe_client_accepted_cancellation_original(
-    head, namespace_id, run.request, run.definition, run.revision, read, custody_lost,
+    head,
+    namespace_id,
+    run.request,
+    run.definition,
+    run.revision,
+    read,
+    custody_lost,
   )
 }
 
@@ -95,8 +101,7 @@ fn[E] observe_client_accepted_cancellation_original(
     original.action == AcceptCancellation &&
     original.observed_revision == head.observed_revision &&
     original.observed_revision <= revision &&
-    client_request_identity_relation(original.request, request) ==
-    SameRequest &&
+    client_request_identity_relation(original.request, request) == SameRequest &&
     @publication.publication_contract_identity(original.definition) ==
     @publication.publication_contract_identity(definition) else {
     return Err(custody_lost)

@@ -775,7 +775,12 @@ fn check_original_breakpoint_profile(
     @publication_host.prepare_client_submitted_intent(
       "{\"kind\":\"program\",\"input\":{},\"parameters\":null," +
       "\"executionProfile\":\"debug\",\"breakpointSelection\":{\"logical_map_cid\":\"" +
-      map_cid + "\",\"before_step_ids\":[\"" + later + "\",\"" + first + "\"]}}",
+      map_cid +
+      "\",\"before_step_ids\":[\"" +
+      later +
+      "\",\"" +
+      first +
+      "\"]}}",
       4096,
       128,
       16,
@@ -873,8 +878,13 @@ fn check_original_breakpoint_profile(
       )
     ),
   )
-  let (selected, intent, resolved, admission, profile_wire) = issue_submitted(marked_original).unwrap()
-  let (expected_intent, expected_resolved, expected_admission) = issue(selection, Some(original_map)).unwrap()
+  let (selected, intent, resolved, admission, profile_wire) = issue_submitted(
+    marked_original,
+  ).unwrap()
+  let (expected_intent, expected_resolved, expected_admission) = issue(
+    selection,
+    Some(original_map),
+  ).unwrap()
   assert_eq(profile_wire, @publication.run_evidence_value_json(selection))
   assert_eq(intent, @publication.run_evidence_value_json(expected_intent))
   assert_eq(resolved, @publication.run_evidence_value_json(expected_resolved))
@@ -1266,10 +1276,11 @@ fn check_relation_sample_profile_on_collection(
         @resources.ledger_usage(ledger).planning_work - before_wire,
         codec_work + 13,
       )
-      let proof_bytes = [intent, resolved, admission, profile].fold(init=0L, (n, value) => {
+      let proof_bytes = [intent, resolved, admission, profile].fold(init=0L, (
+        n,
+        value,
         // These sealed fixture wires are ASCII.
-        n + @publication.run_evidence_value_json(value).length().to_int64()
-      })
+      ) => n + @publication.run_evidence_value_json(value).length().to_int64())
       let used = @resources.ledger_usage(ledger)
       let blocker = @resources.reserve_capacity(
         ledger,
@@ -1336,7 +1347,9 @@ fn check_relation_sample_profile_on_collection(
         100000, 64,
       )
       match valid_wire {
-        Ok((checked, intent_wire, resolved_wire, admission_wire, issued_profile)) => {
+        Ok(
+          (checked, intent_wire, resolved_wire, admission_wire, issued_profile)
+        ) => {
           assert_eq(issued_profile, selected_wire)
           // These are the original sealed inputs, ready for the start
           // Journal to retain without reconstructing any evidence.
@@ -1699,7 +1712,8 @@ fn check_collection_committed_relation_sample(
     let mut utf16 = hash.owned_utf16_units + 1024L
     let mut wire = hash.owned_wire_bytes
     // The four separate schema bounds all remain co-held at adoption.
-    for (extent, nodes) in [(992 + ns, 18), (600, 12), (791, 16), (629 + ns, 10)] {
+    for
+      (extent, nodes) in [(992 + ns, 18), (600, 12), (791, 16), (629 + ns, 10)] {
       let evidence = @publication.run_evidence_admission_construction_inventory(
         extent, nodes, 4,
       ).unwrap()
@@ -1727,7 +1741,8 @@ fn check_collection_committed_relation_sample(
       with_installed_relation_sample_adoption(owner, sample, () => true, (_, _) => {
         copied.val = true
         Ok(())
-      }) is Err(SampleAdoptionCapacity(ExecutionLimit)),
+      })
+      is Err(SampleAdoptionCapacity(ExecutionLimit)),
     )
     assert_false(copied.val)
     assert_eq(@resources.ledger_usage(ledger), blocked)
@@ -1738,8 +1753,10 @@ fn check_collection_committed_relation_sample(
     let nodes = 18 + 12 + 16 + 10
     let preparation = 257 + 2 * bytes + 2 * extent + 64 * nodes
     let retention = installed_relation_sample_retention_for_output(
-      owner, profile, port_id,
-    ).unwrap().unwrap()
+        owner, profile, port_id,
+      )
+      .unwrap()
+      .unwrap()
     let work = if retention.limits.required {
       preparation
     } else {

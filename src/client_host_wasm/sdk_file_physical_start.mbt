@@ -15,9 +15,12 @@ fn sdk_file_physical_claim(
   custody : StoredPhysicalStart,
 ) -> (Int, StoredSDKFileStart)? {
   guard custody.sdk_step is Some(handle) &&
-    value.materials.get(handle) is Some(material) && !material.closing &&
-    material.run == custody.run && material.kind == 8 &&
-    material.produced && material.file_start is Some(claim) else {
+    value.materials.get(handle) is Some(material) &&
+    !material.closing &&
+    material.run == custody.run &&
+    material.kind == 8 &&
+    material.produced &&
+    material.file_start is Some(claim) else {
     return None
   }
   Some((handle, claim))
@@ -31,11 +34,19 @@ fn check_sdk_file_physical_start(
   step : Int,
   claim : StoredSDKFileStart,
 ) -> Int {
-  guard custody.invoked && claim.observed is Some(_) &&
-    custody.file_managed is Some(managed) && !managed.closing else {
+  guard custody.invoked &&
+    claim.observed is Some(_) &&
+    custody.file_managed is Some(managed) &&
+    !managed.closing else {
     return -33
   }
-  observe_sdk_file_start(value, step, claim, true, live=Some((handle, custody, managed)))
+  observe_sdk_file_start(
+    value,
+    step,
+    claim,
+    true,
+    live=Some((handle, custody, managed)),
+  )
 }
 
 ///|
@@ -51,21 +62,28 @@ fn adopt_sdk_file_physical_start(
   }
   guard claim.observed is Some(_) else { return -35 }
   let observed = observe_sdk_file_start(value, step, claim, true)
-  if observed != 0 { return observed }
+  if observed != 0 {
+    return observed
+  }
   guard value.physical_starts.get(handle) is Some(active) &&
-    physical_equal(active, custody) && !custody.invoked &&
+    physical_equal(active, custody) &&
+    !custody.invoked &&
     value.runs.get(custody.run) is Some(run) &&
     custody.current_configuration == run.configuration &&
     value.run_configurations.get(run.configuration) is Some(configuration) &&
     value.preparations.get(run.preparation) is Some(preparation) &&
-    sdk_whole_file_rows_handle(value, custody.run, run.configuration) is Some(rows) &&
+    sdk_whole_file_rows_handle(value, custody.run, run.configuration)
+    is Some(rows) &&
     value.materials.get(claim.publication_material)
     is Some({ file_publication: Some(publication), .. }) &&
-    publication.rows_material == rows && publication.claim_material == Some(step) &&
-    sdk_whole_file_project_parent(value, preparation, configuration) is Some(parent) else {
+    publication.rows_material == rows &&
+    publication.claim_material == Some(step) &&
+    sdk_whole_file_project_parent(value, preparation, configuration)
+    is Some(parent) else {
     return -9
   }
-  let original = match sdk_whole_file_journal_material_original(value, rows, run.configuration) {
+  let original = match
+    sdk_whole_file_journal_material_original(value, rows, run.configuration) {
     Ok(value) => value
     Err(code) => return code
   }
@@ -80,7 +98,7 @@ fn adopt_sdk_file_physical_start(
     parent,
     transfer,
     closing: false,
-    source: { capture: None, csv_read: None },
+    source: { capture: None, csv_read: None, },
     capture_work: None,
   })
   custody.invoked = true
@@ -115,7 +133,8 @@ fn retire_sdk_file_physical_start(
     return -9
   }
   managed.closing = true
-  let owner = match @local_host.observe_request_capture_transfer(managed.transfer) {
+  let owner = match
+    @local_host.observe_request_capture_transfer(managed.transfer) {
     Err(_) => return -9
     Ok(Some(owner)) => owner
     Ok(None) => {
@@ -125,14 +144,22 @@ fn retire_sdk_file_physical_start(
       return 0
     }
   }
-  if @local_host.quiesce_installed_managed_run(owner) is Err(_) { return -9 }
+  if @local_host.quiesce_installed_managed_run(owner) is Err(_) {
+    return -9
+  }
   match @local_host.retire_installed_managed_run(owner) {
     Err(Resource(Unavailable)) => {
       let result = report_mock_project_child_stop(held)
-      if result != 0 { return result }
+      if result != 0 {
+        return result
+      }
       let result = retire_mock_project_access(held, preparation.slot)
-      if result != 0 { return result }
-      if @local_host.retire_installed_managed_run(owner) is Err(_) { return -9 }
+      if result != 0 {
+        return result
+      }
+      if @local_host.retire_installed_managed_run(owner) is Err(_) {
+        return -9
+      }
     }
     Err(_) => return -9
     Ok(_) => ()

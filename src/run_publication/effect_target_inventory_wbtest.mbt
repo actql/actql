@@ -48,7 +48,6 @@ fn derive_effect_target_row_inventory(
   order_effect_target_inventory(targets)
 }
 
-
 ///|
 test "target order retains original indexes and exact canonical data keys" {
   assert_eq(

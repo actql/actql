@@ -17,10 +17,17 @@ pub fn install_local_preflight_publisher_port(
 ] {
   let (request, attempt) = local_publication_preflight_contracts(preflight)
   install_original_local_publisher_port(
-    request, attempt, store_authority_cid, preflight.intent.plan.account_id,
-    preflight.intent.plan.tuple, original_account, current_account,
+    request,
+    attempt,
+    store_authority_cid,
+    preflight.intent.plan.account_id,
+    preflight.intent.plan.tuple,
+    original_account,
+    current_account,
     require_current_host,
-    current => validate_local_publication_preflight_current(preflight, current) is Ok(_),
+    current => {
+      validate_local_publication_preflight_current(preflight, current) is Ok(_)
+    },
     authorize,
   )
 }
@@ -37,7 +44,10 @@ fn install_original_local_publisher_port(
   require_current_host : () -> Bool,
   original_current : (@authorization.AdmittedAccountConfiguration) -> Bool,
   authorize : (@publication.PublicationPublisherAuthorization) -> Bool,
-) -> Result[@publication.PublicationPublisherPort, @publication.PublicationPublisherIssue] {
+) -> Result[
+  @publication.PublicationPublisherPort,
+  @publication.PublicationPublisherIssue,
+] {
   let context = match
     @publication.project_publication_request_context(request) {
     Ok(context) => context
@@ -85,13 +95,26 @@ pub fn[Store, E] install_local_captured_task_preflight_publisher_port(
   current_account : () -> @authorization.AdmittedAccountConfiguration,
   require_current_host : () -> Bool,
   authorize : (@publication.PublicationPublisherAuthorization) -> Bool,
-) -> Result[@publication.PublicationPublisherPort, @publication.PublicationPublisherIssue] {
+) -> Result[
+  @publication.PublicationPublisherPort,
+  @publication.PublicationPublisherIssue,
+] {
   let binding = preflight.observed.step.publication.step
-  let (request, attempt) = local_captured_task_publication_preflight_contracts(preflight)
+  let (request, attempt) = local_captured_task_publication_preflight_contracts(
+    preflight,
+  )
   install_original_local_publisher_port(
-    request, attempt, binding.store_authority_cid, binding.account_id, binding.tuple,
-    original_account, current_account, require_current_host,
-    current => current.configuration_cid() == original_account.configuration_cid(),
+    request,
+    attempt,
+    binding.store_authority_cid,
+    binding.account_id,
+    binding.tuple,
+    original_account,
+    current_account,
+    require_current_host,
+    current => {
+      current.configuration_cid() == original_account.configuration_cid()
+    },
     authorize,
   )
 }

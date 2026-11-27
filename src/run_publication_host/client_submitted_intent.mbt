@@ -160,7 +160,8 @@ pub fn client_submitted_intent_breakpoint_map_matches(
   let count = client_submitted_intent_entry_breakpoint_count(value)
   guard count > 0 && map_cid.length() == 71 else { return false }
   let start = submitted_breakpoint_array_prefix.length() +
-    74 * count - 1 +
+    74 * count -
+    1 +
     submitted_breakpoint_map_prefix.length()
   value.wire[start:start + 71] == map_cid[:]
 }
@@ -171,7 +172,8 @@ pub fn client_submitted_intent_breakpoint_step(
   value : ClientSubmittedIntent,
   index : Int,
 ) -> String? {
-  guard index >= 0 && index < client_submitted_intent_entry_breakpoint_count(value) else {
+  guard index >= 0 &&
+    index < client_submitted_intent_entry_breakpoint_count(value) else {
     return None
   }
   Some(submitted_breakpoint_step_view(value, index).to_owned())
@@ -399,7 +401,8 @@ fn prepare_client_submitted_intent_value(
     Some(@canonical.String("debug")) => true
     _ => return Err(InvalidEnvelope)
   }
-  let breakpoint_count = match @canonical.object_field(value, "breakpointSelection") {
+  let breakpoint_count = match
+    @canonical.object_field(value, "breakpointSelection") {
     None => 0
     Some(selection) if debug =>
       match submitted_entry_breakpoint_count(selection) {
@@ -463,9 +466,11 @@ fn prepare_client_submitted_intent_value(
 ///|
 fn submitted_entry_breakpoint_count(value : @canonical.CanonicalValue) -> Int? {
   guard @canonical.object_field_count(value) == Some(2) &&
-    @canonical.object_field(value, "logical_map_cid") is Some(@canonical.String(map)) &&
+    @canonical.object_field(value, "logical_map_cid")
+    is Some(@canonical.String(map)) &&
     local_run_policy_original_cid(map) &&
-    @canonical.object_field(value, "before_step_ids") is Some(@canonical.Array(steps)) else {
+    @canonical.object_field(value, "before_step_ids")
+    is Some(@canonical.Array(steps)) else {
     return None
   }
   let count = @canonical.array_count(steps)
@@ -473,7 +478,8 @@ fn submitted_entry_breakpoint_count(value : @canonical.CanonicalValue) -> Int? {
   let seen : Map[String, Unit] = Map([])
   for index in 0..<count {
     guard @canonical.array_at(steps, index) is Some(@canonical.String(step)) &&
-      local_run_policy_original_cid(step) && !seen.contains(step) else {
+      local_run_policy_original_cid(step) &&
+      !seen.contains(step) else {
       return None
     }
     seen[step] = ()

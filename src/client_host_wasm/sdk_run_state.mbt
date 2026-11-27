@@ -51,8 +51,7 @@ fn ordinary_sdk_run_state_snapshot(
       (plan, snapshot)
     })
   }
-  let (snapshot, _, _) = match
-    sdk_saved_original_snapshot(value, run, plan) {
+  let (snapshot, _, _) = match sdk_saved_original_snapshot(value, run, plan) {
     Err(code) => return Err(code)
     Ok(value) => value
   }
@@ -598,28 +597,36 @@ fn sdk_run_state_transport_packet(
 ) -> Bytes? {
   guard sdk_run_state_transport_extent(key, body, state) == Some(bytes) &&
     prior >= 0L &&
-    (revision == prior ||
-      (prior < 9223372036854775807L && revision == prior + 1L)) else {
+    (
+      revision == prior ||
+      (prior < 9223372036854775807L && revision == prior + 1L)
+    ) else {
     return None
   }
   let key_bytes = @utf8.encode(key)
   let state_bytes = @utf8.encode(state)
   let body_end = SDK_RUN_STATE_TRANSPORT_HEADER + body.length()
-  Some(Bytes::makei(bytes, index => {
-    if index < 8 {
-      (prior >> (index * 8)).to_byte()
-    } else if index < 12 {
-      (body.length() >> ((index - 8) * 8)).to_byte()
-    } else if index == 12 {
-      if revision == prior { b'\x00' } else { b'\x01' }
-    } else if index < SDK_RUN_STATE_TRANSPORT_HEADER {
-      key_bytes[index - 13]
-    } else if index < body_end {
-      body[index - SDK_RUN_STATE_TRANSPORT_HEADER]
-    } else {
-      state_bytes[index - body_end]
-    }
-  }))
+  Some(
+    Bytes::makei(bytes, index => {
+      if index < 8 {
+        (prior >> (index * 8)).to_byte()
+      } else if index < 12 {
+        (body.length() >> ((index - 8) * 8)).to_byte()
+      } else if index == 12 {
+        if revision == prior {
+          b'\x00'
+        } else {
+          b'\x01'
+        }
+      } else if index < SDK_RUN_STATE_TRANSPORT_HEADER {
+        key_bytes[index - 13]
+      } else if index < body_end {
+        body[index - SDK_RUN_STATE_TRANSPORT_HEADER]
+      } else {
+        state_bytes[index - body_end]
+      }
+    }),
+  )
 }
 
 ///|
@@ -634,7 +641,9 @@ fn emit_sdk_run_state_transport(
   )
   let state = @host.client_saved_run_state_update_candidate_wire(update)
   with_sdk_run_state_transport_capacity(value, output, bytes - body.length(), () => {
-    guard sdk_run_state_transport_packet(key, prior, revision, body, state, bytes)
+    guard sdk_run_state_transport_packet(
+        key, prior, revision, body, state, bytes,
+      )
       is Some(wire) else {
       return Err(-34)
     }

@@ -206,7 +206,8 @@ pub fn[I] check_request_owned_submitted_intent(
   // this retained intent. JSON/YAML Source documents use the same structured
   // compiler as Program input. A lowered Query keeps its own Source child.
   let structured_source = kind == "aql" &&
-    owner.source_input is None && owner.query_syntax is None
+    owner.source_input is None &&
+    owner.query_syntax is None
   if (kind == "program" || structured_source) &&
     owner.program_check is Some(child) &&
     child.effect_limits is Some(_) {

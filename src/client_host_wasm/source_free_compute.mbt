@@ -158,7 +158,9 @@ fn configure_source_free_compute(
     if physical.sdk_step is None {
       Err(@local_run.LocalComputeIssue::StartNotPermitted)
     } else {
-      configure_portable_model_compute(value, run, original, current, plan, start, handle, record, physical)
+      configure_portable_model_compute(
+        value, run, original, current, plan, start, handle, record, physical,
+      )
     }
   } else {
     @local_run.configure_source_free_local_compute_on_ledger(

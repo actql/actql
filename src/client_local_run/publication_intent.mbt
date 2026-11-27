@@ -66,9 +66,18 @@ pub fn prepare_local_publication_intent(
   limits : LocalPublicationIntentLimits,
 ) -> Result[LocalPublicationIntent, LocalPublicationIntentIssue] {
   prepare_local_publication_contracts(
-    plan.prepared, plan.request, plan.definition, namespace_id,
-    publication_policy_cid, publication_target_cid, requested_at, attempt_id,
-    fence_cid, external_idempotency_key, started_at, limits,
+    plan.prepared,
+    plan.request,
+    plan.definition,
+    namespace_id,
+    publication_policy_cid,
+    publication_target_cid,
+    requested_at,
+    attempt_id,
+    fence_cid,
+    external_idempotency_key,
+    started_at,
+    limits,
   ).map(contracts => {
     plan,
     inventory: contracts.inventory,
@@ -194,7 +203,8 @@ pub fn check_local_publication_preflight(
   }
   let host = invocation.host
   let run = local_compute_run(host)
-  if invocation.origin is (SourceFreeModel(_, _) | WholeSourceModel(_, _, _, _, _)) {
+  if invocation.origin
+    is (SourceFreeModel(_, _) | WholeSourceModel(_, _, _, _, _)) {
     // Model evidence follows Model computation. Before issuing a publishing
     // attempt, the same checked DAG has to own every completed task.
     let first = @strategy.captured_compute_first_task(run)
@@ -215,9 +225,18 @@ pub fn check_local_publication_preflight(
     @host.client_task_compilation_compiled_plan(plan.compilation),
   )
   if !local_publication_preflight_contracts_match(
-      plan.prepared, plan.request, plan.admission, plan.definition, invocation.invocation,
-      computation, local_run_invocation_source_cids(invocation), invocation.data_policy_cid,
-      intent.definitions, retentions, intent.request, intent.attempt,
+      plan.prepared,
+      plan.request,
+      plan.admission,
+      plan.definition,
+      invocation.invocation,
+      computation,
+      local_run_invocation_source_cids(invocation),
+      invocation.data_policy_cid,
+      intent.definitions,
+      retentions,
+      intent.request,
+      intent.attempt,
     ) {
     return Err(PreflightMismatch)
   }
