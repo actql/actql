@@ -58,3 +58,31 @@ test "original Result read requires the exact installed role and preserves named
     )
   }
 }
+
+///|
+test "installed File Result read uses its exact disjoint control connection" {
+  let (control, wire) = local_standard_file_account_configuration_prepared(
+    [("local", "small"), ("actql-local-control-0", "other")],
+    _ => true,
+  ).unwrap().unwrap()
+  assert_eq(control, "actql-local-control-1")
+  let account = admit_account_configuration_json(wire).unwrap()
+  let tuple : AccessTuple = {
+    principal: "local-cli",
+    connection: control,
+    resource: "result/main",
+    operation: "read",
+  }
+  assert_eq(local_result_read_authority_resource(account, tuple, true), Some("result"))
+  assert_eq(local_result_read_authority_resource(account, tuple, false), None)
+  for connection in ["local", "actql-local-control-0", "actql-local-control-2"] {
+    assert_eq(
+      local_result_read_authority_resource(account, { ..tuple, connection, }, true),
+      None,
+    )
+  }
+  assert_eq(
+    local_result_read_authority_resource({ ..account, bootstrap: None, }, tuple, true),
+    None,
+  )
+}

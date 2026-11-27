@@ -70,6 +70,7 @@ enum LocalComponentBinding {
   Unbound
   Synchronous
   WithHostIo
+  WithLocalOutputWorkspace(@relation.GeneratedSequence, Bool)
 }
 
 ///|
@@ -82,14 +83,15 @@ enum ResultArtifactSelection {
   WholeResult(
     Int,
     @publication_host.ClientWholeLocalResultArtifact,
-    @publication_host.ClientWholeLocalResultManifest
+    @publication_host.ClientWholeLocalResultManifest,
+    @publication_host.ClientInferWholeResultReaderOriginal?
   )
 }
 
 ///|
 fn result_artifact_selection_index(value : ResultArtifactSelection) -> Int {
   match value {
-    EffectResult(index, _, _) | WholeResult(index, _, _) => index
+    EffectResult(index, _, _) | WholeResult(index, _, _, _) => index
   }
 }
 
@@ -110,6 +112,7 @@ pub struct Execution {
   mut identity : @relation.CompletedRelationIdentityScan?
   mut identity_body : OriginalInferIdentityBody?
   mut call_scope : @publication_host.ClientInferCallScope?
+  priv mut whole_terminal : @publication_host.ClientWholeModelTerminalRecorder?
   result_artifacts : Array[ResultArtifactSelection]
   mut saved_call_scope : @publication_host.ClientInferSavedCallScope?
   mut model : @model.ModelExecution?
@@ -775,6 +778,7 @@ fn start_occurrence(
     identity: None,
     identity_body: None,
     call_scope: None,
+    whole_terminal: None,
     result_artifacts: [],
     saved_call_scope: None,
     model: None,
@@ -965,6 +969,7 @@ pub fn bind_whole_result_artifact_input(
   import_index : Int,
   artifact : @publication_host.ClientWholeLocalResultArtifact,
   manifest : @publication_host.ClientWholeLocalResultManifest,
+  reader? : @publication_host.ClientInferWholeResultReaderOriginal? = None,
 ) -> Result[Unit, Issue] {
   guard active.saved_call_scope is None &&
     active.composed_sources is Some(sources) &&
@@ -979,7 +984,7 @@ pub fn bind_whole_result_artifact_input(
   }
   bind_original_result_artifact_input(
     active,
-    WholeResult(import_index, artifact, manifest),
+    WholeResult(import_index, artifact, manifest, reader),
   )
 }
 
@@ -1054,13 +1059,23 @@ pub fn bind_compute_suffix(
 }
 
 ///|
+fn retire_whole_model_terminal(active : Execution) -> Unit {
+  if active.whole_terminal is Some(recorder) {
+    @publication_host.retire_original_whole_model_terminal(recorder)
+    active.whole_terminal = None
+  }
+}
+
+///|
 fn fail(active : Execution, issue : Issue) -> Poll {
+  retire_whole_model_terminal(active)
   active.phase = Terminal
   Failed(issue, work=active.work)
 }
 
 ///|
 fn stopped(active : Execution) -> Poll {
+  retire_whole_model_terminal(active)
   active.phase = Terminal
   active.completed = None
   Stopped(work=active.work)
@@ -1081,6 +1096,23 @@ fn begin_model(active : Execution) -> Poll {
           active.plan is Some(plan) &&
           active.call_scope is Some(scope) else {
           return fail(active, InvalidAdvance)
+        }
+        if active.local_component_binding is WithLocalOutputWorkspace(_, true) {
+          guard active.model_send_mask is None &&
+            @model.original_fresh_model_start_construction_capacity()
+            is Some(required) else {
+            return fail(active, InvalidAdvance)
+          }
+          // The original handoff below reserves these actual constructor
+          // bytes on the same Ledger before it can issue a Model startup.
+          if original.retained_bytes <
+            @relation.execution_capacity_retained_bytes(required) {
+            return fail(active, Model(@model.Ledger(@resources.RetentionLimit)))
+          }
+          if original.execution_bytes <
+            @relation.execution_capacity_execution_bytes(required) {
+            return fail(active, Model(@model.Ledger(@resources.ExecutionLimit)))
+          }
         }
         if original.read is Claimed(consumer) {
           let quoted = match
@@ -1227,6 +1259,8 @@ fn begin_model(active : Execution) -> Poll {
 
 ///|
 fn advance_child(active : Execution, quantum : Int) -> Poll {
+  let fund_original_identity = active.local_component_binding
+    is WithLocalOutputWorkspace(_, true)
   match active.phase {
     Input =>
       match @input.advance_client_infer_input(active.input, quantum) {
@@ -1254,7 +1288,14 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             }
             let limits = active.limits.identity
             if active.identity_body is Some(_) {
-              guard @relation.completed_relation_identity_body_start_construction_capacity()
+              guard (if fund_original_identity {
+                  @relation.completed_relation_identity_scan_start_construction_capacity(
+                    completed,
+                    retain_body=true,
+                  )
+                } else {
+                  @relation.completed_relation_identity_body_start_construction_capacity()
+                })
                 is Some(start) else {
                 return fail(active, InvalidAdvance)
               }
@@ -1308,15 +1349,19 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
           is Some(next) else {
           return fail(active, InvalidAdvance)
         }
-        guard @relation.completed_relation_identity_scan_body_next_construction_capacity(
-            identity,
-          )
-          is Some(body_demand) else {
+        guard (if fund_original_identity {
+            Some(next)
+          } else {
+            @relation.completed_relation_identity_scan_body_next_construction_capacity(
+              identity,
+            )
+          })
+          is Some(demand) else {
           return fail(active, InvalidAdvance)
         }
-        match grow_original_infer_identity_body_capacity(active, body_demand) {
-          // The original Read still funds its legacy scan envelope. The new
-          // extension above covers only body retention beside that envelope.
+        match grow_original_infer_identity_body_capacity(active, demand) {
+          // The phase-funded route pays the actual FULL transition on this
+          // Read. Other routes retain their existing prepaid scan envelope.
           Ok(_) => Some(next)
           Err(issue) => return fail(active, issue)
         }
@@ -1370,7 +1415,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               artifact,
               manifest,
             )
-          WholeResult(index, artifact, manifest) =>
+          WholeResult(index, artifact, manifest, reader) =>
             @input.client_infer_completed_whole_result_artifact_input(
               active.input,
               active.occurrence,
@@ -1378,6 +1423,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               index,
               artifact,
               manifest,
+              reader~,
             )
         }
         match input {
@@ -1405,9 +1451,20 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             result_inputs~,
           )
       }
-      active.call_scope = match scoped {
-        Ok(value) => Some(value)
+      let scope = match scoped {
+        Ok(value) => value
         Err(issue) => return fail(active, CallScope(issue))
+      }
+      active.call_scope = Some(scope)
+      if active.source is Physical(_) &&
+        active.original_preparation is Some(original) &&
+        original.shared_mock &&
+        active.saved_call_scope is None {
+        active.whole_terminal = match
+          @publication_host.claim_original_whole_model_terminal(scope) {
+          Ok(value) => value
+          Err(issue) => return fail(active, CallScope(issue))
+        }
       }
       begin_model(active)
     }
@@ -1462,6 +1519,10 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               active.limits.output_values,
               active.limits.output_work,
               active.limits.output_workspace,
+              working=match active.local_component_binding {
+                WithLocalOutputWorkspace(sequence, _) => Some(sequence)
+                _ => None
+              },
             ) {
             Ok(value) => Some(value)
             Err(issue) => return fail(active, Model(issue))
@@ -1592,6 +1653,34 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       }
       guard active.completed is Some(completed) else {
         return fail(active, InvalidAdvance)
+      }
+      if active.whole_terminal is Some(recorder) {
+        // The original Compute branch retained this child's real completion.
+        // The Model output preparation returns its already completed Outcome.
+        guard active.output is Some(preparation) &&
+          @model.complete_model_output(preparation) is Ok(outcome) &&
+          active.call_scope is Some(scope) &&
+          @publication_host.record_original_whole_model_terminal(
+            recorder,
+            outcome,
+            completed,
+            () => {
+              !active.cancelled &&
+              !active.reclaimed &&
+              active.phase is Handoff &&
+              (
+                active.call_scope is Some(current) &&
+                physical_equal(current, scope)
+              ) &&
+              active.completed is Some(current) &&
+              physical_equal(current, completed)
+            },
+          ) else {
+          if active.cancelled {
+            return stopped(active)
+          }
+          return fail(active, CallScope(@publication_host.ForeignInput))
+        }
       }
       active.phase = Terminal
       Complete(completed, work=active.work)
@@ -2030,6 +2119,7 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
         @model.release_model_slot_replay(read) |> ignore
       }
       active.rows = None
+      retire_whole_model_terminal(active)
       active.call_scope = None
       active.result_artifacts.clear()
       active.acquired_input = None
@@ -2041,6 +2131,9 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       // read owner retains this stopped ticket until its own physical cleanup
       // settles the read and severs both nominal back-references.
       active.original_preparation = None
+      if active.local_component_binding is WithLocalOutputWorkspace(_, _) {
+        active.local_component_binding = WithHostIo
+      }
       active.reclaimed = true
       Ok(true)
     }

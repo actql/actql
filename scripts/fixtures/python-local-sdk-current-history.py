@@ -519,7 +519,7 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
             if phase != 'prepare':
                 read_start = core.read_sdk_start_step
                 select_task = core.reserve_next_sdk_task
-                drive_task = core.drive_task
+                drive_task_step = core.drive_task_step
 
                 def original_claim(*args, **kwargs):
                     wire = read_start(*args, **kwargs)
@@ -537,12 +537,12 @@ async def population(raw, digest, scratch, history, fault=None, persisted=False,
                     return trace.call('select', lambda: select_task(*args, **kwargs))
 
                 def drive(task, quantum):
-                    return trace.drive(drive_task, task, quantum,
+                    return trace.drive(drive_task_step, task, quantum,
                                        production_quantum=production_quantum)
 
                 with patch.object(core, 'read_sdk_start_step', original_claim), \
                         patch.object(core, 'reserve_next_sdk_task', select), \
-                        patch.object(core, 'drive_task', drive), \
+                        patch.object(core, 'drive_task_step', drive), \
                         prefix.bind(host, core) if prefix is not None else nullcontext():
                     trace.enabled = True
                     execution = await client.start_source(

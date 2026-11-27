@@ -27,11 +27,19 @@ test "platform VM demand grows only its original claim and preserves sibling/inp
     close_platform_vm_working_capacity_after_cleanup(work)
     is Err(Resource(InvalidCharge)),
   )
+  guard work.original is Some(retained) else {
+    fail("working owner retired early")
+  }
+  assert_true(physical_equal(retained, work))
   assert_true(
     grow_platform_vm_working_capacity(work, 2L, 4L) is Err(Unavailable),
   )
   return_shared_capacity(borrow).unwrap()
   close_platform_vm_working_capacity_after_cleanup(work).unwrap()
+  assert_true(work.original is None)
+  assert_true(
+    close_platform_vm_working_capacity_after_cleanup(work) is Err(Unavailable),
+  )
   assert_eq(shared_capacity_usage(capacity).allocated, 2L)
   assert_eq(ledger_usage(root).reserved_execution_bytes, 8L)
   retire_shared_capacity(input).unwrap()

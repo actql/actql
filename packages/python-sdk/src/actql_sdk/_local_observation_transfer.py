@@ -1,8 +1,15 @@
 """Bounded original Store bytes transported into existing Core input custody."""
 from collections.abc import Callable
+from dataclasses import dataclass as _dataclass
 
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_core import _Input, _Output, _Workspace
+from ._local_storage import _TASK_POINT_READ_WORKSPACE
+
+
+@_dataclass(frozen=True, slots=True, eq=False)
+class _ObservationSource:
+    payload: bytes
 
 
 class OriginalObservationTransfer:
@@ -22,17 +29,17 @@ class OriginalObservationTransfer:
 
     A failure retains the same workspace/input. Discard retained row/encoding
     references and failure tracebacks after physical cleanup, then explicitly
-    close. Raw rows that survive a Store callback retain individual unsealed
-    Core inputs before callback return; only nominal handles escape. The closed
-    observation envelope is separately sealed for Core admission. The original
-    Core borrower must return its loan first; close does not
+    close. Raw rows that survive a Store callback stay in this reserved Host
+    workspace. The closed observation envelope is sealed for Core admission.
+    The original Core borrower must return its loan first; close does not
     retire another borrow, close parents, cancel a Run or replay a Store operation.
     """
 
     def __init__(self, projection: OriginalCommitProjection, publisher: _Output, *,
                  max_source_bytes: int, max_packet_bytes: int,
                  cleanup: Callable[[], bool], stopped: Callable[[int], bool],
-                 workspace_cleanup: Callable[[], bool], workspace_stopped: Callable[[], bool]) -> None:
+                 workspace_cleanup: Callable[[], bool], workspace_stopped: Callable[[], bool],
+                 retain_task_points: bool = False) -> None:
         if (type(projection) is not OriginalCommitProjection
                 or not callable(cleanup) or not callable(stopped)
                 or not callable(workspace_cleanup) or not callable(workspace_stopped)
@@ -50,14 +57,17 @@ class OriginalObservationTransfer:
         self._packet_limit = max_packet_bytes
         # No growing buffer or decoded Unicode strings. A fixed byte buffer and
         # its immutable bytes copy coexist with the bounded original raw rows.
+        self._retain_task_points = retain_task_points
         self._workspace_bytes = max_source_bytes + 2 * max_packet_bytes + 4096
+        if retain_task_points:
+            self._workspace_bytes += _TASK_POINT_READ_WORKSPACE
         self._cleanup = cleanup
         self._stopped = stopped
         self._workspace_cleanup = workspace_cleanup
         self._workspace_stopped = workspace_stopped
         self._workspace: _Workspace | None = None
         self._input: _Input | None = None
-        self._sources: list[_Input] = []
+        self._sources: list[_ObservationSource] = []
         self._source_bytes = 0
         self._uncertain_ticket: int | None = None
         self._active = False
@@ -111,19 +121,18 @@ class OriginalObservationTransfer:
                 raise
 
     @property
-    def pending_sources(self) -> tuple[_Input, ...]:
-        """Original raw-row cleanup handles, not contract or publisher authority."""
+    def pending_sources(self) -> tuple[_ObservationSource, ...]:
+        """Original retained rows, with no contract or publisher authority."""
         with self._projection._core._lock:
             self._nominal()
             return tuple(self._sources)
 
-    def retain_source(self, raw: bytes) -> _Input:
+    def retain_source(self, raw: bytes) -> _ObservationSource:
         """Retain one actual raw Store row before its synchronous consumer returns.
 
         The same workspace was reserved before the row was physically copied.
-        Core separately charges each retained raw input/Wasm copy. At most three
-        original rows fit this packet, including empty/corrupt rows; retention
-        grants no semantic validity or publication permission.
+        At most three original rows fit this packet, including empty or corrupt
+        rows. Only their complete envelope crosses the Core input boundary.
         """
         core = self._projection._core
         with core._lock:
@@ -133,36 +142,21 @@ class OriginalObservationTransfer:
             if (type(raw) is not bytes or len(self._sources) >= 3
                     or self._source_bytes + len(raw) > self._source_limit):
                 raise ValueError('Original Store row retention exceeds its bound')
-            self._active = True
-            try:
-                source = self._reserve_input(raw)
-                self._sources.append(source)
-                self._source_bytes += len(raw)
-                for start in range(0, len(raw), 16_384):
-                    core.fill_input(source, start, min(16_384, len(raw) - start))
-                # A physical CID reference is not a JSON document. This loan
-                # retains exact row bytes, not an admitted source node. Only
-                # the complete closed lookup/observation envelope is sealed.
-                return source
-            except BaseException:
-                self._failed = True
-                raise
-            finally:
-                self._active = False
+            source = _ObservationSource(raw)
+            self._sources.append(source)
+            self._source_bytes += len(raw)
+            return source
 
-    def _source(self, source: _Input) -> bytes:
-        core = self._projection._core
-        core._owned_input(source)
+    def _source(self, source: _ObservationSource) -> bytes:
         if not any(source is original for original in self._sources):
             raise ValueError('Foreign original Store row transfer loan')
-        return core._inputs[source.ticket].payload
+        return source.payload
 
-    def consume_source(self, source: _Input, consume: Callable[[bytes], object]) -> None:
-        """Borrow retained raw bytes synchronously into another accounted input.
+    def consume_source(self, source: _ObservationSource, consume: Callable[[bytes], object]) -> None:
+        """Borrow one retained raw row synchronously under its workspace.
 
-        The consumer must return None and retain bytes only in its original Core
-        input, not an unaccounted list or traceback. Failure keeps this exact raw
-        input/workspace. No row is fetched again, parsed or normalized here.
+        The consumer returns None and transfers custody only to the other
+        accounted workspace. Failure keeps this exact row and workspace.
         """
         if not callable(consume):
             raise ValueError('Invalid original Store row consumer')
@@ -179,15 +173,27 @@ class OriginalObservationTransfer:
             finally:
                 self._active = False
 
-    def transfer_lookup_inputs(self, reference: _Input, index: _Input) -> None:
+    def transfer_lookup_inputs(self, reference: _ObservationSource, index: _ObservationSource) -> None:
         with self._projection._core._lock:
             self._ready()
             self.transfer_lookup(self._source(reference), self._source(index))
 
-    def transfer_stored_inputs(self, request: _Input, attempt: _Input, index: _Input) -> None:
+    def transfer_stored_inputs(self, request: _ObservationSource, attempt: _ObservationSource,
+                               index: _ObservationSource) -> None:
         with self._projection._core._lock:
             self._ready()
             self.transfer_stored(self._source(request), self._source(attempt), self._source(index))
+
+    def transfer_exact_stored_inputs(self, request: _ObservationSource, attempt: _ObservationSource) -> None:
+        with self._projection._core._lock:
+            self._ready()
+            body_request, body_attempt = self._source(request), self._source(attempt)
+            def packet() -> bytes:
+                size = len(body_request) + len(body_attempt)
+                if size > self._source_limit or 4 + size > self._packet_limit:
+                    raise ValueError('Original exact Store observation exceeds its bound')
+                return len(body_request).to_bytes(4, 'little') + body_request + body_attempt
+            self._transfer(packet, lookup=False, exact=True)
 
     def _reserve_input(self, packet: bytes) -> _Input:
         core = self._projection._core
@@ -201,22 +207,24 @@ class OriginalObservationTransfer:
 
     def transfer_lookup(self, reference: bytes, index: bytes) -> None:
         """Forward the physically read index reference/body, not a candidate."""
-        self._transfer(((b'identity', reference), (b'index', index)), lookup=True)
+        self._transfer(lambda: self._packet(((b'identity', reference), (b'index', index))),
+                       lookup=True)
 
     def transfer_stored(self, request: bytes, attempt: bytes, index: bytes) -> None:
-        """Forward actual stored contracts; Core decides full-chain validity."""
-        self._transfer(((b'kind', b'stored'), (b'request', request),
-                        (b'attempt', attempt), (b'index', index)), lookup=False)
+        """Forward the original observed Index and its dependent rows."""
+        self._transfer(lambda: self._packet(((b'kind', b'stored'), (b'request', request),
+                                             (b'attempt', attempt), (b'index', index))),
+                       lookup=False)
 
     def transfer_not_found(self) -> None:
         """Transport confirmed original scoped-key absence, never replay permission."""
-        self._transfer(((b'kind', b'not_found'),), lookup=False)
+        self._transfer(lambda: self._packet(((b'kind', b'not_found'),)), lookup=False)
 
     def transfer_query_failure(self) -> None:
         """Transport a failed original query; durable Unknown remains separate."""
-        self._transfer(((b'kind', b'query_failed'),), lookup=False)
+        self._transfer(lambda: self._packet(((b'kind', b'query_failed'),)), lookup=False)
 
-    def _transfer(self, fields: tuple[tuple[bytes, bytes], ...], *, lookup: bool) -> None:
+    def _transfer(self, build: Callable[[], bytes], *, lookup: bool, exact: bool = False) -> None:
         core = self._projection._core
         with core._lock:
             self._ready()
@@ -224,11 +232,12 @@ class OriginalObservationTransfer:
                 raise RuntimeError('Original Store observation requires its reserved workspace')
             self._active = True
             try:
-                packet = self._packet(fields)
+                packet = build()
                 self._input = self._reserve_input(packet)
                 for start in range(0, len(packet), 16_384):
                     core.fill_input(self._input, start, min(16_384, len(packet) - start))
-                core.seal_input(self._input)
+                if not exact:
+                    core.seal_input(self._input)
                 if lookup:
                     core.prepare_publication_lookup(
                         self._projection._publication, self._input,
@@ -236,7 +245,7 @@ class OriginalObservationTransfer:
                 else:
                     core.prepare_publication_observation(
                         self._projection._publication, self._input,
-                        self._publisher, self._projection._configuration)
+                        self._publisher, self._projection._configuration, exact=exact)
             except BaseException:
                 self._failed = True
                 raise
@@ -281,6 +290,20 @@ class OriginalObservationTransfer:
         assert position == size
         return bytes(buffer)
 
+    def retire_staging_workspace(self) -> bool:
+        """Return raw-row staging after the independently funded input exists."""
+        core = self._projection._core
+        with core._lock:
+            self._ready()
+            if self._input is None:
+                raise ValueError('Original Store observation input is unavailable')
+            self._sources.clear()
+            if self._workspace is not None:
+                if not core.close_workspace(self._workspace):
+                    return False
+                self._workspace = None
+            return True
+
     def close(self) -> bool:
         """Return only this same physical input/workspace after original borrow cleanup."""
         core = self._projection._core
@@ -300,13 +323,7 @@ class OriginalObservationTransfer:
                 elif not core.close_input(self._input):
                     return False
                 self._input = None
-            for source in tuple(reversed(self._sources)):
-                if core._retired:
-                    if source.ticket in core._inputs:
-                        return False
-                elif not core.close_input(source):
-                    return False
-                self._sources.remove(source)
+            self._sources.clear()
             if self._workspace is not None:
                 if core._retired:
                     if self._workspace.ticket in core._inputs:
@@ -315,17 +332,3 @@ class OriginalObservationTransfer:
                     return False
                 self._workspace = None
             return True
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(OriginalObservationTransfer, (
-        '_nominal', '_packet', '_ready',
-        '_reserve_input', '_source', '_transfer',
-        'consume_source', 'pending_input', 'pending_sources',
-        'pending_workspace', 'retain_source', 'transfer_lookup',
-        'transfer_lookup_inputs', 'transfer_not_found', 'transfer_query_failure',
-        'transfer_stored', 'transfer_stored_inputs',
-    )),
-)

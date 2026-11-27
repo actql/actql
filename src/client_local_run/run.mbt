@@ -323,6 +323,44 @@ fn prepare_local_run_profile(
 }
 
 ///|
+/// Bind the already issued Portable Model compilation on its original
+/// Request. The caller holds that Request for this Plan and its Store rows.
+pub fn[I] bind_original_portable_model_local_run(
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+  request : @host.ClientRequestIdentity,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  context_cid : String,
+) -> Result[(LocalRunPlan, @input.LocalSubmittedPreparation), LocalRunIssue] {
+  guard @local.request_portable_model_run_original(owner, input, request)
+    is Ok((submitted, compilation, compiled, definition, _)) else {
+    return Err(UnsupportedCapability)
+  }
+  let input = @input.local_submitted_preparation_input(submitted)
+  let prepared = @input.local_prepared_program(input)
+  if !authorized_input(prepared, permit, current, tuple, context_cid) {
+    return Err(AuthorizationMismatch)
+  }
+  guard @host.client_request_input_cid(request) ==
+    @host.client_submitted_intent_cid(@input.local_submitted_preparation_intent(submitted)) &&
+    @host.validate_client_run_binding(request, prepared, compiled, definition)
+    is Ok(_) else {
+    return Err(UnsupportedCapability)
+  }
+  let plan : LocalRunPlan = {
+    input, prepared, request, compilation, compiled,
+    admission: @host.client_compiled_run_admission(compiled),
+    definition,
+    account_id: current.account_id(),
+    tuple,
+    execution_context_cid: context_cid,
+  }
+  Ok((plan, submitted))
+}
+
+///|
 pub fn local_run_request(plan : LocalRunPlan) -> @host.ClientRequestIdentity {
   plan.request
 }
@@ -402,6 +440,31 @@ pub fn capture_local_run_task_materials_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  capture_local_run_task_materials_wire(plan, wire)
+}
+
+///|
+pub fn[I] capture_local_portable_run_task_materials_original(
+  plan : LocalRunPlan,
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+) -> Result[LocalRunTaskMaterialsOriginal, LocalRunIssue] {
+  guard @local.request_portable_model_run_original(owner, input, plan.request)
+    is Ok((submitted, compilation, compiled, definition, wire)) &&
+    physical_equal(plan.input, @input.local_submitted_preparation_input(submitted)) &&
+    physical_equal(plan.compilation, compilation) &&
+    physical_equal(plan.compiled, compiled) &&
+    physical_equal(plan.definition, definition) else {
+    return Err(UnsupportedCapability)
+  }
+  capture_local_run_task_materials_wire(plan, wire)
+}
+
+///|
+fn capture_local_run_task_materials_wire(
+  plan : LocalRunPlan,
+  wire : String,
+) -> Result[LocalRunTaskMaterialsOriginal, LocalRunIssue] {
   @host.capture_client_task_materials_original(
     plan,
     @host.client_request_scope_cid(plan.request),

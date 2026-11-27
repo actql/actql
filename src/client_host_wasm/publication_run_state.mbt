@@ -32,7 +32,7 @@ pub fn produce_publication_observed_run_state(
     Err(code) => return code
   }
   guard value.publication_preflights.get(parent.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) &&
+    is Some({ closing: false, origin: ComputePublicationPreflight({ prepared: Some(preflight), .. }), .. }) &&
     parent.observation_checked &&
     !parent.observation_failed &&
     parent.observation_index is Some(index) &&

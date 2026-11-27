@@ -128,24 +128,41 @@ pub fn prepare_local_sdk_read_originals_for_source(
     Ok(value) => value
     Err(issue) => return Err(Projection(issue))
   }
+  // A Saved source in accepted-Run mode already restored the exact admitted
+  // policy closure. The finite envelope bounds custody and time; the actual
+  // Result policy is selected by that original closure and committed view.
+  let accepted_retention = match source.origin {
+    Saved(saved) => saved.accepted_retention
+    Live(_) => None
+  }
+  let retention_matches = match accepted_retention {
+    Some(retention) =>
+      @publication.result_retention_bounds_equal(materials.retention, retention)
+    None =>
+      @publication.publication_contract_identity(materials.retention) ==
+      @publication.publication_contract_identity(
+        @host.client_local_run_policy_original_retention(original),
+      )
+  }
   if index.run_definition_cid !=
     @publication.publication_contract_identity(source.definition()) ||
     index.authority_scope_cid !=
     @host.client_request_authority_scope_cid(source.request()) ||
     index.publication_request_cid != source.publication_request_cid() ||
-    @publication.publication_contract_identity(materials.retention) !=
-    @publication.publication_contract_identity(
-      @host.client_local_run_policy_original_retention(original),
-    ) {
+    !retention_matches {
     return Err(InvalidOriginal)
   }
   guard source.source_policy() is Some(policy) &&
     @publication.captured_effect_dependency_body_cid(policy) ==
     materials.read.effective_data_policy_cid &&
-    @publication.local_sdk_result_read_selection_data_policy_cid(selection) ==
-    materials.read.effective_data_policy_cid else {
-    // The initial supplier is explicitly Source-free. Other profiles must
-    // resolve their real retained Policy bodies through their existing Owners.
+    (if accepted_retention is Some(_) {
+      @publication.local_sdk_result_read_selection_uses_accepted_run_policy(
+        selection,
+      )
+    } else {
+      @publication.local_sdk_result_read_selection_data_policy_cid(selection) ==
+      materials.read.effective_data_policy_cid
+    }) else {
     return Err(PolicyUnavailable)
   }
   match

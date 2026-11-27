@@ -237,10 +237,12 @@ class FiniteRunSQLiteTests(unittest.TestCase):
         candidate = {'run_key': RUN_KEY, 'submission_key': append_fixture.REQUEST,
             'preparing': append_fixture.PREPARING.decode(), 'run': RUN_BODY.decode(),
             'submitted': READY.decode(), 'issued_revision': '0', 'issued_body': '1',
+            'preparing_revision': '0',
             'reference_locator': {'key': '6' * 64, 'body': '{"opaque":"same original locator DATA"}'}}
         validations = []
         statuses = {}
         output_handle = []
+        emitted = {}
 
         def call(family, name, *args):
             if family == 'material':
@@ -264,14 +266,16 @@ class FiniteRunSQLiteTests(unittest.TestCase):
                         raise failure
                     return failure if failure is not None else 0
                 if name == 'length':
-                    return len(json.dumps(candidate, ensure_ascii=False).encode())
+                    wire = json.dumps(candidate, ensure_ascii=False).encode()
+                    emitted[args[0]] = wire
+                    return len(wire)
                 if name == 'produce':
                     self.assertIsNotNone(core._journal_callbacks(host._configuration.current.ticket).reader)
                     return 0
                 if name in ('close', 'retire_output'):
                     return core._cleanup(args[0] - 100)
             if family == 'buffer' and name == 'byte' and args[0] in output_handle:
-                return json.dumps(candidate, ensure_ascii=False).encode()[args[1]]
+                return emitted[args[0]][args[1]]
             return original(family, name, *args)
         core._call = original_byte_fixture_port(call)
         output = core.reserve_submitted_run_rows(7, host._configuration.handle, source, cleanup=lambda: True)

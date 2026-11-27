@@ -3,6 +3,7 @@ pub(all) enum EffectSourceArtifactIssue {
   EffectSourceWrongContract
   EffectSourceInvalidBinding
   EffectSourceInvalidMeasurement
+  EffectSourceCapacity
   EffectSourceEncoding
   EffectSourceContract(PublicationContractIssue)
 } derive(Eq, Debug)
@@ -23,6 +24,7 @@ pub fn issue_effect_source_artifact(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((@encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[PublicationContract, EffectSourceArtifactIssue] {
   issue_effect_relation_source_artifact(
     invocation,
@@ -36,6 +38,7 @@ pub fn issue_effect_source_artifact(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    before_body~,
   )
 }
 
@@ -84,6 +87,7 @@ fn issue_effect_relation_source_artifact(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((@encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[PublicationContract, EffectSourceArtifactIssue] {
   if invocation.name != "run_invocation" ||
     retention.name != "result_retention_policy" {
@@ -111,50 +115,247 @@ fn issue_effect_relation_source_artifact(
   if row_count < 0 {
     return Err(EffectSourceInvalidMeasurement)
   }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(EffectSourceEncoding)
+  let fields : Array[(String, EffectSourceArtifactField)] = [
+    ("actual_completeness", Text("complete")),
+    ("actual_row_count", Count(row_count)),
+    ("effective_data_policy_cid", Text(data_policy_cid)),
+    ("effective_retention_policy_cid", Text(retention.identity)),
+    ("invocation_cid", Text(invocation.identity)),
+    ("logical_result_cid", Text(logical_result_cid)),
+    ("provenance_evidence_cids", EmptyArray),
+    ("result_schema_cid", Text(result_schema_cid)),
+    ("source_binding_cid", Text(source_binding_cid)),
+    (source_field, Text(source_name)),
+    ("store_authority_cid", Text(store_authority_cid)),
+    ("version", Text("actql-effect-source-artifact/0.1")),
+  ]
+  let measured = if before_body is Some(fund) {
+    let writer = @encode.construction_measuring_writer(
+      max_wire_bytes, max_nodes, max_depth,
+    ) catch {
+      _ => return Err(EffectSourceEncoding)
+    }
+    let geometry = try {
+      measure_effect_source_artifact_fields(fields, writer)
+      @encode.finish_construction_measurement(writer)
+    } catch {
+      _ => return Err(EffectSourceEncoding)
+    }
+    // The original sealer adds this one fixed contract CID after hashing.
+    guard publication_contract_identity_field_for_name("effect_source_artifact")
+      is Some(key) &&
+      geometry.bytes.to_int64() + key.length().to_int64() + 77L <=
+      max_wire_bytes.to_int64() &&
+      geometry.nodes < max_nodes else {
+      return Err(EffectSourceEncoding)
+    }
+    let complete = {
+      ..geometry,
+      bytes: geometry.bytes + key.length() + 77,
+      nodes: geometry.nodes + 1,
+      fields: geometry.fields + 1,
+      largest_object: geometry.largest_object + 1,
+      strings: geometry.strings + 2,
+      text_units: geometry.text_units + key.length() + 71,
+    }
+    if !fund(complete) {
+      return Err(EffectSourceCapacity)
+    }
+    Some((complete.bytes, complete.nodes, complete.depth))
+  } else {
+    None
   }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "actual_completeness")
-    @encode.string_value(writer, "complete")
-    @encode.key(writer, "actual_row_count")
-    @encode.number_value(writer, row_count.to_double())
-    @encode.key(writer, "effective_data_policy_cid")
-    @encode.string_value(writer, data_policy_cid)
-    @encode.key(writer, "effective_retention_policy_cid")
-    @encode.string_value(writer, retention.identity)
-    @encode.key(writer, "invocation_cid")
-    @encode.string_value(writer, invocation.identity)
-    @encode.key(writer, "logical_result_cid")
-    @encode.string_value(writer, logical_result_cid)
-    @encode.key(writer, "provenance_evidence_cids")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "result_schema_cid")
-    @encode.string_value(writer, result_schema_cid)
-    @encode.key(writer, "source_binding_cid")
-    @encode.string_value(writer, source_binding_cid)
-    @encode.key(writer, source_field)
-    @encode.string_value(writer, source_name)
-    @encode.key(writer, "store_authority_cid")
-    @encode.string_value(writer, store_authority_cid)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-effect-source-artifact/0.1")
-    @encode.end_object(writer)
-  } catch {
-    _ => return Err(EffectSourceEncoding)
+  guard contract_spec("effect_source_artifact") is Some(spec) && max_nodes > 1 else {
+    return Err(EffectSourceEncoding)
   }
-  let body = @encode.finish(writer) catch {
+  let body = build_effect_source_artifact_material(
+    fields,
+    max_wire_bytes,
+    max_nodes - 1,
+    max_depth,
+  ) catch {
     _ => return Err(EffectSourceEncoding)
   }
   match
-    seal_publication_contract(
-      "effect_source_artifact", body, max_wire_bytes, max_nodes, max_depth,
+    seal_publication_material(
+      spec,
+      body,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      [],
     ) {
-    Ok(artifact) => Ok(artifact)
+    Ok(artifact) if measured is None ||
+      publication_contract_wire_usage(artifact) == measured => Ok(artifact)
+    Ok(_) => Err(EffectSourceEncoding)
     Err(issue) => Err(EffectSourceContract(issue))
   }
+}
+
+///|
+priv enum EffectSourceArtifactField {
+  Text(String)
+  Count(Int)
+  EmptyArray
+}
+
+///|
+// Borrow the same ordered fields for measurement and canonical construction.
+fn measure_effect_source_artifact_fields(
+  fields : Array[(String, EffectSourceArtifactField)],
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_ordered_object(writer)
+  for (key, value) in fields {
+    @encode.ordered_key(writer, key)
+    match value {
+      Text(text) => @encode.string_value(writer, text)
+      Count(count) => @encode.number_value(writer, count.to_double())
+      EmptyArray => {
+        @encode.begin_array(writer)
+        @encode.end_array(writer)
+      }
+    }
+  }
+  @encode.end_object(writer)
+}
+
+///|
+fn build_effect_source_artifact_material(
+  fields : Array[(String, EffectSourceArtifactField)],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @json.CanonicalValue raise {
+  let material = @json.start_material(max_bytes, max_nodes, max_depth)
+  defer @json.cancel_material(material)
+  @json.material_begin_object(material)
+  for (key, value) in fields {
+    @json.material_key(material, key)
+    while !@json.advance_material(material) {
+
+    }
+    match value {
+      Text(text) => {
+        @json.material_text(material, text)
+        while !@json.advance_material(material) {
+
+        }
+      }
+      Count(count) => {
+        let number = @json.from_json(Json::number(count.to_double()), 1, 0, 0)
+        @json.material_value(material, number)
+        while !@json.advance_material(material) {
+
+        }
+      }
+      EmptyArray => {
+        @json.material_begin_array(material)
+        @json.material_end_array(material)
+      }
+    }
+  }
+  @json.material_end_object(material)
+  @json.finish_material(material).0
+}
+
+///|
+/// Source Artifact issuance starts from its checked closed fields and seals
+/// ordered canonical material. There is no intermediate text, source parser
+/// or conversion tree. Store admission independently accounts its reader.
+pub fn effect_source_artifact_construction_inventory(
+  geometry : @encode.EncodingConstructionGeometry,
+) -> (
+  EffectPreviewIdentityConstructionInventory,
+  EffectPreviewIdentityConstructionInventory,
+)? {
+  guard geometry.bytes > 0 &&
+    geometry.nodes == 14 &&
+    geometry.fields == 13 &&
+    geometry.objects == 1 &&
+    geometry.arrays == 1 &&
+    geometry.depth == 2 &&
+    publication_returned_contract_inventory(
+      geometry.bytes,
+      geometry.nodes,
+      geometry.depth,
+      geometry=Some(geometry),
+    )
+    is Some(retained) &&
+    publication_borrowed_contract_inventory(
+      geometry.bytes,
+      geometry.nodes,
+      geometry.depth,
+    )
+    is Some((validation, seal)) &&
+    effectful_publication_measurement_construction_inventory(2) is Some(measure) &&
+    @shape.collection_construction_extent({
+      // Preimage object and self-CID insertion keep the old and new ordered
+      // field backings, while all existing key/value strings stay borrowed.
+      // Count one Material owner, two active frame variants, and its scalar
+      // Number admission stack, pending key/value and measurement carriers.
+      records: 8L + 8L * geometry.nodes.to_int64(),
+      record_references: 10L + 10L * geometry.nodes.to_int64(),
+      record_words: 12L + 8L * geometry.nodes.to_int64(),
+      reference_arrays: 5L,
+      reference_items: 2L * geometry.fields.to_int64() + 6L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(material) &&
+    publication_inventory_add(validation, seal) is Some(working) &&
+    publication_inventory_add(working, {
+      record_headers: measure.record_headers + material.record_headers,
+      reference_slots: measure.reference_slots + material.reference_slots,
+      scalar_words: measure.scalar_words + material.scalar_words,
+      owned_utf16_units: measure.owned_utf16_units,
+      owned_wire_bytes: measure.owned_wire_bytes,
+    })
+    is Some(workspace) else {
+    return None
+  }
+  // All field text points into the retained invocation, retention, captured
+  // result or constant keys. Only the complete wire and its new CID escape.
+  Some(
+    (
+      { ..retained, owned_utf16_units: geometry.bytes.to_int64() + 71L, },
+      workspace,
+    ),
+  )
+}
+
+///|
+/// Initial scratch for the closed Source Artifact and one original Result
+/// name. Its fixed object/empty array and scalar emitter precede body funding.
+pub fn effect_source_artifact_measurement_inventory(
+  source_name_units : Int,
+) -> EffectPreviewIdentityConstructionInventory? {
+  guard @canonical.nfc_lf_construction_extent(source_name_units) is Some(name) &&
+    effectful_publication_measurement_construction_inventory(2)
+    is Some(measurement) &&
+    @encode.text_writer_live_key_inventory(0, 0, 2) is Some(writer) else {
+    return None
+  }
+  Some({
+    record_headers: name.record_headers +
+    measurement.record_headers +
+    writer.record_headers +
+    52L,
+    reference_slots: name.reference_slots +
+    measurement.reference_slots +
+    writer.reference_slots +
+    80L,
+    scalar_words: name.scalar_words +
+    measurement.scalar_words +
+    writer.scalar_words +
+    80L,
+    owned_utf16_units: name.owned_utf16_units +
+    measurement.owned_utf16_units +
+    writer.owned_utf16_units,
+    owned_wire_bytes: measurement.owned_wire_bytes,
+  })
 }
 
 ///|

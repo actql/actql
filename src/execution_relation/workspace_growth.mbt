@@ -8,6 +8,7 @@ priv struct WorkspaceGrowth {
   live_ceiling : Int64
   reserve : (Int64) -> Result[Unit, WorkspaceGrowthIssue]
   reserve_retained : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])?
+  output_workspace : @resources.StartedTaskWorkspace?
   mut slots : Int
   mut logical : Int64
   mut text : Int64
@@ -171,9 +172,14 @@ pub fn bind_generated_workspace_growth(
   reserve : (Int64) -> Result[Unit, WorkspaceGrowthIssue],
   meter_retained_outputs? : Bool = false,
   reserve_retained? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
+  prepaid_operation_slots? : Int? = None,
+  output_workspace? : @resources.StartedTaskWorkspace? = None,
 ) -> Result[GeneratedSequence, SequenceRunIssue] {
-  let initial_slots = limits.rows.operation_entries
+  let initial_slots = prepaid_operation_slots.unwrap_or(
+    limits.rows.operation_entries,
+  )
   if initial_slots < 0 ||
+    initial_slots > limits.rows.operation_entries ||
     live_ceiling < 0L ||
     generated.working is Some(_) ||
     (reserve_retained is Some(_) && !meter_retained_outputs) {
@@ -210,6 +216,7 @@ pub fn bind_generated_workspace_growth(
       live_ceiling,
       reserve,
       reserve_retained,
+      output_workspace,
       slots: 0,
       logical: 0L,
       text: 0L,
@@ -228,6 +235,81 @@ pub fn bind_generated_workspace_growth(
       failed: false,
     }),
   })
+}
+
+///|
+/// Project a checked component segment onto the current task sequence. The
+/// selected task supplies its own narrowed limits, numeric ports, and
+/// workspace attachment. The previously checked segment supplies only its
+/// original contained coordinates and output selection.
+pub fn borrow_generated_component_workspace(
+  current : GeneratedSequence,
+  segment : GeneratedSequence,
+  prepaid_model_prefix? : Bool = false,
+) -> GeneratedSequence? {
+  let owner = generated_sequence_owner(current)
+  let count = generated_sequence_step_count(segment)
+  guard current.working is Some(_) &&
+    segment.working is None &&
+    physical_equal(owner, generated_sequence_owner(segment)) &&
+    physical_equal(current.contracts, segment.contracts) &&
+    physical_equal(current.query_time, segment.query_time) &&
+    count > 0 else {
+    return None
+  }
+  let prefix_end = if segment.selected_steps is None &&
+    segment.selected_prefix_end is None {
+    // The compiler can lower the Model input only to its last Relation
+    // step. It then needs no GeneratedSequence selector of its own. Bind
+    // that form only at the adjacent checked Infer boundary of this Task.
+    guard @lower.sequence_step(current.sequence, count)
+      is Some(@lower.InferBoundary(boundary)) &&
+      boundary == count &&
+      @lower.node_at(@lower.bound_preparation(owner), count - 1)
+      is Some(terminal) &&
+      segment.retained_ids.length() == 1 &&
+      segment.retained_ids[0] == @lower.node_id(terminal) else {
+      return None
+    }
+    Some(count - 1)
+  } else {
+    segment.selected_prefix_end
+  }
+  // The separately quoted literal Model prefix paid its complete output
+  // retention and working peak at Task entry. Keep the metered attachment on
+  // the whole Task for Model output. Seeing a prefix alone grants no backing.
+  if prepaid_model_prefix {
+    guard segment.selected_steps is None &&
+      prefix_end == Some(count - 1) &&
+      @lower.sequence_step(current.sequence, count)
+      is Some(@lower.InferBoundary(boundary)) &&
+      boundary == count else {
+      return None
+    }
+  }
+  // Both selectors expose the original step coordinates in increasing
+  // order. Match them without re-generating or renumbering the sequence.
+  let mut selected = 0
+  for index in 0..<generated_sequence_step_count(current) {
+    if generated_sequence_step_index_at(current, index) ==
+      generated_sequence_step_index_at(segment, selected) {
+      selected += 1
+      if selected == count {
+        return Some({
+          ..current,
+          selected_steps: segment.selected_steps,
+          selected_prefix_end: prefix_end,
+          retained_ids: segment.retained_ids,
+          working: if prepaid_model_prefix {
+            None
+          } else {
+            current.working
+          },
+        })
+      }
+    }
+  }
+  None
 }
 
 ///|

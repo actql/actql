@@ -79,16 +79,40 @@ fn[I] complete_request_capture_preparation(
 }
 
 ///|
+/// Original cleanup ownership for a transferred captured Plan. A pending
+/// holder cannot adopt a second Run after an interrupted transition.
+struct ClientRequestCaptureTransfer[I] {
+  parent : ClientRequestPreparation[I]
+  mut attempted : Bool
+  mut run : ClientInstalledManagedRun?
+}
+
+///|
+pub fn[I] retain_request_capture_transfer(
+  parent : ClientRequestPreparation[I],
+) -> Result[ClientRequestCaptureTransfer[I], ClientInstalledManagedRunIssue] {
+  guard parent.phase == ProgramBodyReady else { return Err(ForeignOriginal) }
+  Ok({ parent, attempted: false, run: None, })
+}
+
+///|
 pub fn[I] begin_request_capture_managed_run(
   owner : ClientRequestPreparation[I],
   request : @publication_host.ClientRequestIdentity,
+  transfer? : ClientRequestCaptureTransfer[I]? = None,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  guard owner.phase == ProgramBodyReady &&
+  guard !owner.debug_plan_read &&
+    owner.phase == ProgramBodyReady &&
     owner.input is Some(input) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
     owner.program_captured is Some(plan) else {
     return Err(ForeignOriginal)
+  }
+  if transfer is Some(original) {
+    guard physical_equal(original.parent, owner) && !original.attempted &&
+      original.run is None else { return Err(ForeignOriginal) }
+    original.attempted = true
   }
   owner.phase = Selecting
   let result = begin_preparation_owned_installed_capture_run_original(
@@ -105,26 +129,56 @@ pub fn[I] begin_request_capture_managed_run(
       Err(issue)
     }
     Ok(run) => {
-      owner.program_capacity = None
-      owner.program_normalization = None
-      owner.program_authoring = None
-      owner.compiled_program = None
-      owner.program_data = None
-      owner.program_plan_quote = None
-      owner.program_captured = None
-      owner.program_model_direct = None
-      owner.native_parameters = None
-      owner.native_query_declarations = None
-      owner.native_parameters_ready = false
-      owner.held_program = None
-      clear_request_source_input(owner)
-      owner.submitted_intent = None
-      owner.intent_base = None
-      owner.intent_peak_live = false
-      owner.input = None
-      owner.query_syntax = None
-      owner.phase = Selected
+      // Publish custody BEFORE clearing any original parent aliases. If the
+      // caller was interrupted after adoption, only this owner can retire it.
+      if transfer is Some(original) { original.run = Some(run) }
+      clear_transferred_request_capture(owner)
       Ok(run)
     }
+  }
+}
+
+///|
+fn[I] clear_transferred_request_capture(owner : ClientRequestPreparation[I]) -> Unit {
+  owner.program_capacity = None
+  owner.program_normalization = None
+  owner.program_authoring = None
+  owner.compiled_program = None
+  owner.program_data = None
+  owner.program_plan_quote = None
+  owner.program_captured = None
+  owner.program_model_direct = None
+  owner.native_parameters = None
+  owner.native_query_declarations = None
+  owner.native_parameters_ready = false
+  owner.held_program = None
+  clear_request_source_input(owner)
+  owner.submitted_intent = None
+  owner.intent_base = None
+  owner.intent_peak_live = false
+  owner.input = None
+  owner.query_syntax = None
+  owner.phase = Selected
+}
+
+///|
+/// Resolve cleanup custody on the original parent. An interrupted lower
+/// adoption without an observed owner remains pending; it is never replayed.
+pub fn[I] observe_request_capture_transfer(
+  transfer : ClientRequestCaptureTransfer[I],
+) -> Result[ClientInstalledManagedRun?, ClientInstalledManagedRunIssue] {
+  let parent = transfer.parent
+  match transfer.run {
+    Some(run) => {
+      if parent.phase == Selecting { clear_transferred_request_capture(parent) }
+      guard parent.phase == Selected else { return Err(ForeignOriginal) }
+      Ok(Some(run))
+    }
+    None =>
+      if parent.phase == ProgramBodyReady {
+        Ok(None)
+      } else {
+        Err(CleanupPending)
+      }
   }
 }

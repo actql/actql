@@ -1,6 +1,8 @@
 ///|
 test "ordinary Whole Local Unit issues its complete Manifest from the actual managed export" {
-  let prepared = client_composed_whole_sibling_test_program()
+  let prepared = client_composed_whole_sibling_test_program(
+    project_second_model=true,
+  )
   let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
   let plans = occurrences.map(occurrence => {
     issue_prepared_client_composed_infer_plan_graph(
@@ -445,6 +447,57 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
   let selected_source = @strategy.captured_completed_unit_result_input_original(
     handoff,
   ).unwrap()
+  let (_, current_read) = @strategy.retain_captured_completed_unit_result_input(
+    handoff, first_edge, 10000, 20000,
+  ).unwrap()
+  let reader_original = prepare_client_infer_whole_result_reader(
+    occurrences[0],
+    0,
+    artifact,
+    manifest,
+    current_read,
+  ).unwrap()
+  assert_true(client_infer_whole_result_reader_retained(reader_original))
+  assert_true(
+    client_infer_whole_result_reader_matches(
+      occurrences[0],
+      0,
+      artifact,
+      manifest,
+      current_read,
+    ),
+  )
+  assert_false(
+    client_infer_whole_result_reader_matches(
+      occurrences[1],
+      0,
+      artifact,
+      manifest,
+      current_read,
+    ),
+  )
+  assert_false(
+    client_infer_whole_result_reader_matches(
+      occurrences[0],
+      0,
+      { ..artifact, },
+      manifest,
+      current_read,
+    ),
+  )
+  let rebound = @execution.rebind_producer_representation(
+    current_read, selected_source,
+  ).unwrap()
+  assert_true(@execution.producer_read_same_binding(current_read, rebound))
+  assert_false(
+    client_infer_whole_result_reader_matches(
+      occurrences[0],
+      0,
+      artifact,
+      manifest,
+      rebound,
+    ),
+  )
   let different_borrow = @execution.restrict_completed_output(selected_source, () => {
     true
   })
@@ -463,7 +516,10 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
       fragment_body=fragment,
       ordered_body=ordered,
     ).unwrap()
-    for exact in [true, false] {
+    for (staged, exact) in [(true, true), (false, true), (false, false)] {
+      if index != 0 && staged {
+        continue
+      }
       let bound = @execution.bind_completed_input(
         occurrence.preparation,
         0,
@@ -474,12 +530,16 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
           different_borrow
         },
       ).unwrap()
-      let read = @execution.prepare_producer_read(
-        occurrence.preparation,
-        bound,
-        10000,
-        20000,
-      ).unwrap()
+      let read = if staged {
+        current_read
+      } else {
+        @execution.prepare_producer_read(
+          occurrence.preparation,
+          bound,
+          10000,
+          20000,
+        ).unwrap()
+      }
       let child = @local_query_time.start_client_composed_infer_input(
         occurrence,
         prefix,
@@ -500,9 +560,13 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
           },
         },
       ).unwrap()
+      let mut prepared_rows = None
       for _ in 0..<1000 {
         match @local_query_time.advance_client_infer_input(child, 32).unwrap() {
-          @local_query_time.Complete(_, ..) => break
+          @local_query_time.Complete(rows, ..) => {
+            prepared_rows = Some(rows)
+            break
+          }
           @local_query_time.Continue(..) => ()
           _ => fail("original Whole Model prefix")
         }
@@ -515,7 +579,15 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
         0,
         artifact,
         manifest,
+        reader=if index == 0 { Some(reader_original) } else { None },
       )
+      if index == 0 && exact && !staged {
+        assert_true(selected is Err(ForeignInput))
+        assert_true(
+          @local_query_time.cleanup_client_infer_input(child).unwrap(),
+        )
+        continue
+      }
       if exact {
         let original = selected.unwrap()
         assert_eq(
@@ -575,6 +647,43 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
           sources=Some(selected_sources),
           result_inputs=[original],
         ).unwrap()
+        assert_eq(
+          client_infer_call_scope_matches_whole_result_reader(
+            call_scope, reader_original,
+          ),
+          staged,
+        )
+        if staged {
+          call_scope.result_inputs[0] = { ..original, }
+          assert_false(client_infer_result_input_inventory_current(call_scope))
+          assert_false(
+            client_infer_call_scope_matches_whole_result_reader(
+              call_scope, reader_original,
+            ),
+          )
+          call_scope.result_inputs[0] = original
+        }
+        let suffix = @local_query_time.prepare_client_composed_infer_suffix(
+          prepared,
+          occurrence,
+          contracts,
+          compiler_registered_values_wire(),
+          fragment_body=fragment,
+          ordered_body=ordered,
+        )
+        assert_eq(suffix is Some(_), index == 1)
+        whole_model_recorded_outcome_control(
+          compiled,
+          definition,
+          call_scope,
+          prepared_rows.unwrap(),
+          sequences[occurrence.task],
+          input,
+          suffix,
+          model_receipt,
+          execution,
+          wire,
+        )
         assert_eq(call_scope.sources.length(), 2)
         for source_index in 0..<2 {
           assert_true(
@@ -584,6 +693,159 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
             ),
           )
         }
+        let program = @strategy.graph_program(prepared.graph)
+        let observes = issue_original_scope_result_import_observations(
+          program,
+          call_scope,
+          WholeScope(run, request, definition),
+          65536,
+          8192,
+          64,
+          before_body=Some((label, geometry) => {
+            label == "result_import_observation" && geometry.bytes > 0
+          }),
+        ).unwrap()
+        assert_eq(observes.length(), 1)
+        assert_true(physical_equal(observes[0].input, original))
+        let derived = client_whole_model_import_relations(
+          observes,
+          65536,
+          8192,
+          64,
+          (label, shape) => label == "acquisition_relation" && shape.bytes > 0,
+        ).unwrap()
+        assert_eq(derived.length(), 1)
+        assert_true(physical_equal(derived[0].0, artifact.scope.unwrap()))
+        let relation = @publication.publication_contract_json(derived[0].1)
+        assert_true(relation.contains("\"kind\":\"derivation\""))
+        assert_true(relation.contains("\"actual_row_count\":1"))
+        assert_true(
+          relation.contains(
+            "\"effective_data_policy_cid\":\"" + producer_policy.cid + "\"",
+          ),
+        )
+        assert_true(
+          relation.contains(
+            "\"effective_retention_policy_cid\":\"" +
+            @publication.publication_contract_identity(artifact.retention) +
+            "\"",
+          ),
+        )
+        let copied = {
+          ..original,
+          original: Whole({ ..artifact, }, manifest, None),
+        }
+        assert_true(
+          client_whole_model_import_relations(
+            [{ ..observes[0], input: copied, }],
+            65536,
+            8192,
+            64,
+            (_, _) => false,
+          )
+          is Err(Invocation(ForeignResultImport)),
+        )
+        fn modeled_policy(unit : Int) raise {
+          let declared = @checked.unit_publication_at(program, unit, 0).unwrap()
+          let selected = @context.publication_row_limit_result(
+            @checked.publication_selection(declared),
+          )
+          @checked.prepare_local_result_source_policy(
+            program,
+            unit,
+            selected.port,
+            100000,
+            65536,
+            8192,
+            64,
+          ).unwrap()
+        }
+        let policy = modeled_policy(occurrence.stage)
+        assert_eq(
+          client_whole_local_model_result_policy(
+            call_scope, selected_sources, observes, policy, program,
+          ).unwrap(),
+          (policy.cid, true),
+        )
+        assert_true(
+          client_whole_local_model_result_policy(
+            call_scope,
+            selected_sources,
+            [],
+            policy,
+            program,
+          )
+          is Err(ForeignDefinition),
+        )
+        assert_true(
+          client_whole_local_model_result_policy(
+            call_scope,
+            selected_sources,
+            observes,
+            modeled_policy(occurrences[1 - index].stage),
+            program,
+          )
+          is Err(ForeignDefinition),
+        )
+        let preimage = "{\"consumer_unit_definition_cid\":\"" +
+          call_scope.unit_definition_cid +
+          "\",\"import_interface_cid\":\"" +
+          original.interface.cid +
+          "\",\"input_name\":\"rows\",\"producer_local_manifest_cid\":\"" +
+          manifest.cid +
+          "\",\"result_artifact_cid\":\"" +
+          client_whole_local_result_artifact_cid(artifact) +
+          "\",\"version\":\"actql-result-import-observation/0.1\"}"
+        assert_eq(observes[0].cid, "sha256:" + @sha.text_hex(preimage).unwrap())
+        assert_eq(
+          observes[0].wire,
+          preimage.replace(
+            old=",\"version\":",
+            new=",\"self_cid\":\"" + observes[0].cid + "\",\"version\":",
+          ),
+        )
+        let funding = Ref(0)
+        let equal_foreign = prepare_client_request_identity(
+          prepared,
+          "sha256:" + "a".repeat(64),
+          "whole-unit",
+          "sha256:" + "b".repeat(64),
+        ).unwrap()
+        assert_eq(equal_foreign, request)
+        assert_true(
+          issue_original_scope_result_import_observations(
+            program,
+            call_scope,
+            WholeScope(run, equal_foreign, definition),
+            65536,
+            8192,
+            64,
+            before_body=Some((_, _) => {
+              funding.val += 1
+              true
+            }),
+          )
+          is Err(ForeignResultImport),
+        )
+        assert_eq(funding.val, 0)
+        assert_true(
+          issue_original_scope_result_import_observations(
+            program,
+            call_scope,
+            WholeScope(run, request, definition),
+            65536,
+            8192,
+            64,
+            before_body=Some((_, _) => {
+              funding.val += 1
+              call_scope.result_inputs.clear()
+              true
+            }),
+          )
+          is Err(ForeignResultImport),
+        )
+        assert_eq(funding.val, 1)
+        call_scope.result_inputs.push(original)
         let snapshot = client_infer_call_scope_snapshot(call_scope).unwrap()
         let saved = read_client_infer_saved_call_scope(
           compiled,
@@ -637,6 +899,7 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
   }
   @execution.cancel_completed_relation_export_receipt(receipt)
   assert_false(client_whole_local_result_manifest_matches(manifest, artifact))
+  assert_false(client_infer_whole_result_reader_retained(reader_original))
   assert_true(@strategy.release_captured_completed_unit_results(results))
   @execution.close_managed_publication_bridge(bridge)
   producer_available.val = false
@@ -653,4 +916,373 @@ test "ordinary Whole Local Unit issues its complete Manifest from the actual man
   assert_eq(settled_usage.held_bytes, 0L)
   assert_eq(settled_usage.reserved_execution_bytes, 0L)
   assert_eq(settled_usage.reserved_retention_bytes, 0L)
+}
+
+///|
+// The fixture uses real nominal typed completions at the checked Model port
+// with explicitly admitted empty rows. It exercises the lower Read/Outcome
+// handoff and receipt controls without invoking a provider.
+fn whole_model_recorded_outcome_control(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  scope : ClientInferCallScope,
+  rows : @execution.PreparedInferRows,
+  sequence : @execution.GeneratedSequence,
+  input : @execution.CompletedOutput,
+  suffix : @execution.GeneratedSequence?,
+  input_receipt : @execution.CompletedRelationExportReceipt,
+  execution : @execution.SequenceExecutionLimits,
+  wire : @execution.RowWireLimits,
+) -> Unit raise {
+  let values = execution.rows.input_values
+  let plan = scope.plan
+  let occurrence = plan.occurrence
+  let target = @pipeline.Step(occurrence.step)
+  let step = @execution.select_generated_sequence_step(
+    sequence,
+    occurrence.step,
+  ).unwrap()
+  fn prepare_materialization() raise {
+    let admitted = @execution.prepare_admitted_output(
+      occurrence.preparation,
+      target,
+      10,
+      values,
+    ).unwrap()
+    let materialization = @execution.start_admitted_output_preparation(
+      admitted,
+      0,
+      10000,
+      10000,
+      (_, _) => None,
+    ).unwrap()
+    assert_true(
+      @execution.advance_admitted_output_preparation(materialization, 1000).unwrap()
+      is @execution.AdmittedOutputComplete(_, ..),
+    )
+    materialization
+  }
+  let materialization = prepare_materialization()
+  let other_materialization = prepare_materialization()
+  let live = Ref(true)
+  let completion = @execution.generated_completion_preparation(step)
+  let (independent, foreign_issuer) = @execution.prepare_infer_outcome_handoff(
+    rows,
+  )
+  let foreign_port = @execution.prepare_bound_infer_outcome_port(
+    foreign_issuer,
+    completion,
+    rows,
+    other_materialization,
+    () => live.val,
+  ).unwrap()
+  let foreign = @execution.complete_bound_infer_outcome_port(
+    foreign_port, independent,
+  ).unwrap()
+  assert_true(scope.custody is PendingWholeOutcome)
+  let terminal = claim_original_whole_model_terminal(scope).unwrap().unwrap()
+  assert_eq(
+    terminal.step,
+    if suffix is Some(_) {
+      occurrence.step + 1
+    } else {
+      occurrence.step
+    },
+  )
+  assert_true(claim_original_whole_model_terminal(scope) is Err(ForeignInput))
+  assert_false(
+    record_original_whole_model_terminal(terminal, foreign, foreign, () => true),
+  )
+  assert_false(client_whole_model_outcome_matches(scope, input_receipt))
+  let (read_scope, _, consumer) = client_resource_park_test_scope(
+    compiled, definition, plan,
+  )
+  enter_client_model_read_consumer(consumer, compiled, definition, plan, 7L, 5L).unwrap()
+  let (ledger, capacity, original) = handoff_original_provider_input_capacity(
+    consumer, compiled, definition, plan, scope, rows, 7L, 5L,
+  ).unwrap()
+  let (owner, issuer) = original.unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  assert_true(
+    handoff_original_provider_input_capacity(
+      consumer, compiled, definition, plan, scope, rows, 7L, 5L,
+    )
+    is Err(ForeignInput),
+  )
+  assert_eq(@resources.ledger_usage(ledger), usage)
+  assert_true(scope.custody is ArmedWholeOutcome)
+  assert_true(
+    complete_original_whole_model_outcome(owner, foreign_port) is None,
+  )
+  assert_true(scope.custody is ArmedWholeOutcome)
+  assert_eq(@resources.ledger_usage(ledger), usage)
+  let selected : Ref[@execution.InferOutcomePort?] = Ref(None)
+  let reentered : Ref[Bool?] = Ref(None)
+  let port = @execution.prepare_bound_infer_outcome_port(
+    issuer,
+    completion,
+    rows,
+    materialization,
+    () => {
+      if reentered.val is None && selected.val is Some(port) {
+        reentered.val = Some(false)
+        reentered.val = Some(
+          complete_original_whole_model_outcome(owner, port) is None,
+        )
+      }
+      live.val
+    },
+  ).unwrap()
+  assert_true(
+    @execution.prepare_bound_infer_outcome_port(
+      issuer,
+      completion,
+      rows,
+      other_materialization,
+      () => live.val,
+    )
+    is Err(@execution.ForeignOutput),
+  )
+  selected.val = Some(port)
+  let output = complete_original_whole_model_outcome(owner, port).unwrap()
+  assert_true(reentered.val == Some(true))
+  selected.val = None
+  assert_true(complete_original_whole_model_outcome(owner, port) is None)
+  fn export_original(value) {
+    let scan = @execution.start_completed_relation_identity_scan(
+      value,
+      10,
+      values,
+      wire,
+      wire,
+      { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+      1000000,
+      100000,
+      incremental_metadata=true,
+    ).unwrap()
+    while !@execution.advance_completed_relation_identity_scan(scan, 32).unwrap().0 {
+      ()
+    }
+    @execution.finish_completed_relation_identity_scan(scan).unwrap()
+  }
+  let receipt = export_original(output)
+  let different_receipt = export_original(foreign)
+  assert_false(client_whole_model_terminal_matches(scope, receipt))
+  assert_false(client_whole_model_terminal_output_matches(scope, output))
+  let completed = match suffix {
+    Some(sequence) => {
+      let child = @local_query_time.start_client_infer_suffix(
+        sequence,
+        [output, input],
+        execution,
+        { max_work: 100000, max_bytes: 20000, max_nodes: 10000, max_depth: 20, },
+      ).unwrap()
+      Some((child, finish_whole_model_fixture_suffix(child)))
+    }
+    None => None
+  }
+  let terminal_output = completed.map(pair => pair.1).unwrap_or(output)
+  let terminal_receipt = if completed is Some(_) {
+    let exported = export_original(terminal_output)
+    assert_not_eq(
+      @execution.relation_schema_cid(
+        @execution.completed_relation_export_schema_identity(receipt),
+      ),
+      @execution.relation_schema_cid(
+        @execution.completed_relation_export_schema_identity(exported),
+      ),
+    )
+    exported
+  } else {
+    receipt
+  }
+  // Equal rows and the same checked target cannot select the direct terminal.
+  // In the suffix case, the Outcome itself cannot stand in for its result.
+  let wrong_terminal = if completed is Some(_) { output } else { foreign }
+  assert_false(
+    record_original_whole_model_terminal(terminal, output, wrong_terminal, () => {
+      true
+    }),
+  )
+  assert_false(
+    record_original_whole_model_terminal(terminal, foreign, terminal_output, () => {
+      true
+    }),
+  )
+  assert_false(
+    record_original_whole_model_terminal(terminal, output, terminal_output, () => {
+      false
+    }),
+  )
+  let original_import = scope.result_inputs[0]
+  assert_false(
+    record_original_whole_model_terminal(terminal, output, terminal_output, () => {
+      scope.result_inputs[0] = { ..original_import, }
+      true
+    }),
+  )
+  scope.result_inputs[0] = original_import
+  let entered = Ref(false)
+  assert_true(
+    record_original_whole_model_terminal(terminal, output, terminal_output, () => {
+      entered.val = true
+      !record_original_whole_model_terminal(terminal, output, terminal_output, () => {
+        true
+      })
+    }),
+  )
+  assert_true(entered.val)
+  assert_true(client_whole_model_terminal_matches(scope, terminal_receipt))
+  assert_true(
+    client_whole_model_terminal_output_matches(scope, terminal_output),
+  )
+  assert_false(
+    client_whole_model_terminal_output_matches(scope, wrong_terminal),
+  )
+  assert_eq(
+    client_whole_model_terminal_matches(scope, receipt),
+    completed is None,
+  )
+  assert_false(client_whole_model_terminal_matches(scope, different_receipt))
+  assert_false(
+    record_original_whole_model_terminal(terminal, output, terminal_output, () => {
+      true
+    }),
+  )
+  let result_port = @strategy.graph_result_occurrence(
+    scope.owner.graph,
+    if completed is Some(_) {
+      1
+    } else {
+      0
+    },
+  ).unwrap()
+  let view = @execution.prepare_completed_result_relation_export(
+    terminal_output,
+    result_port,
+    {
+      max_fields: 10,
+      max_mapping_work: 100,
+      max_order_work: 100,
+      max_workspace_entries: 100,
+    },
+    10,
+    values,
+    wire,
+    wire,
+    { max_fields: 10, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+    256,
+  ).unwrap()
+  while @execution.next_completed_output_export(view).unwrap() is Some(_) {
+    ()
+  }
+  let (result_receipt, _) = @execution.finish_completed_relation_export(view).unwrap()
+  assert_true(
+    @execution.completed_relation_export_matches_output(
+      result_receipt, terminal_output,
+    ),
+  )
+  assert_false(client_whole_model_outcome_matches(scope, result_receipt))
+  let logical = @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+  let schema = @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+  assert_eq(
+    @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(different_receipt),
+    ),
+    logical,
+  )
+  let (input_logical, input_schema) = @publication.model_input_artifact_relation_identities(
+    scope.artifact,
+  ).unwrap()
+  fn observation(outcome_cid : String) {
+    let preimage = "{\"input_logical_relation_cid\":\"" +
+      input_logical +
+      "\",\"input_relation_schema_cid\":\"" +
+      input_schema +
+      "\",\"outcome_logical_relation_cid\":\"" +
+      outcome_cid +
+      "\",\"outcome_relation_schema_cid\":\"" +
+      schema +
+      "\",\"source_ordinal\":" +
+      scope.source_ordinal.to_string() +
+      ",\"unit_definition_cid\":\"" +
+      scope.unit_definition_cid +
+      "\",\"version\":\"actql-local-model-observation/0.1\"}"
+    let cid = "sha256:" + @sha.text_hex(preimage).unwrap()
+    @publication.admit_local_effect_dependency_body(
+      "local_model_observation",
+      preimage.replace(
+        old=",\"source_ordinal\":",
+        new=",\"self_cid\":\"" + cid + "\",\"source_ordinal\":",
+      ),
+      10000,
+      1000,
+      20,
+    ).unwrap()
+  }
+  let exact = observation(logical)
+  let substituted = observation("sha256:" + "9".repeat(64))
+  assert_true(client_whole_model_observation_matches(scope, exact, receipt))
+  assert_false(
+    client_whole_model_observation_matches(scope, exact, different_receipt),
+  )
+  assert_true(
+    @publication.local_model_observation_matches_input(
+      substituted,
+      scope.unit_definition_cid,
+      scope.source_ordinal,
+      scope.artifact,
+    ),
+  )
+  assert_false(
+    client_whole_model_observation_matches(scope, substituted, receipt),
+  )
+  assert_true(client_whole_model_terminal_matches(scope, result_receipt))
+  retire_original_whole_model_terminal(terminal)
+  assert_false(client_whole_model_terminal_matches(scope, terminal_receipt))
+  assert_false(
+    record_original_whole_model_terminal(terminal, output, terminal_output, () => {
+      true
+    }),
+  )
+  @execution.cancel_completed_relation_export_receipt(different_receipt)
+  @execution.cancel_completed_relation_export_receipt(result_receipt)
+  if completed is Some((child, _)) {
+    @execution.cancel_completed_relation_export_receipt(terminal_receipt)
+    assert_true(@local.cleanup_managed_provider(child).unwrap())
+  }
+  @execution.cancel_completed_relation_export_receipt(receipt)
+  live.val = false
+  assert_false(@execution.completed_output_available(output))
+  assert_false(client_whole_model_observation_matches(scope, exact, receipt))
+  assert_true(complete_original_whole_model_outcome(owner, port) is None)
+  assert_true(
+    @execution.cleanup_admitted_output_preparation(materialization).unwrap(),
+  )
+  assert_true(
+    @execution.cleanup_admitted_output_preparation(other_materialization).unwrap(),
+  )
+  settle_client_model_read_consumer(consumer, true).unwrap()
+  @resources.settle_capacity(ledger, capacity).unwrap()
+  assert_true(
+    finish_client_model_read_scope(read_scope, compiled, definition, plan, true).unwrap(),
+  )
+}
+
+///|
+fn finish_whole_model_fixture_suffix(
+  child : @local.ManagedProviderExecution,
+) -> @execution.CompletedOutput raise {
+  for _ in 0..<1000 {
+    match @local.advance_managed_provider(child, 32).unwrap() {
+      @local.Complete(value, ..) => return value
+      @local.Continue(..) => ()
+      _ => fail("original Whole Model Compute suffix failed")
+    }
+  }
+  fail("original Whole Model Compute suffix did not finish")
 }

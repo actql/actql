@@ -317,6 +317,119 @@ pub fn[P] readmit_trusted_retained_output(
 }
 
 ///|
+/// Identity selected by the authenticated original continuation manifest.
+/// The owning Host must verify the Store projection and receiving permit
+/// independently. Equal digests are data evidence, never a custody grant.
+pub(all) struct RetainedLogicalRelationIdentity {
+  relation_cid : String
+  relation_bytes : Int
+  schema_cid : String
+  schema_bytes : Int
+  rows : Int
+}
+
+///|
+/// Readmit already decoded rows for one retained checked Step. Reuse the
+/// original table constructor and canonical writers. The fixed Host funds
+/// material, table metadata, and writer backing before this call, and its
+/// verifier supplies only the same authenticated occurrence while it is live.
+pub fn[P] readmit_trusted_retained_relation(
+  generated : CompletionPreparation,
+  target : @pipeline.Target,
+  expected : RetainedLogicalRelationIdentity,
+  wire : RowWireLimits,
+  schema_limits : RelationSchemaIdentityLimits,
+  work : (Int) -> Bool,
+  proof : P,
+  verify : (P) -> AdmittedOutputRows?,
+) -> Result[CompletedOutput, TrustedOutputIssue] {
+  if expected.relation_bytes <= 0 ||
+    expected.relation_bytes > wire.max_bytes ||
+    expected.schema_bytes <= 0 ||
+    expected.schema_bytes > schema_limits.max_bytes ||
+    expected.rows < 0 ||
+    !row_wire_valid_limits(wire) {
+    return Err(InvalidLimits)
+  }
+  // Only the checked Relation result of a Step can be readmitted here.
+  // Input acquisitions and serialization-internal rows use their own owners.
+  let owner = completion_preparation_owner(generated)
+  let preparation = @lower.bound_preparation(owner)
+  guard target is Step(index) &&
+    completion_preparation_terminal_step(generated) == index &&
+    @lower.node_at(preparation, index) is Some(node) &&
+    @lower.sequence_serialization_input_kernel(generated.sequence, index)
+    is None &&
+    generated.serialization_output is None &&
+    completion_preparation_schema(generated, target) is Some(schema) else {
+    return Err(InvalidTarget)
+  }
+  let width = @schema.field_count(schema)
+  if width > wire.max_columns || width > schema_limits.max_fields {
+    return Err(Limit)
+  }
+  let names_bytes = 6L * @lower.node_id(node).length().to_int64() +
+    @schema.field_reference_name_bytes(schema).to_int64()
+  let metadata_work = names_bytes + width.to_int64() + 1L
+  if metadata_work > 2147483647L || !work(metadata_work.to_int()) {
+    return Err(Limit)
+  }
+  let port = match
+    prepare_trusted_output_port(
+      generated,
+      target,
+      width,
+      names_bytes.to_int(),
+      verify,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let output = match
+    complete_checked_trusted_output(port, proof, readmitted=true) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let table = output.table.unwrap()
+  if IndexedRows::row_count(table) != expected.rows {
+    return Err(ForeignOutput)
+  }
+  let schema_identity = match
+    identify_relation_schema(
+      schema,
+      { ..schema_limits, max_bytes: expected.schema_bytes, },
+      work=Some(work),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Limit)
+  }
+  let (schema_bytes, _, _) = relation_schema_usage(schema_identity)
+  if schema_bytes != expected.schema_bytes ||
+    relation_schema_cid(schema_identity) != expected.schema_cid {
+    return Err(ForeignOutput)
+  }
+  let (relation_cid, relation_bytes, _) = match
+    hash_row_wire(
+      table,
+      port.names,
+      { ..wire, max_bytes: expected.relation_bytes, },
+      logical=true,
+      work=Some(work),
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Limit)
+  }
+  if relation_cid != expected.relation_cid ||
+    relation_bytes != expected.relation_bytes {
+    return Err(ForeignOutput)
+  }
+  if !completed_output_available(output) {
+    return Err(Unverified)
+  }
+  Ok(output)
+}
+
+///|
 fn retained_input_facts_match_output(
   facts : RetainedReadmissionFacts,
   output : CompletedOutput,

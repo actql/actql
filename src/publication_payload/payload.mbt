@@ -73,6 +73,14 @@ struct PublicationPayloadTransition {
 }
 
 ///|
+/// Transport for an emitted canonical request or durable record/transition.
+/// The request has eight fixed CIDs, two nonnegative Int64 decimals and a
+/// closed ASCII grammar. Nesting it escapes only its quotes. Either record
+/// grammar adds at most four further CIDs, four UInt64 decimals, one
+/// Int64, one Int and fixed ASCII fields. Saved admission re-emits the body.
+pub let publication_payload_record_transport_bytes : Int = 2048
+
+///|
 struct DurablePublicationPayloadRecord {
   request : PublicationPayloadRequest
   revision : Int

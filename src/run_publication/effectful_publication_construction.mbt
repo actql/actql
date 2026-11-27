@@ -439,3 +439,73 @@ pub fn effectful_publication_construction_inventory(
   }
   Some((returned, peak))
 }
+
+///|
+/// One in-guest issuer borrows the retained checked computation. It admits
+/// one Set/member closure and writes one final Receipt. The caller retains
+/// the already issued Set and member wires and prepays this geometry cursor.
+pub fn retained_effectful_final_issuance_inventory(
+  computation : RetainedEffectfulComputation,
+  set_wire : String,
+  member_wires : Array[String],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> EffectPreviewIdentityConstructionInventory? {
+  let original = computation.inputs
+  guard original.preview is Some(preview) &&
+    member_wires.length() == effect_preview_member_count(preview) &&
+    original.receipt.wire_usage is Some((bytes, nodes, depth)) &&
+    max_bytes >= 293 && bytes <= max_bytes - 293 &&
+    max_nodes >= 3 && nodes <= max_nodes - 3 &&
+    depth <= max_depth &&
+    protocol_wire_codec_construction_inventory(
+      bytes + 293, nodes + 3, depth, live_keys=Some(0),
+    ) is Some(final_codec) &&
+    publication_returned_contract_inventory(bytes + 293, nodes + 3, depth)
+      is Some(final_backing) else {
+    return None
+  }
+  let controls = 1L + member_wires.length().to_int64() +
+    original.definitions.length().to_int64()
+  guard @shape.collection_construction_extent({
+      records: 24L + 4L * controls,
+      record_references: 62L + 12L * controls,
+      record_words: 32L + 8L * controls,
+      reference_arrays: 12L,
+      reference_items: 12L * controls,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 4L,
+      map_entries: 4L * controls,
+    }) is Some(control) else { return None }
+  let mut retained : EffectPreviewIdentityConstructionInventory = {
+    record_headers: control.record_headers,
+    reference_slots: control.reference_slots,
+    scalar_words: control.scalar_words,
+    owned_utf16_units: 71L * controls,
+    owned_wire_bytes: 0L,
+  }
+  let mut scratch = final_codec
+  for index in 0..=member_wires.length() {
+    let wire = if index == member_wires.length() { set_wire } else { member_wires[index] }
+    guard review_original_wire_geometry(wire, max_bytes, max_nodes, max_depth)
+      is Some(geometry) &&
+      protocol_wire_codec_construction_inventory(
+        geometry.bytes, geometry.nodes, geometry.depth,
+        geometry=Some(geometry), live_keys=Some(0),
+      ) is Some(codec) &&
+      publication_returned_contract_inventory(
+        geometry.bytes, geometry.nodes, geometry.depth, geometry=Some(geometry),
+      ) is Some(backing) &&
+      publication_inventory_add(retained, backing) is Some(next) else {
+      return None
+    }
+    retained = next
+    scratch = publication_inventory_max(scratch, codec)
+  }
+  // Typed admitted member views and the Set closure can coexist with the
+  // final constructor. Only one raw input is parsed at a time.
+  publication_inventory_add(retained, final_backing)
+    .bind(value => publication_inventory_add(value, scratch))
+}

@@ -200,7 +200,7 @@ pub fn recheck_pending_frames(RecheckCursor) -> Int
 
 pub fn recheck_runtime_value(Value, @value_contract.Contract, Limits) -> CheckedValue?
 
-pub fn recheck_runtime_value_usage(Value, @value_contract.Contract, Limits) -> (CheckedValue, Int, Int)?
+pub fn recheck_runtime_value_usage(Value, @value_contract.Contract, Limits, max_work? : Int?) -> (CheckedValue, Int, Int)?
 
 pub fn reference_available(ReferenceValue) -> Bool
 
@@ -271,6 +271,8 @@ pub fn timestamp_numeric_part(String, String) -> Int64?
 pub fn timestamp_order_text(String) -> String?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
+
+pub fn wire_emit_bounded_construction_inventory(Int) -> WireEmitConstructionInventory?
 
 pub fn wire_emit_fragment_byte_bound() -> Int
 

@@ -445,6 +445,7 @@ pub fn admit_client_effect_run_materials(
         owner: prepared,
         components,
         normalization: normalization_profile,
+        first_file: false,
       }) {
       Ok(_) => ()
       Err(issue) => return Err(issue)

@@ -8,6 +8,8 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
+from image_fixture import FIXTURE_WASMTIME_VERSION
+
 from actql_sdk._local_core import LOCAL_CORE_ABI
 from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_image_recipe import _SelectedImageRecipe, _image_descriptor, _load_selected_image, _recipe_from_original
@@ -28,7 +30,7 @@ class LocalImageRecipeTests(unittest.TestCase):
                                          'd' * 64, 43)
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
             'module_sha256': 'b' * 64, 'core_abi': LOCAL_CORE_ABI,
-            'wasmtime_version': '38.0.0', 'runtime_library_sha256': 'c' * 64,
+            'wasmtime_version': FIXTURE_WASMTIME_VERSION, 'runtime_library_sha256': 'c' * 64,
             'provider_library_sha256': 'd' * 64,
             'platform': 'darwin-arm64', 'engine_body': copy.deepcopy(self.engine),
             'engine_sha256': hashlib.sha256(encoded).hexdigest(),
@@ -140,7 +142,7 @@ class LocalImageRecipeTests(unittest.TestCase):
         self.assertEqual(recipe.source_sha, 'a' * 40)
         for original in (ORIGINAL[:-1] + b', "extra": true}',
                          ORIGINAL[:-1] + b', "wasmtime_version": "38.0.0"}',
-                         ORIGINAL.replace(b'38.0.0', b'37.0.0')):
+                         ORIGINAL.replace(FIXTURE_WASMTIME_VERSION.encode(), b'38.0.0')):
             with self.assertRaises(LocalInstallationError):
                 _recipe_from_original(original, source_sha='a' * 40,
                     package_version='0.0.0.dev0', module_sha256='b' * 64)

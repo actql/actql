@@ -70,7 +70,7 @@ pub fn return_buffer_borrow(BufferPool, BufferBorrow) -> Result[Unit, BufferIssu
 
 pub fn seal_buffer(BufferPool, BufferSlot, Int, Int) -> Result[Unit, BufferIssue]
 
-pub fn supply_buffer_output(BufferPool, BufferSlot, Bytes) -> Result[Unit, BufferIssue]
+pub fn supply_buffer_output(BufferPool, BufferSlot, Bytes, exact_vm_transfer? : Bool) -> Result[Unit, BufferIssue]
 
 pub fn[T] workspace_original_read_matches(OriginalWorkspaceRead[T], @physical_resources.FundedReadClaim[T], T, WorkspaceLoan) -> Bool
 
@@ -121,7 +121,7 @@ pub struct BufferSlot {
   mut copy_capacity : @physical_resources.SharedCapacity?
   mut accounted_bytes : Int64
   mut published : Bool
-  wire_length : Int
+  mut wire_length : Int
   cleanup : () -> Bool
   mut output_only : Bool
   mut bytes : Array[Byte]

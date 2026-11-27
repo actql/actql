@@ -55,11 +55,18 @@ class AsyncResult:
     async def _all(self, rows, size, captured):
         result, retained = [], 0
         async with AsyncReader(self, *captured) as reader:
-            async for row in reader:
+            while True:
+                try:
+                    row = await reader._next_value()
+                except StopAsyncIteration:
+                    break
+                # Aggregate storage is private until terminal proof and cleanup.
+                reader._rows_yielded += 1
                 retained += reader._last_retained_bytes
                 if len(result) >= rows or retained > size:
                     raise ClientError('ResultRetainedLimit', attempt_id=reader.attempt_id, rows_yielded=reader.rows_yielded)
                 result.append(row)
+        reader._verify_terminal(aggregate=True)
         return result
 
     async def delivery_attempt(self, attempt_id):
@@ -105,6 +112,9 @@ class AsyncReader:
         self._started = False
         self._iterator = None
         self._advance = None
+        self._returning = False
+        self._natural_eof = False
+        self._terminal_current = None
 
     @property
     def attempt_id(self):
@@ -136,6 +146,22 @@ class AsyncReader:
     async def __anext__(self):
         if self._closed:
             raise StopAsyncIteration
+        if self._returning:
+            raise ClientError('ReaderAdvanceInProgress')
+        self._returning = True
+        try:
+            try:
+                row = await self._next_value()
+            except StopAsyncIteration:
+                self._verify_terminal()
+                raise
+            return await self._return_row(row)
+        finally:
+            self._returning = False
+
+    async def _next_value(self):
+        if self._closed:
+            raise StopAsyncIteration
         if self._iterator is None:
             self._iterator = self._iterate()
         if self._advance is not None and not self._advance.done():
@@ -146,6 +172,42 @@ class AsyncReader:
         except ClientError as failure:
             self._result._run._client._redact_connection_failure(failure)
             raise
+
+    def _verify_terminal(self, *, aggregate=False):
+        check = self._terminal_current
+        self._terminal_current = None
+        if check is None:
+            return
+        rows = 0 if aggregate else self.rows_yielded
+        if not self._natural_eof:
+            if aggregate:
+                raise ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id, rows_yielded=rows)
+            return
+        try:
+            check()
+        except Exception:
+            raise ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id, rows_yielded=rows) from None
+
+    async def _return_row(self, row):
+        if self._closed:
+            raise StopAsyncIteration
+        client = self._result._run._client
+        if client._local_host is not None and self._response is not None:
+            from ._local_sdk_response import OriginalLocalSDKResponseStream
+            stream = self._response.stream
+            if type(stream) is OriginalLocalSDKResponseStream:
+                try:
+                    stream._check_transfer_current()
+                except Exception:
+                    failure = ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id,
+                                          rows_yielded=self.rows_yielded)
+                    try:
+                        await self.aclose()
+                    except ClientError as cleanup:
+                        failure.cleanup_error = cleanup
+                    raise failure from None
+        self._rows_yielded += 1
+        return row
 
     async def aclose(self):
         self._closed = True
@@ -195,6 +257,11 @@ class AsyncReader:
                                                 'format': 'jsonl', 'attemptId': self.attempt_id})
             if self._closed:
                 return
+            if client._local_host is not None:
+                from ._local_sdk_response import OriginalLocalSDKResponseStream
+                stream = self._response.stream
+                if type(stream) is OriginalLocalSDKResponseStream:
+                    self._terminal_current = stream._terminal_current
             async for chunk in client._chunks(self._response, min(8192, self._limits['row_wire'])):
                 if self._closed:
                     return
@@ -226,7 +293,6 @@ class AsyncReader:
                     # Application-created typed objects do not replace the original
                     # decoded-row accounting or confer a completed delivery receipt.
                     self._last_retained_bytes = retained
-                    self._rows_yielded += 1
                     yield value
                     if self._closed:
                         return
@@ -234,6 +300,7 @@ class AsyncReader:
                     raise ClientError('ResultRowWireLimit')
             if buffer != b'\x1e':
                 raise ClientError('IncompleteResultStream')
+            self._natural_eof = True
         except asyncio.CancelledError as error:
             if self._closed:
                 return

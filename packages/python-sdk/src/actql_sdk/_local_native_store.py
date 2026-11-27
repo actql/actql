@@ -14,7 +14,9 @@ from ._local_native_sqlite import _OriginalSqliteCustody
 from ._local_native_sqlite_database import (
     _OriginalDatabaseCustody, _OriginalDatabaseError, _OriginalDatabaseFunctions)
 from ._local_native_storage import _NativeByteDatabase
-from ._local_storage import LocalByteStore, LocalStorageError, LocalStorageInitializationError
+from ._local_storage import (
+    LocalByteStore, LocalStorageError, LocalStorageInitializationError, _DurableStoreLimits,
+)
 
 
 class _OriginalNativeStoreSelection:
@@ -58,6 +60,7 @@ class _OriginalNativeStoreSelection:
     def open(self, core: LocalCore, path: Path, root: LocalFileRoot, *,
              max_records: int, max_record_bytes: int, max_payload_bytes: int,
              max_inspection_queries: int | None = None,
+             durable_limits: _DurableStoreLimits | None = None,
              new_file: _PayloadFile | None = None) -> LocalByteStore:
         # Core serializes its original installation. This is lifecycle identity
         # only, not a current Account/publisher/Run permission decision.
@@ -66,7 +69,7 @@ class _OriginalNativeStoreSelection:
             store = _open_original_native_store(path, root, library=self._library,
                 functions=self._functions, read=self._read, max_records=max_records,
                 max_record_bytes=max_record_bytes, max_payload_bytes=max_payload_bytes,
-                max_inspection_queries=max_inspection_queries,
+                max_inspection_queries=max_inspection_queries, durable_limits=durable_limits,
                 new_file=new_file)
             try:
                 self.require_core(core)
@@ -82,6 +85,7 @@ def _open_original_native_store(path: Path, root: LocalFileRoot, *,
                                 max_records: int, max_record_bytes: int,
                                 max_payload_bytes: int,
                                 max_inspection_queries: int | None = None,
+                                durable_limits: _DurableStoreLimits | None = None,
                                 new_file: _PayloadFile | None = None) -> LocalByteStore:
     """Same original File root/Database; restore is existing-only, never repair.
 
@@ -102,7 +106,8 @@ def _open_original_native_store(path: Path, root: LocalFileRoot, *,
     store._prepare_physical_path(path, max_records=max_records,
                                 max_record_bytes=max_record_bytes,
                                 max_payload_bytes=max_payload_bytes,
-                                max_inspection_queries=max_inspection_queries)
+                                max_inspection_queries=max_inspection_queries,
+                                durable_limits=durable_limits)
     path = store._physical_path
     with root._lock:
         directory = os.fstat(root._open())

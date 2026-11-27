@@ -140,6 +140,49 @@ fn retain_installed_effect_dependency_index(
 }
 
 ///|
+fn installed_effect_dependency_entry_extent(
+  entries : Int,
+  units : Int,
+) -> @shape.CollectionConstructionExtent? {
+  if entries < 0 || units < 0 {
+    return None
+  }
+  let n = entries.to_int64()
+  @shape.collection_construction_extent({
+    // Censuses own a9-word geometry, source/role tuple and output pair.
+    records: 5L * n,
+    record_references: 11L * n,
+    record_words: 12L * n,
+    // Source payload original vector plus its Core token projection are
+    // built after group reserve, before shape/admission construction.
+    reference_arrays: 5L,
+    reference_items: 5L * n,
+    scalar_arrays: 1L,
+    scalar_items: units.to_int64(),
+    // Frozen Host body aliases are indexed before DTO flattening. A Map
+    // quote dominates this Set, including actual candidate-count growth.
+    maps: 1L,
+    map_entries: n,
+  })
+}
+
+///|
+fn installed_effect_dependency_catalog_entry_capacity() -> @execution.ExecutionCapacity? {
+  guard installed_effect_dependency_entry_extent(1, 0) is Some(extent) &&
+    @execution.preparation_representation_cost({
+      record_headers: extent.record_headers,
+      reference_slots: extent.reference_slots,
+      scalar_words: extent.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  @execution.execution_capacity(bytes, bytes)
+}
+
+///|
 // Initial numeric quote BEFORE the Work view, depth vectors or body selection
 // arrays exist. Actual entries/Units and existing JSON depth are quantities,
 // never permissions, row credit or max_nodes-per-body precharges.
@@ -148,7 +191,7 @@ pub fn installed_effect_dependency_fixed_capacity(
   units : Int,
   depth : Int,
 ) -> @execution.ExecutionCapacity? {
-  if entries < 0 || units < 0 || depth < 0 {
+  if depth < 0 {
     return None
   }
   // This numeric inventory also funds Definition recovery under its existing
@@ -156,27 +199,10 @@ pub fn installed_effect_dependency_fixed_capacity(
   // no independent depth policy belongs to a quote before construction.
   // Int inputs widen before products; the collection and byte recipes below
   // check all aggregate extents before the SAME parent reserves any vectors.
-  let n = entries.to_int64()
   let d = depth.to_int64() + 1L
   let preflight = @source.json_source_preflight_control_extent()
   let phase = @resources.preparation_phase_work_continuation64_construction_inventory()
-  guard @shape.collection_construction_extent({
-      // Censuses own a9-word geometry, source/role tuple and output pair.
-      records: 5L * n,
-      record_references: 11L * n,
-      record_words: 12L * n,
-      // Source payload original vector plus its Core token projection are
-      // built after group reserve, before shape/admission construction.
-      reference_arrays: 5L,
-      reference_items: 5L * n,
-      scalar_arrays: 1L,
-      scalar_items: units.to_int64(),
-      // Frozen Host body aliases are indexed before DTO flattening. A Map
-      // quote dominates this Set, including actual candidate-count growth.
-      maps: 1L,
-      map_entries: n,
-    })
-    is Some(held) &&
+  guard installed_effect_dependency_entry_extent(entries, units) is Some(held) &&
     @encode.measuring_writer_construction_extent(0, depth) is Some(writer) &&
     @shape.collection_construction_extent({
       // Resource view:3Refs, spend/defer contexts and the old/new immutable
@@ -246,22 +272,28 @@ fn retain_installed_effect_dependency_capacity(
   ledger : @resources.Ledger,
   control : ClientEffectOperationControls,
   added : @execution.ExecutionCapacity,
+  previous_workspace_retired? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   let next = match control.dependency_capacity {
     None => added
     Some(previous) => {
       let before = @execution.execution_capacity_retained_bytes(previous)
       let after = @execution.execution_capacity_retained_bytes(added)
+      let active_workspace = @execution.execution_capacity_execution_bytes(
+          added,
+        ) -
+        after
+      let workspace = if previous_workspace_retired {
+        active_workspace
+      } else {
+        Int64::max(
+          @execution.execution_capacity_execution_bytes(previous) - before,
+          active_workspace,
+        )
+      }
       guard @execution.checked_preparation_add_product(before, after, 1L)
         is Some(retained) &&
-        @execution.checked_preparation_add_product(
-          retained,
-          Int64::max(
-            @execution.execution_capacity_execution_bytes(previous) - before,
-            @execution.execution_capacity_execution_bytes(added) - after,
-          ),
-          1L,
-        )
+        @execution.checked_preparation_add_product(retained, workspace, 1L)
         is Some(execution) &&
         @execution.execution_capacity(retained, execution) is Some(next) else {
         return Err(InsufficientCapacity)
@@ -533,8 +565,9 @@ fn installed_effect_dependency_shared_body_capacity() -> @execution.ExecutionCap
 
 ///|
 // Actual body/root/reference geometry before complete closure indexes and
-// encoder ordering vectors. Fixed vocabulary remains borrowed; semantic keys
-// and every reference edge are retained DATA, not physical-owner sharing.
+// encoder ordering vectors. Validation maps, keys and traversal vectors are
+// synchronous scratch. The returned preparation retains only borrowed body
+// and root vectors with its own limits and measured geometry.
 pub fn installed_effect_dependency_graph_capacity(
   entries : Int,
   roots : Int,
@@ -562,22 +595,24 @@ pub fn installed_effect_dependency_graph_capacity(
       maps: 7L + 4L * n,
       map_entries: 6L * n + 4L * r + 2L * p,
     })
-    is Some(index) else {
+    is Some(index) &&
+    @shape.reference_array_retained_extent(2L, n + p) is Some(arrays) else {
     return None
   }
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: arrays.record_headers + 3L,
+    reference_slots: arrays.reference_slots + 4L,
+    scalar_words: arrays.scalar_words + 13L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
   @execution.preparation_execution_capacity({
-    retained: {
-      record_headers: index.record_headers,
-      reference_slots: index.reference_slots,
-      scalar_words: index.scalar_words,
-      owned_utf16_units: 4L * key_units,
-      owned_wire_bytes: 0L,
-    },
+    retained,
     workspace: {
-      record_headers: 0L,
-      reference_slots: 0L,
-      scalar_words: 0L,
-      owned_utf16_units: 0L,
+      record_headers: index.record_headers - retained.record_headers,
+      reference_slots: index.reference_slots - retained.reference_slots,
+      scalar_words: index.scalar_words - retained.scalar_words,
+      owned_utf16_units: 4L * key_units,
       owned_wire_bytes: 0L,
     },
     retained_nodes: 0L,

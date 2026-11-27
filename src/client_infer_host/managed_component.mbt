@@ -13,6 +13,8 @@ pub fn local_component(
     (Execution) -> Result[Unit, @connector.FixedComputeIssue],
     (Execution, Bool) -> Result[Unit, @connector.FixedComputeIssue],
   )? = None,
+  output_workspace? : @relation.GeneratedSequence? = None,
+  fund_original_phases? : Bool = false,
 ) -> Result[@local.ManagedProviderExecution, Issue] {
   if active.reclaimed ||
     active.cancelled ||
@@ -22,7 +24,29 @@ pub fn local_component(
     !(active.local_component_binding is Unbound) {
     return Err(InvalidAdvance)
   }
-  active.local_component_binding = if host_await_io {
+  if output_workspace is Some(sequence) &&
+    (
+      !host_await_io ||
+      !@relation.generated_output_workspace_matches(
+        sequence,
+        @publication_host.client_infer_occurrence_preparation(active.occurrence),
+        @pipeline.Step(active.step),
+      )
+    ) {
+    return Err(InvalidAdvance)
+  }
+  if fund_original_phases &&
+    !(output_workspace is Some(_) &&
+    active.identity_body is Some(_) &&
+    active.original_preparation
+    is Some({ read: Claimed(_), shared_mock: true, .. }) &&
+    active.run_binding is Some(_) &&
+    active.plan is Some(_)) {
+    return Err(InvalidAdvance)
+  }
+  active.local_component_binding = if output_workspace is Some(sequence) {
+    WithLocalOutputWorkspace(sequence, fund_original_phases)
+  } else if host_await_io {
     WithHostIo
   } else {
     Synchronous
@@ -72,7 +96,8 @@ pub fn local_component(
           Continue(_) => Ok(@local.managed_provider_continue(delta, delta))
           // Only the installed Host that owns the physical wake can wait.
           AwaitIo(_) =>
-            if active.local_component_binding is WithHostIo {
+            if active.local_component_binding
+              is (WithHostIo | WithLocalOutputWorkspace(_, _)) {
               Ok(@local.managed_provider_await_io(delta, delta))
             } else {
               Err(project_issue(InvalidAdvance))
@@ -120,11 +145,25 @@ pub fn local_component(
 }
 
 ///|
-// The actual nominal output borrow keeps the SAME original Model, Read and
-// their backing alive. Local can detach only its temporary driver roots; this
-// does not reclaim the Model or settle evidence, publication or physical IO.
+// A nominal OutputUse pins the stopped Model and its original Read while
+// Local drops only its driver scratch. Publication separately checks the
+// handed-off Read, which can still include this very scratch reservation.
 fn completed_original_component_scratch_retained(active : Execution) -> Bool {
-  !(active.local_component_binding is Unbound) &&
-  active.output_uses > 0 &&
-  original_infer_publication_owner_current(active)
+  guard !(active.local_component_binding is Unbound) && active.output_uses > 0 else {
+    return false
+  }
+  if !(active.local_component_binding is WithLocalOutputWorkspace(_, _)) {
+    return original_infer_publication_owner_current(active)
+  }
+  execution_stopped(active) &&
+  !active.cancelled &&
+  !active.reclaimed &&
+  active.completed is Some(_) &&
+  active.rows is Some(_) &&
+  active.model is Some(_) &&
+  active.call_scope is Some(_) &&
+  active.original_preparation
+  is Some({ startup: Some(_), read: Claimed(_), .. }) &&
+  active.run_binding is Some(_) &&
+  active.plan is Some(_)
 }

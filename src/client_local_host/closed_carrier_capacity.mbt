@@ -17,16 +17,12 @@ fn client_local_closed_item_bound(
   match target {
     @pipeline.Step(index) => {
       guard @lower.node_at(prepared, index) is Some(node) else { return None }
-      let inputs : Array[Int] = []
-      for port in 0..<@lower.node_input_count(node) {
-        guard @lower.node_input_target(node, port) is Some(input) &&
-          client_local_closed_item_bound(graph, owner, input, work, depth - 1)
-          is Some(count) else {
+      @lower.node_closed_item_count_bound(node, @lower.node_input_count(node), port => {
+        guard @lower.node_input_target(node, port) is Some(input) else {
           return None
         }
-        inputs.push(count)
-      }
-      @lower.node_closed_item_count_bound(node, inputs)
+        client_local_closed_item_bound(graph, owner, input, work, depth - 1)
+      })
     }
     @pipeline.Input(input) => {
       let mut producer : (@lower.BoundPrepared, @pipeline.Target)? = None
@@ -117,17 +113,17 @@ fn client_local_closed_carrier_bound(
 }
 
 ///|
-// At most one item slot can be allocated per spent proof-work unit, including
-// arrays held by ancestor calls. Recursion uses the existing compilation depth.
-// Price those actual temporary representations before entering Plan creation;
-// no new resource limit, returned certificate or retained cache is introduced.
+// Port cardinalities fold in order into fixed scalars, so a recursive child
+// needs no parent vector. Each frame covers the original target/producer
+// observations, one positional callback and its captured originals, the
+// fold's count/ordinal/first/second/total, and its result/control records.
+// The last depth-refused child and the outer proof controls are included.
 fn client_local_closed_carrier_proof_scratch_bytes() -> Int64? {
   let levels = client_local_value_node_proof_depth().to_int64() + 2L
   @execution.preparation_representation_cost({
-    record_headers: 6L * levels + 2L,
-    reference_slots: 12L * levels +
-    2L * client_local_schema_proof_work().to_int64(),
-    scalar_words: 12L * levels,
+    record_headers: 12L * levels + 2L,
+    reference_slots: 24L * levels,
+    scalar_words: 24L * levels,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })

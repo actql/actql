@@ -97,6 +97,18 @@ pub fn local_model_observation_matches_input(
 }
 
 ///|
+pub fn local_model_observation_matches_outcome(
+  body : CapturedEffectDependencyBody,
+  logical_cid : String,
+  schema_cid : String,
+) -> Bool {
+  body.node.kind == "local_model_observation" &&
+  evidence_string(body.value, "outcome_logical_relation_cid") ==
+  Some(logical_cid) &&
+  evidence_string(body.value, "outcome_relation_schema_cid") == Some(schema_cid)
+}
+
+///|
 fn dependency_single_reference(
   value : @json.CanonicalValue,
   field : String,

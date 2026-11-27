@@ -8,7 +8,7 @@ pub struct ClientSavedSubmissionSnapshot {
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
   inspection : ClientRunJournalInspection?
-  state_original : ClientRunStateOriginal?
+  state_original : ClientRetainedRunStateOriginal?
   task_materials : String?
 }
 
@@ -52,40 +52,92 @@ pub fn client_saved_submission_run_row(
 }
 
 ///|
-/// The original observed metadata already restored by this same snapshot.
-/// Historical absence stays absent. This supplies no current availability,
-/// authority, physical acknowledgement or permission to dispatch again.
-pub fn client_saved_submission_state_original(
+/// The authenticated metadata from this snapshot, with its Model failure
+/// locator still opaque. Only the current Read can resolve an exact proof.
+pub fn client_saved_submission_retained_state_original(
   value : ClientSavedSubmissionSnapshot,
-) -> ClientRunStateOriginal? {
+) -> ClientRetainedRunStateOriginal? {
   value.state_original
+}
+
+///|
+/// Confirm the cancellation head attached to the Run validated in this
+/// snapshot. Callers retaining an earlier snapshot first reobserve the exact
+/// current Run bytes and generation in the same reader. False means this
+/// snapshot contains no inspected Run, so a caller requiring the complete
+/// custody audit still has to perform it.
+pub fn[E] confirm_client_saved_submission_cancellation(
+  value : ClientSavedSubmissionSnapshot,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  custody_lost : E,
+) -> Result[Bool, E] {
+  guard value.run is Some(row) &&
+    value.inspection is Some(original) else { return Ok(false) }
+  guard original.cancellation_head is Some(head) else { return Ok(true) }
+  guard @publication.run_definition_namespace(original.definition)
+    is Some(namespace_id) else { return Err(custody_lost) }
+  observe_client_accepted_cancellation_original(
+    head, namespace_id, original.request, original.definition, row.revision,
+    read, custody_lost,
+  ).map(_ => true)
+}
+
+///|
+/// Confirm the immutable reference locator for the Run that was admitted in
+/// this same snapshot. The locator is subordinate to the checked Run.
+pub fn[E] confirm_client_saved_submission_locator(
+  value : ClientSavedSubmissionSnapshot,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  custody_lost : E,
+) -> Result[Unit, E] {
+  guard value.inspection is Some(original) &&
+    client_saved_run_reference_locator(
+      value.record.reference, original.request, original.definition,
+    ) is Ok((key, body)) else { return Err(custody_lost) }
+  match read("client_run_reference_index", key) {
+    Ok(Some(row)) if row.key == key && row.revision == 0L && row.body == body =>
+      Ok(())
+    Err(issue) => Err(issue)
+    _ => Err(custody_lost)
+  }
 }
 
 ///|
 /// Reobserve only this original snapshot's immutable admitted DATA. This does
 /// not run a different validator or claim its success. The caller must retain
 /// the same completed issuer/purpose and independently check current scope,
-/// cancellation and all publication/File fences. None means no exact original
-/// correspondence, not confirmed missing history: use the full existing reader.
+/// cancellation and all publication/File fences. The selected slot reader
+/// supplies the caller's custody refusal and uses the same physical snapshot.
+/// Only the general point reader can return None for an unmatched original.
+/// An optional material proof belongs to the caller's same physical reader
+/// after it has already checked this exact snapshot's full material inventory.
 pub fn[E] reobserve_client_saved_submission_original(
   original : ClientSavedSubmissionSnapshot,
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read_task_slots? : ((String, Int) -> Result[ClientJournalPhysicalRow?, E], E)? = None,
+  prove_task_material? : (() -> Result[Bool, E])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
+  let no_exact_original = () => {
+    match read_task_slots {
+      Some((_, custody_lost)) => Err(custody_lost)
+      None => Ok(None)
+    }
+  }
   guard original.record.run_admission is Some(_) &&
     original.run is Some(run) &&
     original.inspection is Some(inspection) else {
-    return Ok(None)
+    return no_exact_original()
   }
   let submission = match
     read("client_submitted_intents", original.submission.key) {
     Err(issue) => return Err(issue)
     Ok(Some(row)) => row
-    Ok(None) => return Ok(None)
+    Ok(None) => return no_exact_original()
   }
   if submission.key != original.submission.key ||
     submission.revision != original.submission.revision ||
     submission.body != original.submission.body {
-    return Ok(None)
+    return no_exact_original()
   }
   match read("client_runs", run.key) {
     Err(issue) => Err(issue)
@@ -98,52 +150,40 @@ pub fn[E] reobserve_client_saved_submission_original(
           // Snapshot construction checked this wire under this inspection CID.
           // Reuse it only after the complete fresh exact material observation.
           guard inspection.task_materials_cid is Some(cid) else {
-            return Ok(None)
+            return no_exact_original()
+          }
+          if prove_task_material is Some(prove) {
+            match prove() {
+              Ok(true) => return Ok(Some(original))
+              Ok(false) => ()
+              Err(issue) => return Err(issue)
+            }
+          }
+          // A selected physical reader receives only the already matched Run
+          // key and the next ordinal. A physical refusal never selects a point
+          // read. The physical reader and its close stay with the caller.
+          let read_slot = match read_task_slots {
+            Some((take, _)) => (index, _) => take(run.key, index)
+            None => (_, key) => read("client_task_run_materials", key)
           }
           match
             read_saved_task_material_original(
               run.key,
               cid,
               original.task_materials,
-              (table, key) => read(table, key).map_err(issue => Some(issue)),
+              (index, key) => {
+                read_slot(index, key).map_err(issue => Some(issue))
+              },
               None,
             ) {
             Ok(actual) if actual == wire => Ok(Some(original))
-            Ok(_) => Ok(None)
-            Err(None) => Ok(None)
+            Ok(_) | Err(None) => no_exact_original()
             Err(Some(issue)) => Err(issue)
           }
         }
       }
-    _ => Ok(None)
+    _ => no_exact_original()
   }
-}
-
-///|
-fn[E] read_client_saved_submission_row(
-  row : ClientJournalPhysicalRow,
-  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
-  validate_run : (ClientJournalPhysicalRow) -> Result[
-    ClientRunJournalInspection,
-    E,
-  ],
-  custody_lost : E,
-  before_construction? : ((ClientSubmittedJournalConstruction) -> Result[
-    Unit,
-    ClientJournalDecodingIssue,
-  ])? = None,
-  expected_reference? : ClientSubmissionReferenceRecord? = None,
-) -> Result[ClientSavedSubmissionSnapshot, E] {
-  let original : ClientTaskMaterialsOriginal[Unit]? = None
-  read_client_saved_submission_row_with_task_original(
-    row,
-    read,
-    validate_run,
-    custody_lost,
-    original,
-    before_construction~,
-    expected_reference~,
-  )
 }
 
 ///|
@@ -161,6 +201,8 @@ fn[Plan, E] read_client_saved_submission_row_with_task_original(
     ClientJournalDecodingIssue,
   ])? = None,
   expected_reference? : ClientSubmissionReferenceRecord? = None,
+  fund_task_read? : ((Int64) -> Result[Unit, E])? = None,
+  read_task_slots? : ((String, Int) -> Result[ClientJournalPhysicalRow?, E])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot, E] {
   let record = match
     decode_client_submitted_journal_row(row.body, before_construction~) {
@@ -175,6 +217,8 @@ fn[Plan, E] read_client_saved_submission_row_with_task_original(
     custody_lost,
     task_original,
     expected_reference~,
+    read_task_slots~,
+    fund_task_read~,
   )
 }
 
@@ -192,6 +236,8 @@ fn[Plan, E] read_decoded_client_saved_submission_row(
   custody_lost : E,
   task_original : ClientTaskMaterialsOriginal[Plan]?,
   expected_reference? : ClientSubmissionReferenceRecord? = None,
+  fund_task_read? : ((Int64) -> Result[Unit, E])? = None,
+  read_task_slots? : ((String, Int) -> Result[ClientJournalPhysicalRow?, E])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot, E] {
   if row.revision < 0L ||
     row.key != client_submission_reference_record_request_id(record.reference) {
@@ -245,11 +291,18 @@ fn[Plan, E] read_decoded_client_saved_submission_row(
           }
           None
         }
-        Some(_) =>
-          match restore_client_run_state_original(original.definition, wire) {
+        Some((revision, Some(key))) =>
+          match
+            admit_client_retained_run_state_original(
+              original.definition,
+              wire,
+              revision,
+              key,
+            ) {
             Ok(state) => Some(state)
             Err(_) => return Err(custody_lost)
           }
+        Some((_, None)) => return Err(custody_lost)
       }
     }
   }
@@ -257,18 +310,24 @@ fn[Plan, E] read_decoded_client_saved_submission_row(
     (Some(row), Some(original)) =>
       match original.task_materials_cid {
         None => None
-        Some(cid) =>
+        Some(cid) => {
+          let read_slot = match read_task_slots {
+            Some(take) => (ordinal, _) => take(row.key, ordinal)
+            None => (_, key) => read("client_task_run_materials", key)
+          }
           match
-            read_client_task_material_with_original(
+            read_task_material_original_slots(
               row.key,
               cid,
-              read,
+              read_slot,
               custody_lost,
               task_original,
+              fund_workspace=fund_task_read,
             ) {
-            Ok(wire) => Some(wire)
+            Ok((wire, _)) => Some(wire)
             Err(issue) => return Err(issue)
           }
+        }
       }
     _ => None
   }
@@ -372,6 +431,7 @@ pub fn[E] read_client_saved_submission(
     Unit,
     ClientJournalDecodingIssue,
   ])? = None,
+  read_task_slots? : ((String, Int) -> Result[ClientJournalPhysicalRow?, E])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
   let original : ClientTaskMaterialsOriginal[Unit]? = None
   read_client_saved_submission_with_task_original(
@@ -381,6 +441,7 @@ pub fn[E] read_client_saved_submission(
     custody_lost,
     original,
     before_construction~,
+    read_task_slots~,
   )
 }
 
@@ -400,6 +461,8 @@ pub fn[Plan, E] read_client_saved_submission_with_task_original(
     Unit,
     ClientJournalDecodingIssue,
   ])? = None,
+  fund_task_read? : ((Int64) -> Result[Unit, E])? = None,
+  read_task_slots? : ((String, Int) -> Result[ClientJournalPhysicalRow?, E])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
   let key = client_submission_reference_record_request_id(reference)
   let row = match read("client_submitted_intents", key) {
@@ -417,6 +480,8 @@ pub fn[Plan, E] read_client_saved_submission_with_task_original(
       task_original,
       expected_reference=Some(reference),
       before_construction~,
+      read_task_slots~,
+      fund_task_read~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -440,10 +505,51 @@ pub fn[E] inspect_client_saved_submission(
   ],
   confirm_cancellation : () -> Result[Unit, E],
   custody_lost : E,
+  task_material_count? : ((Int) -> Result[Bool?, E])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot?, E] {
+  let original : ClientTaskMaterialsOriginal[Unit]? = None
+  inspect_client_saved_submission_with_task_original(
+    reference, max_records, scan, read, validate_run, confirm_cancellation, custody_lost,
+    original,
+    task_material_count~,
+  )
+}
+
+///|
+/// The same complete read with a nominal Task material original already held
+/// by the caller. Every physical row, chunk and cancellation check still runs.
+/// The Task-only caller funds both the full index and each chunk restore.
+pub fn[Plan, E] inspect_client_saved_submission_with_task_original(
+  reference : ClientSubmissionReferenceRecord,
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  confirm_cancellation : () -> Result[Unit, E],
+  custody_lost : E,
+  task_original : ClientTaskMaterialsOriginal[Plan]?,
+  task_funding? : ((Int64) -> Result[Unit, E], (Int64) -> Result[Unit, E])? = None,
+  task_material_count? : ((Int) -> Result[Bool?, E])? = None,
+) -> Result[ClientSavedSubmissionSnapshot?, E] {
+  let (fund_indexes, fund_task_read) = match task_funding {
+    Some((indexes, task)) => (Some(indexes), Some(task))
+    None => (None, None)
+  }
   match
-    inspect_client_run_journal_inventory(
-      max_records, scan, read, validate_run, confirm_cancellation, custody_lost,
+    inspect_client_run_journal_inventory_with_index_funding(
+      max_records,
+      scan,
+      read,
+      validate_run,
+      confirm_cancellation,
+      custody_lost,
+      task_original,
+      fund_indexes,
+      fund_task_read,
+      task_material_count~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -454,15 +560,26 @@ pub fn[E] inspect_client_saved_submission(
       scan,
       read,
       row => {
-        read_client_saved_submission_row(row, read, validate_run, custody_lost).map(snapshot => {
-            snapshot.record
-          },
-        )
+        read_client_saved_submission_row_with_task_original(
+          row,
+          read,
+          validate_run,
+          custody_lost,
+          task_original,
+          fund_task_read~,
+        ).map(snapshot => snapshot.record)
       },
       custody_lost,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  read_client_saved_submission(reference, read, validate_run, custody_lost)
+  read_client_saved_submission_with_task_original(
+    reference,
+    read,
+    validate_run,
+    custody_lost,
+    task_original,
+    fund_task_read~,
+  )
 }

@@ -64,6 +64,46 @@ fn product_absolute_location(path : String) -> Bool {
 }
 
 ///|
+/// Resolve the existing bounded POSIX Project location without opening it.
+pub fn resolve_client_project_path(
+  directory : String,
+  selected : String,
+  ordinary_file? : Bool = false,
+  ordinary_directory? : Bool = false,
+) -> String? {
+  if (directory != "/" && !product_absolute_location(directory)) ||
+    (!ordinary_file && directory.contains("\\")) ||
+    selected.is_empty() ||
+    selected.length() > 4096 ||
+    (!ordinary_file && selected.contains("\\")) ||
+    selected.contains("\u{0000}") {
+    return None
+  }
+  let combined = if selected.has_prefix("/") {
+    selected
+  } else {
+    directory + "/" + selected
+  }
+  let parts = []
+  for part in combined.split("/") {
+    match part {
+      "" | "." => ()
+      ".." => {
+        guard parts.pop() is Some(_) else { return None }
+      }
+      _ => parts.push(part.to_owned())
+    }
+  }
+  let absolute = "/" + parts.join("/")
+  if (ordinary_file && ordinary_directory && absolute == "/") ||
+    product_absolute_location(absolute) {
+    Some(absolute)
+  } else {
+    None
+  }
+}
+
+///|
 fn product_wire(
   value : Json,
 ) -> Result[String, ClientLocalProductConfigurationIssue] {
@@ -127,6 +167,7 @@ fn product_assemble_common(
     (@authorization.AccountConfigurationConstruction) -> Bool,
   )? = None,
   original_result_read? : Bool = false,
+  file_account? : (String, String)? = None,
 ) -> Result[ProductCommonAssembly, ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
   if !product_absolute_location(configuration_root) {
     return Err(InvalidLocation)
@@ -218,11 +259,18 @@ fn product_assemble_common(
     return Err(InvalidResultPolicy)
   }
   let principal = "local-cli"
-  let connection = mock
-    .map(subjects => subjects.control_connection)
-    .unwrap_or("local")
-  let account = match (mock, mock_preparation) {
-    (Some(subjects), preparation) => {
+  guard file_account is None ||
+    (mock is None && mock_preparation is None && original_result_read) else {
+    return Err(UnsupportedAsset)
+  }
+  let connection = match file_account {
+    Some((control, _)) => control
+    None => mock.map(subjects => subjects.control_connection).unwrap_or("local")
+  }
+  let account = match (file_account, mock, mock_preparation) {
+    (Some((_, account)), None, None) => account
+    (Some(_), _, _) => return Err(UnsupportedAsset)
+    (None, Some(subjects), preparation) => {
       // The installing Host selected this disjoint control original under its
       // SAME Read before assembly. A Project cannot replace Host identity.
       if subjects.account_id != principal || subjects.principal != principal {
@@ -232,21 +280,27 @@ fn product_assemble_common(
         Some((targets, prepare)) => {
           guard @authorization.local_mock_account_configuration_prepared(
               subjects, targets, prepare,
+              original_result_read~,
             )
             is Some(result) else {
             return Err(ConfigurationLimit)
           }
           result
         }
-        None => @authorization.local_mock_account_configuration(subjects)
+        None => {
+          if original_result_read {
+            return Err(UnsupportedAsset)
+          }
+          @authorization.local_mock_account_configuration(subjects)
+        }
       }
       match selected {
         Ok(original) => original
         Err(_) => return Err(UnsupportedAsset)
       }
     }
-    (None, Some(_)) => return Err(UnsupportedAsset)
-    (None, None) => {
+    (None, None, Some(_)) => return Err(UnsupportedAsset)
+    (None, None, None) => {
       let account = product_require(
         product_wire(
           product_object([
@@ -803,6 +857,12 @@ fn product_common_bootstrap_originals(
   observed_at : String,
   assets : ClientLocalProductAssets,
   original_result_read : Bool,
+  mock? : @authorization.LocalMockAccountSubjects? = None,
+  mock_preparation? : (
+    Array[(String, String)],
+    (@authorization.AccountConfigurationConstruction) -> Bool,
+  )? = None,
+  file_account? : (String, String)? = None,
 ) -> Result[
   ClientLocalProductCommonOriginals,
   ClientLocalProductConfigurationIssue,
@@ -814,6 +874,9 @@ fn product_common_bootstrap_originals(
         observed_at,
         assets,
         original_result_read~,
+        mock~,
+        mock_preparation~,
+        file_account~,
       ),
     )
     Ok({

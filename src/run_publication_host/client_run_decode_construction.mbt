@@ -193,8 +193,27 @@ fn client_run_decode_definition_construction() -> @execution.PreparationRepresen
 }
 
 ///|
+// The exact identity route only compares the borrowed Run Definition and
+// emits the existing canonical request record. It cannot admit a new one.
+fn client_run_retained_request_wire_construction() -> @execution.PreparationRepresentationUnits? {
+  guard @encode.text_writer_construction_inventory(4096, 32, 2) is Some(writer) else {
+    return None
+  }
+  Some(
+    client_run_decode_units(
+      writer.record_headers + 20L,
+      writer.reference_slots + 40L,
+      writer.scalar_words + 12L,
+      writer.owned_utf16_units,
+      0L,
+    ),
+  )
+}
+
+///|
 pub fn client_run_journal_decode_construction(
   stage : ClientRunJournalConstruction,
+  require_retained_identity? : Bool = false,
 ) -> (Int64, Int64)? {
   let (bytes, text, nodes, depth, parsing) = match stage {
     RunJournalParse(bytes) => (bytes, 0L, 32, 4, true)
@@ -217,18 +236,34 @@ pub fn client_run_journal_decode_construction(
   guard @decode.preserving_json_admission_construction_inventory(bytes, 32, 4)
     is Some(outer) &&
     @encode.text_writer_construction_inventory(bytes, 32, 4) is Some(comparison) &&
-    client_run_decode_request_construction() is Some(request) &&
-    client_run_decode_definition_construction() is Some(definition) else {
+    (if require_retained_identity {
+      client_run_retained_request_wire_construction()
+    } else {
+      client_run_decode_request_construction()
+    })
+    is Some(request) &&
+    (if require_retained_identity {
+      Some(client_run_decode_units(4L, 8L, 16L, 0L, 0L))
+    } else {
+      client_run_decode_definition_construction()
+    })
+    is Some(definition) else {
     return None
   }
   // Accepted definition is a flat object of <=11 strings. Input/source rows
   // and request/definition returned text remain alive beside the row writer.
+  // The head adds at most one typed record with its borrowed String and Int64.
+  let head_record = if parsing { 0L } else { 1L }
   let peak_units = client_run_decode_units(
-    32L + 3L * 32L + 2L * 32L + 2L * 12L,
-    64L + 4L * 32L + 4L * 32L + 4L * 12L,
-    32L + 8L * 32L + 6L * 32L,
+    32L + 3L * 32L + 2L * 32L + 2L * 12L + head_record,
+    64L + 4L * 32L + 4L * 32L + 4L * 12L + head_record,
+    32L + 8L * 32L + 6L * 32L + 2L * head_record,
     2L * bytes.to_int64() +
-    (if parsing { 0L } else { 4096L + 65536L + 4L * 71L }),
+    (if parsing || require_retained_identity {
+      0L
+    } else {
+      4096L + 65536L + 4L * 71L
+    }),
     bytes.to_int64(),
   )
   // The whole-row UTF16 wire is a decoder local. After canonical equality,
@@ -261,7 +296,7 @@ pub fn client_run_journal_decode_construction(
         comparison.record_headers + 1L,
         comparison.reference_slots + 3L,
         comparison.scalar_words + 2L,
-        comparison.owned_utf16_units,
+        comparison.owned_utf16_units + 10L, // bounded head revision rendering
         bytes.to_int64(),
       ),
     ])

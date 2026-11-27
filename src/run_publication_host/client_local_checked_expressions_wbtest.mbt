@@ -111,7 +111,7 @@ test "a supported scalar never hides implicit completion or uninstalled relation
     _issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
-  assert_true(implicit_else.local_normalization is None)
+  assert_true(implicit_else.local_normalization is NormalizationNotIssued)
   let distinct = local_explicit_cast_original(
     text="SELECT DISTINCT ABS(-3) AS value",
   )
@@ -132,7 +132,7 @@ test "a supported scalar never hides implicit completion or uninstalled relation
     _issue_prepared_client_legacy_local_normalization(uncovered_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(uncovered_relation.local_normalization is None)
+  assert_true(uncovered_relation.local_normalization is NormalizationNotIssued)
 }
 
 ///|

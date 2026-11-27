@@ -18,6 +18,7 @@ def audit(cohort_directory: Path, report_path: Path) -> dict:
         raise AssertionError('Expected the complete normal cohort')
     installed = {item['metadata']['name'].lower().replace('_', '-'): item for item in report['install']}
     count = 0
+    sdk_runtime_binding = None
     for name, item in expected.items():
         wheel = cohort_directory / 'wheels' / item['file']
         body = wheel.read_bytes()
@@ -45,8 +46,22 @@ def audit(cohort_directory: Path, report_path: Path) -> dict:
                 if member.filename.endswith('.dist-info/RECORD'):
                     continue  # pip legitimately rewrites installation paths/hashes.
                 actual = site / member.filename
-                if actual.is_symlink() or site not in actual.resolve().parents or actual.read_bytes() != zipped.read(member):
+                if actual.is_symlink() or site not in actual.resolve().parents:
                     raise AssertionError(f'Installed payload differs: {member.filename}')
+                reads_sdk_binding = name == 'actql-sdk' and member.filename == 'actql_sdk/_local_release_binding.json'
+                if reads_sdk_binding and (sdk_runtime_binding is not None or not 0 < member.file_size <= 65536):
+                    raise AssertionError('Invalid original SDK runtime binding member')
+                if reads_sdk_binding:
+                    with actual.open('rb') as stream:
+                        installed_bytes = stream.read(65537)
+                else:
+                    installed_bytes = actual.read_bytes()
+                if installed_bytes != zipped.read(member):
+                    raise AssertionError(f'Installed payload differs: {member.filename}')
+                if reads_sdk_binding:
+                    sdk_runtime_binding = {'member': member.filename, 'bytes': len(installed_bytes),
+                                           'sha256': hashlib.sha256(installed_bytes).hexdigest(),
+                                           'wheel_sha256': item['sha256']}
                 expected_files.add(member.filename)
                 count += 1
             for top in ('actql', 'actql_sdk', 'actql_local_runtime'):
@@ -57,7 +72,8 @@ def audit(cohort_directory: Path, report_path: Path) -> dict:
                     spec = importlib.util.find_spec(top)
                     if spec is None or Path(spec.origin).resolve() != site / top / '__init__.py':
                         raise AssertionError('Public import does not resolve to the installed wheel')
-    return {'wheel_distributions': sorted(expected), 'verified_members': count, 'prefix': sys.prefix}
+    return {'wheel_distributions': sorted(expected), 'verified_members': count, 'prefix': sys.prefix,
+            **({'sdk_runtime_binding': sdk_runtime_binding} if sdk_runtime_binding is not None else {})}
 
 
 if __name__ == '__main__':

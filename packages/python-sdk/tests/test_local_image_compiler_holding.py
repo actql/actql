@@ -15,8 +15,8 @@ compiler = image.compiler
 class CompilerHoldingTests(unittest.TestCase):
     def setUp(self):
         self.fixture = image.ImageCompilerTests()
-        self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
+        self.fixture.setUp()
         self.case = self.fixture.case
         original = compiler.verify(self.case.module_file, self.case.head)
         recipe = original['recipe']

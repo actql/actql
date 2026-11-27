@@ -152,6 +152,7 @@ pub fn decode_client_run_journal_row_with_retained_identity(
   body : Bytes,
   request : ClientRequestIdentity,
   definition : @publication.PublicationContract,
+  require_retained_identity? : Bool = false,
   before_construction? : ((ClientRunJournalConstruction) -> Result[
     Unit,
     ClientJournalDecodingIssue,
@@ -165,6 +166,7 @@ pub fn decode_client_run_journal_row_with_retained_identity(
     true,
     true,
     retained_identity=Some((request, definition)),
+    require_retained_identity~,
     before_construction~,
   )
 }
@@ -199,6 +201,7 @@ pub fn decode_native_client_run_journal_row_with_checkpoint_companion(
 fn decode_client_journal_request(
   wire : String,
   original : ClientRequestIdentity?,
+  require_original : Bool,
 ) -> Result[(ClientRequestIdentity, String), ClientJournalDecodingIssue] {
   // The nested decoder encodes its input before parsing. Enforce its SAME
   // existing byte limit without allocating that copy on rejected outer rows.
@@ -209,6 +212,9 @@ fn decode_client_journal_request(
     client_request_identity_record_wire(value) is Ok(expected) &&
     expected == wire {
     return Ok((value, expected))
+  }
+  if require_original {
+    return Err(CustodyLost)
   }
   let value = match admit_client_request_identity_record_wire(wire) {
     Ok(value) => value
@@ -226,6 +232,7 @@ fn decode_client_journal_request(
 fn decode_client_journal_definition(
   wire : String,
   original : @publication.PublicationContract?,
+  require_original : Bool,
 ) -> Result[
   (@publication.PublicationContract, String),
   ClientJournalDecodingIssue,
@@ -236,6 +243,9 @@ fn decode_client_journal_definition(
     is Ok(_) &&
     @publication.publication_contract_json(value) == wire {
     return Ok((value, wire))
+  }
+  if require_original {
+    return Err(CustodyLost)
   }
   let value = match
     @publication.admit_publication_contract(
@@ -256,6 +266,7 @@ fn decode_client_run_journal_row_originals(
   allow_local_policy : Bool,
   allow_observation_originals : Bool,
   retained_identity? : (ClientRequestIdentity, @publication.PublicationContract)? = None,
+  require_retained_identity? : Bool = false,
   checkpoint_companion? : Ref[Bool]? = None,
   before_construction? : ((ClientRunJournalConstruction) -> Result[
     Unit,
@@ -270,7 +281,7 @@ fn decode_client_run_journal_row_originals(
   )
   let keys = [
     "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
-    "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
+    "cancellation_head", "checkpoint", "publication_binding", "publication_policy_originals",
     "effect_material_originals", "task_materials_cid",
   ]
   if allow_local_policy {
@@ -362,8 +373,16 @@ fn decode_client_run_journal_row_originals(
     text("run_definition") is Some(definition_wire) &&
     flag("dispatch_reserved") is Some(dispatch_reserved) &&
     flag("physical_start_claimed") is Some(physical_start_claimed) &&
-    flag("cancellation_requested") is Some(cancellation_requested) else {
+    @decode.lookup(object, "cancellation_head") is Some(head) else {
     return Err(CustodyLost)
+  }
+  let cancellation_head = if @decode.is_null(head) {
+    None
+  } else {
+    match decode_client_accepted_cancellation_head(head) {
+      Some(value) => Some(value)
+      None => return Err(CustodyLost)
+    }
   }
   if physical_start_claimed && !dispatch_reserved {
     return Err(CustodyLost)
@@ -372,6 +391,7 @@ fn decode_client_run_journal_row_originals(
     decode_client_journal_request(
       request_wire,
       retained_identity.map(value => value.0),
+      require_retained_identity,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -380,6 +400,7 @@ fn decode_client_run_journal_row_originals(
     decode_client_journal_definition(
       definition_wire,
       retained_identity.map(value => value.1),
+      require_retained_identity,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -444,7 +465,7 @@ fn decode_client_run_journal_row_originals(
     definition,
     dispatch_reserved,
     physical_start_claimed,
-    cancellation_requested,
+    cancellation_head,
     publication_binding,
     publication_policy_originals,
     effect_material_originals,

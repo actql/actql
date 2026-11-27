@@ -49,44 +49,56 @@ pub(all) enum LocalRunPublicationBindingPlan[Store, E] {
 fn[Store, E] publication_binding_current(
   original : LocalRunPublicationBinding[Store, E],
 ) -> Result[Unit, LocalRunPublicationBindingIssue[E]] {
+  local_publication_store_current(
+    original.material,
+    original.store,
+    original.plan.account_id,
+    original.plan.tuple,
+    original.plan.request,
+  )
+}
+
+///|
+// Recheck the adopted Store and live publish scope for the originating Run.
+// The caller still owes the nominal Plan and exact saved-row checks.
+fn[Store, E] local_publication_store_current(
+  material : @host.ClientLocalAdoptedHostMaterial[Store, E],
+  store : Store,
+  account_id : String,
+  origin : @authorization.AccessTuple,
+  request : @host.ClientRequestIdentity,
+) -> Result[Unit, LocalRunPublicationBindingIssue[E]] {
   let account = match
-    @host.client_local_adopted_current_account(
-      original.material,
-      original.store,
-    ) {
+    @host.client_local_adopted_current_account(material, store) {
     Ok(value) => value
     Err(issue) => return Err(Current(issue))
   }
-  if account.account_id() != original.plan.account_id {
+  if account.account_id() != account_id {
     return Err(AuthorizationMismatch)
   }
   let tuple : @authorization.AccessTuple = {
-    ..original.plan.tuple,
+    ..origin,
     resource: "run",
     operation: "publish",
   }
   match
-    @host.client_local_adopted_account_outcome(
-      original.material,
-      original.store,
-      tuple,
-    ) {
+    @host.client_local_adopted_account_outcome(material, store, tuple) {
     Ok(@authorization.Allow(_)) => ()
     Ok(_) => return Err(AuthorizationMismatch)
     Err(issue) => return Err(Current(issue))
   }
   let scope = match
     @host.client_local_adopted_authority_scope_body(
-      original.material,
-      original.store,
-      original.plan.tuple.principal,
-      original.plan.tuple.connection,
+      material,
+      store,
+      origin.principal,
+      origin.connection,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Current(issue))
   }
   if "sha256:" + @sha.hex(scope) !=
-    @host.client_request_authority_scope_cid(original.plan.request) {
+    @host.client_request_authority_scope_cid(request) {
     return Err(ForeignScope)
   }
   Ok(())
@@ -162,7 +174,10 @@ fn local_saved_snapshot_row_originals(
   }
   if (retained.dispatch_reserved && !encoding.dispatch_reserved) ||
     (retained.physical_start_claimed && !encoding.physical_start_claimed) ||
-    (retained.cancellation_requested && !encoding.cancellation_requested) ||
+    (
+      retained.cancellation_head is Some(head) &&
+      encoding.cancellation_head != Some(head)
+    ) ||
     (
       retained.publication_binding is Some(binding) &&
       encoding.publication_binding != Some(binding)
@@ -255,7 +270,7 @@ fn[Store, E] publication_binding_saved_rows(
     Err(issue) => return Err(SavedRows(issue))
   }
   let (encoding, _, _) = decoded
-  if encoding.cancellation_requested ||
+  if encoding.cancellation_requested() ||
     encoding.checkpoint is Some(_) ||
     encoding.effect_material_originals is Some(_) {
     return Err(CustodyLost)
@@ -351,26 +366,12 @@ fn[Store, E] prepare_local_run_publication_binding_original(
   LocalRunPublicationBindingPlan[Store, E],
   LocalRunPublicationBindingIssue[E],
 ] {
-  // Match the existing Native installation selector bounds. The pure binding
-  // codec remains a byte projection, not admission of arbitrary selectors.
-  if namespace_id.is_empty() ||
-    namespace_id.length() > 128 ||
-    store_authority_cid.length() != 71 ||
-    !store_authority_cid.has_prefix("sha256:") {
-    return Err(CustodyLost)
-  }
-  for index in 7..<store_authority_cid.length() {
-    let code = store_authority_cid[index]
-    if !((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')) {
-      return Err(CustodyLost)
-    }
-  }
   let binding = match
-    @host.client_publication_store_binding_body(
+    local_publication_store_binding_body(
       namespace_id, store_authority_cid, device, inode,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(StoreEncoding(issue))
+    Err(issue) => return Err(issue)
   }
   let policy = match
     @host.issue_client_run_policy_originals(
@@ -426,6 +427,32 @@ fn[Store, E] prepare_local_run_publication_binding_original(
     Ok(_) => Ok(Append({ original, prior: run, body, }))
     Err(issue) => Err(issue)
   }
+}
+
+///|
+fn[E] local_publication_store_binding_body(
+  namespace_id : String,
+  store_authority_cid : String,
+  device : UInt64,
+  inode : UInt64,
+) -> Result[String, LocalRunPublicationBindingIssue[E]] {
+  // Match the existing Native installation selector bounds. The pure binding
+  // codec remains a byte projection, not admission of arbitrary selectors.
+  if namespace_id.is_empty() ||
+    namespace_id.length() > 128 ||
+    store_authority_cid.length() != 71 ||
+    !store_authority_cid.has_prefix("sha256:") {
+    return Err(CustodyLost)
+  }
+  for index in 7..<store_authority_cid.length() {
+    let code = store_authority_cid[index]
+    if !((code >= '0' && code <= '9') || (code >= 'a' && code <= 'f')) {
+      return Err(CustodyLost)
+    }
+  }
+  @host.client_publication_store_binding_body(
+    namespace_id, store_authority_cid, device, inode,
+  ).map_err(issue => StoreEncoding(issue))
 }
 
 ///|

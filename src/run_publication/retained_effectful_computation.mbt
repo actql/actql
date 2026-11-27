@@ -22,7 +22,11 @@ pub fn admit_retained_effectful_computation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  prepared? : PreparedCapturedEffectRun? = None,
 ) -> Result[RetainedEffectfulComputation, RunEvidenceChainIssue] {
+  if prepared is Some(original) && !physical_equal(captured_run, original.captured) {
+    return Err(EvidenceInventoryMismatch("effect_dependency_inventory"))
+  }
   let inputs : ComputationEvidenceInputs = {
     run_definition,
     invocation,
@@ -31,7 +35,7 @@ pub fn admit_retained_effectful_computation(
     manifest,
     receipt: computation_receipt,
     captured_run,
-    dependency_inventory: None,
+    dependency_inventory: prepared.map(value => value.inventory),
     preview: Some(preview),
     max_wire_bytes,
     max_nodes,
@@ -268,7 +272,7 @@ pub fn prepare_retained_effectful_publication_commit_check(
     },
     max_workspace,
   )
-  value.retained_effectful = Some(original)
+  value.checked_effectful_receipt = Some(original.final_receipt)
   // All Result, binding and reference work stays in the existing bounded
   // phases. Only the immutable computation fact is retained, not re-executed.
   value.live = need.to_int()

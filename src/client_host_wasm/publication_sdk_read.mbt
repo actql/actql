@@ -96,8 +96,9 @@ pub fn produce_publication_sdk_read_evidence_decision(
 }
 
 ///|
-/// Original first-delivery CAS materials only, never usage ACK or payload.
-pub fn produce_publication_sdk_read_delivery_storage(
+/// Prepare the original first-delivery CAS and measure its exact wire bytes.
+/// The holder stays responsible for this preparation through commit/payload.
+pub fn measure_publication_sdk_read_delivery_storage(
   nonce : Int64,
   handle : Int,
   input : Int,
@@ -185,6 +186,14 @@ fn produce_sdk_read_field(
   if record.output_closed {
     return -5
   }
+  if kind is DeliveryStorage {
+    if record.invoked || record.pending || record.produced {
+      return -33
+    }
+    if @buffers.buffer_output_limit(value.pool, record.slot) != Some(1) {
+      return -4
+    }
+  }
   let context = match
     original_sdk_read_context(
       value,
@@ -209,9 +218,6 @@ fn produce_sdk_read_field(
     return -33
   }
   if record.produced {
-    if kind is DeliveryStorage && record.sdk_delivery_first is None {
-      return -41
-    }
     return 0
   }
   if record.invoked || record.pending {
@@ -237,7 +243,6 @@ fn produce_sdk_read_field(
     return -30
   }
   let current_check = context.check_current
-  let mut first_delivery : @local_run.LocalSDKReadDeliveryPreparation? = None
   let text = match kind {
     Grant(_) => {
       let grant = match
@@ -245,7 +250,7 @@ fn produce_sdk_read_field(
           source,
           current.account,
           finite,
-          sdk.read,
+          context.selection,
           sdk.adoption_cid,
           commit,
           view,
@@ -278,7 +283,7 @@ fn produce_sdk_read_field(
           source,
           current.account,
           finite,
-          sdk.read,
+          context.selection,
           sdk.adoption_cid,
           commit,
           view,
@@ -303,13 +308,13 @@ fn produce_sdk_read_field(
         Err(_) => return -32
       }
     }
-    DeliveryStorage =>
-      match
-        @local_run.prepare_local_sdk_read_delivery_installation_for_source(
+    DeliveryStorage => {
+      let first = match
+        @local_run.prepare_local_sdk_read_delivery_group_for_source(
           source,
           current.account,
           finite,
-          sdk.read,
+          context.selection,
           sdk.adoption_cid,
           commit,
           view,
@@ -321,10 +326,7 @@ fn produce_sdk_read_field(
           (table, key) => sdk_run_journal_port(value, current, 1, table, key),
           current_check,
         ) {
-        Ok((first, wire)) => {
-          first_delivery = Some(first)
-          wire
-        }
+        Ok(first) => first
         Err(Observation(code)) | Err(Store(Observation(code))) => return code
         Err(Store(Preparation(Preflight(_)))) => return -35
         Err(Store(Preparation(Codec(CapacityExceeded)))) => return -4
@@ -334,13 +336,39 @@ fn produce_sdk_read_field(
         Err(Store(MissingEvidence)) => return -37
         Err(_) => return -32
       }
+      record.sdk_delivery_prepared = Some((0, first, false))
+      guard @local_run.sdk_read_delivery_installation_transport_capacity(0)
+        is Some(working) else {
+        return -4
+      }
+      record.pending = true
+      let measured = with_sdk_export_transport_capacity(
+        value,
+        record,
+        working,
+        () => {
+          Ok(@local_run.measure_sdk_read_delivery_installation(first)) catch {
+            @encode.OutputLimit => Err(-4)
+            _ => Err(-32)
+          }
+        },
+      )
+      record.pending = false
+      match measured {
+        Err(code) => return code
+        Ok(bytes) => {
+          record.sdk_delivery_prepared = Some((bytes, first, false))
+          return bytes
+        }
+      }
+    }
     DeliveryLookup =>
       match
         @local_run.local_sdk_read_delivery_lookup_wire_for_source(
           source,
           current.account,
           finite,
-          sdk.read,
+          context.selection,
           sdk.adoption_cid,
           commit,
           view,
@@ -364,7 +392,7 @@ fn produce_sdk_read_field(
           source,
           current.account,
           finite,
-          sdk.read,
+          context.selection,
           sdk.adoption_cid,
           commit,
           view,
@@ -418,10 +446,153 @@ fn produce_sdk_read_field(
   )
   record.pending = false
   if result == 0 {
-    // Keep the actual first-issuance value under this original output/input
-    // custody. Saved/Copied response bytes are not its constructor or permit.
-    record.sdk_delivery_first = first_delivery
     record.produced = true
   }
   result
+}
+
+///|
+/// Emit the same measured proposal. Only the exact body child carries wire;
+/// the original holder retains the request and the preparation.
+pub fn emit_publication_sdk_read_delivery_storage(
+  nonce : Int64,
+  handle : Int,
+  first_handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(output) &&
+    value.commit_exports.get(first_handle) is Some(first) &&
+    handle != first_handle &&
+    output.publication == first.publication &&
+    first.projection is Some(SDKReadDeliveryStorage(_, run)) &&
+    first.sdk_delivery_prepared is Some((bytes, prepared, attempted)) &&
+    bytes > 0 else {
+    return -2
+  }
+  if output.closing ||
+    first.closing ||
+    output.output_closed ||
+    first.output_closed {
+    return -5
+  }
+  if output.invoked ||
+    output.pending ||
+    attempted ||
+    first.produced ||
+    first.pending {
+    return -33
+  }
+  guard @buffers.buffer_output_limit(value.pool, output.slot) == Some(bytes) &&
+    @local_run.sdk_read_delivery_installation_transport_capacity(bytes)
+    is Some(working) else {
+    return -4
+  }
+  // A failed emit retains these exact loans. It cannot prepare or emit a
+  // different body and cannot promote this first holder to payload custody.
+  output.invoked = true
+  output.projection = Some(SDKReadDeliveryBody(first_handle))
+  output.sdk_payload_parent = Some(first_handle)
+  first.sdk_delivery_prepared = Some((bytes, prepared, true))
+  match
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=true,
+    ) {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  if output.closing ||
+    first.closing ||
+    output.output_closed ||
+    first.output_closed {
+    return -5
+  }
+  guard value.commit_exports.get(handle) is Some(actual) &&
+    physical_equal(actual, output) else {
+    return -33
+  }
+  output.pending = true
+  first.pending = true
+  let result = with_sdk_export_transport_capacity(value, output, working, () => {
+    let wire = @utf8.encode(
+      @local_run.sdk_read_delivery_installation_wire(prepared, bytes),
+    ) catch {
+      @encode.OutputLimit => return Err(-4)
+      _ => return Err(-32)
+    }
+    if wire.length() != bytes {
+      return Err(-33)
+    }
+    let code = status(
+      @buffers.supply_buffer_output(value.pool, output.slot, wire),
+    )
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(code)
+    }
+  })
+  output.pending = false
+  first.pending = false
+  match result {
+    Err(code) => code
+    Ok(_) => {
+      output.produced = true
+      first.sdk_delivery_prepared = None
+      first.sdk_delivery_first = Some(prepared)
+      first.produced = true
+      0
+    }
+  }
+}
+
+///|
+/// The physical precommit of the same proposal rechecks current authority
+/// after staging. This export cannot construct a proposal.
+pub fn validate_publication_sdk_read_delivery_storage(
+  nonce : Int64,
+  handle : Int,
+  input : Int,
+  run : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(first) &&
+    first.projection == Some(SDKReadDeliveryStorage(input, run)) &&
+    value.copies.get(input) is Some((input_slot, _)) &&
+    first.state_borrow is Some(borrow) &&
+    physical_equal(borrow.slot, input_slot) &&
+    !first.pending &&
+    first.produced &&
+    !first.output_closed &&
+    first.sdk_delivery_first is Some(prepared) else {
+    return -33
+  }
+  let context = match
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      same_reader_census=true,
+    ) {
+    Err(code) => return code
+    Ok(context) => context
+  }
+  match
+    @local_run.observe_sdk_read_delivery_group(prepared, (table, key) => {
+      sdk_run_journal_port(value, context.current, 1, table, key)
+    }) {
+    Err(Observation(code)) => return code
+    Err(_) => return -32
+    Ok(_) => ()
+  }
+  match (context.check_current)() {
+    Err(code) => code
+    Ok(_) => 0
+  }
 }

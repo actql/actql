@@ -591,6 +591,19 @@ pub fn fill_block(nonce : Int64, handle : Int, start : Int, count : Int) -> Int 
 }
 
 ///|
+/// A supplied Buffer is readable only once its File projection has
+/// finished. A transport handle does not publish the semantic owner.
+fn file_projection_read_status(value : Instance, handle : Int) -> Int {
+  if value.publications.get(handle) is Some(record) {
+    return file_publication_output_read_status(value, record)
+  }
+  if value.result_chunks.get(handle) is Some(chunk) {
+    return result_chunk_read_status(value, chunk)
+  }
+  0
+}
+
+///|
 /// Private wasm32 borrow of the same completed immutable Buffer. The Host
 /// copies immediately under its original loan/VM scope, without another Core
 /// call or retaining this offset as an identity, grant or cleanup handle.
@@ -609,6 +622,8 @@ pub fn read_block(
     length > 16384 {
     return -5
   }
+  let readable = file_projection_read_status(value, handle)
+  if readable != 0 { return readable }
   guard @buffers.buffer_wire(value.pool, slot) is Some(bytes) &&
     start <= bytes.length() &&
     length <= bytes.length() - start else {
@@ -628,6 +643,8 @@ pub fn seal(nonce : Int64, handle : Int) -> Int {
 pub fn byte(nonce : Int64, handle : Int, index : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.copies.get(handle) is Some((slot, _)) else { return -2 }
+  let readable = file_projection_read_status(value, handle)
+  if readable != 0 { return readable }
   match @buffers.buffer_byte(value.pool, slot, index) {
     Some(value) => value.to_int()
     None => -5
@@ -648,6 +665,8 @@ pub fn read_packed(
   if count < 1 || count > 7 || start < 0 || start > 2147483647 - count {
     return -6L
   }
+  let readable = file_projection_read_status(value, handle)
+  if readable != 0 { return readable.to_int64() }
   let mut packed = 0L
   for offset in 0..<count {
     guard @buffers.buffer_byte(value.pool, slot, start + offset) is Some(byte) else {
@@ -664,6 +683,8 @@ pub fn borrow(nonce : Int64, handle : Int) -> Int {
   guard value.copies.get(handle) is Some((slot, physical_input)) else {
     return -2
   }
+  let readable = file_projection_read_status(value, handle)
+  if readable != 0 { return readable }
   if value.next_handle == 2147483647 {
     return -4
   }

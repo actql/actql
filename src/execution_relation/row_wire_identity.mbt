@@ -110,6 +110,7 @@ fn[T : IndexedRows] hash_row_wire(
   names : Array[String],
   limits : RowWireLimits,
   logical? : Bool = false,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[(String, Int, Int), RowWireIssue] {
   if !row_wire_valid_limits(limits) {
     return Err(InvalidLimits)
@@ -118,17 +119,40 @@ fn[T : IndexedRows] hash_row_wire(
   if width != names.length() {
     return Err(InvalidLayout)
   }
+  if work is Some(spend) {
+    // Rows with absent cells still traverse the same width. Sorting and
+    // typed emission charge their own frames to this same receiving owner.
+    let scan = table.row_count().to_int64() * (width.to_int64() + 1L) + 1L
+    if scan > 2147483647L || !spend(scan.to_int()) {
+      return Err(OrderLimit)
+    }
+  }
   let order = match
-    prepare_row_wire_order(names, limits.max_columns, limits.max_order_work) {
+    prepare_row_wire_order(
+      names,
+      limits.max_columns,
+      limits.max_order_work,
+      work~,
+    ) {
     Ok(order) => order
     Err(issue) => return Err(issue)
   }
   try {
-    let writer = @encode.hashing_writer(
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
+    let writer = match work {
+      Some(spend) =>
+        @encode.work_hashing_writer(
+          limits.max_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+          spend,
+        )
+      None =>
+        @encode.hashing_writer(
+          limits.max_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        )
+    }
     if logical {
       @encode.begin_object(writer)
       @encode.key(writer, "sort")

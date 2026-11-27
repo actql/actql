@@ -113,10 +113,15 @@ pub fn client_request_identity_relation(
 
 ///|
 fn valid_client_request_cid(value : String) -> Bool {
-  if value.length() != 71 || !value.has_prefix("sha256:") {
+  value.has_prefix("sha256:") && valid_sha256_hex_from(value, 7)
+}
+
+///|
+fn valid_sha256_hex_from(value : String, start : Int) -> Bool {
+  if value.length() != start + 64 {
     return false
   }
-  for index = 7; index < 71; index = index + 1 {
+  for index = start; index < value.length(); index = index + 1 {
     let unit = value[index].to_int()
     if !((unit >= 48 && unit <= 57) || (unit >= 97 && unit <= 102)) {
       return false
@@ -296,4 +301,72 @@ fn derive_client_request_identity(
     ),
     caller_input_intent_cid,
   })
+}
+
+///|
+/// Derive identity from a single nominal Submission snapshot. The caller
+/// retains the same physical Read and must have checked this snapshot's intent
+/// under its independently validated authority scope.
+pub fn prepare_client_submitted_effect_request_identity(
+  prepared : PreparedClientEffectComputation,
+  authority_scope_cid : String,
+  snapshot : ClientSavedSubmissionSnapshot,
+) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue] {
+  let original = client_saved_submission_record(snapshot)
+  let reference = original.reference
+  if client_submission_epoch_token_authority_scope_cid(
+      client_submission_reference_record_epoch(reference),
+    ) !=
+    authority_scope_cid {
+    return Err(IdentityMismatch)
+  }
+  prepare_client_effect_request_identity(
+    prepared,
+    authority_scope_cid,
+    client_submission_reference_record_request_id(reference),
+    client_submitted_intent_cid(original.intent),
+  )
+}
+
+///|
+/// Backing of the fixed Request constructor alone. Its authority, request and
+/// input CIDs stay borrowed. The two copied checked CIDs and the two issued
+/// CIDs remain live; bounded validation, canonical writers and hash are scratch.
+pub fn client_request_identity_construction_inventory() -> (
+  @execution.PreparationRepresentationUnits,
+  @execution.PreparationRepresentationUnits,
+)? {
+  let scope = @request_scope.logical_request_scope_construction_inventory()
+  guard @encode.text_writer_construction_inventory(1024, 5, 1) is Some(intent) &&
+    @encode.hash_writer_construction_inventory(0, 0) is Some(hash) else {
+    return None
+  }
+  Some(
+    (
+      {
+        record_headers: 6L,
+        reference_slots: 12L,
+        scalar_words: 0L,
+        owned_utf16_units: 284L,
+        owned_wire_bytes: 0L,
+      },
+      {
+        record_headers: scope.record_headers +
+        intent.record_headers +
+        hash.record_headers +
+        4L,
+        reference_slots: scope.reference_slots +
+        intent.reference_slots +
+        hash.reference_slots,
+        scalar_words: scope.scalar_words +
+        intent.scalar_words +
+        hash.scalar_words +
+        142L,
+        owned_utf16_units: scope.owned_utf16_units +
+        intent.owned_utf16_units +
+        hash.owned_utf16_units,
+        owned_wire_bytes: scope.owned_wire_bytes + hash.owned_wire_bytes + 1024L,
+      },
+    ),
+  )
 }

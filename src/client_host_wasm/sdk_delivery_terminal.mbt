@@ -38,7 +38,7 @@ fn sdk_terminal_observe(
       context.source,
       context.current.account,
       context.finite,
-      context.sdk.read,
+      context.selection,
       context.sdk.adoption_cid,
       context.owner,
       context.view,
@@ -79,6 +79,8 @@ pub fn observe_publication_sdk_terminal(
       run,
       current_configuration,
       same_reader_census=true,
+      targeted_task_material=true,
+      read_only_saved_control=true,
     ) {
     Ok(context) => context
     Err(code) => return code
@@ -121,7 +123,7 @@ pub fn produce_publication_sdk_terminal_storage(
   if output.pending || output.closing || output.output_closed {
     return -5
   }
-  let projection = SDKTerminalStorage(first_handle)
+  let projection = SDKTerminalStorage(first_handle, Staged)
   if output.projection is Some(original) && original != projection {
     return -33
   }
@@ -151,9 +153,13 @@ pub fn produce_publication_sdk_terminal_storage(
     if observed != 0 {
       return observed
     }
-    return sdk_payload_finish_current(
+    let current = sdk_payload_finish_current(
       value, first, context, current_configuration,
     )
+    if current == 0 {
+      output.projection = Some(SDKTerminalStorage(first_handle, Validated))
+    }
+    return current
   }
   if output.invoked {
     return -33
@@ -189,6 +195,40 @@ pub fn produce_publication_sdk_terminal_storage(
 }
 
 ///|
+/// A trusted physical supplier calls this only after its exact three-row
+/// transaction returned COMMIT. The existing precommit observation already
+/// validated the same receipt, record and head. Unknown uses observation.
+pub fn confirm_publication_sdk_terminal_commit(
+  nonce : Int64,
+  handle : Int,
+  first_handle : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(output) &&
+    value.commit_exports.get(first_handle) is Some(first) else {
+    return -2
+  }
+  guard handle != first_handle &&
+    output.publication == first.publication &&
+    output.sdk_payload_parent == Some(first_handle) &&
+    first.projection is Some(SDKReadDeliveryStorage(_, _)) &&
+    first.sdk_payload_terminal is Some(_) &&
+    output.projection == Some(SDKTerminalStorage(first_handle, Validated)) else {
+    return -33
+  }
+  if !output.produced ||
+    output.pending ||
+    output.closing ||
+    output.output_closed ||
+    first.pending ||
+    first.closing {
+    return -5
+  }
+  output.projection = Some(SDKTerminalStorage(first_handle, Committed))
+  0
+}
+
+///|
 fn sdk_terminal_prepare_output(
   value : Instance,
   output : StoredPublicationCommitExport,
@@ -214,7 +254,7 @@ fn sdk_terminal_prepare_output(
       context.source,
       context.current.account,
       context.finite,
-      context.sdk.read,
+      context.selection,
       context.sdk.adoption_cid,
       context.owner,
       context.view,

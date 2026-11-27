@@ -28,6 +28,7 @@ fn run_append_validate(
     request: record.0.request,
     definition: record.0.definition,
     checkpoint: None,
+    cancellation_head: record.0.cancellation_head,
     task_materials_cid: record.0.task_materials_cid,
   })
 }
@@ -86,7 +87,7 @@ test "Run append supplier projects fixed issued CAS and initial Run flags only" 
   )
   assert_false(row.dispatch_reserved)
   assert_false(row.physical_start_claimed)
-  assert_false(row.cancellation_requested)
+  assert_false(row.cancellation_requested())
   assert_true(
     row.publication_binding is None && row.checkpoint is None && policy is None,
   )
@@ -353,4 +354,114 @@ test "Run append refuses changing physical scan instead of accepting partial can
     "custody",
   )
   assert_true(result is Err(Observation("custody")))
+}
+
+///|
+test "same reader indexed definition observation follows the entire inventory" {
+  let rows = run_append_existing_rows()
+  let request = local_run_policy_packet_request()
+  let definition = local_run_policy_packet_definition()
+  let identity = @publication.publication_contract_identity(definition)
+  let queries : Array[String] = []
+  let run = (observe, maximum, cancellation) => {
+    queries.clear()
+    prepare_client_run_journal_append(
+      request,
+      definition,
+      maximum,
+      (table, cursor) => {
+        if table == "client_runs" {
+          queries.push("Run scan:" + cursor)
+        }
+        inventory_scan(rows, table, cursor)
+      },
+      (table, key) => inventory_read(rows, table, key),
+      run_append_validate,
+      cancellation,
+      "custody",
+      definition_presence=Some(cid => {
+        queries.push("definition")
+        if cid != identity {
+          return Err("foreign index key")
+        }
+        observe
+      }),
+    )
+  }
+  guard run(Ok(None), 2, () => Ok(())) is Ok(Append(full)) else {
+    fail("original inventory")
+  }
+  assert_eq(queries.length(), 5)
+  guard run(Ok(Some(false)), 2, () => Ok(())) is Ok(Append(indexed)) else {
+    fail("same-reader index absence")
+  }
+  assert_eq(queries.length(), 3)
+  assert_eq(queries[2], "definition")
+  assert_eq(
+    client_run_journal_append_rows(full),
+    client_run_journal_append_rows(indexed),
+  )
+  assert_true(run(Ok(Some(true)), 2, () => Ok(())) is Err(ForeignRun))
+  assert_eq(queries.length(), 3)
+  assert_true(
+    run(Err("index-query"), 2, () => Ok(())) is Err(Observation("index-query")),
+  )
+  assert_eq(queries.length(), 3)
+  assert_true(run(Ok(Some(false)), 1, () => Ok(())) is Err(CapacityExceeded))
+  assert_eq(queries.length(), 2)
+  assert_true(
+    run(Ok(Some(false)), 2, () => Err("cancellation"))
+    is Err(Observation("cancellation")),
+  )
+  assert_eq(queries.length(), 2)
+}
+
+///|
+test "complete SDK inventory supplies counts before the fresh Definition check" {
+  let rows = run_append_existing_rows()
+  rows.push(("client_cancel_custody", inventory_row("issued", b"0")))
+  let request = local_run_policy_packet_request()
+  let definition = local_run_policy_packet_definition()
+  let read = (table, key) => inventory_read(rows, table, key)
+  let capture = maximum => {
+    capture_client_sdk_run_journal_inventory(
+      maximum,
+      (table, cursor) => inventory_scan(rows, table, cursor),
+      read,
+      run_append_validate,
+      row => run_append_validate(row).map(value => {
+        request: value.request,
+        definition: value.definition,
+        cancellation_head: value.cancellation_head,
+      }),
+      _ => Ok(Some(true)),
+      "custody",
+    ).unwrap()
+  }
+  let original = capture(2)
+  let run = (proof, result, maximum) => {
+    prepare_client_run_journal_append(
+      request,
+      definition,
+      maximum,
+      (_, _) => Err("unexpected scan"),
+      read,
+      run_append_validate,
+      () => Err("unexpected cancellation audit"),
+      "custody",
+      definition_presence=Some(_ => result),
+      inventory_original=Some(() => proof),
+    )
+  }
+  guard run(Ok(original), Ok(Some(false)), 2) is Ok(Append(candidate)) else {
+    fail("valid inventory")
+  }
+  let (_, _, revision, count) = client_run_journal_append_rows(candidate)
+  assert_eq(revision, original.revision)
+  assert_eq(count, b"2")
+  assert_true(run(Ok(original), Ok(Some(true)), 2) is Err(ForeignRun))
+  assert_true(run(Ok(original), Err("definition-query"), 2) is Err(Observation("definition-query")))
+  assert_true(run(Ok(capture(1)), Err("definition-query"), 1) is Err(CapacityExceeded))
+  assert_true(run(Ok(original), Err("definition-query"), 1) is Err(Observation("custody")))
+  assert_true(run(Err("inventory-query"), Ok(Some(false)), 2) is Err(Observation("inventory-query")))
 }

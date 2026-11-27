@@ -239,3 +239,93 @@ test "Run decoded output handoff occurs only after exact canonical acceptance" {
   )
   assert_eq(handed.val, 1)
 }
+
+///|
+test "required Run identity reuses only the exact request and Definition" {
+  let original = journal_encoding_original()
+  let body = client_run_journal_row_body(original).unwrap()
+  let foreign = derive_client_request_identity(
+    {
+      program_definition_cid: original.request.program_definition_cid,
+      parameter_values_cid: original.request.parameter_values_cid,
+    },
+    original.request.authority_scope_cid,
+    "another-caller",
+    original.request.caller_input_intent_cid,
+  ).unwrap()
+  let lower = Ref(false)
+  let retained = decode_client_run_journal_row_with_retained_identity(
+      body,
+      original.request,
+      original.definition,
+      require_retained_identity=true,
+      before_construction=Some(stage => {
+        if stage is RunJournalCanonical(_, _, _, _) {
+          let (_, borrowed) = client_run_journal_decode_construction(
+            stage,
+            require_retained_identity=true,
+          ).unwrap()
+          let (_, full) = client_run_journal_decode_construction(stage).unwrap()
+          lower.val = borrowed < full
+        }
+        Ok(())
+      }),
+    ).unwrap().0
+  assert_true(lower.val)
+  assert_true(physical_equal(retained.request, original.request))
+  assert_true(physical_equal(retained.definition, original.definition))
+  assert_true(
+    decode_client_run_journal_row_with_retained_identity(
+      body,
+      foreign,
+      original.definition,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    decode_client_run_journal_row_with_retained_identity(
+      body,
+      foreign,
+      original.definition,
+      require_retained_identity=true,
+    )
+    is Err(CustodyLost),
+  )
+}
+
+///|
+test "measured Run journal emission preserves exact original bytes and refusal" {
+  let record = {
+    ..journal_encoding_original(),
+    checkpoint: Some("{\"text\":\"é\\r\\n😀\"}"),
+    publication_binding: Some("original-store"),
+    effect_material_originals: Some("original\"text".repeat(300)),
+  }
+  let original = client_run_journal_row_body(record).unwrap()
+  let measured : Array[Int] = []
+  let issued = client_run_journal_row_body(
+    record,
+    measure_construction=true,
+    before_construction=Some((bytes, _, _) => {
+      measured.push(bytes)
+      Ok(())
+    }),
+  ).unwrap()
+  assert_eq(measured, [0, original.length()])
+  assert_eq(issued, original)
+  let admitted = original.length() - 1
+  assert_eq(
+    client_run_journal_row_body(
+      record,
+      measure_construction=true,
+      before_construction=Some((bytes, _, _) => {
+        if bytes <= admitted {
+          Ok(())
+        } else {
+          Err(CapacityExceeded)
+        }
+      }),
+    ),
+    Err(CapacityExceeded),
+  )
+}

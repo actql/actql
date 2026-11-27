@@ -9,6 +9,7 @@ pub fn prepared_client_effect_publication_policy_bodies(
   before_body? : ((Int, Int, Int) -> Bool)? = None,
   retained_body_keys? : Map[String, String]? = None,
   retain_catalog? : Bool = true,
+  before_measure? : ((Int, Int) -> Bool)? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   guard prepared_client_effect_publication_data_policy_cid(value) is Some(cid) else {
     return Err(MissingDependency)
@@ -24,6 +25,7 @@ pub fn prepared_client_effect_publication_policy_bodies(
     max_depth,
     retain_catalog~,
     before_body~,
+    before_measure~,
     retained_body_keys~,
   )
 }
@@ -63,6 +65,14 @@ fn checked_client_publication_policy_bodies(
   retain_catalog? : Bool = false,
   before_body? : ((Int, Int, Int) -> Bool)? = None,
   retained_body_keys? : Map[String, String]? = None,
+  admitted_body? : ((@publication.CapturedEffectDependencyBody, Int) -> Result[
+    Unit,
+    @checked.LocalDependencyBodyIssue,
+  ])? = None,
+  before_emit? : ((Int, Int, Int) -> Bool)? = None,
+  before_catalog_emit? : ((Int, Int, Int) -> Bool)? = None,
+  before_measure? : ((Int, Int) -> Bool)? = None,
+  current? : (() -> Bool)? = None,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
   let remaining = Int::min(max_bytes, 16777216)
   let mut work = Int::min(max_nodes, 4096)
@@ -99,6 +109,11 @@ fn checked_client_publication_policy_bodies(
     retain_catalog~,
     before_body~,
     retained_body_keys~,
+    admitted_body~,
+    before_emit~,
+    before_catalog_emit~,
+    before_measure~,
+    current~,
   )
 }
 
@@ -424,7 +439,7 @@ pub fn client_compiled_run_publication_policy_bodies(
   if value.compilation is Effects(_) {
     return Err(ForeignBody)
   }
-  if prepared_client_has_checked_sources(value.owner) {
+  if prepared_client_acquisition_count(value.owner) != 0 {
     return prepared_client_publication_policy_bodies(
       value.owner,
       max_bytes,

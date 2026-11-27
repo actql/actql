@@ -143,20 +143,24 @@ fn[T] original_read_child(
 }
 
 ///|
-fn[T] original_read_children_current(claim : FundedReadClaim[T]) -> Bool {
+fn[T] original_read_children_current(
+  claim : FundedReadClaim[T],
+  output_workspace? : StartedTaskWorkspace? = None,
+) -> Bool {
   guard claim.children is Some(group) &&
     !(claim.phase is Reclaimed) &&
     claim.descriptor.ledger.original_inventory is Some(_) else {
     return false
   }
   if !group.started {
-    return funded_read_state_matches(claim, claim.descriptor.origin)
+    return output_workspace is None &&
+      funded_read_state_matches(claim, claim.descriptor.origin)
   }
   // A declared Run may now spend real work/attempts and retain its own output.
   // Keep the first snapshot untouched. Only this same original census/read
   // and its originally recorded producer transitions may remain live here.
   check_original_resources_mutable(claim.descriptor.ledger) is Ok(_) &&
-  original_read_children_snapshot_matches(claim)
+  original_read_children_snapshot_matches(claim, output_workspace~)
 }
 
 ///|
@@ -166,6 +170,7 @@ fn[T] original_read_children_current(claim : FundedReadClaim[T]) -> Bool {
 // after the group starts. No snapshot is refreshed.
 fn[T] original_read_children_snapshot_matches(
   claim : FundedReadClaim[T],
+  output_workspace? : StartedTaskWorkspace? = None,
 ) -> Bool {
   claim.children is Some(_) &&
   !(claim.phase is Reclaimed) &&
@@ -180,6 +185,7 @@ fn[T] original_read_children_snapshot_matches(
     claim.descriptor,
     completed_outputs=true,
     bootstrap_growth=claim.children is Some(group) && group.started,
+    output_workspace~,
   )
 }
 
@@ -501,9 +507,10 @@ fn[T] original_read_child_origin(
   claim : FundedReadClaim[T],
   consumer : FundedReadConsumer[T],
   handed_off : Bool,
+  output_workspace? : StartedTaskWorkspace? = None,
 ) -> T? {
   guard original_read_child(claim, consumer) is Some(child) else { return None }
-  if !original_read_children_current(claim) {
+  if !original_read_children_current(claim, output_workspace~) {
     return None
   }
   if (handed_off && child.phase == HandedOff) ||

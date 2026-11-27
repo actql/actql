@@ -7,6 +7,7 @@ pub(all) enum ClientEffectLocalIdentityIssue {
   ForeignPreview
   MissingIdentity
   WorkLimit
+  Capacity
   Encoding
 } derive(Eq, Debug)
 
@@ -31,24 +32,24 @@ fn emit_client_effect_local_identity(
   resolved_contract_cid : String,
   self_cid : String?,
 ) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(writer)
-  @encode.key(writer, "effect_id")
+  @encode.begin_ordered_object(writer)
+  @encode.ordered_key(writer, "effect_id")
   @encode.string_value(writer, @syntax.effect_header_id(header))
-  @encode.key(writer, "effect_semantics")
+  @encode.ordered_key(writer, "effect_semantics")
   @syntax.emit_effect_header_semantics(header, writer)
-  @encode.key(writer, "local_invocation_cid")
+  @encode.ordered_key(writer, "local_invocation_cid")
   @encode.string_value(writer, local_invocation_cid)
-  @encode.key(writer, "resolved_contract_cid")
+  @encode.ordered_key(writer, "resolved_contract_cid")
   @encode.string_value(writer, resolved_contract_cid)
-  @encode.key(writer, "result_artifact_cid")
+  @encode.ordered_key(writer, "result_artifact_cid")
   @encode.string_value(writer, result_artifact_cid)
   if self_cid is Some(cid) {
-    @encode.key(writer, "self_cid")
+    @encode.ordered_key(writer, "self_cid")
     @encode.string_value(writer, cid)
   }
-  @encode.key(writer, "unit_definition_cid")
+  @encode.ordered_key(writer, "unit_definition_cid")
   @encode.string_value(writer, unit_definition_cid)
-  @encode.key(writer, "version")
+  @encode.ordered_key(writer, "version")
   @encode.string_value(writer, "actql-local-effect-identity/0.1")
   @encode.end_object(writer)
 }
@@ -65,6 +66,10 @@ pub fn issue_source_free_client_effect_local_identity(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  fund? : ((
+    @execution.PreparationRepresentationUnits,
+    @execution.PreparationRepresentationUnits,
+  ) -> Bool)? = None,
 ) -> Result[ClientEffectLocalIdentity, ClientEffectLocalIdentityIssue] {
   if !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) ||
     !client_effect_local_artifact_matches_inputs(artifact, inputs) ||
@@ -147,23 +152,72 @@ pub fn issue_source_free_client_effect_local_identity(
   let artifact_cid = @publication.publication_contract_identity(
     artifact.artifact,
   )
-  let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
+  let measured = if fund is Some(fund) {
+    let shape = @decode.observe_subtree_construction_geometry(
+      @syntax.effect_header_body(header),
+    )
+    guard client_effect_local_identity_emission_inventory(
+        shape, 0, max_depth, false,
+      )
+      is Some(measure) &&
+      fund(measure, empty_effect_local_identity_inventory()) else {
+      return Err(Capacity)
+    }
+    let writer = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth) catch {
+      _ => return Err(Encoding)
+    }
+    let usage = try {
+      // The fixed placeholder has the same UTF-8 extent as the issued CID.
+      emit_client_effect_local_identity(
+        writer,
+        header,
+        definition_cid,
+        invocation_cid,
+        artifact_cid,
+        resolved_contract_cid,
+        Some(definition_cid),
+      )
+      @encode.finish_measurement_usage(writer)
+    } catch {
+      _ => return Err(Encoding)
+    }
+    let (bytes, _, depth) = usage
+    guard client_effect_local_identity_emission_inventory(
+        shape, bytes, depth, true,
+      )
+      is Some(emission) &&
+      fund(emission, {
+        record_headers: 4L,
+        reference_slots: 6L,
+        scalar_words: 2L,
+        owned_utf16_units: bytes.to_int64() + 71L,
+        owned_wire_bytes: 0L,
+      }) else {
+      return Err(Capacity)
+    }
+    Some(usage)
+  } else {
+    None
+  }
+  let cid = try {
+    let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
+    emit_client_effect_local_identity(
+      hash,
+      header,
+      definition_cid,
+      invocation_cid,
+      artifact_cid,
+      resolved_contract_cid,
+      None,
+    )
+    "sha256:" + @encode.finish_hash(hash)
+  } catch {
     _ => return Err(Encoding)
   }
-  emit_client_effect_local_identity(
-    hash,
-    header,
-    definition_cid,
-    invocation_cid,
-    artifact_cid,
-    resolved_contract_cid,
-    None,
-  ) catch {
-    _ => return Err(Encoding)
-  }
-  let cid = "sha256:" +
-    (@encode.finish_hash(hash) catch { _ => return Err(Encoding) })
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+  let (bytes, nodes, depth) = measured.unwrap_or(
+    (max_wire_bytes, max_nodes, max_depth),
+  )
+  let writer = @encode.writer(bytes, nodes, depth) catch {
     _ => return Err(Encoding)
   }
   emit_client_effect_local_identity(
@@ -177,8 +231,109 @@ pub fn issue_source_free_client_effect_local_identity(
   ) catch {
     _ => return Err(Encoding)
   }
-  let wire = @encode.finish(writer) catch { _ => return Err(Encoding) }
+  let (wire, actual_bytes, actual_nodes, actual_depth) = @encode.finish_text_usage(
+    writer,
+  ) catch {
+    _ => return Err(Encoding)
+  }
+  if measured is Some(usage) &&
+    usage != (actual_bytes, actual_nodes, actual_depth) {
+    return Err(Encoding)
+  }
   Ok({ owner, member_index, artifact, cid, wire, })
+}
+
+///|
+fn empty_effect_local_identity_inventory() -> @execution.PreparationRepresentationUnits {
+  {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+}
+
+///|
+// The semantics emitter visits the admitted syntax, sorts each original
+// object’s field references and borrows its strings. Count every possible
+// outstanding cursor and sort slot, including refused prefixes. Sorted keys
+// use the writer's ordered cursor, whose frame holds only its previous key.
+fn client_effect_local_identity_emission_inventory(
+  shape : @decode.SubtreeConstructionGeometry,
+  output_bytes : Int,
+  depth : Int,
+  emitting : Bool,
+) -> @execution.PreparationRepresentationUnits? {
+  guard depth >= 0 else { return None }
+  let depth = Int::min(depth, Int::min(shape.nodes, 2147483643) + 4)
+  let n = shape.nodes.to_int64()
+  guard @shape.collection_construction_extent({
+      records: 8L * n + 8L,
+      record_references: 5L * n + 12L,
+      record_words: 7L * n + 12L,
+      reference_arrays: 3L * shape.objects.to_int64(),
+      reference_items: 7L * shape.fields.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 1L,
+      map_entries: 0L,
+    })
+    is Some(traversal) &&
+    @encode.measuring_writer_construction_extent(0, depth) is Some(measure) else {
+    return None
+  }
+  let operation = @encode.measurement_operation_construction_extent()
+  let transient : @execution.PreparationRepresentationUnits = {
+    record_headers: traversal.record_headers +
+    measure.record_headers +
+    operation.collections.record_headers +
+    18L,
+    reference_slots: traversal.reference_slots +
+    measure.reference_slots +
+    operation.collections.reference_slots +
+    24L,
+    scalar_words: traversal.scalar_words +
+    measure.scalar_words +
+    operation.collections.scalar_words +
+    24L,
+    owned_utf16_units: operation.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  }
+  if !emitting {
+    return Some(transient)
+  }
+  guard @encode.hash_writer_live_key_inventory(0, depth) is Some(hash) &&
+    @encode.text_writer_live_key_inventory(output_bytes, 0, depth) is Some(text) else {
+    return None
+  }
+  Some({
+    record_headers: Int64::max(
+      transient.record_headers,
+      traversal.record_headers +
+      Int64::max(hash.record_headers, text.record_headers) +
+      18L,
+    ),
+    reference_slots: Int64::max(
+      transient.reference_slots,
+      traversal.reference_slots +
+      hash.reference_slots +
+      text.reference_slots +
+      24L,
+    ),
+    scalar_words: Int64::max(
+      transient.scalar_words,
+      traversal.scalar_words +
+      Int64::max(hash.scalar_words, text.scalar_words) +
+      24L,
+    ),
+    owned_utf16_units: Int64::max(
+      hash.owned_utf16_units,
+      text.owned_utf16_units,
+    ) +
+    71L,
+    owned_wire_bytes: hash.owned_wire_bytes,
+  })
 }
 
 ///|

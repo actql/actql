@@ -577,6 +577,7 @@ pub fn issue_original_client_infer_run_materials(
   definition : @publication.PublicationContract,
   supplied : @decode.Cursor?,
   before_body : (String, Int, Int, Int) -> Bool,
+  program_out? : Ref[String?]? = None,
 ) -> Result[String, ClientTaskRunMaterialsIssue] {
   let prepared = compiled.owner
   guard compiled.compilation is Tasks(compilation) &&
@@ -669,7 +670,14 @@ pub fn issue_original_client_infer_run_materials(
     infer_input~,
     infer_inputs_wire~,
     before_body=Some(before_body),
-  ).map_err(issue => Input(issue))
+  )
+  .map(wire => {
+    if program_out is Some(out) {
+      out.val = Some(program)
+    }
+    wire
+  })
+  .map_err(issue => Input(issue))
 }
 
 ///|

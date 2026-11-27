@@ -534,3 +534,25 @@ fn[P] prepared_run_operation_work_node_body(
     owner.preparation_holder
   }
 }
+
+///|
+/// Read the exact final accounting after the Node child acknowledged stop.
+/// A clean close with no issued Ledger provides no such accounting original.
+pub fn[P] stopped_node_managed_run_ledger_state(
+  admission : NodeManagedRunAdmission[P],
+  ledger : Ledger,
+) -> Result[LedgerContinuationState, LedgerContinuationIssue] {
+  guard admission.original is Some(original) &&
+    physical_equal(admission, original) &&
+    admission.cleaned &&
+    admission.ledger is Some(bound) &&
+    physical_equal(bound, ledger) &&
+    admission.child.ledger is Some(child_ledger) &&
+    physical_equal(child_ledger, ledger) &&
+    admission.child.stop_attempted &&
+    admission.child.stop_outcome is None &&
+    admission.child.pending_report is None else {
+    return Err(ChangedOriginal)
+  }
+  quiescent_ledger_data(ledger)
+}

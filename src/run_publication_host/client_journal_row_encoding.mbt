@@ -13,7 +13,7 @@ pub(all) struct ClientRunJournalEncoding {
   definition : @publication.PublicationContract
   dispatch_reserved : Bool
   physical_start_claimed : Bool
-  cancellation_requested : Bool
+  cancellation_head : ClientAcceptedCancellationHead?
   publication_binding : String?
   publication_policy_originals : String?
   effect_material_originals : String?
@@ -22,13 +22,21 @@ pub(all) struct ClientRunJournalEncoding {
 }
 
 ///|
-/// Preserve the existing Native row bytes and limits. Producing this body
-/// proves neither a committed transaction nor permission to dispatch.
+pub fn ClientRunJournalEncoding::cancellation_requested(
+  self : ClientRunJournalEncoding,
+) -> Bool {
+  self.cancellation_head is Some(_)
+}
+
+///|
+/// Encode the current Run row within its existing limits. Its body carries
+/// candidate data for the physical Journal transaction.
 pub fn client_run_journal_row_body(
   record : ClientRunJournalEncoding,
   local_run_policy_originals? : String? = None,
   run_observation_originals? : String? = None,
   checkpoint_companion? : Bool = false,
+  measure_construction? : Bool = false,
   before_construction? : ((Int, Int, Int) -> Result[
     Unit,
     ClientJournalEncodingIssue,
@@ -46,6 +54,7 @@ pub fn client_run_journal_row_body(
     run_observation_originals~,
     checkpoint_companion~,
     before_construction~,
+    measure_construction~,
   )
 }
 
@@ -60,6 +69,7 @@ fn client_run_journal_row_body_from_wires(
   run_observation_originals? : String? = None,
   comparison_bytes? : Int? = None,
   checkpoint_companion? : Bool = false,
+  measure_construction? : Bool = false,
   before_construction? : ((Int, Int, Int) -> Result[
     Unit,
     ClientJournalEncodingIssue,
@@ -82,10 +92,20 @@ fn client_run_journal_row_body_from_wires(
   } else {
     "actql-native-client-run-row/0.1"
   }
-  let fixed = "{\"cancellation_requested\":false,\"checkpoint\":null,\"dispatch_reserved\":false,\"effect_material_originals\":\"\",\"local_run_policy_originals\":\"\",\"physical_start_claimed\":false,\"publication_binding\":null,\"publication_policy_originals\":\"\",\"request\":\"\",\"run_definition\":\"\",\"run_observation_originals\":\"\",\"task_materials_cid\":\"\",\"version\":\"\"}"
+  let fixed = "{\"cancellation_head\":null,\"checkpoint\":null,\"dispatch_reserved\":false,\"effect_material_originals\":\"\",\"local_run_policy_originals\":\"\",\"physical_start_claimed\":false,\"publication_binding\":null,\"publication_policy_originals\":\"\",\"request\":\"\",\"run_definition\":\"\",\"run_observation_originals\":\"\",\"task_materials_cid\":\"\",\"version\":\"\"}"
     .length()
     .to_int64() +
-    version.length().to_int64()
+    version.length().to_int64() +
+    (if record.cancellation_head is Some(_) {
+      // The nominal head contains a lowercase 64-byte key and an admitted
+      // positive Int revision. Their strings do not expand under escaping.
+      "{\"observed_revision\":\"\",\"record_key\":\"\"}".length().to_int64() +
+      64L +
+      10L -
+      4L
+    } else {
+      0L
+    })
   let other_units = request.length().to_int64() +
     definition.length().to_int64() +
     record.checkpoint.map(value => value.length().to_int64()).unwrap_or(0L) +
@@ -131,7 +151,40 @@ fn client_run_journal_row_body_from_wires(
   }
   try {
     let batch_units = 65L * 256L
-    if before_construction is Some(reserve) {
+    let measured = if measure_construction {
+      guard before_construction is Some(reserve) else { return Err(Encoding) }
+      // The exact same emitter traverses borrowed fields first. Only its
+      // syntax/control frame is live while measuring.
+      match reserve(0, 32, 4) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      let meter = @encode.measuring_writer(maximum, 32, 4)
+      match
+        write_original_client_run_journal_row(
+          meter,
+          record,
+          request,
+          definition,
+          local_run_policy_originals,
+          run_observation_originals,
+          version,
+          maximum,
+          0L,
+          None,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let (bytes, nodes, depth) = @encode.finish_measurement_usage(meter)
+      match reserve(bytes, nodes, depth) {
+        Err(issue) => return Err(issue)
+        Ok(_) => Some(bytes)
+      }
+    } else {
+      None
+    }
+    if measured is None && before_construction is Some(reserve) {
       let initial = @execution.checked_preparation_add_product(
         construction_base,
         Int64::min(observation_units, batch_units),
@@ -142,91 +195,32 @@ fn client_run_journal_row_body_from_wires(
         Ok(_) => ()
       }
     }
-    let writer = @encode.writer(maximum, 32, 4)
-    let mut observed_field_bytes = 0
-    @encode.begin_object(writer)
-    @encode.key(writer, "cancellation_requested")
-    @encode.bool_value(writer, record.cancellation_requested)
-    @encode.key(writer, "checkpoint")
-    match record.checkpoint {
-      Some(value) => @encode.string_value(writer, value)
-      None => @encode.null_value(writer)
+    let writer = @encode.writer(measured.unwrap_or(maximum), 32, 4)
+    let observed_field_bytes = match
+      write_original_client_run_journal_row(
+        writer,
+        record,
+        request,
+        definition,
+        local_run_policy_originals,
+        run_observation_originals,
+        version,
+        maximum,
+        construction_base,
+        if measured is Some(_) {
+          None
+        } else {
+          before_construction
+        },
+      ) {
+      Ok(bytes) => bytes
+      Err(issue) => return Err(issue)
     }
-    @encode.key(writer, "dispatch_reserved")
-    @encode.bool_value(writer, record.dispatch_reserved)
-    // Optional private originals preserve absent-field bytes for older rows.
-    if record.effect_material_originals is Some(original) {
-      @encode.key(writer, "effect_material_originals")
-      @encode.string_value(writer, original)
-    }
-    if local_run_policy_originals is Some(original) {
-      @encode.key(writer, "local_run_policy_originals")
-      @encode.string_value(writer, original)
-    }
-    @encode.key(writer, "physical_start_claimed")
-    @encode.bool_value(writer, record.physical_start_claimed)
-    @encode.key(writer, "publication_binding")
-    match record.publication_binding {
-      Some(value) => @encode.string_value(writer, value)
-      None => @encode.null_value(writer)
-    }
-    // Omit absent originals: old retained rows keep their exact original bytes.
-    if record.publication_policy_originals is Some(originals) {
-      @encode.key(writer, "publication_policy_originals")
-      @encode.string_value(writer, originals)
-    }
-    @encode.key(writer, "request")
-    @encode.string_value(writer, request)
-    @encode.key(writer, "run_definition")
-    @encode.string_value(writer, definition)
-    if run_observation_originals is Some(originals) {
-      let (before_field, _, _) = @encode.writer_progress(writer)
-      @encode.key(writer, "run_observation_originals")
-      match before_construction {
-        None => @encode.string_value(writer, originals)
-        Some(reserve) => {
-          let cursor = @encode.start_string_value(writer, originals)
-          let mut done = false
-          while !done {
-            for _ in 0..<256 {
-              if @encode.advance_string_value(cursor) {
-                done = true
-                break
-              }
-            }
-            if !done {
-              let (emitted, _, _) = @encode.writer_progress(writer)
-              guard @execution.checked_preparation_add_product(
-                  construction_base + emitted.to_int64(),
-                  batch_units,
-                  6L,
-                )
-                is Some(next) else {
-                return Err(CapacityExceeded)
-              }
-              match
-                reserve(Int64::min(next, maximum.to_int64()).to_int(), 32, 4) {
-                Err(issue) => return Err(issue)
-                Ok(_) => ()
-              }
-            }
-          }
-        }
-      }
-      let (after_field, _, _) = @encode.writer_progress(writer)
-      observed_field_bytes = after_field - before_field
-    }
-    if record.task_materials_cid is Some(cid) {
-      @encode.key(writer, "task_materials_cid")
-      @encode.string_value(writer, cid)
-    }
-    @encode.key(writer, "version")
-    @encode.string_value(writer, version)
-    @encode.end_object(writer)
     let (emitted, _, _) = @encode.writer_progress(writer)
     // The observed route enlarges only the private observation field, never
     // the combined legacy fields or their independent semantic limits.
-    if emitted - observed_field_bytes > 131072 {
+    if (measured is Some(bytes) && bytes != emitted) ||
+      emitted - observed_field_bytes > 131072 {
       return Err(CapacityExceeded)
     }
     Ok(@utf8.encode(@encode.finish(writer)))
@@ -234,6 +228,116 @@ fn client_run_journal_row_body_from_wires(
     @encode.OutputLimit => Err(CapacityExceeded)
     _ => Err(Encoding)
   }
+}
+
+///|
+fn write_original_client_run_journal_row(
+  writer : @encode.Writer,
+  record : ClientRunJournalEncoding,
+  request : String,
+  definition : String,
+  local_run_policy_originals : String?,
+  run_observation_originals : String?,
+  version : String,
+  maximum : Int,
+  construction_base : Int64,
+  before_construction : ((Int, Int, Int) -> Result[
+    Unit,
+    ClientJournalEncodingIssue,
+  ])?,
+) -> Result[Int, ClientJournalEncodingIssue] raise @encode.EncodeFailure {
+  let batch_units = 65L * 256L
+  let mut observed_field_bytes = 0
+  @encode.begin_object(writer)
+  @encode.key(writer, "cancellation_head")
+  match record.cancellation_head {
+    None => @encode.null_value(writer)
+    Some(head) => {
+      @encode.begin_object(writer)
+      @encode.key(writer, "observed_revision")
+      @encode.string_value(writer, head.observed_revision.to_string())
+      @encode.key(writer, "record_key")
+      @encode.string_value(writer, head.record_key)
+      @encode.end_object(writer)
+    }
+  }
+  @encode.key(writer, "checkpoint")
+  match record.checkpoint {
+    Some(value) => @encode.string_value(writer, value)
+    None => @encode.null_value(writer)
+  }
+  @encode.key(writer, "dispatch_reserved")
+  @encode.bool_value(writer, record.dispatch_reserved)
+  // Optional private originals preserve absent-field bytes for older rows.
+  if record.effect_material_originals is Some(original) {
+    @encode.key(writer, "effect_material_originals")
+    @encode.string_value(writer, original)
+  }
+  if local_run_policy_originals is Some(original) {
+    @encode.key(writer, "local_run_policy_originals")
+    @encode.string_value(writer, original)
+  }
+  @encode.key(writer, "physical_start_claimed")
+  @encode.bool_value(writer, record.physical_start_claimed)
+  @encode.key(writer, "publication_binding")
+  match record.publication_binding {
+    Some(value) => @encode.string_value(writer, value)
+    None => @encode.null_value(writer)
+  }
+  // Omit absent originals: old retained rows keep their exact original bytes.
+  if record.publication_policy_originals is Some(originals) {
+    @encode.key(writer, "publication_policy_originals")
+    @encode.string_value(writer, originals)
+  }
+  @encode.key(writer, "request")
+  @encode.string_value(writer, request)
+  @encode.key(writer, "run_definition")
+  @encode.string_value(writer, definition)
+  if run_observation_originals is Some(originals) {
+    let (before_field, _, _) = @encode.writer_progress(writer)
+    @encode.key(writer, "run_observation_originals")
+    match before_construction {
+      None => @encode.string_value(writer, originals)
+      Some(reserve) => {
+        let cursor = @encode.start_string_value(writer, originals)
+        let mut done = false
+        while !done {
+          for _ in 0..<256 {
+            if @encode.advance_string_value(cursor) {
+              done = true
+              break
+            }
+          }
+          if !done {
+            let (emitted, _, _) = @encode.writer_progress(writer)
+            guard @execution.checked_preparation_add_product(
+                construction_base + emitted.to_int64(),
+                batch_units,
+                6L,
+              )
+              is Some(next) else {
+              return Err(CapacityExceeded)
+            }
+            match
+              reserve(Int64::min(next, maximum.to_int64()).to_int(), 32, 4) {
+              Err(issue) => return Err(issue)
+              Ok(_) => ()
+            }
+          }
+        }
+      }
+    }
+    let (after_field, _, _) = @encode.writer_progress(writer)
+    observed_field_bytes = after_field - before_field
+  }
+  if record.task_materials_cid is Some(cid) {
+    @encode.key(writer, "task_materials_cid")
+    @encode.string_value(writer, cid)
+  }
+  @encode.key(writer, "version")
+  @encode.string_value(writer, version)
+  @encode.end_object(writer)
+  Ok(observed_field_bytes)
 }
 
 ///|
@@ -436,6 +540,73 @@ pub fn client_submitted_intent_journal_row_body(
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
     @encode.OutputLimit => Err(CapacityExceeded)
+    _ => Err(Encoding)
+  }
+}
+
+///|
+/// Project the original candidate for the existing physical row writer.
+/// Callers supply the authenticated candidate and its construction backing.
+/// The preparing revision is the actual CAS coordinate, in decimal text.
+pub fn[Plan] client_submitted_run_candidate_wire(
+  fields : (String, String, Bytes, Bytes, Bytes),
+  issued? : (Int64, Bytes)? = None,
+  reference_locator? : (String, Bytes)? = None,
+  task_materials? : ClientTaskMaterialsOriginal[Plan]? = None,
+  preparing_revision~ : Int64,
+) -> Result[String, ClientJournalEncodingIssue] {
+  if preparing_revision < 0L || preparing_revision == 9223372036854775807L {
+    return Err(Encoding)
+  }
+  try {
+    // At most three original chunks add one array and three closed objects.
+    // The existing complete transport byte allowance remains unchanged.
+    let writer = @encode.writer(1048576, 24, 3)
+    @encode.begin_object(writer)
+    for
+      (key, text) in [
+        ("run_key", fields.0),
+        ("submission_key", fields.1),
+        ("preparing", @utf8.decode(fields.2)),
+        ("run", @utf8.decode(fields.3)),
+        ("submitted", @utf8.decode(fields.4)),
+      ] {
+      @encode.key(writer, key)
+      @encode.string_value(writer, text)
+    }
+    @encode.key(writer, "preparing_revision")
+    @encode.string_value(writer, preparing_revision.to_string())
+    if issued is Some((revision, count)) {
+      @encode.key(writer, "issued_revision")
+      @encode.string_value(writer, revision.to_string())
+      @encode.key(writer, "issued_body")
+      @encode.string_value(writer, @utf8.decode(count))
+    }
+    if reference_locator is Some((key, body)) {
+      @encode.key(writer, "reference_locator")
+      @encode.begin_object(writer)
+      @encode.key(writer, "key")
+      @encode.string_value(writer, key)
+      @encode.key(writer, "body")
+      @encode.string_value(writer, @utf8.decode(body))
+      @encode.end_object(writer)
+    }
+    if task_materials is Some(original) {
+      @encode.key(writer, "task_materials")
+      @encode.begin_array(writer)
+      for (key, body) in client_task_materials_original_chunks(original) {
+        @encode.begin_object(writer)
+        @encode.key(writer, "key")
+        @encode.string_value(writer, key)
+        @encode.key(writer, "body")
+        @encode.string_value(writer, body)
+        @encode.end_object(writer)
+      }
+      @encode.end_array(writer)
+    }
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
     _ => Err(Encoding)
   }
 }

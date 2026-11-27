@@ -76,15 +76,17 @@ pub fn[I] reserve_request_effect_original_material(
 }
 
 ///|
-// One synchronous codec scope: two scalar Arrays/backings for fifteen fixed
+// One synchronous codec scope: two scalar Arrays/backings for seventeen fixed
 // purposes, a failure Ref/Some, a scratch Ref, callback and return carriers.
-// Census bounds: two scalar Array/backings (4H/30W); two Ref and failure
+// Census bounds: two scalar Array/backings (4H/34W); two Ref and failure
 // Some (3H/3R); the driver/finalizer/body callbacks and return/error carriers
 // (12H/32R/16W); role/extent/checked-arithmetic tuples and Options
 // (13H/24R/24W); one active metadata-only parser/emitter/validator recipe
 // family, its composition Arrays and result (32H/69R/58W). The sum is
-// 64H/128R/128W. The fixed retained installed record below adds
-// 3H/9R/7W, for 67H/137R/135W in this same reservation.
+// 64H/128R/132W. The fixed retained installed record below adds
+// 3H/9R/7W. Normalization custody adds one original issuer record
+// (1H/10R) borrowing its compiled values and retaining the funded wire.
+// Total 68H/147R/139W in this same reservation.
 // Original entry arguments/codec closure precede this grow
 // within the Request's existing exclusive 4096-byte control group. These
 // arrays and variable body constructors begin only after this grow succeeds.
@@ -94,9 +96,9 @@ let request_effect_material_control_bytes : Int64 = @execution.preparation_repre
     // existing state's additional alias (1R), and the
     // seven frozen Bool flags (Array/backing: 2H/7W). Aliases end before the
     // original holder returns; no second owner or body copy is created.
-    record_headers: 67L,
-    reference_slots: 137L,
-    scalar_words: 135L,
+    record_headers: 68L,
+    reference_slots: 147L,
+    scalar_words: 139L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -120,6 +122,31 @@ fn request_effect_material_purpose(purpose : String) -> (Int, Bool)? {
     "model_execution" => Some((12, false))
     "model_inventory" => Some((13, false))
     "source_free_policy_read" => Some((14, true))
+    "request" => Some((15, false))
+    "retention_policy_read" => Some((16, true))
+    _ => None
+  }
+}
+
+///|
+///|
+/// Quote the captured Task material writers and the existing first Run
+/// Definition, authorization, invocation and retention constructors.
+/// The downstream UTF-8/hash/chunk owner supplies its own separate quote.
+pub fn client_captured_task_material_body_capacity(
+  purpose : String,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> (Int64, Int64)? {
+  match purpose {
+    "program" | "parameters" | "environment" | "run_materials" =>
+      request_effect_material_body_layout(bytes, nodes, depth, false, purpose~)
+    "retention_policy_read"
+    | "prepared_invocation_read"
+    | "run_authorization_read"
+    | "run_definition_read" =>
+      request_effect_material_body_layout(bytes, nodes, depth, true, purpose~)
     _ => None
   }
 }
@@ -428,6 +455,8 @@ fn[I, O, A] construct_request_original_materials_owned(
   capacity : @resources.PreparationCapacity[I, O],
   original_is_current : () -> Bool,
   retained_aliases? : Int64 = 0L,
+  extra_control_bytes? : Int64 = 0L,
+  extra_scratch_bytes? : Int64 = 0L,
   construct : ((String, Int, Int, Int) -> Bool) -> Result[
     A,
     ClientRequestProgramPlanIssue,
@@ -443,6 +472,8 @@ fn[I, O, A] construct_request_original_materials_owned(
   // that reference before the existing view is constructed; no extra view,
   // closure or authority wrapper is created. Effects retain their old count.
   guard retained_aliases >= 0L &&
+    extra_control_bytes >= 0L &&
+    extra_scratch_bytes >= 0L &&
     @execution.preparation_representation_cost({
       record_headers: 0L,
       reference_slots: retained_aliases,
@@ -454,6 +485,8 @@ fn[I, O, A] construct_request_original_materials_owned(
     @execution.checked_preparation_add_product(
       request_effect_material_control_bytes, aliases, 1L,
     )
+    is Some(control) &&
+    @execution.checked_preparation_add_product(control, extra_control_bytes, 1L)
     is Some(control) &&
     @execution.checked_preparation_add_product(base.0, control, 1L)
     is Some(base_r) &&
@@ -474,9 +507,9 @@ fn[I, O, A] construct_request_original_materials_owned(
       guard original_is_current() else {
         return Err(Preparation(ForeignOriginal))
       }
-      let retained : Array[Int64] = Array::make(15, 0L)
-      let temporary : Array[Int64] = Array::make(15, 0L)
-      let scratch = Ref(0L)
+      let retained : Array[Int64] = Array::make(17, 0L)
+      let temporary : Array[Int64] = Array::make(17, 0L)
+      let scratch = Ref(extra_scratch_bytes)
       let failed : Ref[ClientRequestProgramPlanIssue?] = Ref(None)
       let before_body = fn(
         purpose : String,

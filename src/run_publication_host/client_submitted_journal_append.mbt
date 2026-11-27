@@ -185,6 +185,8 @@ pub fn[Plan, E] prepare_client_submitted_journal_append_with_task_original(
     ClientJournalEncodingIssue,
   ])? = None,
   max_retained_intent_bytes? : Int64 = 67108864L,
+  missing_observation? : E? = None,
+  fresh_store_usage? : Bool = false,
 ) -> Result[
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
@@ -207,7 +209,12 @@ pub fn[Plan, E] prepare_client_submitted_journal_append_with_task_original(
     ) {
     Ok(Some(snapshot)) => {
       if client_submitted_intent_cid(snapshot.record.intent) !=
-        client_submitted_intent_cid(intent) {
+        client_submitted_intent_cid(intent) ||
+        (
+          missing_observation is Some(_) &&
+          client_submitted_intent_wire(snapshot.record.intent) !=
+          client_submitted_intent_wire(intent)
+        ) {
         return Err(ChangedIntent)
       }
       return Ok(Retained(snapshot))
@@ -215,13 +222,24 @@ pub fn[Plan, E] prepare_client_submitted_journal_append_with_task_original(
     Ok(None) => ()
     Err(issue) => return Err(Observation(issue))
   }
-  let (count, retained_bytes, revision, usage_revision) = match usage {
-    Some(observe) => {
-      let row = match observe() {
-        Ok(Some(value)) => value
-        Ok(None) => return Err(Observation(custody_lost))
+  if missing_observation is Some(issue) {
+    return Err(Observation(issue))
+  }
+  let observed_usage = match usage {
+    None if fresh_store_usage => return Err(Observation(custody_lost))
+    None => None
+    Some(observe) =>
+      match observe() {
+        // Fresh stores seed both counters at generation zero and advance them
+        // together. Native's explicit migration can have a different origin.
+        Ok(Some(row)) if !fresh_store_usage ||
+          row.revision == issuance.1 => Some(row)
+        Ok(_) => return Err(Observation(custody_lost))
         Err(issue) => return Err(Observation(issue))
       }
+  }
+  let (count, retained_bytes, revision, usage_revision) = match observed_usage {
+    Some(row) => {
       let bytes = match
         client_submitted_journal_usage(row, issuance.0, max_records) {
         Ok(value) => value

@@ -6,6 +6,7 @@ priv struct StoredSDKUnpublishedState {
   original : @host.ClientSavedSubmissionSnapshot
   row : @host.ClientJournalPhysicalRow
   publication : StoredSDKPublicationObservation
+  model_entry : PortableModelEntryJournal?
   mut update : @host.ClientSavedRunStateUpdate?
   mut confirmed : Bool
 }
@@ -33,8 +34,8 @@ fn sdk_unpublished_state_fields(
 
 ///|
 // This is the original strategy Owner's complete stop/retirement inventory,
-// not a missing process-local worker or task map. Source/Model/Effect profiles
-// cannot enter this finite source-free SDK projection.
+// not a missing process-local worker or task map. The Model Call must
+// independently return its actual transport and execution stop.
 fn sdk_unpublished_execution_retired(value : Instance, run : Int) -> Bool {
   let mut selected = None
   for compute in value.computes.values() {
@@ -52,6 +53,92 @@ fn sdk_unpublished_execution_retired(value : Instance, run : Int) -> Bool {
 }
 
 ///|
+// Keep just the original confirmed Entry that belongs to the stopped Call.
+// A Run claim, a closed socket or the absence of Raw is insufficient alone.
+fn sdk_unpublished_model_entry(
+  value : Instance,
+  run : Int,
+  plan : @local_run.LocalRunPlan,
+) -> PortableModelEntryJournal? {
+  guard value.runs.get(run)
+    is Some({ preparation, restoration: None, outcome: Some(Ok(original)), .. }) &&
+    physical_equal(original, plan) &&
+    value.preparations.get(preparation)
+    is Some({ project_request: Some({ model_run: Some(model), .. }), .. }) &&
+    model.adopted is Some(_) &&
+    model.members.length() == 1 &&
+    physical_equal(model.request, @local_run.local_run_request(plan)) &&
+    physical_equal(model.compiled, @local_run.local_run_compiled(plan)) &&
+    physical_equal(model.definition, @local_run.local_run_definition(plan)) else {
+    return None
+  }
+  let task = model.members[0]
+  guard task.issue is Some(@infer.Model(@model.UnknownCalls)) &&
+    task.transport_worker is ClosedUnknown &&
+    task.active is Some(active) &&
+    @infer.execution_stopped(active) &&
+    task.entry is Some(_) &&
+    task.entry_journal is Some({ state: Confirmed, .. } as entry) &&
+    task.transport is Some(_) &&
+    task.raw_save is None &&
+    task.raw_store is None &&
+    task.settlement is None &&
+    sdk_unpublished_execution_retired(value, run) else {
+    return None
+  }
+  Some(entry)
+}
+
+///|
+fn inspect_sdk_unpublished_model_entry(
+  value : Instance,
+  configuration : StoredRunConfiguration,
+  retained : StoredSDKUnpublishedState,
+  plan : @local_run.LocalRunPlan,
+) -> Result[Unit, Int] {
+  guard retained.model_entry is Some(original) else { return Ok(()) }
+  guard sdk_unpublished_model_entry(value, retained.run, plan) is Some(entry) &&
+    physical_equal(entry, original) &&
+    entry.attempt_cid is Some(attempt) &&
+    entry.entry_digest is Some(digest) &&
+    entry.scope_slot is Some((scope, slot)) &&
+    entry.entry_extent > 0 &&
+    configuration.sdk is Some(sdk) &&
+    @publication.model_scoped_private_holding_cid(
+      retained.publication.run.definition,
+      sdk.store_authority_cid,
+      scope, slot, attempt, 1, "entered", "model_raw_response",
+    ) is Some(raw) else {
+    return Err(-35)
+  }
+  let read = (table, key, extent) => sdk_run_journal_port(
+    value,
+    configuration,
+    1,
+    table,
+    key,
+    expected_body_length=Some(extent),
+  )
+  match read("client_model_call_originals", attempt, entry.entry_extent) {
+    Ok(Some(row)) if row.key == attempt &&
+      row.revision == 0L &&
+      "sha256:" + @sha.hex(row.body) == digest => ()
+    Err(code) => return Err(code)
+    _ => return Err(-35)
+  }
+  for (table, key) in [
+    ("client_model_raw_responses", raw), ("client_model_call_settlements", attempt),
+  ] {
+    match read(table, key, 0) {
+      Ok(None) => ()
+      Err(code) => return Err(code)
+      _ => return Err(-35)
+    }
+  }
+  Ok(())
+}
+
+///|
 fn sdk_unpublished_candidate_wire(
   value : Instance,
   retained : StoredSDKUnpublishedState,
@@ -60,8 +147,13 @@ fn sdk_unpublished_candidate_wire(
 ) -> Result[String, Int] {
   let encoding = retained.publication.run
   let prepared = @local_run.local_run_prepared(plan)
+  let execution_unknown = retained.model_entry is Some(_)
   if @host.prepared_client_acquisition_count(prepared) != 0 ||
-    @host.prepared_client_composed_infer_count(prepared) != Some(0) ||
+    @host.prepared_client_composed_infer_count(prepared) != Some(
+      if execution_unknown { 1 } else { 0 },
+    ) ||
+    (execution_unknown &&
+      !(encoding.dispatch_reserved && encoding.physical_start_claimed)) ||
     encoding.checkpoint is Some(_) ||
     encoding.effect_material_originals is Some(_) {
     return Err(-42)
@@ -76,15 +168,15 @@ fn sdk_unpublished_candidate_wire(
   let unstarted = !encoding.physical_start_claimed
   let retired = sdk_unpublished_execution_retired(value, retained.run)
   let cancelled = @host.confirm_client_run_cancellation({
-    cancellation_requested: encoding.cancellation_requested,
-    model_fence_required: false,
+    cancellation_requested: encoding.cancellation_requested(),
+    model_fence_required: execution_unknown,
     model_fenced: false,
-    unresolved_model_calls: false,
+    unresolved_model_calls: execution_unknown,
     unresolved_effects: false,
-    reconciliation_required: false,
+    reconciliation_required: execution_unknown,
     publication_committed: false,
     physical_stop_confirmed: retired ||
-    (unstarted && encoding.cancellation_requested),
+    (unstarted && encoding.cancellation_requested()),
     cleanup_confirmed: retired || unstarted,
     revision_unchanged: true,
   })
@@ -107,6 +199,7 @@ fn sdk_unpublished_candidate_wire(
       } else {
         None
       },
+      execution_unknown~,
     ) {
     Ok(state) => state
     Err(_) => return Err(-31)
@@ -114,7 +207,7 @@ fn sdk_unpublished_candidate_wire(
   let control = match
     @publication.issue_run_control_observation_wire(
       retained.row.revision.to_int(),
-      encoding.cancellation_requested,
+      encoding.cancellation_requested(),
       unstarted,
       false,
       retired,
@@ -141,7 +234,7 @@ fn sdk_unpublished_state_current(
   guard !record.output_closed &&
     record.unpublished_state is Some(retained) &&
     retained.update is Some(update) &&
-    value.runs.contains(retained.run) else {
+    value.runs.get(retained.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
     return -33
   }
   let snapshot = match
@@ -172,6 +265,10 @@ fn sdk_unpublished_state_current(
   )
   if code != 0 {
     return code
+  }
+  match inspect_sdk_unpublished_model_entry(value, configuration, retained, plan) {
+    Ok(_) => ()
+    Err(code) => return code
   }
   if committed {
     if @host.confirm_client_saved_run_state_update(update, snapshot) is Err(_) {
@@ -234,6 +331,7 @@ fn produce_sdk_unpublished_run_state(
     original: snapshot,
     row,
     publication: sdk_publication_observation_original(encoding),
+    model_entry: sdk_unpublished_model_entry(value, run, plan),
     update: None,
     confirmed: false,
   }
@@ -250,6 +348,10 @@ fn produce_sdk_unpublished_run_state(
   }
   if committed {
     return -42
+  }
+  match inspect_sdk_unpublished_model_entry(value, configuration, retained, plan) {
+    Ok(_) => ()
+    Err(code) => return code
   }
   let wire = match sdk_unpublished_candidate_wire(value, retained, plan, at) {
     Ok(value) => value

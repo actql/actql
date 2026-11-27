@@ -59,6 +59,124 @@ fn read_publication_observation(
 }
 
 ///|
+fn original_publication_observation_contracts(
+  record : StoredPublication,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+) -> (@publication.PublicationContract, @publication.PublicationContract,
+      @publication.PublicationContract)? {
+  guard record.lookup_index is Some(index) &&
+    owner.view_contract(view, 5) is Ok(request) &&
+    owner.view_contract(view, 6) is Ok(attempt) &&
+    owner.view_contract(view, 7) is Ok(candidate) &&
+    @publication.publication_contract_identity(index) ==
+    @publication.publication_contract_identity(candidate) &&
+    @publication.publication_contract_json(index) ==
+    @publication.publication_contract_json(candidate) else {
+    return None
+  }
+  Some((request, attempt, index))
+}
+
+///|
+/// The actual inspected Index selects the exact-original transport. Current
+/// Store and publication checks remain required on the actual dependent rows.
+pub fn publication_observation_exact_index(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) &&
+    value.run_configurations.get(current_configuration) is Some(current) &&
+    record.lookup_borrow is Some(_) &&
+    record.lookup_index is Some(_) &&
+    !record.lookup_failed && !record.lookup_closing &&
+    record.observation_input is None else {
+    return -2
+  }
+  match publication_commit_export_view(value, record, current.account) {
+    Err(code) => code
+    Ok((owner, view)) =>
+      if original_publication_observation_contracts(record, owner, view) is Some(_) {
+        1
+      } else {
+        0
+      }
+  }
+}
+
+///|
+fn publication_observation_text_matches(
+  text : String,
+  wire : Bytes,
+  start : Int,
+  end : Int,
+) -> Bool {
+  let position = Ref(start)
+  let next = (value : Int) => {
+    if position.val >= end || wire[position.val] != value.to_byte() {
+      false
+    } else {
+      position.val += 1
+      true
+    }
+  }
+  for point in text.iter() {
+    let code = point.to_int()
+    let agrees = if code < 0x80 {
+      next(code)
+    } else if code < 0x800 {
+      next(0xc0 | (code >> 6)) && next(0x80 | (code & 63))
+    } else if code < 0x10000 {
+      next(0xe0 | (code >> 12)) &&
+      next(0x80 | ((code >> 6) & 63)) &&
+      next(0x80 | (code & 63))
+    } else {
+      next(0xf0 | (code >> 18)) &&
+      next(0x80 | ((code >> 12) & 63)) &&
+      next(0x80 | ((code >> 6) & 63)) &&
+      next(0x80 | (code & 63))
+    }
+    if !agrees {
+      return false
+    }
+  }
+  position.val == end
+}
+
+///|
+fn read_exact_publication_observation(
+  value : Instance,
+  record : StoredPublication,
+  borrow : @buffers.BufferBorrow,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+) -> Result[PublicationCommitObservation, Unit] {
+  guard original_publication_observation_contracts(record, owner, view)
+    is Some((request, attempt, index)) &&
+    @buffers.filled_payload_input_bytes(value.pool, borrow) is Some(wire) &&
+    wire.length() > 5 && wire.length() <= 65540 else {
+    return Err(())
+  }
+  let request_bytes = wire[0].to_int() | (wire[1].to_int() << 8) |
+    (wire[2].to_int() << 16) | (wire[3].to_int() << 24)
+  guard request_bytes > 0 && request_bytes < wire.length() - 4 else {
+    return Err(())
+  }
+  let boundary = 4 + request_bytes
+  if !publication_observation_text_matches(
+      @publication.publication_contract_json(request), wire, 4, boundary,
+    ) ||
+    !publication_observation_text_matches(
+      @publication.publication_contract_json(attempt), wire, boundary, wire.length(),
+    ) {
+    return Err(())
+  }
+  Ok(ObservedStored(request, attempt, index))
+}
+
+///|
 /// Use the original nominal publisher port, with the actual validated index
 /// for ReturnCommitted. No candidate substitution or cached permission occurs.
 fn publication_observation_publisher(
@@ -67,12 +185,12 @@ fn publication_observation_publisher(
   publisher : Int,
   current_configuration : Int,
   index : @publication.PublicationContract?,
+  file_state? : (Int, @host.ClientSavedRunStateUpdate)? = None,
 ) -> Int {
   guard value.publishers.get(publisher) is Some(child) &&
     child.port is Some(port) &&
     child.parent == record.preflight &&
     value.publication_preflights.get(child.parent) is Some(parent) &&
-    parent.preflight is Some(preflight) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -82,6 +200,42 @@ fn publication_observation_publisher(
     child.closing ||
     parent.closing {
     return -5
+  }
+  if parent.origin is FilePublicationPreflight(file) {
+    if file.request_publisher != Some(publisher) { return -35 }
+    return match index {
+      None => authorize_file_preflight_request(
+        value, publisher, child, parent, file, port, current_configuration, current,
+      )
+      Some(stored) => authorize_sdk_file_observed_index(
+        value, record, publisher, child, parent, file, port, current_configuration, stored,
+        file_state~,
+      )
+    }
+  }
+  if parent.origin is SavedEffectPublicationPreflight(effect) {
+    guard record.saved_effect is Some(origin) && physical_equal(origin, effect) &&
+      effect.publisher == Some(publisher) && effect.prepared is Some(prepared) &&
+      effect.request_allowed else { return -35 }
+    let checked = saved_effect_publication_preflight_current(value, effect, current.account)
+    if checked != 0 { return checked }
+    if index is Some(observed) &&
+      !(record.commit_index is Some(expected) && same_sdk_file_binding(expected, observed)) {
+      return -35
+    }
+    let (request, attempt, store) = prepared.contracts()
+    child.configuration = current_configuration
+    child.unknown = false
+    let checked = publisher_check_status(child, port.check(
+      request, attempt, store,
+      if index is Some(_) { @publication.ReturnCommitted } else { @publication.Request },
+      index,
+    ))
+    if checked != 0 { return checked }
+    return saved_effect_publication_preflight_current(value, effect, current.account)
+  }
+  guard parent.origin is ComputePublicationPreflight({ prepared: Some(preflight), .. }) else {
+    return -2
   }
   if !publication_current(value, record, current.account) {
     return -32
@@ -126,15 +280,42 @@ pub fn prepare_publication_observation(
   publisher : Int,
   current_configuration : Int,
 ) -> Int {
+  prepare_original_publication_observation(
+    nonce, handle, input, publisher, current_configuration, exact=false,
+  )
+}
+
+///|
+pub fn prepare_exact_publication_observation(
+  nonce : Int64,
+  handle : Int,
+  input : Int,
+  publisher : Int,
+  current_configuration : Int,
+) -> Int {
+  prepare_original_publication_observation(
+    nonce, handle, input, publisher, current_configuration, exact=true,
+  )
+}
+
+///|
+fn prepare_original_publication_observation(
+  nonce : Int64,
+  handle : Int,
+  input : Int,
+  publisher : Int,
+  current_configuration : Int,
+  exact~ : Bool,
+) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) &&
     value.copies.get(input) is Some((slot, physical)) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
-  match publication_commit_export_view(value, record, current.account) {
+  let (owner, view) = match publication_commit_export_view(value, record, current.account) {
     Err(code) => return code
-    Ok(_) => ()
+    Ok(pair) => pair
   }
   if record.observation_closing || record.lookup_closing {
     return -5
@@ -177,10 +358,13 @@ pub fn prepare_publication_observation(
   }
   record.observation_input = Some(input)
   record.observation_publisher = Some(publisher)
-  let borrow = match
-    @buffers.borrow_buffer(value.pool, slot, () => {
-      physical_reader_stop(physical, handle) == 0
-    }) {
+  let stop = () => physical_reader_stop(physical, handle) == 0
+  let borrowed = if exact {
+    @buffers.borrow_filled_payload_input(value.pool, slot, stop)
+  } else {
+    @buffers.borrow_buffer(value.pool, slot, stop)
+  }
+  let borrow = match borrowed {
     Ok(borrow) => borrow
     Err(issue) => {
       record.observation_failed = true
@@ -189,7 +373,11 @@ pub fn prepare_publication_observation(
   }
   record.observation_borrow = Some(borrow)
   record.pending = true
-  let decoded = read_publication_observation(value, borrow)
+  let decoded = if exact {
+    read_exact_publication_observation(value, record, borrow, owner, view)
+  } else {
+    read_publication_observation(value, borrow)
+  }
   let result = match decoded {
     Ok(ObservedStored(request, attempt, index) as observation) => {
       guard record.commit is Some(commit) && record.commit_view is Some(view) else {
@@ -197,31 +385,27 @@ pub fn prepare_publication_observation(
         record.observation_failed = true
         return -32
       }
-      if record.lookup_input is Some(_) {
-        guard record.lookup_index is Some(original_index) &&
-          record.lookup_identity is Some(identity) &&
-          record.lookup_publisher == Some(publisher) &&
-          @publication.publication_contract_identity(index) == identity &&
-          commit.view_inspected_index_reference(
-            view, identity, original_index, 0,
-          )
-          is Ok(request_identity) &&
-          commit.view_inspected_index_reference(
-            view, identity, original_index, 1,
-          )
-          is Ok(attempt_identity) &&
-          @publication.publication_contract_identity(request) ==
-          request_identity &&
-          @publication.publication_contract_identity(attempt) ==
-          attempt_identity else {
-          record.pending = false
-          record.observation_failed = true
-          return -32
-        }
+      // The index remains the exact one admitted by the earlier lookup of
+      // this Store snapshot. Both real dependent rows must resolve from it.
+      guard record.lookup_input is Some(_) && record.lookup_borrow is Some(_) &&
+        record.lookup_index is Some(admitted_index) &&
+        record.lookup_identity is Some(identity) &&
+        record.lookup_publisher == Some(publisher) &&
+        @publication.publication_contract_identity(index) == identity &&
+        commit.view_inspected_index_reference(view, identity, admitted_index, 0)
+        is Ok(request_identity) &&
+        commit.view_inspected_index_reference(view, identity, admitted_index, 1)
+        is Ok(attempt_identity) &&
+        @publication.publication_contract_identity(request) == request_identity &&
+        @publication.publication_contract_identity(attempt) == attempt_identity else {
+        record.pending = false
+        record.observation_failed = true
+        return -32
       }
       match commit.begin_observed_commit(view, request, attempt, index) {
         Ok(_) => {
           record.observation = Some(observation)
+          record.observation_exact = exact
           record.observation_progress = Some((false, 0))
           0
         }
@@ -406,6 +590,29 @@ pub fn finish_publication_observation(
 }
 
 ///|
+/// The exact transport lends only bytes for equality. The checked child owns
+/// the original typed contracts and actual Index independently of those bytes.
+/// Keep its observation and publisher while returning the physical byte loan.
+pub fn retire_publication_exact_observation_transport(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.get(handle) is Some(record) &&
+    record.observation_exact &&
+    record.observation_checked &&
+    record.observation_index is Some(_) &&
+    !record.pending && !record.observation_failed && !record.observation_closing else {
+    return -33
+  }
+  if record.observation_borrow is Some(borrow) {
+    let code = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if code != 0 {
+      return code
+    }
+    record.observation_borrow = None
+  }
+  0
+}
+
+///|
 /// Return only the same physical response borrow after all observed outputs
 /// stopped. Failed cleanup retains the exact input and blocks replacement.
 pub fn retire_publication_observation(nonce : Int64, handle : Int) -> Int {
@@ -424,7 +631,6 @@ pub fn retire_publication_observation(nonce : Int64, handle : Int) -> Int {
       (
         child.projection is Some(ObservedIndex(_)) ||
         child.projection is Some(ObservedRunState(_)) ||
-        child.projection is Some(SDKRunState(_, _)) ||
         child.projection is Some(SDKMeasuredRunState(_, _, _, _))
       )
     }) {
@@ -448,6 +654,7 @@ pub fn retire_publication_observation(nonce : Int64, handle : Int) -> Int {
   }
   record.observation_input = None
   record.observation_publisher = None
+  record.observation_exact = false
   record.observation = None
   record.observation_progress = None
   record.observation_index = None

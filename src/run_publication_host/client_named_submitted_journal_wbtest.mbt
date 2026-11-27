@@ -273,3 +273,221 @@ test "named foreign submission and corrupt saved intent do not become first bind
     is Err(CustodyLost),
   )
 }
+
+///|
+test "closed named census observes the selected physical original before missing or retained" {
+  let key = named_original_key()
+  let index = "4de7f25f51dc74045566f9b43386850973e3635dae14c43775329d4c43e06ad7"
+  let other = "a".repeat(64)
+  let body = client_submitted_name_row_body({
+    binding: named_original_binding(),
+    authenticator: b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  }).unwrap()
+  for target_present in [false, true] {
+    let scanned = Ref(0)
+    let selected_reads : Array[(String, String)] = []
+    let controls : Array[(String, String)] = []
+    let select : ClientJournalPhysicalRow = { key: index, body, revision: 0L, }
+    let issued : ClientJournalPhysicalRow = {
+      key: "issued",
+      body: if target_present {
+        b"2"
+      } else {
+        b"1"
+      },
+      revision: if target_present {
+        2L
+      } else {
+        1L
+      },
+    }
+    let result = inspect_client_submitted_name_inventory(
+      key,
+      2,
+      (table, cursor) => {
+        controls.push((table, cursor))
+        Ok(if cursor == "" { Some(issued) } else { None })
+      },
+      cursor => {
+        scanned.val += 1
+        Ok(
+          if target_present && cursor == "" {
+            Some((index, 0L))
+          } else if cursor < other {
+            Some((other, 0L))
+          } else {
+            None
+          },
+        )
+      },
+      (table, key) => {
+        selected_reads.push((table, key))
+        if table == "client_submission_name_custody" {
+          Ok(Some(issued))
+        } else {
+          Ok(if target_present { Some(select) } else { None })
+        }
+      },
+      "lost",
+    ).unwrap()
+    assert_eq(result.index, index)
+    assert_eq(result.issued.to_int64(), issued.revision)
+    assert_eq(result.issued_revision, issued.revision)
+    assert_eq(
+      result.original.map(row => row.body),
+      if target_present {
+        Some(body)
+      } else {
+        None
+      },
+    )
+    assert_eq(scanned.val.to_int64(), issued.revision + 1L)
+    assert_eq(controls, [
+      ("client_submission_name_custody", ""),
+      ("client_submission_name_custody", "issued"),
+    ])
+    assert_eq(selected_reads, [
+      ("client_submission_name_custody", "issued"),
+      ("client_submission_names", index),
+    ])
+  }
+}
+
+///|
+test "closed named census distinguishes torn inventory and first physical refusal" {
+  let index = "4de7f25f51dc74045566f9b43386850973e3635dae14c43775329d4c43e06ad7"
+  for mode in 0..<7 {
+    let issued : ClientJournalPhysicalRow = {
+      key: "issued",
+      body: b"1",
+      revision: if mode == 0 {
+        0L
+      } else {
+        1L
+      },
+    }
+    let selected_reads = Ref(0)
+    let result = inspect_client_submitted_name_inventory(
+      named_original_key(),
+      4,
+      (_, cursor) => Ok(if cursor == "" { Some(issued) } else { None }),
+      cursor => {
+        if mode == 1 {
+          Err("original physical failure")
+        } else if mode == 2 {
+          Ok(None)
+        } else if mode == 3 {
+          Ok(Some((index, 1L)))
+        } else if cursor == "" || mode == 4 {
+          Ok(Some((index, 0L)))
+        } else {
+          Ok(None)
+        }
+      },
+      (table, key) => {
+        if table == "client_submission_name_custody" {
+          Ok(Some(issued))
+        } else {
+          selected_reads.val += 1
+          if mode == 5 {
+            Ok(None)
+          } else {
+            Ok(Some({ key, body: b"changed", revision: 1L, }))
+          }
+        }
+      },
+      "lost",
+    )
+    assert_true(
+      result is Err(error) &&
+      error == (if mode == 1 { "original physical failure" } else { "lost" }),
+    )
+    assert_eq(selected_reads.val, if mode < 5 { 0 } else { 1 })
+  }
+}
+
+///|
+test "authenticated name precedence never borrows the proposed reference" {
+  let binding = named_original_binding()
+  let tag = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  let wire = client_submitted_name_row_body({ binding, authenticator: tag, }).unwrap()
+  let index = "4de7f25f51dc74045566f9b43386850973e3635dae14c43775329d4c43e06ad7"
+  let original : ClientJournalPhysicalRow = {
+    key: index,
+    body: wire,
+    revision: 0L,
+  }
+  let inventory : ClientSubmittedNameInventory = {
+    index,
+    issued: 1,
+    issued_revision: 1L,
+    original: Some(original),
+  }
+  let reference = named_original_reference()
+  let intent = named_original_intent()
+  let saved : ClientSubmittedJournalEncoding = {
+    reference,
+    intent,
+    run_admission: None,
+    run_state_original: None,
+    run_state_observation: None,
+    preparation_problem: None,
+  }
+  for mode in 0..<6 {
+    let signed : Array[Bytes] = []
+    let reads : Array[(String, String)] = []
+    let result = inspect_client_submitted_name_selection(
+      named_original_key(),
+      inventory,
+      if mode == 1 {
+        "sha256:" + "a".repeat(64)
+      } else {
+        "sha256:" + "b".repeat(64)
+      },
+      intent,
+      bytes => {
+        signed.push(bytes)
+        if mode == 2 {
+          Err("key unavailable")
+        } else if mode == 3 {
+          Ok(b"changed")
+        } else {
+          Ok(tag)
+        }
+      },
+      (table, key) => {
+        reads.push((table, key))
+        if mode == 4 {
+          Ok(None)
+        } else {
+          Ok(Some({ key, body: b"original intent", revision: 0L, }))
+        }
+      },
+      _ => if mode == 5 { Err("first decoder refusal") } else { Ok(saved) },
+      "lost",
+    )
+    let expected = client_submitted_name_authentication_input(binding, 8192).unwrap()
+    assert_eq(signed, [@utf8.encode(expected)])
+    assert_eq(
+      reads.length(),
+      if mode == 1 || mode == 2 || mode == 3 {
+        0
+      } else {
+        1
+      },
+    )
+    match (mode, result) {
+      (0, Ok(NameRetained(actual))) =>
+        assert_eq(
+          client_submission_reference_record_wire(actual),
+          client_submission_reference_record_wire(reference),
+        )
+      (1, Ok(NameConflict))
+      | (2, Err("key unavailable"))
+      | (3, Err("lost"))
+      | (4, Ok(NameHistoryUnavailable))
+      | (5, Err("first decoder refusal")) => ()
+      _ => fail("unexpected original name selection")
+    }
+  }
+}

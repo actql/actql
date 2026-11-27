@@ -11,15 +11,15 @@ class StagedStoreInputTests(unittest.TestCase):
     index, request, attempt = transfer_fixture.ObservationTransferTests.index, transfer_fixture.ObservationTransferTests.request, transfer_fixture.ObservationTransferTests.attempt
     reference = transfer_fixture.ObservationTransferTests.reference
 
-    def test_raw_rows_are_nominal_sealed_inputs_before_aggregate_original_packet(self):
+    def test_nominal_source_rows_share_one_guest_envelope_until_original_cleanup(self):
         core, parent, _, transfer, calls, state, packets = self.bridge()
         transfer.reserve()
         request = transfer.retain_source(self.request)
         attempt = transfer.retain_source(self.attempt)
         index = transfer.retain_source(self.index)
         self.assertEqual(transfer.pending_sources, (request, attempt, index))
-        self.assertTrue(all(core._loans[v.ticket] is v for v in transfer.pending_sources))
-        self.assertEqual([name for _, name, _ in calls], ['reserve'] + ['reserve', 'fill', 'seal'] * 3)
+        self.assertEqual(calls[0][0:2], ('workspace', 'reserve'))
+        self.assertEqual(len(calls), 1)
         transfer.transfer_stored_inputs(request, attempt, index)
         observed = transfer.pending_input
         self.assertIs(core._loans[observed.ticket], observed)
@@ -36,9 +36,9 @@ class StagedStoreInputTests(unittest.TestCase):
         self.assertEqual(transfer.pending_sources, ())
         self.assertIs(core._loans[7], parent)
         closes = [args[0] for family, name, args in calls if family == 'buffer' and name == 'close']
-        self.assertEqual(closes[-4:], [observed.handle, index.handle, attempt.handle, request.handle])
+        self.assertEqual(set(closes), {observed.handle})
 
-    def test_cross_transfer_borrow_copies_only_to_another_original_input_without_store_refetch(self):
+    def test_cross_transfer_borrow_preserves_exact_row_bytes_in_accounted_workspaces(self):
         core, _, publisher, first, calls, state, _ = self.bridge()
         first.reserve()
         reference = first.retain_source(self.reference)
@@ -51,11 +51,12 @@ class StagedStoreInputTests(unittest.TestCase):
             workspace_cleanup=lambda: state['cleanup_workspace'], workspace_stopped=lambda: True)
         second.reserve()
         handles = []
+        before = len(calls)
         first.consume_source(index, lambda raw: handles.append(second.retain_source(raw)))
         self.assertEqual(len(handles), 1)
-        self.assertIs(core._inputs[handles[0].ticket].payload, core._inputs[index.ticket].payload)
-        self.assertIs(core._loans[index.ticket], index)
-        self.assertIs(core._loans[handles[0].ticket], handles[0])
+        self.assertIs(handles[0].payload, index.payload)
+        self.assertIsNot(handles[0], index)
+        self.assertEqual(len(calls), before)
         self.assertFalse(any(name in ('retire_lookup', 'finish_commit', 'finish_observation') for _, name, _ in calls))
         state['borrow'] = False
         self.assertTrue(second.close())
@@ -100,19 +101,20 @@ class StagedStoreInputTests(unittest.TestCase):
                 self.assertEqual(len(transfer.pending_sources), len(raws))
                 self.assertTrue(transfer.close())
 
-    def test_raw_fill_and_uncertain_reserve_keep_prior_inputs_until_same_owner_cleanup(self):
+    def test_envelope_fill_and_uncertain_reserve_keep_sources_until_same_owner_cleanup(self):
         for outcome in ('fill', 'trap'):
             with self.subTest(outcome=outcome):
                 core, parent, _, transfer, calls, state, _ = self.bridge()
                 transfer.reserve()
                 original = transfer.retain_source(self.request)
+                dependent = transfer.retain_source(self.attempt)
                 if outcome == 'fill':
                     state['fill'] = -4
                 else:
                     state['trap'] = 'buffer'
                 with self.assertRaises(LocalCoreError if outcome == 'fill' else OSError):
-                    transfer.retain_source(self.attempt)
-                self.assertIs(transfer.pending_sources[0], original)
+                    transfer.transfer_exact_stored_inputs(original, dependent)
+                self.assertEqual(transfer.pending_sources, (original, dependent))
                 before = len(calls)
                 with self.assertRaises(RuntimeError):
                     transfer.transfer_query_failure()
@@ -127,7 +129,7 @@ class StagedStoreInputTests(unittest.TestCase):
                     ticket = transfer.uncertain_acquisition_ticket
                     self.assertFalse(transfer.close())
                     self.assertIn(ticket, core._inputs)
-                    self.assertIs(core._loans[original.ticket], original)
+                    self.assertEqual(transfer.pending_sources, (original, dependent))
                 self.assertIs(core._loans[7], parent)
 
     def test_failed_raw_consumer_keeps_same_input_and_blocks_replacement_projection(self):

@@ -17,33 +17,38 @@ let saved_sdk_status_state : String = [
 ].join("")
 
 ///|
-fn saved_sdk_status_original() -> @host.ClientRunStateOriginal {
+fn saved_sdk_status_original() -> (
+  @publication.PublicationContract,
+  @host.ClientRunStateOriginal,
+) {
   let definition = @publication.admit_publication_contract(
     "run_definition", saved_sdk_status_definition, 65536, 8192, 64,
   ).unwrap()
   let manifest = @publication.admit_publication_contract(
     "result_manifest", saved_sdk_status_manifest, 65536, 8192, 64,
   ).unwrap()
-  @host.prepare_client_run_state_original(
+  let original = @host.prepare_client_run_state_original(
     definition, manifest, saved_sdk_status_state,
   ).unwrap()
+  (definition, original)
 }
 
 ///|
 test "cold saved SDK status preserves the exact original state and observation revision" {
-  let original = saved_sdk_status_original()
+  let (definition, original) = saved_sdk_status_original()
   let observation = @publication.prepare_run_state_observation(
     saved_sdk_status_state, "saved-manifest-fixture", 4L, 65536, 8192, 64,
   ).unwrap()
-  assert_eq(
-    saved_sdk_run_state_observation_wire(
-      original,
-      "saved-manifest-fixture",
-      4L,
-      observation.key(),
-    ),
-    Ok(@utf8.encode(saved_sdk_status_state)),
+  let retained = @host.admit_client_retained_run_state_original(
+    definition,
+    original.wire(),
+    4L,
+    observation.key(),
+  ).unwrap()
+  assert_true(
+    retained.matches(definition, original.wire(), 4L, observation.key()),
   )
+  assert_eq(retained.resolve().unwrap().state_wire(), saved_sdk_status_state)
   // Reobservation preserves the original clock, Unknown availability and
   // existing public counter. No new clock or payload evidence is supplied.
   assert_eq(original.state_wire(), saved_sdk_status_state)
@@ -52,34 +57,51 @@ test "cold saved SDK status preserves the exact original state and observation r
 
 ///|
 test "cold saved SDK status refuses foreign run counter and observation key" {
-  let original = saved_sdk_status_original()
+  let (definition, original) = saved_sdk_status_original()
   let observation = @publication.prepare_run_state_observation(
     saved_sdk_status_state, "saved-manifest-fixture", 4L, 65536, 8192, 64,
   ).unwrap()
   for revision in [0L, 3L, 5L, 9007199254740992L] {
     assert_true(
-      saved_sdk_run_state_observation_wire(
-        original,
-        "saved-manifest-fixture",
+      @host.admit_client_retained_run_state_original(
+        definition,
+        original.wire(),
         revision,
         observation.key(),
       )
-      is Err(-32),
+      is Err(@host.CustodyLost),
     )
   }
+  let foreign = saved_sdk_status_definition.replace(
+    old="saved-manifest-fixture",
+    new="foreign-run",
+  )
+  let foreign = @publication.seal_publication_contract(
+    "run_definition",
+    foreign.replace(
+      old="\"run_definition_cid\":\"sha256:0a872d347ec29b6eb772d3d8421fe4e0daa6f1f1526d3762349461d374335945\",",
+      new="",
+    ),
+    65536,
+    8192,
+    64,
+  ).unwrap()
   assert_true(
-    saved_sdk_run_state_observation_wire(
-      original,
-      "foreign-run",
+    @host.admit_client_retained_run_state_original(
+      foreign,
+      original.wire(),
       4L,
       observation.key(),
     )
-    is Err(-32),
+    is Err(@host.CustodyLost),
   )
   assert_true(
-    saved_sdk_run_state_observation_wire(
-      original, "saved-manifest-fixture", 4L, "foreign-key",
+    @host.admit_client_retained_run_state_original(
+      definition,
+      original.wire(),
+      4L,
+      "foreign-key",
     )
-    is Err(-32),
+    is Err(@host.CustodyLost),
   )
 }

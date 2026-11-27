@@ -34,14 +34,16 @@ fn sdk_payload_record_binding_current(
         return -32
       }
       // The enclosing export already completed its first census. The nested
-      // binding still reads the original rows and asks the physical owner
-      // whether this same reader remains eligible before omitting a census.
+      // binding still reads its original rows. The physical owner must prove
+      // the reader unchanged before reusing task material or the census.
       match
         saved_payload_binding(
           value,
           payload,
           current_configuration,
           same_reader_census=context.same_reader_census,
+          task_material_proof=context.task_material_proof,
+          read_only_saved_control=context.read_only_saved_control,
         ) {
         Ok(binding) => {
           let selected = match
@@ -153,6 +155,7 @@ pub fn bind_publication_sdk_payload_record(
       run,
       current_configuration,
       same_reader_census=true,
+      read_only_saved_control=true,
     ) {
     Ok(context) => context
     Err(code) => return code
@@ -174,6 +177,89 @@ pub fn bind_publication_sdk_payload_record(
     Ok(_) => ()
   }
   sdk_payload_record_current(value, first, context, current_configuration)
+}
+
+///|
+/// Export only the original Live read's Run control for a later physical
+/// point observation. The checked result, grant and payload remain owned by
+/// the existing reader. The header supplies no permission or delivery ACK.
+pub fn produce_publication_sdk_live_return_control(
+  nonce : Int64,
+  handle : Int,
+  first_handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(output) &&
+    value.commit_exports.get(first_handle) is Some(first) &&
+    handle != first_handle &&
+    output.publication == first.publication &&
+    value.publications.contains(first.publication) &&
+    first.projection is Some(SDKReadDeliveryStorage(_, run)) &&
+    first.sdk_payload_outcome is Some(Ok(_)) else {
+    return -2
+  }
+  if output.closing || output.output_closed || first.closing || first.pending {
+    return -5
+  }
+  if output.invoked || output.pending ||
+    @buffers.buffer_output_limit(value.pool, output.slot) != Some(107) {
+    return -33
+  }
+  output.invoked = true
+  output.projection = Some(SDKLiveReturnControl(first_handle))
+  output.sdk_payload_parent = Some(first_handle)
+  output.pending = true
+  let result = with_sdk_export_transport_capacity(value, output, 4096L, () => {
+    let context = match original_sdk_read_context(
+      value, first, run, current_configuration, same_reader_census=true,
+    ) {
+      Ok(context) => context
+      Err(code) => return Err(code)
+    }
+    let wire = match with_sdk_run_state_snapshot(
+      value, first, run, current_configuration,
+      (_, _, snapshot) => {
+        guard @host.client_saved_submission_run_row(snapshot) is Some(row) &&
+          row.key.length() == 71 && row.revision >= 0L &&
+          row.body.length() > 0 && row.body.length() <= 262144 else {
+          return Err(-32)
+        }
+        let key = @utf8.encode(row.key)
+        let deadline = @utf8.encode(
+          @host.client_local_run_policy_original_read_expires_at(context.finite),
+        )
+        guard key.length() == 71 && deadline.length() == 24 else {
+          return Err(-34)
+        }
+        let coordinates = Bytes::makei(12, index => {
+          if index < 8 {
+            (row.revision >> (index * 8)).to_byte()
+          } else {
+            (row.body.length() >> ((index - 8) * 8)).to_byte()
+          }
+        })
+        Ok(key + coordinates + deadline)
+      },
+    ) {
+      Ok(wire) => wire
+      Err(code) => return Err(code)
+    }
+    match (context.check_current)() {
+      Ok(_) => ()
+      Err(code) => return Err(code)
+    }
+    let code = status(@buffers.supply_buffer_output(value.pool, output.slot, wire))
+    if code == 0 { Ok(()) } else { Err(code) }
+  })
+  output.pending = false
+  match result {
+    Err(code) => code
+    Ok(_) => {
+      output.produced = true
+      0
+    }
+  }
 }
 
 ///|
@@ -208,6 +294,7 @@ pub fn publication_sdk_payload_ordinal(
       run,
       current_configuration,
       same_reader_census=field == 2,
+      read_only_saved_control=true,
     ) {
     Ok(context) => context
     Err(code) => return code

@@ -4,7 +4,7 @@
     {
       "module": "src/connectors/local/driver/preparation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "784df1c1af1ec310f2a6c4688996aa6e755af5e33eec716f47e7b3a76a1caefd",
+      "sha256": "00e456b0a347f4e938846d01332cf81add87490f56836f458a34e022d194fa15",
       "role": "physical-io",
       "owner": "Existing Local dispatch preparation and original Run binding; pure quotations do not grant physical resources",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
@@ -45,6 +45,10 @@
         {
           "name": "local_dispatch_preparation_retained_bytes",
           "declaration": "local_dispatch_preparation_retained_bytes ( original : LocalDispatchPreparation , ) - > Int64 ?"
+        },
+        {
+          "name": "local_dispatch_preparation_selected_sequence",
+          "declaration": "local_dispatch_preparation_selected_sequence ( original : LocalDispatchPreparation , graph : @ strategy . CheckedDAG , task : Int , ) - > @ execution . GeneratedSequence ?"
         },
         {
           "name": "local_dispatch_preparation_task_capacity",
@@ -94,7 +98,8 @@
             "local_dispatch_preparation_input_scan_work",
             "local_dispatch_preparation_work_policy",
             "local_dispatch_preparation_work_policy_capacity",
-            "local_dispatch_preparation_managed_task_capacity"
+            "local_dispatch_preparation_managed_task_capacity",
+            "local_dispatch_preparation_selected_sequence"
           ],
           "exports": [],
           "attributes": {
@@ -260,6 +265,10 @@
               {
                 "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
                 "anchor": "managed task projection adds only its complete diagnostic frame"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "paused Debug borrows the full original Relation from its completed Driver"
               }
             ]
           }
@@ -269,7 +278,7 @@
     {
       "module": "src/connectors/local/module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0bcf0612a86254d46157670b8a68c727e5dcfd1f70946a8ee503b2d4576948b2",
+      "sha256": "185c892c17bd9772509a901f43494612facc0ad182aacca701cf175c04cb30f8",
       "role": "connector-semantics",
       "owner": "Existing installed Local module, exact default bounded constructors and injected provider selection",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
@@ -300,12 +309,20 @@
           "declaration": "local_bounded_relation_provider ( execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , sequence : @ execution . GeneratedSequence , family ? : Array [ ManagedProvider ]"
         },
         {
+          "name": "local_default_join_borrows_input",
+          "declaration": "local_default_join_borrows_input ( kernel : @ lower . PreparedJoinKernel ) - > Bool"
+        },
+        {
           "name": "local_default_managed_provider",
           "declaration": "local_default_managed_provider ( family : Array [ ManagedProvider ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , sequence : @ execution . GeneratedSequence , ) - > ManagedProvider ?"
         },
         {
           "name": "local_managed_provider_for",
           "declaration": "local_managed_provider_for ( family : Array [ ManagedProvider ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , sequence : @ execution . GeneratedSequence , ) - > ManagedProvider ?"
+        },
+        {
+          "name": "local_module_borrowed_text_singleton_group",
+          "declaration": "local_module_borrowed_text_singleton_group ( kernel : @ lower . PreparedKernel , ) - > Bool"
         },
         {
           "name": "local_module_bounded_append_obligation",
@@ -420,6 +437,10 @@
           "declaration": "local_module_relation_obligation_segment ( installed : LocalComputeModule , slot : Int , step : Int , ) - > ( @ execution . GeneratedSequence , @ execution . SequenceExecutionLimits , @ execution . FixedInputGuardMeasureLimits , Array [ ManagedProvider ] , ) ?"
         },
         {
+          "name": "local_module_selected_sequence",
+          "declaration": "local_module_selected_sequence ( installed : LocalComputeModule , slot : Int , ) - > @ execution . GeneratedSequence ?"
+        },
+        {
           "name": "local_module_sequence_contains_carrier_step",
           "declaration": "local_module_sequence_contains_carrier_step ( installed : LocalComputeModule , slot : Int , ) - > Bool"
         },
@@ -489,7 +510,10 @@
             "prepare_local_module_compute",
             "local_module_default_output_start_capacity",
             "local_module_materializing_start_capacity",
-            "local_module_provider_field_inventory"
+            "local_module_provider_field_inventory",
+            "local_module_selected_sequence",
+            "local_default_join_borrows_input",
+            "local_module_borrowed_text_singleton_group"
           ],
           "exports": [],
           "attributes": {
@@ -659,6 +683,10 @@
               {
                 "path": "src/query_integration/materializing_funded_growth_wbtest.mbt",
                 "anchor": "test \"materializing growth keeps the original current callback and cancellation prefix\""
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "paused Debug borrows the full original Relation from its completed Driver"
               }
             ]
           }

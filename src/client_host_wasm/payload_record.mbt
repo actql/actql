@@ -98,13 +98,13 @@ fn payload_record_current(
     return saved_payload_record_current(value, record, current_configuration)
   }
   match value.payload_requests.get(record.request) {
-    Some(request) =>
-      payload_replay_current(
-        value,
-        request,
-        current_configuration,
-        pending_confirmation~,
-      )
+    Some(request) => {
+      if pending_confirmation &&
+        value.publications.get(request.publication) is Some({ file: Some(file), .. } as parent) {
+        return sdk_file_payload_confirmation_current(value, record, request, parent, file, current_configuration)
+      }
+      payload_replay_current(value, request, current_configuration, pending_confirmation~)
+    }
     None => false
   }
 }

@@ -1,4 +1,80 @@
 ///|
+/// Size only the source-free VM Model census on its retained Local module.
+/// Physical reservations are bounded by the original combined attempt limits.
+/// A settled reservation may still be indexed by a live holding. Count that
+/// separately, then the synchronous byte-only owners: the existing Request
+/// slots, Run setup/publication, and each Model Read, startup, proof and output
+/// projection. Raw and outcome publication may overlap on each selected Call.
+/// This VM route has no process delegations. The ordinary default caller's
+/// selected inventory and all original execution ceilings remain independent.
+pub fn portable_model_scope_inventory(
+  original : ClientInstalledManagedSourceFreePreparation,
+  model_attempts : Int64,
+  model_holdings : Int64,
+) -> (Int, Int, Int)? {
+  guard original.owner is Pure(_) &&
+    original.configuration is Some(_) &&
+    original.compilation is Some(@publication_host.Tasks(compilation)) &&
+    !compilation.infers.is_empty() else {
+    return None
+  }
+  portable_model_scope_inventory_from_limits(
+    original.limits,
+    compilation.infers.length(),
+    model_attempts,
+    model_holdings,
+  )
+}
+
+///|
+/// The same Portable physical recipe for a module that owns a Whole Source.
+pub fn portable_file_model_scope_inventory(
+  original : ClientInstalledManagedCapturePlan,
+  model_attempts : Int64,
+  model_holdings : Int64,
+) -> (Int, Int, Int)? {
+  guard original.whole_sources.length() == 1 &&
+    original.compilation is Some(@publication_host.Tasks(compilation)) &&
+    compilation.infers.length() == 1 else {
+    return None
+  }
+  portable_model_scope_inventory_from_limits(
+    original.limits,
+    1,
+    model_attempts,
+    model_holdings,
+  )
+}
+
+///|
+fn portable_model_scope_inventory_from_limits(
+  limits : @resources.LedgerLimits,
+  model_count : Int,
+  model_attempts : Int64,
+  model_holdings : Int64,
+) -> (Int, Int, Int)? {
+  let max = 2147483647L
+  guard model_attempts >= 0L &&
+    model_attempts <= max &&
+    model_holdings >= 0L &&
+    model_holdings <= max else {
+    return None
+  }
+  let holdings = limits.holdings.to_int64() + model_holdings
+  let attempts = limits.attempts.to_int64() + model_attempts
+  let request = request_preparation_borrow_limit.to_int64()
+  let run = 2L
+  let component = 4L * model_count.to_int64()
+  let call = 2L * model_attempts
+  let reservations = request + run + component + call + attempts + holdings
+  if reservations > max || holdings > max - reservations {
+    None
+  } else {
+    Some((reservations.to_int(), holdings.to_int(), 0))
+  }
+}
+
+///|
 // This SAME Request retains its original admission census before its one
 // Model binding. Pure/Effect are closed, exclusive body choices. Resource owns
 // slot shapes; the Model Owner supplies its actual retained-record inventory.

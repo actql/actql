@@ -2,39 +2,79 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager
+from contextlib import ExitStack as _ExitStack
 from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
 import os as _os
-from ctypes import byref, c_void_p, cast
+from ctypes import c_void_p, cast
 from importlib import import_module
 import secrets
 from struct import pack_into
 import sys
 from threading import RLock, current_thread
 from types import MethodType
-from typing import TYPE_CHECKING, Any, Literal
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Literal, NoReturn
 
 if TYPE_CHECKING:
     from ._local_host_binding import _OriginalPublisherPort
+    from ._local_run import _PhysicalStart
     from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
     from ._local_native_image import _NativeImageHolding
     from ._local_native_vm import _OriginalVMObservation
     from ._local_worker_child_control import _OriginalChildControlPipe
-    from ._local_distribution import LocalComponents
+    from ._local_distribution import LocalComponents, _LocalModelCrypto
 
-from ._local_journal_port import _JournalCallbacks, _JournalRowTransfer
-from ._local_storage import _NamespaceReader, LocalByteStore, _SAVED_READER_FACTS_EXPORT
+from ._local_journal_port import (
+    _JournalCallbacks, _JournalRowTransfer, _TASK_MATERIAL_BATCH_COPY_BYTES,
+)
+from ._local_storage import (_JOURNAL_NAME_AUTHENTICATE, _JOURNAL_NAME_KEY_SCAN, _NamespaceReader,
+                             LocalByteStore, _SAVED_READER_FACTS_EXPORT)
 from ._local_native_holding import _NativeHoldingLease
 from ._local_work import OriginalLocalWork
 
 _NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
+
+# The canonical payload request and either admitted record wire share this
+# transport extent with publication_payload_record_transport_bytes in Common.
+_PAYLOAD_RECORD_WIRE_LIMIT = 2048
 # Full admission revalidates saved originals within this one finite operation.
 # This product ceiling includes that work; private ABI calls never refill it.
 _NORMAL_HOST_OPERATION_FUEL = 64_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 _INCREMENTAL_SAVED_RESULT_KIND = 13
+_SAVED_RESULT_COORDINATES_BYTES = 245
+_SAVED_RUN_STATE_WIRE_BYTES = 65536
+_SAVED_RUN_ATTACHMENT_WIRE_BYTES = 32768
+_NAMED_SUBMISSION_KIND = 31
+_NAMED_SUBMISSION_APPEND_KIND = 32
+_SAVED_EFFECT_CHECKPOINT_PAGE_KIND = 14
+_SAVED_EFFECT_CHECKPOINT_REVIEW_KIND = 15
+_SAVED_EFFECT_RESOLUTION_PROOF_KIND = 16
+_SAVED_EFFECT_ATTESTATION_USE_KIND = 17
+_SAVED_EFFECT_DECISION_KIND = 18
+_SAVED_EFFECT_DECISION_FIELD_KIND = 19
+_SAVED_EFFECT_RESUME_KIND = 20
+_SAVED_EFFECT_APPLICATION_KIND = 21
+_SAVED_EFFECT_FILE_DISPATCH_KIND = 22
+_SAVED_EFFECT_FILE_DISPATCH_FIELD_KIND = 23
+_SAVED_EFFECT_FILE_OPERATION_KIND = 24
+_SAVED_EFFECT_FILE_REPLACEMENT_KIND = 25
+_SAVED_EFFECT_FILE_RESPONSE_KIND = 26
+_SAVED_EFFECT_FILE_RESPONSE_FIELD_KIND = 27
+_SAVED_EFFECT_FILE_TERMINAL_KIND = 28
+_SAVED_EFFECT_FILE_COMPLETION_KIND = 29
+_SAVED_EFFECT_FILE_PUBLISHED_KIND = 30
+_MOCK_EFFECT_REVIEW_EXTENT_KIND = 22
+_MOCK_EFFECT_REVIEW_READ_KIND = 17
+_MOCK_EFFECT_CHECKPOINT_CONFIRM_KIND = 18
+_MOCK_EFFECT_WAITING_KIND = 19
+_MOCK_EFFECT_WAITING_FIELD_KIND = 23
+_MOCK_EFFECT_REVIEW_KINDS = (_MOCK_EFFECT_REVIEW_READ_KIND,
+                             _MOCK_EFFECT_CHECKPOINT_CONFIRM_KIND, _MOCK_EFFECT_WAITING_KIND)
 
 
 class LocalCoreError(RuntimeError):
@@ -44,6 +84,22 @@ class LocalCoreError(RuntimeError):
         self.operation = operation
         self.code = code
         super().__init__(f'Local Core {operation} returned {code}')
+
+
+class _TaskDrive(Enum):
+    PROGRESSED = 0
+    COMPLETE = 1
+    WAITING = 2
+    FINALIZATION_WAITING = 3
+    AWAIT_IO = 4
+
+    def refuse_unhandled_pause(self) -> NoReturn:
+        operation = {
+            _TaskDrive.WAITING: 'original_task_waiting',
+            _TaskDrive.FINALIZATION_WAITING: 'original_task_finalization_waiting',
+            _TaskDrive.AWAIT_IO: 'original_task_io_waiting',
+        }[self]
+        raise LocalCoreError(operation, -7)
 
 
 class LocalCoreInitializationError(RuntimeError):
@@ -116,6 +172,7 @@ class LocalTaskProgress:
     waiting: bool
     progress: int
     work: int
+    await_io: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,6 +213,16 @@ class _PublisherCallbacks:
     buffer: bytearray | None = None
     received: int = 0
     original: _OriginalPublisherPort | None = None
+
+
+_MOCK_EFFECT_SOURCE_CAPTURE_KIND = 14
+_MOCK_EFFECT_SOURCE_EVIDENCE_KIND = 15
+_MOCK_EFFECT_COMPUTE_KIND = 16
+_LOCAL_CSV_OFFER_KIND = 20
+_LOCAL_CSV_RESPONSE_KIND = 21
+_MOCK_EFFECT_METADATA_KINDS = (
+    _MOCK_EFFECT_SOURCE_CAPTURE_KIND, _MOCK_EFFECT_SOURCE_EVIDENCE_KIND, _MOCK_EFFECT_COMPUTE_KIND,
+)
 
 
 def _original_metadata_cleanup() -> bool:
@@ -200,7 +267,6 @@ class _PhysicalInput:
     stopped: Callable[[int], bool]
     publisher: _PublisherCallbacks | None = None
     journal: _JournalCallbacks | None = None
-    prepare_bytes: int = 0
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -345,136 +411,9 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
         raise ValueError('Unbounded Local Core linear memory')
 
 
-# Fixed receipt, 20 method records, one selected export/name/native lookup,
-# and the workspace's physical-control callbacks. No export-map copy exists.
-_CLOSED_WASM_RECEIPT_BYTES = 4096
 # One exact synchronous prepare receipt, its method provenance, up to eight
 # completed-reader pin records and bounded construction temporaries. Funded by
 # the original current Owner before any prepare receipt is allocated.
-_RECONCILIATION_PREPARE_BYTES = 40960
-
-
-class _ClosedWasmExports:
-    """Funded constructor receipt for the validated, wrapped-import instance.
-
-    This does not admit an operation. It only identifies standard Wasmtime
-    exports whose Python exits are all enclosed by _observation_import.
-    Scalar/custom exports never inherit this receipt from platform memory.
-    """
-    __slots__ = ('core', 'platform', 'runtime', 'exports_type', 'ffi',
-                 'mapping', 'sequence', 'instance_handle', 'instance_key', 'methods')
-
-    @staticmethod
-    def _supported(core: 'LocalCore', runtime: Any) -> bool:
-        return (getattr(runtime, '__name__', None) == 'wasmtime'
-                and core._platform_vm_original is not None
-                and type(core._store) is runtime.Store
-                and type(core._instance) is runtime.Instance
-                and type(core._exports) is import_module('wasmtime._instance').InstanceExports)
-
-    def __init__(self, core: 'LocalCore', runtime: Any) -> None:
-        if not self._supported(core, runtime) or core._closed_wasm_workspace is None:
-            raise ValueError('Original closed Wasmtime receipt is not funded')
-        core._owned(core._closed_wasm_workspace)
-        self.core, self.platform, self.runtime = core, core._platform_vm_original, runtime
-        self.exports_type = import_module('wasmtime._instance').InstanceExports
-        self.ffi = import_module('wasmtime._ffi')
-        self.mapping, self.sequence = core._exports._extern_map, core._exports._extern_seq
-        self.instance_handle = core._instance._instance
-        self.instance_key = (self.instance_handle.store_id, getattr(self.instance_handle, '__private'))
-        self.methods = tuple((owner, name, self._method_identity(owner, name)) for owner, names in (
-            (runtime.Func, ('__call__', 'type')),
-            (runtime.Instance, ('exports',)),
-            (self.exports_type, ('__getitem__', 'get')),
-            (runtime.Store, ('_context',)),
-            (runtime.Memory, ('read', 'write', 'data_len', 'data_ptr', 'get_buffer_ptr',
-                              '_from_raw', '__new__')),
-            (runtime.Caller, ('get', '_context', '__init__', '_invalidate', '__new__')),
-            (import_module('wasmtime._func'), ('wrap_extern',)),
-            (self.ffi, ('wasmtime_instance_export_get',)),
-        ) for name in names)
-        # Keep the receipt even if a later constructor step fails; its original
-        # workspace owns cleanup until explicit close or actual Store retirement.
-        core._closed_wasm_exports = self
-        if self._retained_bytes() + 2048 > _CLOSED_WASM_RECEIPT_BYTES:
-            raise ValueError('Original closed Wasmtime receipt exceeds its reservation')
-
-    @staticmethod
-    def _method_identity(owner: Any, name: str) -> Any:
-        # Inspect the retained class/module dictionaries without invoking a
-        # replacement descriptor. Class factories retain their actual function,
-        # not the fresh bound-method wrapper normally produced by getattr.
-        if isinstance(owner, type):
-            for base in owner.__mro__:
-                if name in vars(base):
-                    method = vars(base)[name]
-                    return (method.__func__ if type(method) in (classmethod, staticmethod)
-                            else method)
-            return None
-        return vars(owner).get(name)
-
-    def _matches(self, name: str, export: Any, *, full: bool = False) -> bool:
-        core, runtime, original = self.core, self.runtime, self.platform
-        if (original is None or getattr(core, '_closed_wasm_exports', None) is not self
-                or core._platform_vm_original is not original
-                or core._store is not original[3] or core._instance is not original[4]
-                or core._exports is not original[5]
-                or type(core._store) is not runtime.Store
-                or type(core._instance) is not runtime.Instance
-                or type(core._exports) is not self.exports_type
-                or type(export) is not runtime.Func
-                or type(export).__getattribute__ is not object.__getattribute__
-                or type(core._instance).__getattribute__ is not object.__getattribute__
-                or type(core._exports).__getattribute__ is not object.__getattribute__
-                or type(core._store).__getattribute__ is not object.__getattribute__
-                or runtime.Caller.__getattribute__ is not object.__getattribute__
-                or core._instance._instance is not self.instance_handle
-                or core._instance._exports is not core._exports
-                or core._exports._extern_map is not self.mapping
-                or core._exports._extern_seq is not self.sequence
-                or type(self.mapping) is not dict or self.mapping.get(name) is not export):
-            return False
-        if not full:
-            return True
-        memory = original[6]
-        return (vars(export).keys() == {'_func'}
-                and type(export._func) is self.ffi.wasmtime_func_t
-                and vars(core._instance).keys() == {'_instance', '_exports'}
-                and vars(core._exports).keys() == {'_extern_map', '_extern_seq'}
-                and type(self.sequence) is tuple
-                and '_context' not in vars(core._store)
-                and type(memory) is runtime.Memory
-                and type(memory).__getattribute__ is object.__getattribute__
-                and not any(name in vars(memory) for name in (
-                    'read', 'write', 'data_len', 'data_ptr', 'get_buffer_ptr'))
-                and self.instance_key == (self.instance_handle.store_id,
-                                          getattr(self.instance_handle, '__private'))
-                and all(self._method_identity(owner, member) is method
-                        for owner, member, method in self.methods))
-
-    def _qualify(self, name: str, export: Any) -> bool:
-        if (type(name) is not str or len(name) > 128 or not name.isascii()
-                or not self._matches(name, export, full=True)):
-            return False
-        # Read this one export from the retained native instance, not a copied
-        # or replaceable Python mapping. The bounded result is invocation-local.
-        encoded = name.encode('utf-8')
-        actual = self.ffi.wasmtime_extern_t()
-        if not self.ffi.wasmtime_instance_export_get(self.core._store._context(),
-                byref(self.instance_handle), encoded, len(encoded), byref(actual)):
-            return False
-        return (actual.kind == self.ffi.WASMTIME_EXTERN_FUNC.value
-                and actual.of.func.store_id == export._func.store_id
-                and getattr(actual.of.func, '__private') == getattr(export._func, '__private'))
-
-    def _retained_bytes(self) -> int:
-        # All runtime objects/maps remain owned by the original platform VM.
-        # The additional 2048-byte construction/lookup envelope covers the
-        # workspace loan, physical slot, two callback closures, selected name
-        # (at most 128 characters), UTF-8 copy and fixed C export result.
-        return (sys.getsizeof(self) + sys.getsizeof(self.instance_key)
-                + sum(sys.getsizeof(item) for item in self.instance_key)
-                + sys.getsizeof(self.methods) + sum(sys.getsizeof(item) for item in self.methods))
 
 
 def _valid_core_limits(transfer_capacity: int, slots: int, fuel: int,
@@ -496,6 +435,8 @@ class LocalCore:
     allowances through the existing Owner, acquires real runtime resources and
     keeps any explicitly supplied native holding until its actual cleanup ACK.
     """
+
+    _installed_model_crypto: tuple[Path, _LocalModelCrypto]
 
     @classmethod
     def _from_installed_image(cls, components: LocalComponents, *, resources: LocalCoreResources,
@@ -583,15 +524,18 @@ class LocalCore:
         self._invoking = False
         self._host_current_binding: Any = None
         self._invocation_observation: Any = None
-        self._reconciliation_prepare: Any = None
         self._ordinary_host = _ordinary_host
         self._host_fuel_phase: str | None = 'initial' if _ordinary_host else None
         self._host_initial_claimed = False
         # One bounded same-instance observation generation, never a grant,
         # Run identity, submitted continuation or independent fuel allowance.
         self._host_operation_sequence = 0
+        self._journal_reader_serial = 0
         self._host_operation_id = 0
         self._host_operation_scope: object | None = None
+        self._host_fuel_owner: object | None = None
+        self._host_resumed_read: tuple[object, int] | None = None
+        self._host_captured_read: object | None = None
         self._host_retained_work: tuple[OriginalLocalWork, object, int] | None = None
         self._host_cleanup_depth = 0
         self._engine: Any = None
@@ -603,8 +547,6 @@ class LocalCore:
         self._linker: Any = None
         self._instance: Any = None
         self._platform_vm_original: tuple[Any, ...] | None = None
-        self._closed_wasm_exports: _ClosedWasmExports | None = None
-        self._closed_wasm_workspace: _Workspace | None = None
         self._platform_vm_type: Any = None
         self._physical_vm_type: Any = None
         self._physical_vm_span: tuple[int, int] | None = None
@@ -613,6 +555,7 @@ class LocalCore:
         if _physical_holding is not None:
             _physical_holding._bind_core(self._identity)
         self._physical_holding = _physical_holding
+        self._installed_image_sha256: str | None = None
         self._physical_image: _NativeImageHolding | None = None
         try:
             if self._physical_child_control is not None:
@@ -688,6 +631,7 @@ class LocalCore:
                                        ('publisher_finish', self._publisher_finish),
                                        ('journal_current', self._journal_current),
                                        ('journal_current_operation', self._journal_current_operation),
+                                       ('journal_saved_reader', self._journal_saved_reader),
                                        ('journal_schema', self._journal_schema)]:
                     params = [wasmtime.ValType.i32()
                               for _ in _IMPORT_SIGNATURES[name][0].split()]
@@ -698,7 +642,9 @@ class LocalCore:
                 for name, callback in [('input_copy', self._input_copy),
                                        ('publisher_copy', self._publisher_copy),
                                        ('journal_query_header', self._journal_query_header),
-                                       ('journal_copy_row', self._journal_copy_row)]:
+                                       ('journal_copy_row', self._journal_copy_row),
+                                       ('journal_task_material_header', self._journal_task_material_header),
+                                       ('journal_saved_identity_header', self._journal_saved_identity_header)]:
                     params = [wasmtime.ValType.i32()
                               for _ in _IMPORT_SIGNATURES[name][0].split()]
                     self._linker.define_func('actql_host', name,
@@ -749,7 +695,8 @@ class LocalCore:
                                                 resources.attempts, resources.holdings,
                                                 resources.transfer_bytes, resources.retained_bytes,
                                                 resources.execution_bytes, _host_capacity_bytes))
-                self._capture_closed_wasm_exports(wasmtime)
+                if _compiled_image is not None:
+                    self._installed_image_sha256 = _compiled_image.sha256
                 self._host_fuel_phase = None
         except BaseException as error:
             self._retired = True
@@ -759,18 +706,6 @@ class LocalCore:
             except Exception:
                 raise LocalCoreInitializationError(self) from error
             raise
-
-    def _capture_closed_wasm_exports(self, runtime: Any) -> None:
-        if not _ClosedWasmExports._supported(self, runtime):
-            return
-        if self._closed_wasm_workspace is not None or self._closed_wasm_exports is not None:
-            raise ValueError('Original closed Wasmtime receipt already exists')
-        # Called only after open_platform admits the original Resource Owner.
-        # Keep its issued workspace before any fallible receipt construction.
-        self._closed_wasm_workspace = self.reserve_workspace(
-            _CLOSED_WASM_RECEIPT_BYTES, stopped=lambda: True,
-            cleanup=self._retire_closed_wasm_exports)
-        self._closed_wasm_exports = _ClosedWasmExports(self, runtime)
 
     def _platform_vm_observation(self, caller: Any, nonce: int, ordinal: int) -> int:
         """Fixed original platform port, never execution-child permission.
@@ -935,14 +870,10 @@ class LocalCore:
             active = getattr(self, '_invocation_observation', None)
             if active is not None:
                 active._fail(error)
-            phase = getattr(self, '_reconciliation_prepare', None)
-            if phase is not None:
-                phase._fail(error)
             raise error
         if getattr(self, '_ordinary_host', False) and self._host_fuel_phase is None:
             raise RuntimeError('Local Core requires its admitted Host operation')
         platform = getattr(self, '_platform_vm_original', None)
-        phase = getattr(self, '_reconciliation_prepare', None)
         span = None
         self._invoking = True
         try:
@@ -954,22 +885,15 @@ class LocalCore:
                     self._require_platform_vm_current()
                 export_name = f'actql_{family}_{name}'
                 export = self._exports[export_name]
-                if phase is not None and not phase.suspended:
-                    phase.before_export(export_name, export)
                 binding = getattr(self, '_host_current_binding', None)
                 if binding is not None:
                     span = binding._new_invocation_observation(export_name)
                     if span is not None:
                         self._invocation_observation = span
-                        receipt = getattr(self, '_closed_wasm_exports', None)
-                        if type(receipt) is _ClosedWasmExports and receipt._qualify(export_name, export):
-                            span.wasm_export = (receipt, export_name, export, export._func)
-                if phase is not None and not phase.suspended and (
-                        span is None or span.wasm_export is None):
-                    raise ValueError('Original reconciliation requires its genuine Wasmtime invocation')
+                        if platform is not None:
+                            # The retained platform instance was validated during construction.
+                            span.wasm_export = export_name
                 result = export(self._store, self._nonce, *arguments)
-                if phase is not None and not phase.suspended:
-                    phase.after_export(export_name, export)
                 if platform is not None:
                     if self._platform_vm_original is not platform:
                         raise ValueError('Original platform VM changed during its invocation')
@@ -983,8 +907,6 @@ class LocalCore:
             # The Core may already own the original invocation/ticket. Block
             # new work while retaining this instance for explicit retirement.
             self._closing = True
-            if phase is not None:
-                phase._fail(error)
             if span is not None:
                 span._fail(error)
                 if span.failure is not error:
@@ -1006,6 +928,11 @@ class LocalCore:
         observation before calling out and reacquire it only after returning.
         Unknown future imports therefore cannot silently extend the span.
         """
+        # The registered wrapper retains this same bound callback.
+        method_name = '_read' if name == 'input_byte' else '_' + name
+        original_bridge = (type(callback) is MethodType and callback.__self__ is self
+                           and callback.__func__ is getattr(LocalCore, method_name, None))
+
         def invoke(*args: Any) -> Any:
             span = getattr(self, '_invocation_observation', None)
             if span is not None and span.failure is not None:
@@ -1013,28 +940,27 @@ class LocalCore:
             if span is None or span.suspended:
                 return callback(*args)
             try:
+                if not original_bridge:
+                    return span.interrupt(callback, *args)
                 pure = name in ('input_byte', 'input_copy')
                 journal = None
                 publisher = None
-                if name in ('journal_current', 'journal_current_operation', 'journal_schema',
+                if name in ('journal_current', 'journal_current_operation', 'journal_saved_reader', 'journal_schema',
                             'journal_begin', 'journal_query', 'journal_length', 'journal_revision',
                             'journal_release', 'journal_query_copy', 'journal_copy',
-                            'journal_query_header', 'journal_copy_row'):
+                            'journal_query_header', 'journal_copy_row', 'journal_task_material_header',
+                            'journal_saved_identity_header'):
                     index = 1 if name in ('journal_query_copy', 'journal_copy',
-                                          'journal_query_header', 'journal_copy_row') else 0
-                    ticket = abs(args[index]) if name == 'journal_current_operation' else args[index]
+                                          'journal_query_header', 'journal_copy_row',
+                                          'journal_task_material_header', 'journal_saved_identity_header') else 0
+                    ticket = args[index]
                     journal = self._journal_callbacks(ticket)
-                    pure = ((name == 'journal_current_operation' and ticket == 0)
-                            or (type(journal) is _JournalCallbacks and journal.reader is span.reader
-                                and journal.current is span.binding._current_observer))
+                    pure = (type(journal) is _JournalCallbacks and journal.reader is span.reader
+                            and journal.current is span.binding._current_observer)
                 elif name in ('publisher_current', 'publisher_begin', 'publisher_copy', 'publisher_finish'):
                     from ._local_host_binding import _OriginalPublisherPort
                     index = 1 if name == 'publisher_copy' else 0
-                    # A name alone never closes a supplied callback. Match the
-                    # actual registered bridge method and original issued port.
-                    if (len(args) > index and type(callback) is MethodType
-                            and callback.__self__ is self
-                            and callback.__func__ is getattr(LocalCore, '_' + name)):
+                    if len(args) > index:
                         candidate = self._publisher_callbacks(args[index])
                         if (type(candidate) is _PublisherCallbacks
                                 and type(candidate.original) is _OriginalPublisherPort):
@@ -1058,9 +984,6 @@ class LocalCore:
                             and getattr(self, '_physical_holding', None) is None
                             and getattr(self, '_physical_child_control', None) is None
                             and getattr(self, '_physical_vm_observation', None) is None)
-                method_name = {'input_byte': '_read', 'input_copy': '_input_copy'}.get(name, '_' + name)
-                pure = (pure and type(callback) is MethodType and callback.__self__ is self
-                        and callback.__func__ is getattr(LocalCore, method_name, None))
                 if not pure:
                     return span.interrupt(callback, *args)
                 if publisher is not None:
@@ -1075,10 +998,6 @@ class LocalCore:
                     span._guard_publisher()
                 if span.admitted:
                     span._guard_sql()
-                    if name in ('input_copy', 'publisher_copy', 'journal_query_copy',
-                                'journal_copy', 'journal_query_header', 'journal_copy_row',
-                                'platform_vm_observation'):
-                        span._guard_wasm_methods()
                 if span.closed_import:
                     raise ValueError('Reentrant closed Local import')
                 span.closed_import = True
@@ -1131,6 +1050,7 @@ class LocalCore:
             self._host_fuel_phase = 'operation'
             scope = object()
             self._host_operation_scope = scope
+            self._host_fuel_owner = scope
         try:
             yield
         finally:
@@ -1141,6 +1061,72 @@ class LocalCore:
                     self._host_operation_id = 0
                     self._host_fuel_phase = None
                     self._host_operation_scope = None
+
+    def _host_operation_is_current(self, operation: int) -> bool:
+        if (type(operation) is not int or not 0 < operation < 2**63
+                or self._host_operation_id != operation):
+            return False
+        if operation == self._host_operation_sequence:
+            return True
+        resumed = getattr(self, '_host_resumed_read', None)
+        return (resumed is not None and resumed[0] is self._host_operation_scope
+                and resumed[1] == operation)
+
+    def _capture_saved_read_operation(self) -> Callable[[], AbstractContextManager[None]]:
+        """Carry the response's same physical allowance across backpressure."""
+        if not getattr(self, '_ordinary_host', False):
+            return self._host_operation
+        with self._lock:
+            scope = self._host_operation_scope
+            operation = self._host_operation_id
+            if (scope is None or scope is getattr(self, '_host_captured_read', None)
+                    or self._host_fuel_phase != 'operation' or self._host_cleanup_depth
+                    or self._closing or self._closed or self._retired or self._invoking
+                    or getattr(self, '_host_retained_work', None) is not None
+                    or self._host_fuel_owner is not scope
+                    or operation != self._host_operation_sequence
+                    or not self._host_operation_is_current(operation)):
+                raise RuntimeError('Original saved Result operation cannot transfer')
+            store = self._store
+            remaining = store.get_fuel()
+            if type(remaining) is not int or not 0 <= remaining <= _NORMAL_HOST_OPERATION_FUEL:
+                raise RuntimeError('Original saved Result operation fuel is unavailable')
+            self._host_captured_read = scope
+        original = (scope, operation)
+
+        @contextmanager
+        def resume() -> Iterator[None]:
+            nonlocal remaining
+            with self._lock:
+                if (self._host_fuel_phase is not None or self._host_operation_scope is not None
+                        or self._invoking or self._closing or self._closed or self._retired
+                        or self._store is not store):
+                    raise RuntimeError('Original saved Result operation cannot resume')
+                if self._host_fuel_owner is not scope:
+                    # Another original operation used the physical counter.
+                    # Restore only this operation's remaining allowance.
+                    store.set_fuel(remaining)
+                    self._host_fuel_owner = scope
+                elif store.get_fuel() > remaining:
+                    raise RuntimeError('Original saved Result operation fuel was replenished')
+                self._host_resumed_read = original
+                self._host_operation_scope = scope
+                self._host_operation_id = operation
+                self._host_fuel_phase = 'operation'
+            try:
+                yield
+            finally:
+                with self._lock:
+                    try:
+                        if not self._closing and self._store is store:
+                            remaining = store.get_fuel()
+                    finally:
+                        self._host_resumed_read = None
+                        self._host_operation_scope = None
+                        self._host_operation_id = 0
+                        self._host_fuel_phase = None
+
+        return resume
 
     def _retain_work_operation(self, work: OriginalLocalWork) -> None:
         """Hand the current finite allowance to the same physical invocation.
@@ -1154,6 +1140,7 @@ class LocalCore:
             scope = getattr(self, '_host_operation_scope', None) if ordinary else work
             if (scope is None or ordinary and (self._host_fuel_phase != 'operation' or
                     self._host_operation_id <= 0) or self._invoking or
+                    getattr(self, '_host_resumed_read', None) is not None or
                     getattr(self, '_host_retained_work', None) is not None or
                     work._invoked or work._on_exit != self._finish_work_operation):
                 raise RuntimeError('Original Host operation cannot transfer its physical custody')
@@ -1225,6 +1212,7 @@ class LocalCore:
             self._host_cleanup_depth = getattr(self, '_host_cleanup_depth', 0) + 1
             if not joined:
                 self._store.set_fuel(_NORMAL_HOST_CLEANUP_FUEL)
+                self._host_fuel_owner = None
                 self._host_fuel_phase = 'cleanup'
             # This marker describes the actual serialized Core call, not a
             # different thread's cleanup interest between ordinary quanta.
@@ -1308,7 +1296,7 @@ class LocalCore:
             caller is None or type(caller.get) is MethodType and caller.get.__self__ is caller
             and caller.get.__func__ is runtime.Caller.get)
 
-    def _bulk_memory_current(self, memory: Any) -> None:
+    def _bulk_memory_current(self, memory: Any, *, caller: Any = None) -> int | None:
         # This is the same entered instance's fixed linear memory. No address
         # or view escapes the synchronous copy or replaces its original loan.
         if (self._closing or self._closed or self._retired
@@ -1317,8 +1305,10 @@ class LocalCore:
         observation = getattr(self, '_physical_vm_observation', None)
         if observation is not None:
             observation._require_core_current()
-        if getattr(self, '_platform_vm_original', None) is not None:
-            self._require_platform_vm_current()
+        if getattr(self, '_platform_vm_original', None) is None:
+            return None
+        return self._require_platform_vm_current(
+            caller=caller, nonce=self._nonce if caller is not None else None)
 
     def _bulk_memory(self, caller: Any, offset: int, length: int) -> Any:
         memory = self._exports.get('memory')
@@ -1384,20 +1374,28 @@ class LocalCore:
         # and the bounded immutable/mutable block overlap. This is separate
         # from the unchanged fixed VM capacity and existing exact row charges.
         # Referenced inputs/readers/rows remain charged to their existing owners.
-        return (sys.getsizeof((None,) * 10) + 64 + 16
+        return (sys.getsizeof((None,) * len(_JournalRowTransfer._fields)) + 64 + 16
                 + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b'') + 2 * 16384
                 + sys.getsizeof((None, None)) + 2 * sys.getsizeof((None, None, None)))
 
-    def _journal_memory_range(self, caller: Any, memory: Any, offset: int,
-                              length: int, limit: int) -> None:
-        self._bulk_memory_current(memory)
-        if getattr(self, '_platform_vm_original', None) is not None:
-            self._require_platform_vm_current(caller=caller, nonce=self._nonce)
-        size = memory.data_len(caller)
-        if (type(offset) is not int or offset < 0 or type(length) is not int
-                or not 0 <= length <= limit or type(size) is not int
-                or not 0 <= size <= _MEMORY_LIMIT or offset > size or length > size - offset):
+    def _journal_memory_ranges(self, caller: Any, memory: Any,
+                               *ranges: tuple[int, int, int]) -> None:
+        if caller is None:
             raise ValueError('Invalid original Local journal memory range')
+        size = self._bulk_memory_current(memory, caller=caller)
+        if size is None:
+            actual = caller.get('memory')
+            if (actual is None or memory is None
+                    or cast(actual.data_ptr(caller), c_void_p).value !=
+                       cast(memory.data_ptr(self._store), c_void_p).value):
+                raise ValueError('Foreign original Local journal memory')
+            size = actual.data_len(caller)
+        if type(size) is not int or not 0 <= size <= _MEMORY_LIMIT:
+            raise ValueError('Invalid original Local journal memory range')
+        for offset, length, limit in ranges:
+            if (type(offset) is not int or offset < 0 or type(length) is not int
+                    or not 0 <= length <= limit or offset > size or length > size - offset):
+                raise ValueError('Invalid original Local journal memory range')
 
     def _journal_input_current(self, ticket: int, physical: _PhysicalInput,
                                callbacks: _JournalCallbacks, reader: _NamespaceReader,
@@ -1420,6 +1418,7 @@ class LocalCore:
                                     original.memory, original.store, original.current)
         if (original.ticket != ticket or callbacks.transfer is not original
                 or callbacks.row is not original.row or callbacks.queried is not True
+                or callbacks.task_material_scope is not original.task_material_scope
                 or callbacks.store is not original.store or original.reader.owner is not original.store
                 or callbacks.current is not original.current
                 or original.row[0] is not original.key or original.row[1].payload is not original.body
@@ -1427,6 +1426,31 @@ class LocalCore:
                 or original.row[1].generation != original.generation
                 or callbacks.transfer_ready is not ready or callbacks.transfer_started is not started):
             raise ValueError('Original Local journal row transfer changed')
+
+    def _journal_write_row_header(self, caller: Any, callbacks: _JournalCallbacks,
+                                  transfer: _JournalRowTransfer, header_offset: int) -> int:
+        callbacks.transfer = transfer
+        callbacks.transfer_ready = callbacks.transfer_started = False
+        try:
+            ticket = transfer.ticket
+            memory: Any = transfer.memory
+            self._journal_row_current(ticket, callbacks, transfer, ready=False, started=False)
+            header = bytearray(16)
+            pack_into('<IIq', header, 0, len(transfer.key), len(transfer.body), transfer.generation)
+            if self._bulk_memory(caller, header_offset, 16) is not memory:
+                raise ValueError('Original Local journal header memory changed')
+            copied = memory.write(caller, header, header_offset)
+            if (self._bulk_memory(caller, header_offset, 16) is not memory
+                    or type(copied) is not int or copied != 16):
+                raise ValueError('Incomplete original Local journal header copy')
+            self._journal_row_current(ticket, callbacks, transfer, ready=False, started=False)
+            callbacks.transfer_ready = True
+            return 0
+        except BaseException:
+            # Restore the original row receipt for cleanup, even if a callback
+            # replaced the visible slot. This cannot authorize another copy.
+            callbacks.transfer = transfer
+            raise
 
     def _journal_query_header(self, caller: Any, ticket: int, mode: int,
                               namespace_offset: int, namespace_bytes: int,
@@ -1436,21 +1460,25 @@ class LocalCore:
         callbacks = self._journal_callbacks(ticket)
         if callbacks is None or callbacks.failure is not None:
             return -41
-        transfer = None
         try:
             physical, reader = self._inputs[ticket], callbacks.reader
             store, current = callbacks.store, callbacks.current
-            if (type(mode) is not int or mode not in (0, 1)
+            scope = callbacks.task_material_scope
+            if (type(mode) is not int
+                    or mode not in (0, 1, _JOURNAL_NAME_KEY_SCAN, _JOURNAL_NAME_AUTHENTICATE)
                     or type(namespace_bytes) is not int or not 0 < namespace_bytes <= 4096
                     or type(key_bytes) is not int or not 0 <= key_bytes <= 4096
-                    or (mode == 1 and key_bytes == 0)):
+                    or (mode in (1, _JOURNAL_NAME_AUTHENTICATE) and key_bytes == 0)):
                 raise ValueError('Invalid original Local journal header request')
             memory = self._bulk_memory(caller, header_offset, 16)
+            self._journal_memory_ranges(caller, memory, (namespace_offset, namespace_bytes, 4096),
+                                        (key_offset, key_bytes, 4096))
             for offset, length in ((namespace_offset, namespace_bytes), (key_offset, key_bytes)):
-                self._journal_memory_range(caller, memory, offset, length, 4096)
                 if length and offset < header_offset + 16 and header_offset < offset + length:
                     raise ValueError('Original Local journal header overlaps request')
             self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            if callbacks.task_material_scope is not scope:
+                raise ValueError('Original Local journal read scope changed')
             if callbacks.begin(mode, namespace_bytes, key_bytes) != 0:
                 return -41
             request = callbacks.request
@@ -1465,7 +1493,7 @@ class LocalCore:
                 if self._bulk_memory(caller, offset, length) is not memory:
                     raise ValueError('Original Local journal query memory changed')
                 self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
-                if callbacks.request is not request:
+                if callbacks.request is not request or callbacks.task_material_scope is not scope:
                     raise ValueError('Original Local journal request changed')
                 if len(raw) != length or callbacks.query_copy(index, raw) != length:
                     raise ValueError('Incomplete original Local journal query copy')
@@ -1475,6 +1503,8 @@ class LocalCore:
             # comparison alias before the actual query allocates its row.
             del request
             code = callbacks.query()
+            if callbacks.task_material_scope is not scope:
+                raise ValueError('Original Local journal read scope changed')
             if code == 1:
                 self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
                 if callbacks.row is not None or not callbacks.queried or callbacks.release() != 0:
@@ -1486,26 +1516,154 @@ class LocalCore:
             # the next memory/current callback can change either compared side.
             row = callbacks.row
             transfer = _JournalRowTransfer(physical, reader, memory, row, ticket,
-                store, current, row[0], row[1].payload, row[1].generation)
-            callbacks.transfer = transfer
-            callbacks.transfer_ready = callbacks.transfer_started = False
-            self._journal_row_current(ticket, callbacks, transfer, ready=False, started=False)
-            header = bytearray(16)
-            pack_into('<IIq', header, 0, len(transfer.key), len(transfer.body), transfer.generation)
-            if self._bulk_memory(caller, header_offset, 16) is not memory:
-                raise ValueError('Original Local journal header memory changed')
-            copied = memory.write(caller, header, header_offset)
-            if (self._bulk_memory(caller, header_offset, 16) is not memory
-                    or type(copied) is not int or copied != 16):
-                raise ValueError('Incomplete original Local journal header copy')
-            self._journal_row_current(ticket, callbacks, transfer, ready=False, started=False)
-            callbacks.transfer_ready = True
-            return 0
+                store, current, row[0], row[1].payload, row[1].generation, scope)
+            return self._journal_write_row_header(caller, callbacks, transfer, header_offset)
         except BaseException as error:
-            if transfer is not None:
-                # Preserve the same failed receipt even if a callback replaced
-                # the slot. This is custody only, never a new query or recovery.
-                callbacks.transfer = transfer
+            return callbacks._fail(error)
+
+    def _journal_task_material_header(self, caller: Any, ticket: int, ordinal: int,
+                                      run_key_offset: int, run_key_bytes: int,
+                                      header_offset: int) -> int:
+        if type(ticket) is not int or ticket <= 0:
+            return -41
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.failure is not None:
+            return -41
+        try:
+            loan = self._loans.get(ticket)
+            if type(loan) is not _Output:
+                raise ValueError('Original Local task-material current ticket is unavailable')
+            self._owned_output(loan, 'current')
+            frame, reader = callbacks.task_material_frame, callbacks.reader
+            if (frame is None or reader is None or reader.get_many is None
+                    or type(ordinal) is not int or not 0 <= ordinal < 4
+                    or type(run_key_bytes) is not int or run_key_bytes != 71):
+                raise ValueError('Invalid original Local task-material query')
+            physical, store, current = self._inputs[ticket], callbacks.store, callbacks.current
+            memory = self._bulk_memory(caller, header_offset, 16)
+            self._journal_memory_ranges(caller, memory, (run_key_offset, run_key_bytes, 71))
+            if (run_key_offset < header_offset + 16
+                    and header_offset < run_key_offset + run_key_bytes):
+                raise ValueError('Original Local task-material header overlaps request')
+            self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            raw = bytes(memory.read(caller, run_key_offset, run_key_offset + run_key_bytes))
+            if (len(raw) != run_key_bytes or callbacks.task_material_frame is not frame
+                    or self._bulk_memory(caller, header_offset, 16) is not memory):
+                raise ValueError('Original Local task-material request changed')
+            self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            if ordinal == 0:
+                if callbacks.task_material_run_key is not None:
+                    raise ValueError('Repeated original Local task-material batch')
+                frame.enter_context(callbacks.task_material_rows(
+                    raw.decode('ascii'), min(_TASK_MATERIAL_BATCH_COPY_BYTES, store._max_payload_bytes)))
+                self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+                if callbacks.task_material_frame is not frame or callbacks.task_material_run_key is not None:
+                    raise ValueError('Original Local task-material batch changed')
+                callbacks.task_material_run_key = raw
+            elif callbacks.task_material_run_key != raw:
+                raise ValueError('Foreign original Local task-material key')
+            code = self._journal_target_take_header(caller, ticket, ordinal, header_offset, maximum=4)
+            if ordinal == 3 and code == 1:
+                frame.close()
+            return code
+        except BaseException as error:
+            return callbacks._fail(error)
+
+    def _journal_saved_identity_header(self, caller: Any, ticket: int, ordinal: int,
+                                       keys_offset: int, keys_bytes: int,
+                                       submission_bytes: int, run_bytes: int, header_offset: int) -> int:
+        if type(ticket) is not int or ticket <= 0:
+            return -41
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.failure is not None:
+            return -41
+        try:
+            loan = self._loans.get(ticket)
+            if type(loan) is not _Output:
+                raise ValueError('Original Saved identity ticket is unavailable')
+            self._owned_output(loan, 'current')
+            frame, reader = callbacks.task_material_frame, callbacks.reader
+            if (frame is None or reader is None or reader.get_many is None
+                    or type(ordinal) is not int or ordinal not in (0, 1)
+                    or type(keys_bytes) is not int or keys_bytes != 142
+                    or type(submission_bytes) is not int or not 0 < submission_bytes <= 262144
+                    or type(run_bytes) is not int or not 0 < run_bytes <= 262144):
+                raise ValueError('Invalid original Saved identity request')
+            physical, store, current = self._inputs[ticket], callbacks.store, callbacks.current
+            memory = self._bulk_memory(caller, header_offset, 16)
+            self._journal_memory_ranges(caller, memory, (keys_offset, keys_bytes, 142))
+            if keys_offset < header_offset + 16 and header_offset < keys_offset + keys_bytes:
+                raise ValueError('Original Saved identity request overlaps its header')
+            self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            raw = bytes(memory.read(caller, keys_offset, keys_offset + keys_bytes))
+            if (len(raw) != keys_bytes or callbacks.task_material_frame is not frame
+                    or self._bulk_memory(caller, header_offset, 16) is not memory):
+                raise ValueError('Original Saved identity request changed')
+            self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            request = (raw, submission_bytes, run_bytes)
+            if ordinal == 0:
+                if callbacks.saved_identity_request is not None or callbacks.saved_identity_child is not None:
+                    raise ValueError('Repeated original Saved identity batch')
+                child = frame.enter_context(_ExitStack())
+                callbacks.saved_identity_child = child
+                child.enter_context(callbacks.saved_identity_rows(
+                    raw[:71].decode('ascii'), raw[71:].decode('ascii'),
+                    (submission_bytes, run_bytes),
+                    min(_TASK_MATERIAL_BATCH_COPY_BYTES, store._max_payload_bytes)))
+                self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+                if callbacks.saved_identity_request is not None or callbacks.saved_identity_child is not child:
+                    raise ValueError('Original Saved identity batch changed')
+                callbacks.saved_identity_request = request
+            elif callbacks.saved_identity_request != request or callbacks.saved_identity_child is None:
+                raise ValueError('Foreign original Saved identity batch')
+            code = self._journal_target_take_header(caller, ticket, ordinal, header_offset, maximum=2)
+            if code in (1, 2):
+                child = callbacks.saved_identity_child
+                assert child is not None
+                child.close()
+                callbacks.saved_identity_child = None
+            elif code == 0 and ordinal == 1:
+                callbacks.saved_identity_final_copy = True
+            return code
+        except BaseException as error:
+            return callbacks._fail(error)
+
+    def _journal_target_take_header(self, caller: Any, ticket: int, ordinal: int,
+                                    header_offset: int, *, maximum: int) -> int:
+        if type(ticket) is not int or ticket <= 0:
+            return -41
+        callbacks = self._journal_callbacks(ticket)
+        if callbacks is None or callbacks.failure is not None:
+            return -41
+        try:
+            loan = self._loans.get(ticket)
+            if type(loan) is not _Output:
+                raise ValueError('Original Local task-material current ticket is unavailable')
+            self._owned_output(loan, 'current')
+            physical, reader = self._inputs[ticket], callbacks.reader
+            store, current = callbacks.store, callbacks.current
+            scope, take = callbacks.task_material_scope, callbacks.task_material_take
+            if (reader is None or scope is None or take is None
+                    or type(ordinal) is not int or not 0 <= ordinal < maximum):
+                raise ValueError('Invalid original Local task-material header request')
+            memory = self._bulk_memory(caller, header_offset, 16)
+            self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            if callbacks.task_material_scope is not scope or callbacks.task_material_take is not take:
+                raise ValueError('Original Local task-material header loan changed')
+            code = take(ordinal)
+            self._journal_input_current(ticket, physical, callbacks, reader, memory, store, current)
+            if callbacks.task_material_scope is not scope or callbacks.task_material_take is not take:
+                raise ValueError('Original Local task-material header loan changed')
+            if ((code == 1 or code == 2 and maximum == 2) and callbacks.row is None
+                    and callbacks.queried and callbacks.release() == 0):
+                return code
+            if code != 0 or callbacks.row is None:
+                raise ValueError('Original Local target query did not produce a row')
+            row = callbacks.row
+            transfer = _JournalRowTransfer(physical, reader, memory, row, ticket,
+                store, current, row[0], row[1].payload, row[1].generation, scope)
+            return self._journal_write_row_header(caller, callbacks, transfer, header_offset)
+        except BaseException as error:
             return callbacks._fail(error)
 
     def _journal_copy_row(self, caller: Any, ticket: int, key_offset: int,
@@ -1527,29 +1685,37 @@ class LocalCore:
             callbacks.transfer_started = True
             self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
             memory = transfer.memory
-            self._journal_memory_range(caller, memory, key_offset, key_bytes, 4096)
-            self._journal_memory_range(caller, memory, body_offset, body_bytes, 262144)
+            ranges = ((key_offset, key_bytes, 4096), (body_offset, body_bytes, 262144))
+            self._journal_memory_ranges(caller, memory, *ranges)
             if body_bytes and key_offset < body_offset + body_bytes and body_offset < key_offset + key_bytes:
                 raise ValueError('Original Local journal row fields overlap')
             for field, offset, length in ((0, key_offset, key_bytes), (1, body_offset, body_bytes)):
                 for index in range(0, length, 16384):
                     count = min(16384, length - index)
                     self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
-                    if self._bulk_memory(caller, offset + index, count) is not memory:
-                        raise ValueError('Original Local journal row memory changed')
                     # Memory.write accepts this bytearray without another copy.
                     raw = bytearray(callbacks.row_copy(field, index, count))
                     self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
                     copied = memory.write(caller, raw, offset + index)
-                    if (self._bulk_memory(caller, offset + index, count) is not memory
-                            or type(copied) is not int or copied != count or len(raw) != count):
+                    if type(copied) is not int or copied != count or len(raw) != count:
                         raise ValueError('Incomplete original Local journal row copy')
                     self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
                     del raw
+            # The synchronous writes use the admitted Caller and original
+            # Memory. Reobserve them before the transient row can retire.
+            self._journal_memory_ranges(caller, memory, *ranges)
             self._journal_row_current(ticket, callbacks, transfer, ready=True, started=True)
             # Successful transport alone retires this transient row. It does
             # not retire the ticket, authorize a decision or acknowledge COMMIT.
-            return callbacks.release()
+            result = callbacks.release()
+            if result == 0 and callbacks.saved_identity_final_copy:
+                child = callbacks.saved_identity_child
+                if child is None:
+                    raise ValueError('Original Saved identity close is unavailable')
+                child.close()
+                callbacks.saved_identity_final_copy = False
+                callbacks.saved_identity_child = None
+            return result
         except BaseException as error:
             if type(transfer) is _JournalRowTransfer:
                 callbacks.transfer = transfer
@@ -1631,15 +1797,10 @@ class LocalCore:
         lifetime and the same SQL snapshot. Other suppliers keep full checks.
 
         A zero result on a real positive ticket selects full raw/cleanup
-        observation. An input ticket of zero only asks about optional support.
-        It is not an Allow, permission cache, reader handle or continuation.
+        observation.
         """
-        if ticket < 0:
-            return self._journal_saved_census_read(-ticket)
-        if ticket == 0:
-            from ._local_host_binding import _InvocationObservation
-            span = getattr(self, '_invocation_observation', None)
-            return int(type(span) is _InvocationObservation and span.supports_saved_census_read())
+        if type(ticket) is not int or ticket <= 0:
+            return -41
         callbacks = self._journal_callbacks(ticket)
         if callbacks is None or callbacks.failure is not None:
             return -41
@@ -1671,31 +1832,53 @@ class LocalCore:
         except BaseException as error:
             return callbacks._fail(error)
         operation = getattr(self, '_host_operation_id', 0)
-        if (not self._invoking or type(operation) is not int
-                or not 0 < operation < 2**63
-                or operation != self._host_operation_sequence):
+        if not self._invoking or not self._host_operation_is_current(operation):
             return -41
         return operation
 
-    def _journal_saved_census_read(self, ticket: int) -> int:
+    def _journal_saved_reader(self, ticket: int) -> int:
         """Return whether this export still owns its uninterrupted original reader."""
         from ._local_host_binding import _InvocationObservation
+        if type(ticket) is not int or ticket <= 0:
+            return -41
         callbacks = self._journal_callbacks(ticket)
         if callbacks is None or callbacks.failure is not None:
             return -41
+        loan = self._loans.get(ticket)
+        if type(loan) is not _Output or loan.family != 'current':
+            return -41
+        try:
+            self._owned_output(loan, 'current')
+        except ValueError:
+            return -41
         span = getattr(self, '_invocation_observation', None)
-        if type(span) is not _InvocationObservation or not span.supports_saved_census_read():
+        if type(span) is not _InvocationObservation:
             return 0
-        if (span.current.ticket != ticket
-                or callbacks.reader is not span.reader or callbacks.current is not span.binding._current_observer):
-            raise span._fail(ValueError('Foreign Saved census reader'))
+        journal_projection = (
+            span.wasm_export is not None and span.admitted
+            and span.closed_import and not span.suspended and not span.effect_seen
+            and span.wasm_export in (
+                'actql_submission_produce',
+                'actql_submission_validate_append',
+                'actql_material_validate_submitted_rows',
+                'actql_material_length',
+            )
+        )
+        if not journal_projection and not span.supports_saved_census_read():
+            return 0
+        if (span.current.ticket != ticket or callbacks.reader is not span.reader
+                or callbacks.current is not span.binding._current_observer
+                or (journal_projection and callbacks.physical_reader_serial <= 0)):
+            raise span._fail(ValueError('Foreign original census reader'))
         span.check()
         unchanged = span.reader.check_unchanged
         if unchanged is None:
-            raise span._fail(ValueError('Original Saved census reader is unavailable'))
+            raise span._fail(ValueError('Original census reader is unavailable'))
         unchanged(span.reader)
         span._guard_originals()
-        return 1
+        # Saved delivery checks freshness inside one export. Journal projections
+        # compare the original physical frame across exact closed exports.
+        return callbacks.physical_reader_serial if journal_projection else 1
 
     def _journal_begin(self, ticket: int, mode: int, namespace_bytes: int, key_bytes: int) -> int:
         callbacks = self._journal_callbacks(ticket)
@@ -1750,11 +1933,9 @@ class LocalCore:
                 callbacks.release()
                 return True
 
-            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True, journal=callbacks,
-                                                     prepare_bytes=_RECONCILIATION_PREPARE_BYTES)
+            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True, journal=callbacks)
             limit = source.length + 256
             from ._local_host_binding import _InvocationObservation
-            from ._local_storage_physical import _CLOSED_SQL_BYTES
             allowance = (2 * limit + 2 * 262144 + 4096 + sys.getsizeof(callbacks)
                          + self._journal_transfer_bytes()
                          + sys.getsizeof(self._inputs[ticket])
@@ -1763,9 +1944,9 @@ class LocalCore:
                          # Bounded pre-admission reader slot and two closure
                          # records/cell arrays; referenced originals stay owned.
                          + 4096
-                         # Bounded simultaneous UTF-8, hex fragments and final
-                         # literal SQL. Owned connections retain no plan cache.
-                         + 3 * _CLOSED_SQL_BYTES + _RECONCILIATION_PREPARE_BYTES)
+                         # Four fixed task-material keys and their header
+                         # entries, original iterator and frame cleanup state.
+                         + 4096)
             handle = self._call('current', 'reserve', source.handle, ticket, allowance)
             if handle <= 0:
                 del self._inputs[ticket]
@@ -1789,6 +1970,11 @@ class LocalCore:
                     or reader.owner is not callbacks.store or callbacks.reader is not None
                     or callbacks.failure is not None):
                 raise ValueError('Invalid original Local current transaction loan')
+            serial = getattr(self, '_journal_reader_serial', 0)
+            if type(serial) is not int or not 0 <= serial < 2**63 - 1:
+                raise ValueError('Original Local physical reader sequence exhausted')
+            self._journal_reader_serial = serial + 1
+            callbacks.physical_reader_serial = serial + 1
             callbacks.reader = reader
             prior_binding = getattr(self, '_host_current_binding', None)
             try:
@@ -1810,6 +1996,7 @@ class LocalCore:
             finally:
                 self._host_current_binding = prior_binding
                 callbacks.reader = None
+                callbacks.physical_reader_serial = 0
 
     def _host_current_ready(self, value: _Output) -> _JournalCallbacks:
         self._owned_output(value, 'current')
@@ -2154,9 +2341,6 @@ class LocalCore:
             # Register callbacks before crossing Wasm. A trap cannot cause a
             # physical ticket to disappear while the Core may still own it.
             self._inputs[ticket] = _PhysicalInput(payload, cleanup, stopped)
-            phase = getattr(self, '_reconciliation_prepare', None)
-            if phase is not None and not phase.suspended:
-                phase.track_input(ticket, self._inputs[ticket])
             handle = self._call('buffer', 'reserve', ticket, len(payload),
                                 self._input_copy_bytes(payload))
             if handle <= 0:
@@ -2235,20 +2419,63 @@ class LocalCore:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
                     not 0 < configuration < 2**31 or type(kind) is not int
-                    or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, _INCREMENTAL_SAVED_RESULT_KIND)):
+                    or kind not in (1, 2, 3, 4, 5, 7, 8, 10, 11, 12, _NAMED_SUBMISSION_KIND, _NAMED_SUBMISSION_APPEND_KIND,
+                                    _INCREMENTAL_SAVED_RESULT_KIND, _SAVED_EFFECT_CHECKPOINT_PAGE_KIND,
+                                    _SAVED_EFFECT_CHECKPOINT_REVIEW_KIND, _SAVED_EFFECT_RESOLUTION_PROOF_KIND,
+                                    _SAVED_EFFECT_ATTESTATION_USE_KIND, _SAVED_EFFECT_DECISION_KIND,
+                                    _SAVED_EFFECT_DECISION_FIELD_KIND, _SAVED_EFFECT_RESUME_KIND, _SAVED_EFFECT_APPLICATION_KIND,
+                                    _SAVED_EFFECT_FILE_DISPATCH_KIND, _SAVED_EFFECT_FILE_DISPATCH_FIELD_KIND,
+                                    _SAVED_EFFECT_FILE_OPERATION_KIND, _SAVED_EFFECT_FILE_REPLACEMENT_KIND,
+                                    _SAVED_EFFECT_FILE_RESPONSE_KIND, _SAVED_EFFECT_FILE_RESPONSE_FIELD_KIND,
+                                    _SAVED_EFFECT_FILE_TERMINAL_KIND, _SAVED_EFFECT_FILE_COMPLETION_KIND,
+                                    _SAVED_EFFECT_FILE_PUBLISHED_KIND)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind >= 3 else 4096
+            limit = (4096 if kind == _NAMED_SUBMISSION_KIND else
+                     32768 if kind == _NAMED_SUBMISSION_APPEND_KIND else
+                     237 if kind == _SAVED_EFFECT_FILE_PUBLISHED_KIND else
+                     75 if kind == _SAVED_EFFECT_FILE_COMPLETION_KIND else
+                     320 if kind == _SAVED_EFFECT_FILE_TERMINAL_KIND else
+                     403 if kind == _SAVED_EFFECT_FILE_RESPONSE_KIND else
+                     8192 if kind == _SAVED_EFFECT_FILE_RESPONSE_FIELD_KIND else
+                     65536 if kind == _SAVED_EFFECT_FILE_OPERATION_KIND else
+                     4 if kind == _SAVED_EFFECT_FILE_REPLACEMENT_KIND else
+                     237 if kind == _SAVED_EFFECT_FILE_DISPATCH_KIND else
+                     8 if kind == _SAVED_EFFECT_APPLICATION_KIND else
+                     226 if kind in (_SAVED_EFFECT_DECISION_KIND, _SAVED_EFFECT_RESUME_KIND) else
+                     8192 if kind in (_SAVED_EFFECT_DECISION_FIELD_KIND, _SAVED_EFFECT_FILE_DISPATCH_FIELD_KIND) else
+                     32768 if kind == _SAVED_EFFECT_ATTESTATION_USE_KIND else
+                     16384 if kind == _SAVED_EFFECT_RESOLUTION_PROOF_KIND else
+                     65536 if kind == _SAVED_EFFECT_CHECKPOINT_REVIEW_KIND else
+                     _SAVED_RESULT_COORDINATES_BYTES if kind == _INCREMENTAL_SAVED_RESULT_KIND else
+                     _SAVED_RUN_STATE_WIRE_BYTES if kind == 7 else
+                     _SAVED_RUN_ATTACHMENT_WIRE_BYTES if kind == 5 else
+                     1048576 if kind >= 3 else 4096)
+            if kind == _SAVED_EFFECT_CHECKPOINT_REVIEW_KIND:
+                packet = self._inputs[source.ticket].payload
+                if len(packet) < 76 or packet[71] > 4:
+                    raise ValueError('Invalid original Mock Review phase')
             family = ('run_state_append' if kind == 12 else 'cancellation_append' if kind == 10 else 'submission_append' if kind == 3 else
-                      'submission_lookup' if kind in (4, 5, 6, 7, 8, 11, _INCREMENTAL_SAVED_RESULT_KIND) else 'submission')
+                      ('saved_mock_review_key' if packet[71] in (0, 4) else 'saved_mock_review')
+                      if kind == _SAVED_EFFECT_CHECKPOINT_REVIEW_KIND else
+                      'saved_mock_resolution_proof' if kind in (_SAVED_EFFECT_RESOLUTION_PROOF_KIND,
+                          _SAVED_EFFECT_ATTESTATION_USE_KIND, _SAVED_EFFECT_DECISION_KIND,
+                          _SAVED_EFFECT_DECISION_FIELD_KIND, _SAVED_EFFECT_RESUME_KIND,
+                          _SAVED_EFFECT_APPLICATION_KIND, _SAVED_EFFECT_FILE_DISPATCH_KIND,
+                          _SAVED_EFFECT_FILE_DISPATCH_FIELD_KIND, _SAVED_EFFECT_FILE_OPERATION_KIND,
+                          _SAVED_EFFECT_FILE_REPLACEMENT_KIND, _SAVED_EFFECT_FILE_RESPONSE_KIND,
+                          _SAVED_EFFECT_FILE_RESPONSE_FIELD_KIND, _SAVED_EFFECT_FILE_TERMINAL_KIND,
+                          _SAVED_EFFECT_FILE_COMPLETION_KIND, _SAVED_EFFECT_FILE_PUBLISHED_KIND) else
+                      'submission_lookup' if kind in (4, 5, 7, 8, 11,
+                          _INCREMENTAL_SAVED_RESULT_KIND, _SAVED_EFFECT_CHECKPOINT_PAGE_KIND) else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
-            if kind in (6, _INCREMENTAL_SAVED_RESULT_KIND):
-                # Both Saved preparation paths carry the payload selection
+            if kind == _INCREMENTAL_SAVED_RESULT_KIND:
+                # The Saved reader carries the payload selection
                 # from physical acquisition through hash and completion.
                 # Its row, capacity and strings remain the original values.
                 physical_bytes += sys.getsizeof((None,) * 6)
@@ -2373,40 +2600,169 @@ class LocalCore:
             self._loans[ticket] = value
             return value
 
-    def reserve_original_metadata(self, source: _Input, kind: int, *, cleanup: Callable[[], bool]) -> _Output:
+    def reserve_original_metadata(self, source: _Input, kind: int, *, cleanup: Callable[[], bool],
+                                  task_locators: int = 0, review_bytes: int | None = None) -> _Output:
         """Retain original physical observations before the existing Core codec.
 
         Kind selects initialization/configuration custody/journal custody/selected
-        settings or project/profile metadata. Core emits their original bodies and CIDs. No
-        method initializes a Host, commits, authorizes or begins a Run.
+        settings, project/profile metadata, selected Project declarations, or a Mock Check child. The
+        declarations retain the typed originals in Core. A Model registry also projects its task locators.
+        No method initializes a Host, commits, authorizes or begins a Run.
         """
         with self._lock:
             self._owned_input(source)
-            if self._closing or type(kind) is not int or kind not in (1, 2, 3, 4, 5) or not callable(cleanup):
+            if (self._closing or type(kind) is not int
+                    or kind not in (1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, *_MOCK_EFFECT_METADATA_KINDS,
+                                    *_MOCK_EFFECT_REVIEW_KINDS, _MOCK_EFFECT_REVIEW_EXTENT_KIND,
+                                    _MOCK_EFFECT_WAITING_FIELD_KIND,
+                                    _LOCAL_CSV_OFFER_KIND, _LOCAL_CSV_RESPONSE_KIND)
+                    or not callable(cleanup)):
                 raise ValueError('Invalid Local original metadata reservation')
+            if (type(task_locators) is not int or not 0 <= task_locators <= (8192 - 1) // 3
+                    or (kind == 11) != (task_locators > 0)):
+                raise ValueError('Invalid Local Model task locator reservation')
+            if review_bytes is not None and (kind not in (
+                    _MOCK_EFFECT_REVIEW_READ_KIND, _MOCK_EFFECT_WAITING_FIELD_KIND)
+                    or type(review_bytes) is not int or not 0 < review_bytes <= 1048576):
+                raise ValueError('Invalid original Mock Review copy extent')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65536
+            limit = 0 if kind in (6, 7, 8, 12, 13, *_MOCK_EFFECT_METADATA_KINDS, _LOCAL_CSV_RESPONSE_KIND) else 65536
+            family = 'original'
+            if kind in (_MOCK_EFFECT_REVIEW_READ_KIND, _MOCK_EFFECT_REVIEW_EXTENT_KIND):
+                original = self._inputs[source.ticket].payload
+                if (len(original) not in (8, 16)
+                        or int.from_bytes(original[4:8], 'little') > 6):
+                    raise ValueError('Invalid original Mock Review part')
+                if len(original) == 16 and (kind != _MOCK_EFFECT_REVIEW_READ_KIND
+                        or review_bytes != int.from_bytes(original[12:16], 'little')
+                        or review_bytes is None or review_bytes > 8192):
+                    raise ValueError('Invalid original Mock Review slice')
+                part = original[4]
+                if kind == _MOCK_EFFECT_REVIEW_EXTENT_KIND:
+                    if part in (4, 5):
+                        raise ValueError('Invalid original Mock Review extent part')
+                    family, limit = 'original_mock_review_extent', 4
+                else:
+                    family = 'original_mock_review_key' if part == 4 else 'original_mock_review'
+                    limit = 8192 if part == 4 else 1024 if part == 5 else (review_bytes or 1048576)
+            elif kind == _MOCK_EFFECT_CHECKPOINT_CONFIRM_KIND:
+                family, limit = 'original_mock_checkpoint', 0
+            elif kind == _MOCK_EFFECT_WAITING_KIND:
+                family, limit = 'original_mock_waiting', 155
+            elif kind == _MOCK_EFFECT_WAITING_FIELD_KIND:
+                packet = self._inputs[source.ticket].payload
+                if (len(packet) != 16 or review_bytes is None or review_bytes > 8192
+                        or int.from_bytes(packet[12:16], 'little') != review_bytes
+                        or int.from_bytes(packet[4:8], 'little') > 2):
+                    raise ValueError('Invalid original Mock waiting field')
+                family, limit = 'original_mock_waiting_field', review_bytes
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'original')))
-            handle = self._call('original', 'reserve', source.handle, kind, ticket, physical_bytes)
+            if task_locators:
+                # Pay for Unicode decoding and retained path/name pairs before
+                # the registry producer writes its one original output.
+                physical_bytes += 16 * limit + 1024 * task_locators + 8192
+            wire_kind = (kind | limit << 5) if kind in (
+                _MOCK_EFFECT_REVIEW_READ_KIND, _MOCK_EFFECT_WAITING_FIELD_KIND) else kind
+            handle = self._call('original', 'reserve', source.handle, wire_kind, ticket, physical_bytes)
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_original_metadata', handle)
-            value = _Output(self._identity, ticket, handle, limit, 'original')
+            value = _Output(self._identity, ticket, handle, limit, family)
             self._loans[ticket] = value
             return value
 
-    def produce_original_metadata(self, value: _Output) -> None:
-        self._produce_output(value, 'original', 'produce')
+    def produce_original_metadata(self, value: _Output, *, current: _Output | None = None) -> None:
+        if current is None:
+            self._produce_output(value, 'original', 'produce')
+            return
+        with self._lock:
+            self._owned_output(value, 'original')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            callbacks = self._host_current_ready(current)
+            code = self._call('original', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce', code)
+
+    def advance_mock_effect_step(self, value: _Output, current: _Output,
+                                 *, operation: str) -> bool:
+        """Advance one quantum on an original zero-wire Mock Effect child."""
+        with self._lock:
+            self._owned_output(value, 'original')
+            if self._closing or value.limit != 0:
+                raise ValueError('Invalid original Mock Effect step')
+            callbacks = self._host_current_ready(current)
+            code = self._call('original', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            if code == 1:
+                return False
+            self._check(operation, code)
+            return True
 
     def read_original_metadata(self, value: _Output) -> bytes:
         return self._read_output(value, 'original', 'length')
 
+    def _produce_original_mock_review(self, value: _Output, current: _Output, family: str) -> None:
+        self._owned_output(value, family)
+        if self._closing:
+            raise RuntimeError('Local Core is closing')
+        callbacks = self._host_current_ready(current)
+        code = self._call('original', 'produce', value.handle)
+        if callbacks.failure is not None:
+            raise callbacks.failure
+        self._check('produce_original_mock_review', code)
+
+    def read_original_mock_review_part(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            family = (value.family if type(value) is _Output and value.family in (
+                'original_mock_review_key', 'original_mock_review_extent') else 'original_mock_review')
+            self._produce_original_mock_review(value, current, family)
+            return self._read_output(value, family, 'length', abi_family='original')
+
+    def confirm_original_mock_checkpoint(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._produce_original_mock_review(value, current, 'original_mock_checkpoint')
+
+    def prepare_original_mock_waiting(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'original_mock_waiting')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            callbacks = self._host_current_ready(current)
+            code = self._call('original', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            if code != 1:
+                raise LocalCoreError('prepare_original_mock_waiting', code)
+
+    def read_original_mock_waiting(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.confirm_original_mock_waiting(value, current)
+            return self._read_output(value, 'original_mock_waiting', 'length', abi_family='original')
+
+    def read_original_mock_waiting_field(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            family = 'original_mock_waiting_field'
+            self._produce_original_mock_review(value, current, family)
+            return self._read_output(value, family, 'length', abi_family='original')
+
+    def confirm_original_mock_waiting(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._produce_original_mock_review(value, current, 'original_mock_waiting')
+
     def close_original_metadata(self, value: _Output) -> bool:
+        if type(value) is _Output and value.family in (
+                'original_mock_review', 'original_mock_review_key',
+                'original_mock_checkpoint', 'original_mock_waiting', 'original_mock_review_extent',
+                'original_mock_waiting_field'):
+            return self._close_output(value, value.family, 'close', abi_family='original')
         return self._close_output(value, 'original', 'close')
 
     def produce_bootstrap(self, value: _Output) -> None:
@@ -2481,6 +2837,37 @@ class LocalCore:
             raw = self._read_output(value, 'submission_append', 'length', abi_family='submission')
             self.validate_submission_append(value, current)
             return raw
+
+    def read_named_submission(self, value: _Output, current: _Output,
+                              authenticate: Callable[[bytes], bytes]) -> bytes:
+        """Borrow the original epoch authenticator only during this projection."""
+        with self._lock:
+            self._owned_output(value, 'submission')
+            if not callable(authenticate):
+                raise ValueError('Original Local name authenticator is unavailable')
+            callbacks = self._host_current_ready(current)
+            if callbacks.name_authenticate is not None:
+                raise ValueError('Original Local name authenticator is already borrowed')
+            callbacks.name_authenticate = authenticate
+            try:
+                code = self._call('submission', 'produce', value.handle)
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                self._check('produce_named_submission', code)
+                raw = self._read_output(value, 'submission', 'length')
+                self._host_current_ready(current)
+                return raw
+            finally:
+                callbacks.name_authenticate = None
+
+    def validate_named_submission_append(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'submission')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_named_submission_append', code)
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
@@ -2612,10 +2999,31 @@ class LocalCore:
         with self._lock:
             self._owned_output(value, 'submission_lookup')
             callbacks = self._host_current_ready(current)
-            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            code = self._call_with_task_material(callbacks, 'submission', 'validate_append',
+                                                 value.handle, current.handle)
             if callbacks.failure is not None:
                 raise callbacks.failure
             self._check('validate_submission_lookup', code)
+
+    def _call_with_task_material(self, callbacks: _JournalCallbacks | None,
+                                 family: str, name: str, *arguments: int) -> int:
+        """Keep one ordered task read inside a single synchronous Core call."""
+        # The existing Core guard records attempted reentry on its original
+        # invocation, even if a physical callback catches the exception.
+        if callbacks is None or getattr(self, '_invoking', False):
+            return self._call(family, name, *arguments)
+        if callbacks.task_material_frame is not None:
+            raise ValueError('Original submission task-material read is already active')
+        with _ExitStack() as frame:
+            callbacks.task_material_frame = frame
+            try:
+                return self._call(family, name, *arguments)
+            finally:
+                callbacks.task_material_frame = None
+                callbacks.task_material_run_key = None
+                callbacks.saved_identity_child = None
+                callbacks.saved_identity_request = None
+                callbacks.saved_identity_final_copy = False
 
     def read_submission_lookup(self, value: _Output, current: _Output) -> bytes:
         with self._lock:
@@ -2637,20 +3045,56 @@ class LocalCore:
             self.validate_submission_lookup(value, current)
             return raw
 
+    def read_saved_mock_review_part(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            family = (value.family if value.family in ('saved_mock_review_key', 'saved_mock_resolution_proof')
+                      else 'saved_mock_review')
+            self._owned_output(value, family)
+            callbacks = self._host_current_ready(current)
+            for name in ('produce', 'validate_append'):
+                args = (value.handle,) if name == 'produce' else (value.handle, current.handle)
+                code = self._call('submission', name, *args)
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                self._check('saved_mock_review_' + name, code)
+            data = self._read_output(value, family, 'length', abi_family='submission')
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('saved_mock_review_validate_append', code)
+            return data
+
+    def validate_saved_effect_resolution(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'saved_mock_resolution_proof')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_saved_effect_resolution', code)
+
+    def close_saved_mock_review(self, value: _Output) -> bool:
+        family = (value.family if value.family in ('saved_mock_review_key', 'saved_mock_resolution_proof')
+                  else 'saved_mock_review')
+        return self._close_output(value, family, 'close', abi_family='submission')
+
     def advance_and_read_saved_result(self, value: _Output, current: _Output) -> bytes | None:
         """Advance the matched private Saved selector in this actual reader."""
         with self._lock:
             self._owned_output(value, 'submission_lookup')
             callbacks = self._host_current_ready(current)
-            code = self._call('submission', 'produce', value.handle)
+            code = self._call_with_task_material(callbacks, 'submission', 'produce', value.handle)
             if callbacks.failure is not None:
                 raise callbacks.failure
             if code == 1:
                 return None
             self._check('produce_submission_lookup', code)
-            self.validate_submission_lookup(value, current)
+            # Core's completed advance supplied these exact coordinates after
+            # its current check. Copy in this same protected reader; the outer
+            # callback still closes and checks the actual SQLite/Host frame.
             raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
-            self.validate_submission_lookup(value, current)
+            if callbacks.failure is not None:
+                raise callbacks.failure
             return raw
 
     def close_submission_lookup(self, value: _Output) -> bool:
@@ -2767,15 +3211,19 @@ class LocalCore:
         return self._close_output(value, 'source_publication', 'close')
 
     def prepare_source_free_invocation(self, value: _Output,
-                                       current_configuration: int) -> None:
+                                       current_configuration: int) -> bool:
         with self._lock:
             self._owned_output(value, 'run_invocation')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
                 raise ValueError('Invalid current invocation configuration')
-            self._check('prepare_source_free_invocation', self._call(
-                'run_invocation', 'prepare_source_free', value.handle, current_configuration))
+            code = self._call('run_invocation', 'prepare_source_free', value.handle,
+                              current_configuration)
+            if code == 1:
+                return False
+            self._check('prepare_source_free_invocation', code)
+            return True
 
     def read_source_free_invocation(self, value: _Output) -> bytes:
         return self._read_output(value, 'run_invocation', 'length_source_free')
@@ -2788,11 +3236,24 @@ class LocalCore:
         if type(value) is not _Output or value.family not in ('source_publication', 'run_invocation'):
             raise ValueError('Local publication requires the original invocation loan')
 
-    def reserve_publication_preflight(self, source: _Output, request: _Input, *,
-                                      cleanup: Callable[[], bool]) -> _Output:
+    def _publication_parent_handle(self, source: _Output | _PhysicalStart, *, model: bool = False) -> int:
+        # LocalRunCustody checks the physical start before this bridge.
+        from ._local_run import _PhysicalStart
+        if type(model) is not bool or model and (type(source) is not _Output or source.family != 'run_invocation'):
+            raise ValueError('Original Model publication requires its retained invocation')
+        if type(source) is _PhysicalStart:
+            return source.handle
+        if type(source) is _Output and source.family == 'saved_mock_resolution_proof':
+            self._owned_output(source, 'saved_mock_resolution_proof')
+        else:
+            self._owned_invocation_output(source)
+        return source.handle
+
+    def reserve_publication_preflight(self, source: _Output | _PhysicalStart, request: _Input, *,
+                                      cleanup: Callable[[], bool], model: bool = False) -> _Output:
         """Private original intent before Compute; grants no Store permission."""
         with self._lock:
-            self._owned_invocation_output(source)
+            source_handle = self._publication_parent_handle(source, model=model)
             self._owned_input(request)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
@@ -2800,11 +3261,12 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1_048_576
+            limit = (0 if model or type(source) is _Output and source.family == 'saved_mock_resolution_proof'
+                     else 1_048_576)
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'publication_preflight')))
-            handle = self._call('publication_preflight', 'reserve', source.handle,
+            handle = self._call('publication_preflight', 'reserve', source_handle,
                                 request.handle, ticket, physical_bytes)
             if handle <= 0:
                 del self._inputs[ticket]
@@ -2849,14 +3311,26 @@ class LocalCore:
             self._check('retire_publication_preflight_output', code)
             return True
 
+    def begin_file_prepublication_cleanup(self, original: _Output) -> None:
+        """Clear synchronous File latches after this Host's terminal unwind."""
+        with self._lock:
+            self._owned_output(original, 'publication_preflight')
+            if (not getattr(self, '_ordinary_host', False)
+                    or self._invoking or self._host_fuel_phase != 'cleanup'
+                    or not getattr(self, '_host_cleanup_depth', 0)):
+                raise RuntimeError('Original File preflight requires quiescent terminal cleanup')
+            self._check('begin_file_prepublication_cleanup', self._call(
+                'publication_preflight', 'begin_file_cleanup', original.handle))
+
     def close_publication_preflight(self, value: _Output) -> bool:
         return self._close_output(value, 'publication_preflight', 'close')
 
-    def reserve_publication(self, source: _Output, request: _Input, *,
-                            cleanup: Callable[[], bool]) -> _Output:
+    def reserve_publication(self, source: _Output | _PhysicalStart, request: _Input, *,
+                            cleanup: Callable[[], bool], model: bool = False) -> _Output:
         """Private complete Result capture; not a durable publication commit."""
+        from ._local_run import _PhysicalStart
         with self._lock:
-            self._owned_invocation_output(source)
+            source_handle = self._publication_parent_handle(source, model=model)
             self._owned_input(request)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
@@ -2864,11 +3338,15 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1_048_576
+            # File uses the separate authorized commit projection. Its capture
+            # still owns the same cleanup loan and Python allocation headers.
+            limit = (0 if (model or type(source) is _PhysicalStart
+                           or type(source) is _Output and source.family == 'saved_mock_resolution_proof')
+                     else 1_048_576)
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'publication')))
-            handle = self._call('publication', 'reserve', source.handle, request.handle,
+            handle = self._call('publication', 'reserve', source_handle, request.handle,
                                 ticket, physical_bytes)
             if handle <= 0:
                 del self._inputs[ticket]
@@ -3056,8 +3534,19 @@ class LocalCore:
             self._check('retire_publication_lookup', code)
             return True
 
+    def publication_observation_exact_index(self, value: _Output, current_configuration: int) -> bool:
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            status = self._call('publication', 'observation_exact_index', value.handle, current_configuration)
+            if type(status) is not int:
+                raise RuntimeError('Invalid Local Core observation transport selection')
+            if status not in (0, 1):
+                raise LocalCoreError('publication_observation_exact_index', status)
+            return status == 1
+
     def prepare_publication_observation(self, value: _Output, response: _Input,
-                                        publisher: _Output, current_configuration: int) -> None:
+                                        publisher: _Output, current_configuration: int, *,
+                                        exact: bool = False) -> None:
         """Validate an original trusted Store response, retaining its same loan.
 
         Host lookup uses the original Core key, File/six-fact fences and current
@@ -3069,9 +3558,22 @@ class LocalCore:
             self._publication_configuration(value, current_configuration)
             self._owned_input(response)
             self._owned_output(publisher, 'publisher')
-            self._check('prepare_publication_observation', self._call(
-                'publication', 'prepare_observation', value.handle, response.handle,
+            if type(exact) is not bool:
+                raise ValueError('Invalid original publication observation format')
+            operation = 'prepare_exact_observation' if exact else 'prepare_observation'
+            label = 'prepare_exact_publication_observation' if exact else 'prepare_publication_observation'
+            self._check(label, self._call(
+                'publication', operation, value.handle, response.handle,
                 publisher.handle, current_configuration))
+
+    def retire_publication_exact_observation_transport(self, value: _Output) -> bool:
+        with self._lock:
+            self._owned_output(value, 'publication')
+            code = self._call('publication', 'retire_exact_observation_transport', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_publication_exact_observation_transport', code)
+            return True
 
     def advance_publication_observation(self, value: _Output, current_configuration: int,
                                        quantum: int) -> LocalResultProgress:
@@ -3147,9 +3649,6 @@ class LocalCore:
             self._next_ticket += 1
             limit = maximum
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, _original_metadata_stopped)
-            phase = getattr(self, '_reconciliation_prepare', None)
-            if phase is not None and not phase.suspended:
-                phase.track_output(ticket, self._inputs[ticket])
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'publication_commit_export')))
@@ -3302,26 +3801,9 @@ class LocalCore:
                 'publication_commit_export', 'produce_run_state', value.handle,
                 observed_at.handle, current_configuration))
 
-    def produce_publication_sdk_run_state(self, value: _Output, original_run: int,
-                                           source: _Input,
-                                           current_configuration: int) -> None:
-        """Prepare original durable observation metadata, never a COMMIT ACK."""
-        self._check('produce_publication_sdk_run_state', self._prepare_publication_sdk_run_state(
-            value, original_run, source, current_configuration, 'produce_sdk_run_state'))
-
     def measure_publication_sdk_run_state(self, value: _Output, original_run: int,
                                            source: _Input, current_configuration: int) -> int:
         """Prepare the same original once and return its measured transfer extent."""
-        size = self._prepare_publication_sdk_run_state(
-            value, original_run, source, current_configuration, 'measure_sdk_run_state')
-        if type(size) is not int or not 0 < size <= 1_048_576:
-            raise LocalCoreError('measure_publication_sdk_run_state',
-                                 size if type(size) is int and size < 0 else -33)
-        return size
-
-    def _prepare_publication_sdk_run_state(self, value: _Output, original_run: int,
-                                            source: _Input, current_configuration: int,
-                                            operation: Literal['measure_sdk_run_state', 'produce_sdk_run_state']) -> int:
         with self._lock:
             self._owned_output(value, 'publication_commit_export')
             self._owned_input(source)
@@ -3330,8 +3812,12 @@ class LocalCore:
             if (type(original_run) is not int or not 0 < original_run < 2**31
                     or type(current_configuration) is not int or not 0 < current_configuration < 2**31):
                 raise ValueError('Invalid original SDK Run observation')
-            return self._call('publication_commit_export', operation, value.handle,
-                              original_run, source.handle, current_configuration)
+            size = self._call('publication_commit_export', 'measure_sdk_run_state',
+                              value.handle, original_run, source.handle, current_configuration)
+            if type(size) is not int or not 0 < size <= 1_048_576:
+                raise LocalCoreError('measure_publication_sdk_run_state',
+                                     size if type(size) is int and size < 0 else -33)
+            return size
 
     def emit_publication_sdk_run_state(self, value: _Output, original: _Output,
                                        current_configuration: int) -> None:
@@ -3344,7 +3830,7 @@ class LocalCore:
             if value is original or type(current_configuration) is not int or not 0 < current_configuration < 2**31:
                 raise ValueError('Invalid original SDK Run state transfer')
             self._check('emit_publication_sdk_run_state', self._call(
-                'publication_commit_export', 'emit_sdk_run_state', value.handle,
+                'publication_commit_export', 'emit_sdk_run_state_bytes', value.handle,
                 original.handle, current_configuration))
 
     def validate_publication_sdk_run_state(self, value: _Output,
@@ -3468,6 +3954,20 @@ class LocalCore:
             if code != 0:
                 raise LocalCoreError('prepare_sdk_payload_codecs', code)
 
+    def produce_publication_sdk_live_return_control(self, output: _Output, first: _Output,
+                                                    current_configuration: int) -> None:
+        with self._lock:
+            self._owned_output(output, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (output is first or output.limit != 107 or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK live return transport')
+            self._check('produce_sdk_live_return_control', self._call(
+                'publication_commit_export', 'produce_sdk_live_return_control',
+                output.handle, first.handle, current_configuration))
+
     def publication_sdk_payload_ordinal(self, first: _Output,
                                         current_configuration: int, *,
                                         field: Literal['result', 'binding', 'saved_pair']) -> int:
@@ -3540,8 +4040,8 @@ class LocalCore:
             if (type(current_configuration) is not int
                     or not 0 < current_configuration < 2**31):
                 raise ValueError('Invalid original SDK payload configuration')
-            code = self._call('publication_commit_export', 'prepare_sdk_payload_input',
-                              first.handle, clock.handle, current_configuration)
+            code = self._call_sdk_payload_read('prepare_sdk_payload_input', first.handle,
+                                               clock.handle, current_configuration)
             if type(code) is not int:
                 raise RuntimeError('Invalid Local Core payload status')
             if code != 0:
@@ -3570,9 +4070,9 @@ class LocalCore:
                     or type(current_configuration) is not int
                     or not 0 < current_configuration < 2**31):
                 raise ValueError('Invalid original SDK payload chunk')
-            code = self._call('publication_commit_export', 'produce_sdk_payload_chunk',
-                              value.handle, first.handle, chunk.handle, clock.handle,
-                              int(eof), current_configuration)
+            code = self._call_sdk_payload_read('produce_sdk_payload_chunk', value.handle,
+                                               first.handle, chunk.handle, clock.handle,
+                                               int(eof), current_configuration)
             if type(code) is not int:
                 raise RuntimeError('Invalid Local Core payload status')
             if code != 0:
@@ -3657,6 +4157,22 @@ class LocalCore:
             if self._closing:
                 raise RuntimeError('Local Core is closing')
 
+    def confirm_publication_sdk_terminal_commit(self, output: _Output, first: _Output) -> None:
+        """Acknowledge the same prevalidated successor after real physical COMMIT."""
+        with self._lock:
+            self._owned_output(output, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+            if self._closing or output is first:
+                raise ValueError('Original SDK terminal commit continuation is unavailable')
+            code = self._call('publication_commit_export', 'confirm_sdk_terminal_commit',
+                              output.handle, first.handle)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core terminal status')
+            if code != 0:
+                raise LocalCoreError('confirm_sdk_terminal_commit', code)
+            self._owned_output(output, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+
     def observe_publication_sdk_terminal(self, first: _Output,
                                         current_configuration: int) -> None:
         """Validate actual saved terminal evidence; never write or replay bytes."""
@@ -3667,8 +4183,8 @@ class LocalCore:
             if (type(current_configuration) is not int
                     or not 0 < current_configuration < 2**31):
                 raise ValueError('Invalid original SDK terminal observation')
-            code = self._call('publication_commit_export', 'observe_sdk_terminal',
-                              first.handle, current_configuration)
+            code = self._call_sdk_payload_read('observe_sdk_terminal', first.handle,
+                                               current_configuration)
             if type(code) is not int:
                 raise RuntimeError('Invalid Local Core terminal status')
             if code != 0:
@@ -3677,15 +4193,22 @@ class LocalCore:
             if self._closing:
                 raise RuntimeError('Local Core is closing')
 
-    def produce_publication_sdk_read_delivery_storage(self, value: _Output,
-                                                      request: _Input,
-                                                      original_run: int,
-                                                      current_configuration: int) -> None:
-        """Project the existing delivery/usage Owners' same-TX first CAS only.
+    def _call_sdk_payload_read(self, name: Literal[
+            'prepare_sdk_payload_input', 'produce_sdk_payload_chunk', 'observe_sdk_terminal'],
+            *arguments: int) -> int:
+        """Lend the current read's existing Journal port to this read export."""
+        binding = getattr(self, '_host_current_binding', None)
+        current = binding._current if binding is not None else None
+        callbacks = self._journal_callbacks(current.ticket) if current is not None else None
+        if (callbacks is not None and (callbacks.reader is None
+                or callbacks.reader is not binding._observed_reader
+                or callbacks.current is not binding._current_observer)):
+            raise ValueError('Original SDK payload Journal reader changed')
+        return self._call_with_task_material(callbacks, 'publication_commit_export', name, *arguments)
 
-        This neither acknowledges physical COMMIT nor starts payload delivery.
-        Core chooses original keys/body/revisions; unknown attempts need lookup.
-        """
+    def _sdk_read_delivery_storage(self, value: _Output, request: _Input,
+                                   original_run: int, current_configuration: int,
+                                   name: str) -> int:
         with self._lock:
             self._owned_output(value, 'publication_commit_export')
             self._owned_input(request)
@@ -3695,9 +4218,42 @@ class LocalCore:
                     or type(current_configuration) is not int
                     or not 0 < current_configuration < 2**31):
                 raise ValueError('Invalid original SDK delivery storage projection')
-            self._check('produce_sdk_read_delivery_storage', self._call(
-                'publication_commit_export', 'produce_sdk_read_delivery_storage',
-                value.handle, request.handle, original_run, current_configuration))
+            return self._call('publication_commit_export', name,
+                value.handle, request.handle, original_run, current_configuration)
+
+    def measure_publication_sdk_read_delivery_storage(self, value: _Output,
+            request: _Input, original_run: int, current_configuration: int) -> int:
+        """Prepare one original first delivery on its live, one-byte holder."""
+        if type(value) is not _Output or value.limit != 1:
+            raise ValueError('Invalid original SDK delivery holder extent')
+        name = 'measure_sdk_read_delivery_storage'
+        size = self._sdk_read_delivery_storage(value, request, original_run, current_configuration, name)
+        if type(size) is not int or not 1 <= size <= 1_048_576:
+            raise LocalCoreError(name, size)
+        return size
+
+    def emit_publication_sdk_read_delivery_storage(self, output: _Output, original: _Output,
+                                                   current_configuration: int) -> None:
+        """Emit only the exact measured proposal, preserving the original holder."""
+        with self._lock:
+            self._owned_output(output, 'publication_commit_export')
+            self._owned_output(original, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (output is original or original.limit != 1
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK delivery storage body')
+            self._check('emit_sdk_read_delivery_storage', self._call(
+                'publication_commit_export', 'emit_sdk_read_delivery_storage',
+                output.handle, original.handle, current_configuration))
+
+    def validate_publication_sdk_read_delivery_storage(self, value: _Output,
+            request: _Input, original_run: int, current_configuration: int) -> None:
+        """Recheck the same prepared custody before the Store attempts COMMIT."""
+        name = 'validate_sdk_read_delivery_storage'
+        self._check(name, self._sdk_read_delivery_storage(
+            value, request, original_run, current_configuration, name))
 
     def produce_publication_sdk_read_evidence(self, value: _Output, request: _Input,
                                               original_run: int,
@@ -3802,7 +4358,7 @@ class LocalCore:
         from ._local_host_binding import OriginalHostBinding
         host = getattr(self, '_host_current_binding', None)
         if (type(host) is not OriginalHostBinding
-                or type(getattr(self, '_closed_wasm_exports', None)) is not _ClosedWasmExports
+                or self._platform_vm_original is None
                 or not self._ordinary_host or self._closing
                 or any(type(value) is not int or not 0 <= value < 8 for value in (result, binding))):
             return False
@@ -3819,13 +4375,9 @@ class LocalCore:
         except ValueError:
             # Use the standalone validators' existing order for an invalid loan.
             return False
-        entry = ('publication_commit_export', 'validate_payload_binding')
-        supported = self._call(*entry, 0, 0, 0, -(2**31), 0)
-        if supported != 1:
-            raise LocalCoreError('saved_reader_facts_capability', supported)
-        selector = -(2**30) - (8 * result + binding)
-        code = self._call(*entry, original.handle, record.handle, configuration,
-                          selector, observation.handle)
+        code = self._call('publication_commit_export', 'validate_saved_reader_facts',
+                          original.handle, record.handle, configuration, result, binding,
+                          observation.handle)
         snapshot_code = code + 1024
         if snapshot_code in (-2, -5, -31, -32):
             self._check('validate_payload_snapshot', snapshot_code)
@@ -3847,6 +4399,22 @@ class LocalCore:
                 raise RuntimeError('Original saved read requires quiescent terminal cleanup')
             self._check('begin_saved_read_cleanup', self._call(
                 'submission', 'begin_cleanup', original.handle))
+
+    def begin_interrupted_sdk_delivery_preparation_cleanup(
+            self, publication: _Output, original: _Output) -> None:
+        """Retire only interrupted delivery-construction latches after unwind."""
+        with self._lock:
+            if not self._closing or self._host_fuel_phase != 'cleanup':
+                return
+            if self._invoking:
+                raise RuntimeError('Original delivery preparation still executing')
+            self._owned_output(publication, 'publication')
+            self._owned_output(original, 'publication_commit_export')
+            if original.limit != 1:
+                raise ValueError('Invalid original SDK delivery holder extent')
+            self._check('begin_sdk_delivery_preparation_cleanup', self._call(
+                'publication_commit_export', 'begin_sdk_delivery_preparation_cleanup',
+                publication.handle, original.handle))
 
     def read_publication_commit_material(self, value: _Output) -> bytes:
         """Read original raw bytes, without parsing or recreating a contract."""
@@ -3872,7 +4440,7 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65_536
+            limit = _PAYLOAD_RECORD_WIRE_LIMIT
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
@@ -3913,18 +4481,20 @@ class LocalCore:
             self._check('start_payload_replay', self._call(
                 'payload_request', 'start_replay', value.handle, current_configuration))
 
-    def reserve_payload_chunk(self, request: _Output, *,
+    def reserve_payload_chunk(self, request: _Output, maximum: int, *,
                               cleanup: Callable[[], bool]) -> _Output:
         """Reserve one accounted copy before the original replay Owner advances."""
         with self._lock:
             self._owned_output(request, 'payload_request')
+            if type(maximum) is not int or not 0 < maximum < 2**31:
+                raise ValueError('Invalid original payload amount')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65_536
+            limit = min(65_536, maximum)
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
@@ -3987,7 +4557,7 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65_536
+            limit = _PAYLOAD_RECORD_WIRE_LIMIT
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
@@ -4077,7 +4647,7 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65_536
+            limit = _PAYLOAD_RECORD_WIRE_LIMIT
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
@@ -4151,7 +4721,7 @@ class LocalCore:
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65_536
+            limit = _PAYLOAD_RECORD_WIRE_LIMIT
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
@@ -4267,11 +4837,15 @@ class LocalCore:
             self._owned_output(record, 'payload_record')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
+            limit = self._call('payload_binding', 'transport_limit', record.handle)
+            if type(limit) is not int:
+                raise RuntimeError('Invalid Local Core binding transport extent')
+            if not 1 <= limit <= 65_536:
+                raise LocalCoreError('payload_binding_transport_limit', limit)
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
@@ -4294,39 +4868,44 @@ class LocalCore:
             self._check('produce_payload_binding', self._call(
                 'payload_binding', 'produce', value.handle, current_configuration))
 
-    def read_payload_binding(self, value: _Output, current_configuration: int) -> bytes:
+    def validate_payload_binding(self, value: _Output, current_configuration: int) -> None:
         with self._lock:
             self._owned_output(value, 'payload_binding')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
                 raise ValueError('Invalid current payload configuration')
-            self._check('read_payload_binding', self._call(
+            self._check('validate_payload_binding', self._call(
                 'payload_binding', 'validate', value.handle, current_configuration))
+
+    def read_payload_binding(self, value: _Output, current_configuration: int) -> bytes:
+        with self._lock:
+            self.validate_payload_binding(value, current_configuration)
             return self._read_output(value, 'payload_binding', 'length')
 
     def close_payload_binding(self, value: _Output) -> bool:
         return self._close_output(value, 'payload_binding', 'close')
 
-    def reserve_payload_allocation(self, request: _Output, kind: int, *,
+    def reserve_payload_allocation(self, request: _Output, kind: int, limit: int, *,
                                cleanup: Callable[[], bool]) -> _Output:
         """Project original allocation intent (1) or directory ownership (2)."""
         with self._lock:
             self._owned_output(request, 'payload_record')
             if type(kind) is not int or kind not in (1, 2):
                 raise ValueError('Invalid payload allocation write')
+            if type(limit) is not int or not 1 <= limit <= 65_536:
+                raise ValueError('Invalid payload allocation transport bound')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 65_536
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (self._output_copy_bytes(limit)
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit,
                                                       'payload_allocation')))
-            handle = self._call('payload_allocation', 'reserve', request.handle, kind, ticket, physical_bytes)
+            handle = self._call('payload_allocation', 'reserve', request.handle, kind, ticket, limit, physical_bytes)
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_payload_allocation', handle)
@@ -4609,7 +5188,195 @@ class LocalCore:
         self._task_operation(value, 'start')
         self._task_operation(value, 'started')
 
+    def prepare_task_model_dispatch(self, value: _Task, clock: _Input) -> None:
+        """Retain the waiting original's dispatch authority under its live reader."""
+        with self._lock:
+            self._owned_task(value)
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('prepare_model_dispatch', self._call(
+                'task', 'prepare_model_dispatch', value.handle, clock.handle))
+
+    def stage_task_model_entry(self, value: _Task, clock: _Input) -> None:
+        """Advance the waiting original to its one pending journal operation."""
+        with self._lock:
+            self._owned_task(value)
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('stage_model_entry', self._call(
+                'task', 'stage_model_entry', value.handle, clock.handle))
+
+    def reserve_task_model_entry(self, task: _Task, compute: _Compute) -> _Output:
+        return self._reserve_task_model_material(task, compute, 'entry')
+
+    def reserve_task_model_request(self, task: _Task, compute: _Compute) -> _Output:
+        return self._reserve_task_model_material(task, compute, 'request')
+
+    def reserve_task_model_raw(self, task: _Task, compute: _Compute) -> _Output:
+        return self._reserve_task_model_material(task, compute, 'raw')
+
+    def reserve_task_model_raw_sealed(self, task: _Task, compute: _Compute) -> _Output:
+        return self._reserve_task_model_material(task, compute, 'raw_sealed')
+
+    def reserve_task_model_settlement(self, task: _Task, compute: _Compute) -> _Output:
+        return self._reserve_task_model_material(task, compute, 'settlement')
+
+    def reserve_task_model_settlement_store(self, task: _Task, compute: _Compute) -> _Output:
+        return self._reserve_task_model_material(task, compute, 'settlement_store')
+
+    def _reserve_task_model_material(self, task: _Task, compute: _Compute,
+                                    kind: Literal['entry', 'request', 'raw', 'raw_sealed', 'settlement', 'settlement_store']) -> _Output:
+        with self._lock:
+            self._owned_task(task)
+            self._owned_compute(compute)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            bound = f'model_{kind}_bound'
+            limit = self._call('task', bound, task.handle, compute.handle)
+            if not 0 < limit <= 1_048_576:
+                raise LocalCoreError(bound, limit)
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            self._inputs[ticket] = _PhysicalInput(b'', lambda: True, lambda _: True)
+            # The export remains held alongside the sliced body and Store
+            # readback. Block-copy scratch is separately part of the same loan.
+            allowance = (self._output_copy_bytes(limit) + 2 * sys.getsizeof(bytes())
+                         + 2 * limit + sys.getsizeof(_Output(self._identity, ticket, 0, limit)))
+            operation = f'reserve_model_{kind}'
+            handle = self._call('task', operation, task.handle, compute.handle, ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError(operation, handle)
+            value = _Output(self._identity, ticket, handle, limit)
+            self._loans[ticket] = value
+            return value
+
+    def produce_task_model_entry(self, task: _Task, clock: _Input, value: _Output) -> None:
+        self._task_model_observation(task, clock, value, 'produce_model_entry')
+
+    def produce_task_model_request(self, task: _Task, clock: _Input, value: _Output) -> None:
+        self._task_model_observation(task, clock, value, 'produce_model_request')
+
+    def check_task_model_request(self, task: _Task, clock: _Input, value: _Output) -> None:
+        self._task_model_observation(task, clock, value, 'check_model_request')
+
+    def claim_task_model_request(self, task: _Task, clock: _Input, value: _Output) -> None:
+        self._task_model_observation(task, clock, value, 'claim_model_request')
+
+    def finish_task_model_request(self, task: _Task, value: _Output, *,
+                                  response: _Input | None, status: int) -> None:
+        with self._lock:
+            self._owned_task(task)
+            self._owned_output(value, 'material')
+            if response is not None:
+                self._owned_input(response)
+            self._check('finish_model_request', self._call(
+                'task', 'finish_model_request', task.handle, value.handle,
+                response.handle if response is not None else 0, status))
+
+    def produce_task_model_raw(self, task: _Task, clock: _Input, value: _Output) -> None:
+        self._task_model_observation(task, clock, value, 'produce_model_raw')
+
+    def produce_task_model_raw_sealed(self, task: _Task, clock: _Input, value: _Output,
+                                      packet: _Input) -> None:
+        with self._lock:
+            self._owned_input(packet)
+            self._task_model_observation(
+                task, clock, value, 'produce_model_raw_sealed', packet.handle)
+
+    def inspect_task_model_raw_store(self, task: _Task, clock: _Input, value: _Output, *,
+                                     authenticated: _Input | None = None) -> None:
+        with self._lock:
+            if authenticated is not None:
+                self._owned_input(authenticated)
+            self._task_model_observation(task, clock, value, 'inspect_model_raw_store',
+                                         authenticated.handle if authenticated is not None else 0)
+
+    def finish_task_model_raw_store(self, task: _Task, value: _Output, *,
+                                    clock: _Input | None = None, expose: bool = False) -> None:
+        with self._lock:
+            self._owned_task(task)
+            self._owned_output(value, 'material')
+            if clock is not None:
+                self._owned_input(clock)
+                if expose:
+                    raise ValueError('Original Raw validation must return before exposure')
+            self._check('finish_model_raw_store', self._call('task', 'finish_model_raw_store',
+                task.handle, clock.handle if clock is not None else 0, value.handle,
+                2 if expose else int(clock is not None)))
+
+    def advance_task_model_response(self, task: _Task, clock: _Input, quantum: int) -> int:
+        """Advance just this original after the physical response was resolved."""
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local Model response quantum')
+        with self._lock:
+            self._owned_task(task)
+            self._owned_input(clock)
+            return self._call('task', 'advance_model_response', task.handle, clock.handle, quantum)
+
+    def advance_task_model_settlement(self, task: _Task, clock: _Input, quantum: int) -> bool:
+        if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
+            raise ValueError('Invalid Local Model settlement quantum')
+        with self._lock:
+            self._owned_task(task)
+            self._owned_input(clock)
+            code = self._call('task', 'advance_model_settlement', task.handle, clock.handle, quantum)
+            if code in (0, 1):
+                return code == 1
+            self._check('advance_model_settlement', code)
+            raise AssertionError('Invalid original Model settlement status')
+
+    def produce_task_model_settlement(self, task: _Task, clock: _Input, value: _Output) -> None:
+        self._task_model_observation(task, clock, value, 'produce_model_settlement')
+
+    def produce_task_model_settlement_store(self, task: _Task, clock: _Input, value: _Output,
+                                            packet: _Input) -> None:
+        with self._lock:
+            self._owned_input(packet)
+            self._task_model_observation(task, clock, value, 'produce_model_settlement_store', packet.handle)
+
+    def inspect_task_model_settlement_store(self, task: _Task, clock: _Input, value: _Output, *,
+                                            readback: bool) -> None:
+        self._task_model_observation(task, clock, value, 'inspect_model_settlement_store', int(readback))
+
+    def finish_task_model_settlement_store(self, task: _Task, value: _Output, *, confirmed: bool) -> None:
+        with self._lock:
+            self._owned_task(task)
+            self._owned_output(value, 'material')
+            self._check('finish_model_settlement_store', self._call(
+                'task', 'finish_model_settlement_store', task.handle, value.handle, int(confirmed)))
+
+    def inspect_task_model_entry(self, task: _Task, clock: _Input, value: _Output, *,
+                                 saved: bool) -> None:
+        self._task_model_observation(task, clock, value, 'inspect_model_entry', int(saved))
+
+    def _task_model_observation(self, task: _Task, clock: _Input, value: _Output,
+                                      operation: str, *mode: int) -> None:
+        with self._lock:
+            self._owned_task(task)
+            self._owned_input(clock)
+            self._owned_output(value, 'material')
+            self._check(operation, self._call(
+                'task', operation, task.handle, clock.handle, value.handle, *mode))
+
+    def finish_task_model_entry(self, task: _Task, value: _Output, *, confirmed: bool) -> None:
+        with self._lock:
+            self._owned_task(task)
+            self._owned_output(value, 'material')
+            self._check('finish_model_entry', self._call(
+                'task', 'finish_model_entry', task.handle, value.handle, int(confirmed)))
+
     def drive_task(self, value: _Task, quantum: int) -> bool:
+        step = self.drive_task_step(value, quantum)
+        if step is _TaskDrive.PROGRESSED or step is _TaskDrive.COMPLETE:
+            return step is _TaskDrive.COMPLETE
+        step.refuse_unhandled_pause()
+
+    def drive_task_step(self, value: _Task, quantum: int) -> _TaskDrive:
         """Advance the same Core-owned task; never choose its lifecycle phase."""
         if type(quantum) is not int or not 0 < quantum <= 2**31 - 1:
             raise ValueError('Invalid Local task quantum')
@@ -4618,14 +5385,9 @@ class LocalCore:
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             code = self._call('task', 'drive', value.handle, quantum)
-            if code in (0, 1):
-                return code == 1
-            # This physical profile has no pause/settlement handler. Preserve
-            # its explicit refusal and original custody; never spin or resume.
-            if code in (2, 3):
-                raise LocalCoreError('original_task_waiting' if code == 2 else
-                    'original_task_finalization_waiting', -7)
-            self._check('task_drive', code if code < 0 else -33)
+            if type(code) is int and 0 <= code <= 4:
+                return _TaskDrive(code)
+            self._check('task_drive', code if type(code) is int and code < 0 else -33)
             raise AssertionError('Unreachable original task continuation')
 
     def _task_operation(self, value: _Task, operation: str, *arguments: int) -> None:
@@ -4653,9 +5415,11 @@ class LocalCore:
         with self._lock:
             self._task_operation(value, 'advance_finalization' if finalization else 'advance', quantum)
             fields = [self._call('task', 'progress', value.handle, index) for index in range(4)]
-            if fields[0] not in (0, 1) or fields[1] not in (0, 1) or min(fields[2:]) < 0:
+            await_io = self._call('task', 'progress', value.handle, 8)
+            if (fields[0] not in (0, 1) or fields[1] not in (0, 1) or min(fields[2:]) < 0
+                    or await_io not in (0, 1) or await_io == 1 and (fields[0] or fields[1])):
                 raise LocalCoreError('task_progress', -33)
-            return LocalTaskProgress(fields[0] == 1, fields[1] == 1, fields[2], fields[3])
+            return LocalTaskProgress(fields[0] == 1, fields[1] == 1, fields[2], fields[3], await_io == 1)
 
     def prepare_task_finalization(self, value: _Task) -> None:
         self._task_operation(value, 'prepare_finalization')
@@ -4729,11 +5493,13 @@ class LocalCore:
             self._result_loans[handle] = result
             return result
 
-    def reserve_result_from_compute(self, compute: _Compute, index: int,
+    def reserve_result_from_compute(self, compute: _Compute | _PhysicalStart, index: int,
                                     current_configuration: int) -> _ResultExport:
         """Core maps original inventory ordinal to its completed producer."""
         with self._lock:
-            self._owned_compute(compute)
+            from ._local_run import _PhysicalStart
+            if type(compute) is not _PhysicalStart:
+                self._owned_compute(compute)
             if (self._closing or type(index) is not int or not 0 <= index < 2**31
                     or type(current_configuration) is not int
                     or not 0 < current_configuration < 2**31):
@@ -4863,6 +5629,21 @@ class LocalCore:
             self._host_current_ready(current)
             return raw
 
+    def inspect_submitted_run_definition_collision(self, value: _Output,
+                                                    current: _Output) -> int:
+        with self._lock:
+            self._owned_output(value, 'material')
+            self._host_current_ready(current)
+            code = self._call('material', 'inspect_run_definition_collision',
+                              value.handle, current.handle)
+            callbacks = self._journal_callbacks(current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            if code not in (1, 2, 3):
+                self._check('inspect_run_definition_collision', code if code < 0 else -31)
+            self._host_current_ready(current)
+            return code
+
     def _sdk_start_material_current(self, value: _Output, current: _Output, operation: str) -> None:
         self._owned_output(value)
         self._host_current_ready(current)
@@ -4982,9 +5763,6 @@ class LocalCore:
             self._check(operation, code)
             self._loans.pop(value.ticket)
             self._released.discard(value.ticket)
-            phase = getattr(self, '_reconciliation_prepare', None)
-            if phase is not None and not phase.suspended:
-                phase.retire_output(value.ticket)
             return True
 
     def fill_input(self, value: _Input, start: int, count: int) -> None:
@@ -5017,10 +5795,6 @@ class LocalCore:
         with self._host_cleanup():
             return self._close_core()
 
-    def _retire_closed_wasm_exports(self) -> bool:
-        self._closed_wasm_exports = None
-        return True
-
     def _close_core(self) -> bool:
         """Keep the same instance on pending cleanup; do not cancel a Run."""
         with self._lock:
@@ -5028,11 +5802,6 @@ class LocalCore:
                 return True
             self._closing = True
             if not self._retired:
-                workspace = getattr(self, '_closed_wasm_workspace', None)
-                if workspace is not None:
-                    if not self.close_workspace(workspace):
-                        return False
-                    self._closed_wasm_workspace = None
                 code = self._call('buffer', 'close_pool')
                 if code == -9:
                     return False
@@ -5091,8 +5860,6 @@ class LocalCore:
                     self._physical_vm_span = None
                     self._instance = None
                     self._platform_vm_original = None
-                    self._closed_wasm_exports = None
-                    self._closed_wasm_workspace = None
         holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
         if holding is not None:
             # Store success retires the executable Wasm Root. A final native
@@ -5119,40 +5886,3 @@ class LocalCore:
         self._compute_loans.clear()
         self._task_loans.clear()
         self._result_loans.clear()
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(LocalCore, (
-        '_bulk_memory', '_bulk_memory_current', '_call',
-        '_check', '_cleanup', '_close_output',
-        '_closed_publisher_memory', '_host_current_call', '_host_current_ready',
-        '_input_copy', '_input_copy_bytes', '_journal_begin',
-        '_journal_callbacks', '_journal_copy', '_journal_copy_row',
-        '_journal_current', '_journal_current_operation', '_journal_input_current',
-        '_journal_length', '_journal_memory_range', '_journal_query',
-        '_journal_query_copy', '_journal_query_header', '_journal_release',
-        '_journal_revision', '_journal_row_current', '_journal_schema',
-        '_native_scope', '_observation_import', '_output_copy_bytes',
-        '_owned', '_owned_input', '_owned_output',
-        '_platform_vm_observation', '_publication_configuration', '_publisher_begin',
-        '_publisher_callbacks', '_publisher_copy', '_publisher_current',
-        '_publisher_finish', '_read', '_read_output',
-        '_read_output_block', '_require_platform_vm_current', '_reserve_publication_read_export',
-        '_stopped', 'authorize_publisher', 'bind_host_current',
-        'close_publication_commit_export', 'fill_input', 'host_current_frame',
-        'prepare_publication_lookup', 'prepare_publication_observation', 'produce_publication_commit_index_key',
-        'produce_publication_lookup_reference', 'publication_commit_result_count', 'read_publication_commit_material',
-        'reserve_input', 'reserve_publication_commit_export', 'seal_input',
-        'validate_host_current', 'validate_payload_snapshot', 'validate_publication_commit_payload_binding',
-    )),
-    _capture_prepare_methods(_ClosedWasmExports, (
-        '__init__', '_matches', '_method_identity',
-        '_qualify', '_retained_bytes', '_supported',
-    )),
-)
-from ._local_prepare_provenance import _capture_prepare_functions
-_PREPARE_FUNCTIONS = _capture_prepare_functions(globals(), (
-    '_publisher_fact', '_original_metadata_cleanup', '_original_metadata_stopped',
-))

@@ -92,9 +92,18 @@ class LocalSubmissionAppendTests(unittest.TestCase):
                     if rows[0] is None:
                         self.assertEqual(count[1].payload, b'0')
                         plans[args[0]] = 'append'
-                        outputs[args[0]] = json.dumps({'kind': 'append', 'key': REQUEST,
+                        candidate = {'kind': 'append', 'key': REQUEST,
                             'body': PREPARING.decode(), 'issued_revision': str(count[1].generation),
-                            'issued_body': '1'}, ensure_ascii=False).encode()
+                            'issued_body': '1'}
+                        if host._configuration.sdk:
+                            usage = []
+                            current().read('client_submitted_intent_usage', 'retained',
+                                           lambda row: usage.append(row))
+                            self.assertEqual((usage[0][1].generation, usage[0][1].payload),
+                                             (count[1].generation, b'0:0'))
+                            candidate.update(usage_revision=str(usage[0][1].generation),
+                                             usage_body=f'1:{len(PREPARING)}')
+                        outputs[args[0]] = json.dumps(candidate, ensure_ascii=False).encode()
                     else:
                         self.assertEqual(count[1].payload, b'1')
                         plans[args[0]] = 'retained'
@@ -122,6 +131,10 @@ class LocalSubmissionAppendTests(unittest.TestCase):
         core._call = original_byte_fixture_port(call)
         host = InstalledLocalHost(core, path, now=lambda: 0, observed_at='2026-10-12T00:00:00.000Z')
         self.addCleanup(host.close)
+        store = host._installation._store
+        key = store.namespaced_key('client_submitted_intent_usage', 'retained')
+        if store.read(key) is None:
+            self.assertEqual(store.compare_exchange(key, None, b'0:0'), 0)
         return host, core, calls, counters
 
     def reference(self, host):

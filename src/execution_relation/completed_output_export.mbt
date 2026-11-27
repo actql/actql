@@ -2,7 +2,7 @@
 /// Bounded serialization of an existing immutable cell representation. This is
 /// conversion, never execution or a way to admit caller-supplied output values.
 struct CompletedOutputExport {
-  export_identity : Ref[Unit]
+  export_identity : Ref[Bool]
   mut source : CompletedOutput?
   rows : CompletedExportRows
   order : RowWireOrder
@@ -51,7 +51,7 @@ struct CompletedResultRelationExportPreparation {
 ///|
 /// One exact export, consumable only with storage bound to its content receipt.
 struct CompletedOutputExportReceipt {
-  export_identity : Ref[Unit]
+  export_identity : Ref[Bool]
   mut source : CompletedOutput?
   content : AdmittedOutputStreamReceipt
   mut binding : Bool
@@ -868,6 +868,89 @@ pub fn completed_relation_export_field_names(
 }
 
 ///|
+/// Read a single row from the exact finished export. The owner pays the
+/// measuring writer and traversal before entry, then admits the measured
+/// row construction before text allocation. A refusal leaves the original
+/// finished export and receipt with their existing owner.
+pub fn read_completed_relation_export_canonical_row(
+  stream : CompletedOutputExport,
+  receipt : CompletedRelationExportReceipt,
+  index : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  admit : (Int, Int, Int) -> Bool,
+) -> Result[@identity.CanonicalValue, CompletedExportIssue] {
+  if stream.reading {
+    return Err(Closed)
+  }
+  stream.reading = true
+  defer { stream.reading = false }
+  if !physical_equal(stream.export_identity, receipt.rows.export_identity) {
+    return Err(ForeignMaterial)
+  }
+  let rows = IndexedRows::row_count(stream.rows)
+  guard stream.source is None &&
+    stream.row == rows &&
+    index >= 0 &&
+    index < rows else {
+    return Err(NotFinished)
+  }
+  if !completed_relation_export_receipt_live(receipt) ||
+    receipt.rows.source is None {
+    return Err(Unavailable)
+  }
+  let (bytes, nodes, depth) = try {
+    let writer = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
+    emit_completed_relation_export_row(stream, index, writer)
+    @encode.finish_measurement_usage(writer)
+  } catch {
+    issue => return Err(Wire(Encoding(issue)))
+  }
+  if !admit(bytes, nodes, depth) {
+    return Err(Admission(CaptureLimit))
+  }
+  if !completed_relation_export_receipt_live(receipt) ||
+    receipt.rows.source is None {
+    return Err(Unavailable)
+  }
+  let wire = try {
+    let writer = @encode.writer(bytes, nodes, depth)
+    emit_completed_relation_export_row(stream, index, writer)
+    @encode.finish(writer)
+  } catch {
+    issue => return Err(Wire(Encoding(issue)))
+  }
+  let row = @identity.from_json(
+    @json.parse(wire),
+    nodes,
+    depth,
+    bytes,
+    data_keys=true,
+  ) catch {
+    _ => return Err(CanonicalRow)
+  }
+  Ok(row)
+}
+
+///|
+fn emit_completed_relation_export_row(
+  value : CompletedOutputExport,
+  row : Int,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_ordered_object(writer)
+  for (name, column) in value.order.columns {
+    if !IndexedRows::cell_present(value.rows, row, column) {
+      continue
+    }
+    @encode.ordered_key(writer, name)
+    emit_runtime_value(IndexedRows::read_cell(value.rows, row, column), writer)
+  }
+  @encode.end_object(writer)
+}
+
+///|
 /// Observe the finished original logical writer, not a new traversal or a
 /// policy ceiling. The receipt and stream must be the same completed export.
 /// The existing writer retains peak open-container depth even after finish.
@@ -1091,6 +1174,16 @@ pub fn completed_relation_export_identity(
   receipt : CompletedRelationExportReceipt,
 ) -> LogicalRelationIdentity {
   receipt.logical
+}
+
+///|
+/// The same nominal export identity records whether the writer traversed the
+/// whole original Relation directly. A checked Result view is distinct even
+/// when it retains all rows and fields and happens to hash to the same value.
+pub fn completed_relation_export_is_unprojected(
+  receipt : CompletedRelationExportReceipt,
+) -> Bool {
+  receipt.rows.export_identity.val
 }
 
 ///|

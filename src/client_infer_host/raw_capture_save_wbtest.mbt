@@ -2,6 +2,8 @@
 struct RawSaveFixture {
   active : Execution
   call : @model.ModelPhysicalCall
+  scope : @publication.BoundModelInvocationScope
+  slot_original : @publication.RunEvidenceValue
   registration : @publication_host.ClientModelRawCaptureRegistration
   current : Ref[@authorization.AdmittedAccountConfiguration]
   now : Ref[String]
@@ -22,6 +24,7 @@ fn raw_save_fixture(
   structured? : Bool = false,
   foreign_decoder_profile? : Bool = false,
   measured? : Bool = false,
+  strict? : Bool = false,
 ) -> RawSaveFixture raise {
   let calls = Ref(0)
   let current = Ref(
@@ -68,7 +71,25 @@ fn raw_save_fixture(
       }),
     )
   } else {
-    (None, None, None, None)
+    (
+      if strict {
+        Some(() => {
+          contract_capacity_start(
+            calls,
+            2,
+            133072L,
+            limits~,
+            asynchronous=true,
+            strict=true,
+          )
+        })
+      } else {
+        None
+      },
+      None,
+      None,
+      None,
+    )
   }
   let (active, prefix) = async_response_fixture(
     calls,
@@ -92,6 +113,7 @@ fn raw_save_fixture(
   )
   let prepared = prepared_call_set(active).unwrap()
   let scope = @model.prepared_model_scope(prepared).unwrap()
+  let slot_original = @model.prepared_model_call_at(prepared, 0).unwrap()
   let available = Ref(true)
   let registration = @publication_host.register_client_model_raw_capture(
     active.dispatch_admission.unwrap(),
@@ -113,6 +135,8 @@ fn raw_save_fixture(
   assert_eq(calls.val, 1)
   {
     active,
+    scope,
+    slot_original,
     call: captured.val.unwrap(),
     registration,
     current,
@@ -142,27 +166,30 @@ fn raw_save_fixture_cleanup(value : RawSaveFixture) -> Unit raise {
 
 ///|
 test "measured HTTP authenticates the same complete Raw once and retains unobserved transfer" {
-  let complete_raw = (value : RawSaveFixture, eof : Bool) => {
+  let complete_raw = (value : RawSaveFixture, status : Int, eof : Bool) => {
     let save = @model.observe_model_raw_capture(
       value.call,
       value.registration,
-      "sha256:" + @sha.hex(b"{}"),
+      "sha256:" + @sha.hex(b"\xFF\xFE"),
       2,
-      503,
+      status,
       eof,
       value.now.val,
     ).unwrap()
     @model.acknowledge_saved_model_raw_capture(save).unwrap()
   }
   let foreign = raw_save_fixture(measured=true)
-  let foreign_receipt = complete_raw(foreign, true)
+  let foreign_receipt = complete_raw(foreign, 429, true)
   for
-    (scenario, eof, upload, download) in [
-      ("complete", true, 1L, 2L),
-      ("absent", true, -1L, -1L),
-      ("partial", false, 1L, 2L),
-      ("size-mismatch", true, 1L, 1L),
-      ("foreign", true, 1L, 2L),
+    (scenario, status, eof, upload, download) in [
+      ("complete", 429, true, 1L, 2L),
+      ("complete-provider-error", 503, true, 1L, 2L),
+      ("absent", 429, true, -1L, -1L),
+      ("partial", 429, false, 1L, 2L),
+      ("wrong-failure", 429, true, 1L, 2L),
+      ("bare", 429, true, 1L, 2L),
+      ("size-mismatch", 429, true, 1L, 1L),
+      ("foreign", 429, true, 1L, 2L),
     ] {
     let release = Ref(false)
     let value = raw_save_fixture(release~, measured=true)
@@ -174,37 +201,67 @@ test "measured HTTP authenticates the same complete Raw once and retains unobser
     let receipt = if scenario == "foreign" {
       foreign_receipt
     } else {
-      complete_raw(value, eof)
+      complete_raw(value, status, eof)
     }
-    value.response.val = @model.PhysicalIoQuiescent(
-      value.call,
-      @model.PhysicalMeasuredHttp(
-        receipt,
-        upload,
-        download,
-        @model.PhysicalRejected(ProviderError, {
-          input_tokens: None,
-          output_tokens: None,
-        }),
-      ),
+    let rejection : @model.ModelPhysicalCallPoll = @model.PhysicalRejected(
+      if scenario == "wrong-failure" || status == 503 {
+        ProviderError
+      } else {
+        RateLimit
+      },
+      { input_tokens: None, output_tokens: None, },
     )
+    let response = if scenario == "bare" {
+      rejection
+    } else {
+      @model.PhysicalMeasuredHttp(receipt, upload, download, rejection)
+    }
+    value.response.val = @model.PhysicalIoQuiescent(value.call, response)
     value.ready.val = true
     let poll = fixture_finish(value.active, initial_work=value.work)
-    if scenario == "foreign" {
+    if scenario == "foreign" ||
+      scenario == "partial" ||
+      scenario == "wrong-failure" {
       assert_true(poll is Failed(Model(@model.UnknownCalls), ..))
+      assert_true(call_settlement(value.active) is None)
     } else {
       guard poll is Settling(0, work~) else {
         abort("original provider refusal")
+      }
+      let settlement = call_settlement(value.active).unwrap()
+      let raw = @model.model_call_settlement_failure_raw(settlement)
+      if scenario == "bare" {
+        // An independently saved observation cannot be associated retroactively
+        // with a callback that supplied only a bare numeric rejection.
+        assert_true(raw is None)
+        assert_true(
+          @model.model_execution_attempt_evidence(original, 0)
+          is Err(@model.OutputIdentity),
+        )
+      } else {
+        let (saved_status, saved_eof, _) = @publication.model_raw_response_transport_facts(
+          raw.unwrap(),
+        )
+        assert_eq(saved_status, status)
+        assert_true(saved_eof)
+        let proof = @model.model_execution_attempt_evidence(original, 0).unwrap()
+        let outcome = @publication.run_evidence_value_json(
+          @model.model_attempt_outcome(proof),
+        )
+        let failure = if status == 429 {
+          "rate_limit"
+        } else {
+          "provider_error"
+        }
+        assert_true(outcome.contains("\"failure\":\"" + failure + "\""))
+        assert_false(outcome.contains("\"reported_response\""))
       }
       // Another observation of the original terminal cannot reconcile twice.
       assert_true(
         fixture_finish(value.active, initial_work=work) is Settling(0, ..),
       )
-      assert_true(
-        @model.acknowledge_model_call_settlement(
-          call_settlement(value.active).unwrap(),
-        ),
-      )
+      assert_true(@model.acknowledge_model_call_settlement(settlement))
+      assert_true(@model.model_call_settlement_failure_raw(settlement) is None)
       assert_true(
         fixture_finish(value.active, initial_work=work) is AwaitIo(..),
       )
@@ -212,7 +269,7 @@ test "measured HTTP authenticates the same complete Raw once and retains unobser
     let pending = @model.model_execution_resource_usage(original)
     assert_eq(
       pending.transferred_bytes,
-      if scenario == "complete" {
+      if scenario == "complete" || scenario == "complete-provider-error" {
         3L
       } else {
         0L
@@ -220,7 +277,7 @@ test "measured HTTP authenticates the same complete Raw once and retains unobser
     )
     assert_eq(
       pending.reserved_transfer_bytes,
-      if scenario == "complete" {
+      if scenario == "complete" || scenario == "complete-provider-error" {
         0L
       } else {
         before.reserved_transfer_bytes
@@ -235,7 +292,7 @@ test "measured HTTP authenticates the same complete Raw once and retains unobser
     assert_eq(after.transferred_bytes, pending.transferred_bytes)
     assert_eq(
       after.uncertain_transfer_bytes,
-      if scenario == "complete" {
+      if scenario == "complete" || scenario == "complete-provider-error" {
         0L
       } else {
         before.reserved_transfer_bytes

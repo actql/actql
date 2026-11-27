@@ -143,6 +143,14 @@ test "raw capture registration requires its distinct original account tuple" {
         @publication_host.check_client_model_raw_capture_current(registration)
         is Ok(_),
       )
+      assert_true(
+        @publication_host.check_client_model_raw_capture_at(
+          registration,
+          current.val,
+          "2026-10-01T00:00:00.000Z",
+        )
+        is Err(@publication_host.Expired),
+      )
     } else {
       assert_true(
         result is Err(@publication_host.Authorization(@authorization.Denied)),

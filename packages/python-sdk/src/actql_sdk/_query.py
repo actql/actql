@@ -130,6 +130,7 @@ class AsyncQueryReader(_OriginalQueryHandle):
         self._reader = None
         self._open_lock = asyncio.Lock()
         self._advance = None
+        self._returning = False
         self._closed = False
 
     @property
@@ -154,10 +155,22 @@ class AsyncQueryReader(_OriginalQueryHandle):
     async def __anext__(self):
         if self._closed:
             raise StopAsyncIteration
-        if self._advance is not None and not self._advance.done():
+        if self._returning:
             raise ClientError('ReaderAdvanceInProgress')
-        self._advance = asyncio.create_task(self._next())
-        return await self._advance
+        self._returning = True
+        try:
+            self._advance = asyncio.create_task(self._next())
+            try:
+                row = await self._advance
+            except StopAsyncIteration:
+                if self._reader is not None:
+                    self._reader._verify_terminal()
+                raise
+            if self._closed:
+                raise StopAsyncIteration
+            return await self._reader._return_row(row)
+        finally:
+            self._returning = False
 
     async def _next(self):
         async with self._open_lock:
@@ -168,7 +181,7 @@ class AsyncQueryReader(_OriginalQueryHandle):
                 if self._closed:
                     raise StopAsyncIteration
                 self._reader = AsyncReader(result, *self._captured)
-        return await self._reader.__anext__()
+        return await self._reader._next_value()
 
     async def aclose(self):
         current = asyncio.current_task()

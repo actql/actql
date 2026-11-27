@@ -71,7 +71,7 @@ class OriginalMetadataTests(unittest.TestCase):
 
     def test_copies_wrong_kind_closing_and_wrong_family_refuse_before_abi(self):
         core, source, calls, _, _ = self.bridge()
-        for kind in (False, True, 0, 6, '4'):
+        for kind in (False, True, 0, -1, '4'):
             with self.assertRaises(ValueError):
                 core.reserve_original_metadata(source, kind, cleanup=lambda: True)
         with self.assertRaises(ValueError):

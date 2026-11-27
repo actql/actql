@@ -11,6 +11,7 @@
           "operations": [
             "<module>",
             "[P]check_installed_managed_run_admission",
+            "admit_installed_debug_ledger_wire",
             "begin_installed_managed_run",
             "begin_installed_managed_run_source_read",
             "begin_installed_managed_run_source_read_at",
@@ -20,6 +21,8 @@
             "check_installed_managed_run_binding",
             "check_installed_managed_run_original",
             "configure_installed_source_free_preparation",
+            "installed_debug_ledger_read_backing",
+            "installed_debug_ledger_wire_backing",
             "installed_managed_capture_run_requirements",
             "installed_managed_owner_graph",
             "installed_managed_owner_shape_supported",
@@ -49,7 +52,9 @@
             "prepared_installed_managed_source_free_requirements",
             "quiesce_installed_managed_run",
             "require_installed_managed_run",
+            "retire_installed_debug_run_with_ledger",
             "retire_installed_managed_run",
+            "retire_installed_managed_run_impl",
             "source_free_installed_managed_preparation_owned"
           ],
           "exports": [],
@@ -228,6 +233,10 @@
               {
                 "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
                 "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_handoff_js_wbtest.mbt",
+                "anchor": "restored Local Request retains consumed Ledger history before preparation"
               }
             ]
           }
@@ -238,6 +247,10 @@
         {
           "name": "[P]check_installed_managed_run_admission",
           "declaration": "[ P ] check_installed_managed_run_admission ( admission : @ resources . PreparedRunAdmission [ P ] , prepared : P , ledger : @ resources . Ledger , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "admit_installed_debug_ledger_wire",
+          "declaration": "admit_installed_debug_ledger_wire ( wire : String , ) - > Result [ @ resources . LedgerContinuationState , @ resources . LedgerContinuationIssue , ]"
         },
         {
           "name": "begin_installed_managed_run",
@@ -274,6 +287,14 @@
         {
           "name": "configure_installed_source_free_preparation",
           "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , work_policy ? : @ local_driver . LocalWorkPolicy"
+        },
+        {
+          "name": "installed_debug_ledger_read_backing",
+          "declaration": "installed_debug_ledger_read_backing ( ) - > Int"
+        },
+        {
+          "name": "installed_debug_ledger_wire_backing",
+          "declaration": "installed_debug_ledger_wire_backing ( ) - > Int"
         },
         {
           "name": "installed_managed_capture_run_requirements",
@@ -392,15 +413,23 @@
           "declaration": "require_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "retire_installed_debug_run_with_ledger",
+          "declaration": "retire_installed_debug_run_with_ledger ( value : ClientInstalledManagedRun , ) - > Result [ String ? , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "retire_installed_managed_run",
           "declaration": "retire_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "retire_installed_managed_run_impl",
+          "declaration": "retire_installed_managed_run_impl ( value : ClientInstalledManagedRun , capture_ledger : Bool , ) - > Result [ String ? , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "source_free_installed_managed_preparation_owned",
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "f39bba8fd409d0f084d585bc7c60ab1fe0905c92af4d73def10c2de3cef80715"
+      "sha256": "9070344a4f0569dc09277261d390f844034cab8983b0fe1f83af0c27dfbaefbc"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",

@@ -163,3 +163,32 @@ fn recursive_snapshot_layout(
   }
   Some({ retained, temporary, })
 }
+
+///|
+/// Price the original recursive Result snapshot for either Local owner.
+/// The occurrence supplies the same admitted schema and name geometry.
+pub fn original_recursive_result_snapshot_capacity(
+  occurrence : @execution.ManagedResultOccurrence,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> (Int64, Int64)? {
+  let schema = @results.port_schema(
+    @execution.managed_result_occurrence_port(occurrence),
+  )
+  guard recursive_snapshot_layout(
+      bytes,
+      nodes,
+      depth,
+      @schema.field_count(schema),
+      @schema.field_reference_name_bytes(schema),
+    )
+    is Some(layout) &&
+    @execution.preparation_representation_cost(layout.retained) is Some(body) &&
+    @execution.checked_preparation_add_product(body, 1L, 96L) is Some(retained) &&
+    @execution.preparation_representation_cost(layout.temporary)
+    is Some(temporary) else {
+    return None
+  }
+  Some((retained, temporary))
+}

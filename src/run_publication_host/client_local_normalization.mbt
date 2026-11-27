@@ -29,6 +29,35 @@ struct ClientLocalNormalization {
 }
 
 ///|
+priv enum ClientLocalNormalizationState {
+  NormalizationNotIssued
+  NormalizationReady(ClientLocalNormalization)
+  NormalizationRetired
+}
+
+///|
+/// Match the original memo before acknowledging the enclosing owner's loan.
+pub fn prepared_client_local_normalization_retirement_matches(
+  owner : PreparedClientProgram,
+) -> Bool {
+  match owner.local_normalization {
+    NormalizationReady(original) => physical_equal(owner, original.preparation)
+    _ => true
+  }
+}
+
+///|
+/// Drop the matched memo after the enclosing original cleanup acknowledges.
+/// A copied preparation cannot retire another owner's memo.
+pub fn retire_prepared_client_local_normalization_after_cleanup(
+  owner : PreparedClientProgram,
+) -> Unit {
+  if prepared_client_local_normalization_retirement_matches(owner) {
+    owner.local_normalization = NormalizationRetired
+  }
+}
+
+///|
 pub fn client_local_completion_free_catalog_cid() -> String {
   "sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587"
 }
@@ -208,7 +237,10 @@ fn local_common_normalization_journal_body(
 pub fn issue_prepared_client_local_normalization(
   owner : PreparedClientProgram,
 ) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
-  if owner.local_normalization is Some(original) {
+  if owner.local_normalization is NormalizationRetired {
+    return Err(ForeignPreparation)
+  }
+  if owner.local_normalization is NormalizationReady(original) {
     match prepared_client_local_normalization_evidence(owner, original) {
       Ok(_) => return Ok(original)
       Err(issue) => return Err(issue)
@@ -235,7 +267,7 @@ pub fn prepared_client_local_normalization_evidence(
   value : ClientLocalNormalization,
 ) -> Result[@publication.RunEvidenceValue, ClientLocalNormalizationIssue] {
   if !physical_equal(owner, value.preparation) ||
-    !(owner.local_normalization is Some(original) &&
+    !(owner.local_normalization is NormalizationReady(original) &&
     physical_equal(original, value)) ||
     !local_normalization_inventory_matches(
       value.audit,

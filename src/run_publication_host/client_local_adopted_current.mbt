@@ -232,6 +232,7 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(
   store : Store,
   principal : String,
   connection : String,
+  retain? : Bool = true,
 ) -> Result[Bytes, ClientLocalAdoptedCurrentIssue[E]] {
   let account = match client_local_adopted_current_account(material, store) {
     Ok(value) => value
@@ -257,6 +258,9 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(
   // Retain only one private principal/connection projection, not an unbounded
   // cache. A Host byte view may mutate its returned buffer, so never expose
   // the retained canonical bytes. The copy keeps the existing 8192-byte bound.
+  if !retain {
+    return Ok(body)
+  }
   material.scope_cache = Some((principal, connection, body))
   Ok(Bytes::makei(body.length(), index => body[index]))
 }

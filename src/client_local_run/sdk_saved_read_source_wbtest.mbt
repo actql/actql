@@ -23,7 +23,7 @@ fn sdk_saved_source_snapshot(
         definition: plan.definition,
         dispatch_reserved: true,
         physical_start_claimed: true,
-        cancellation_requested: false,
+        cancellation_head: None,
         publication_binding: None,
         publication_policy_originals: None,
         effect_material_originals: None,
@@ -74,6 +74,7 @@ fn sdk_saved_source_snapshot(
           request: value.request,
           definition: value.definition,
           checkpoint: None,
+          cancellation_head: value.cancellation_head,
           task_materials_cid: value.task_materials_cid,
         }
         inspection

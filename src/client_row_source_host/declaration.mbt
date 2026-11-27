@@ -43,6 +43,7 @@ pub struct RowDeclaration {
   manifest_entry : String
   manifest_entry_cid : String
   priv file_read_profiles : Array[DeclaredFileReadProfile]?
+  priv local_file_store : LocalFileStoreDeclaration?
 }
 
 ///|
@@ -211,6 +212,22 @@ priv struct Envelopes {
 }
 
 ///|
+fn row_declaration_contract_fields(
+  id : String,
+  version : String,
+  kind : String,
+  body : Json,
+) -> Array[(String, Json)] {
+  [
+    ("schema", "actql.contract/0.1".to_json()),
+    ("id", id.to_json()),
+    ("version", version.to_json()),
+    ("kind", kind.to_json()),
+    ("body", body),
+  ]
+}
+
+///|
 fn Envelopes::add(
   self : Envelopes,
   name : String,
@@ -219,13 +236,7 @@ fn Envelopes::add(
 ) -> Json raise @encode.EncodeFailure {
   let id = self.prefix + "/" + name
   let (envelope, cid) = seal(
-    [
-      ("schema", "actql.contract/0.1".to_json()),
-      ("id", id.to_json()),
-      ("version", self.version.to_json()),
-      ("kind", kind.to_json()),
-      ("body", body),
-    ],
+    row_declaration_contract_fields(id, self.version, kind, body),
     "cid",
     self.limits,
   )
@@ -261,6 +272,7 @@ pub fn generate_row_declaration(
     None,
     None,
     None,
+    None,
     limits,
   )
 }
@@ -278,6 +290,7 @@ fn generate_row_declaration_impl(
   requests : Array[(Json, Json, Json?)]?,
   classifications : Array[@environment.DataClassification]?,
   resource_identities : Array[Json?]?,
+  local_file_root : String?,
   limits : RowDeclarationLimits,
 ) -> Result[RowDeclaration, RowDeclarationIssue] {
   if !valid_connector_id(connector_id) {
@@ -495,6 +508,31 @@ fn generate_row_declaration_impl(
         0
       }
     })
+    // Include the Local Command and its two role contracts before the
+    // original Catalog is sealed. The collection Mapping uses that seal.
+    let store = match local_file_root {
+      None => None
+      Some(_) => {
+        let command = local_file_store_command(connector_id, limits)
+        for
+          (value, cid) in [
+            (command.input, command.input_cid),
+            (command.output, command.output_cid),
+          ] {
+          if envelopes.cids.contains(cid) {
+            return Err(DuplicateName(command.id))
+          }
+          envelopes.cids.push(cid)
+          envelopes.values.push(value)
+          envelopes.texts.push(canonical_text(value, limits))
+        }
+        Some(command)
+      }
+    }
+    let commands = match store {
+      None => []
+      Some(command) => [command.body]
+    }
     let indexed = []
     for index, cid in envelopes.cids {
       indexed.push((cid, index))
@@ -514,7 +552,7 @@ fn generate_row_declaration_impl(
         ("connector_id", connector_id.to_json()),
         ("connector_version", connector_version.to_json()),
         ("source_views", Json::array(members.map(entry => entry.1))),
-        ("commands", Json::array([])),
+        ("commands", Json::array(commands)),
         (
           "contracts",
           Json::array(indexed.map(entry => envelopes.values[entry.1])),
@@ -528,6 +566,16 @@ fn generate_row_declaration_impl(
       ("connector_id", connector_id.to_json()),
       ("connector_version", connector_version.to_json()),
     ])
+    let manifest_entry_cid = canonical_cid(entry, limits)
+    let local_file_store = match (local_file_root, store) {
+      (Some(root), Some(command)) =>
+        Some(
+          local_file_store_declaration(
+            connector_id, root, catalog_cid, manifest_entry_cid, command, limits,
+          ),
+        )
+      _ => None
+    }
     let ordered = members.map(entry_ => {
       let mut found = declared[0]
       for view in declared {
@@ -547,8 +595,9 @@ fn generate_row_declaration_impl(
       views: ordered,
       view_bodies: members.map(entry_ => canonical_text(entry_.1, limits)),
       manifest_entry: canonical_text(entry, limits),
-      manifest_entry_cid: canonical_cid(entry, limits),
+      manifest_entry_cid,
       file_read_profiles: None,
+      local_file_store,
     })
   } catch {
     _ => Err(OutputLimit)

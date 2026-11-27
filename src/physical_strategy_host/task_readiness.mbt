@@ -11,23 +11,30 @@ pub fn next_dependency_ready_task(
     return None
   }
   for index in first_task..<graph.owners_count() {
-    if completed(index) {
-      continue
-    }
-    let mut ready = true
-    for edge in graph.data_iter() {
-      if edge.consumer == index && !completed(edge.producer) {
-        ready = false
-      }
-    }
-    for edge in graph.control_iter() {
-      if edge.consumer == index && !completed(edge.predecessor) {
-        ready = false
-      }
-    }
-    if ready {
+    if !completed(index) && dependency_task_ready(graph, completed, index) {
       return Some(index)
     }
   }
   None
+}
+
+///|
+// Shared by scheduling and pre-work control. The caller owns completion.
+fn dependency_task_ready(
+  graph : CheckedDAG,
+  completed : (Int) -> Bool,
+  task : Int,
+) -> Bool {
+  let mut ready = true
+  for edge in graph.data_iter() {
+    if edge.consumer == task && !completed(edge.producer) {
+      ready = false
+    }
+  }
+  for edge in graph.control_iter() {
+    if edge.consumer == task && !completed(edge.predecessor) {
+      ready = false
+    }
+  }
+  ready
 }

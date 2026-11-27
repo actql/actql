@@ -33,11 +33,17 @@ pub fn issue_client_infer_dispatch_admission(
   at : String,
   delegated_action? : @authorization.RuntimeAction? = None,
   model_scope? : @publication.BoundModelInvocationScope? = None,
+  evidence_bytes? : Int = 16384,
+  evidence_nodes? : Int = 256,
+  evidence_depth? : Int = 8,
   observe_current~ : () -> Result[
     (@authorization.AdmittedAccountConfiguration, String),
     ClientInferDispatchIssue,
   ],
 ) -> Result[ClientInferDispatchAdmission, ClientInferDispatchIssue] {
+  if evidence_bytes > 16384 || evidence_nodes > 256 || evidence_depth > 8 {
+    return Err(Encoding)
+  }
   let selected = match model_scope {
     None => client_compiled_run_infer(compiled)
     Some(scope) => {
@@ -113,64 +119,34 @@ pub fn issue_client_infer_dispatch_admission(
       (subject.entry_id, "host_permit", Some(authority), claims)
   }
   try {
-    let writer = @encode.writer(16384, 256, 8)
-    @encode.begin_object(writer)
-    for
-      (name, value) in [
-        ("version", "actql-model-dispatch-authority/0.1"),
-        (
-          "program_definition_cid",
-          prepared_client_identity(compiled.owner).program_definition_cid,
-        ),
-        (
-          "run_definition_cid",
-          @publication.publication_contract_identity(definition),
-        ),
-        (
-          "run_authorization_cid",
-          @publication.run_evidence_value_identity(compiled.authorization),
-        ),
-        ("account_configuration_cid", current.configuration_cid()),
-        ("model_task_cid", tuple.resource),
-        ("fixed_request_cid", plan.request_cid),
-        ("execution_context_cid", context_cid),
-        ("host_policy_cid", policy_cid),
-        ("principal", principal),
-        ("connection", tuple.connection),
-        ("resource", tuple.resource),
-        ("operation", "infer"),
-        ("entry_id", entry),
-        ("basis", kind),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(writer, value)
-    }
-    if model_scope is Some(scope) {
-      @encode.key(writer, "model_invocation_scope_cid")
-      @encode.string_value(
-        writer,
-        @publication.model_invocation_scope_cid(scope),
-      )
-    }
-    @encode.key(writer, "answering_authority")
-    match authority {
-      Some(value) => @encode.string_value(writer, value)
-      None => @encode.null_value(writer)
-    }
-    @encode.key(writer, "satisfied_claims")
-    @encode.begin_array(writer)
-    for claim in claims {
-      @encode.string_value(writer, claim)
-    }
-    @encode.end_array(writer)
-    @encode.end_object(writer)
+    let writer = @encode.writer(evidence_bytes, evidence_nodes, evidence_depth)
+    emit_client_infer_dispatch_authority_body(
+      writer,
+      compiled,
+      definition,
+      plan,
+      current.configuration_cid(),
+      context_cid,
+      policy_cid,
+      principal,
+      tuple.connection,
+      tuple.resource,
+      entry,
+      kind,
+      authority,
+      claims,
+      match model_scope {
+        Some(scope) => @publication.model_invocation_scope_cid(scope)
+        None => ""
+      },
+    )
     let evidence = match
       @publication.seal_run_evidence_value(
         "model_dispatch_authority",
         @encode.finish(writer),
-        16384,
-        256,
-        8,
+        evidence_bytes,
+        evidence_nodes,
+        evidence_depth,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Evidence(issue))
@@ -191,10 +167,123 @@ pub fn issue_client_infer_dispatch_admission(
 }
 
 ///|
+fn emit_client_infer_dispatch_authority_body(
+  writer : @encode.Writer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  account_cid : String,
+  context_cid : String,
+  policy_cid : String,
+  principal : String,
+  connection : String,
+  resource : String,
+  entry : String,
+  kind : String,
+  authority : String?,
+  claims : Array[String],
+  scope_cid : String,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for
+    (name, value) in [
+      ("version", "actql-model-dispatch-authority/0.1"),
+      (
+        "program_definition_cid",
+        prepared_client_identity(compiled.owner).program_definition_cid,
+      ),
+      (
+        "run_definition_cid",
+        @publication.publication_contract_identity(definition),
+      ),
+      (
+        "run_authorization_cid",
+        @publication.run_evidence_value_identity(compiled.authorization),
+      ),
+      ("account_configuration_cid", account_cid),
+      ("model_task_cid", resource),
+      ("fixed_request_cid", plan.request_cid),
+      ("execution_context_cid", context_cid),
+      ("host_policy_cid", policy_cid),
+      ("principal", principal),
+      ("connection", connection),
+      ("resource", resource),
+      ("operation", "infer"),
+      ("entry_id", entry),
+      ("basis", kind),
+    ] {
+    @encode.key(writer, name)
+    @encode.string_value(writer, value)
+  }
+  if !scope_cid.is_empty() {
+    @encode.key(writer, "model_invocation_scope_cid")
+    @encode.string_value(writer, scope_cid)
+  }
+  @encode.key(writer, "answering_authority")
+  match authority {
+    Some(value) => @encode.string_value(writer, value)
+    None => @encode.null_value(writer)
+  }
+  @encode.key(writer, "satisfied_claims")
+  @encode.begin_array(writer)
+  for claim in claims {
+    @encode.string_value(writer, claim)
+  }
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+}
+
+///|
+/// Measure the AccountAllow authority for a future original Model Scope.
+/// The completed Scope CID has the fixed canonical width used here. Nothing
+/// is signed or admitted during this text-free measurement.
+pub fn measure_client_infer_account_dispatch_authority(
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+  resource : String,
+  entry : String,
+) -> (Int, Int, Int)? {
+  try {
+    let writer = @encode.measuring_writer(16384, 256, 8)
+    emit_client_infer_dispatch_authority_body(
+      writer,
+      compiled,
+      definition,
+      plan,
+      account.configuration_cid(),
+      @publication.run_publication_execution_context(compiled.admission),
+      @publication.run_publication_host_policy(compiled.admission),
+      principal,
+      connection,
+      resource,
+      entry,
+      "account_allow",
+      None,
+      [],
+      "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    )
+    let (bytes, nodes, depth) = @encode.finish_measurement_usage(writer)
+    // One comma plus the quoted name, colon and canonical quoted CID.
+    if bytes <= 16384 - 85 && nodes < 256 {
+      Some((bytes + 85, nodes + 1, depth))
+    } else {
+      None
+    }
+  } catch {
+    _ => None
+  }
+}
+
+///|
 /// The physical provider boundary re-reads environment observations after
 /// bounded input preparation. Changed account policy cannot reuse a permit.
 pub fn check_client_infer_dispatch_current(
   value : ClientInferDispatchAdmission,
+  observed_at? : Ref[String]? = None,
 ) -> Result[Unit, ClientInferDispatchIssue] {
   let (configuration, at) = match (value.current)() {
     Ok(observation) => observation
@@ -219,6 +308,9 @@ pub fn check_client_infer_dispatch_current(
       value.activation_context_cid,
     ) {
     return Err(Authorization(@authorization.ForeignDecision))
+  }
+  if observed_at is Some(output) {
+    output.val = at
   }
   Ok(())
 }

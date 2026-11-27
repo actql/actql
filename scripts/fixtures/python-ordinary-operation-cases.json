@@ -1,0 +1,92 @@
+{
+  "resultName": "answer",
+  "seed": {
+    "text": "SELECT 1 AS id",
+    "sqlite": {"text": "SELECT 1 AS id", "bindings": []},
+    "expected": [
+      {
+        "id": 1
+      }
+    ]
+  },
+  "statusExpected": {
+    "status": "succeeded"
+  },
+  "sqliteDurableWork": {
+    "issuance": [
+      {"client_submitted_intent_custody": 1, "client_submitted_intents": 1},
+      {"client_run_custody": 1, "client_runs": 1, "client_submitted_intents": 1,
+       "client_task_run_materials": 1, "client_run_reference_index": 1}
+    ],
+    "publication": {
+      "indexRoles": ["publication_contract", "public_index", "result_schema"],
+      "terminal": {"client_submitted_intents": 1}
+    },
+    "delivery": [
+      {"client_local_read_evidence": 1},
+      {"publication_contract": 3, "delivery_attempt": 1, "result_read_grant_usage": 1, "delivery_record_head": 1},
+      {"publication_contract": 2, "delivery_record_head": 1}
+    ]
+  },
+  "queries": {
+    "warm-join": {
+      "text": "WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) SELECT lhs.id AS id, rhs.label AS label FROM lhs JOIN rhs ON lhs.id = rhs.id MAX_OUTPUT_ROWS 1",
+      "sqlite": {"text": "WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) SELECT lhs.id AS id, rhs.label AS label FROM lhs JOIN rhs ON lhs.id = rhs.id", "bindings": []},
+      "expected": [
+        {
+          "id": 1,
+          "label": "joined"
+        }
+      ]
+    },
+    "warm-decimal-sum": {
+      "text": "WITH items AS (SELECT CAST('1.25' AS DECIMAL(8,2)) AS amount UNION ALL SELECT CAST('2.50' AS DECIMAL(8,2)) AS amount UNION ALL SELECT CAST('0.25' AS DECIMAL(8,2)) AS amount) SELECT SUM(amount) AS total FROM items",
+      "sqlite": {"text": "WITH items(cents) AS (VALUES (125), (250), (25)), total(cents) AS (SELECT SUM(cents) FROM items) SELECT printf('%d.%02d', cents / 100, cents % 100) AS total FROM total", "bindings": []},
+      "expected": [
+        {
+          "total": "4.00"
+        }
+      ]
+    },
+    "warm-union": {
+      "text": "WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id FROM items |> ASSERT UNIQUE BY (id) |> ORDER BY id",
+      "sqlite": {"text": "WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id FROM items ORDER BY id", "bindings": []},
+      "expected": [
+        {
+          "id": 1
+        },
+        {
+          "id": 2
+        }
+      ]
+    },
+    "warm-parameters": {
+      "text": "SELECT @id AS id",
+      "sqlite": {"text": "SELECT ? AS id", "bindings": [7]},
+      "options": {
+        "parameters": {
+          "id": 7
+        },
+        "parameterDeclarations": {
+          "id": {
+            "type": "number"
+          }
+        }
+      },
+      "expected": [
+        {
+          "id": 7
+        }
+      ]
+    },
+    "warm-unicode": {
+      "text": "SELECT 'é😀' AS label",
+      "sqlite": {"text": "SELECT 'é😀' AS label", "bindings": []},
+      "expected": [
+        {
+          "label": "é😀"
+        }
+      ]
+    }
+  }
+}

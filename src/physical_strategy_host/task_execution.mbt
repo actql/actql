@@ -537,6 +537,21 @@ pub fn task_execution_managed_attempt(
 }
 
 ///|
+/// Bind the original started Task workspace to the selected execution driver.
+pub fn task_execution_output_workspace(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> @resources.StartedTaskWorkspace? {
+  guard task_execution_matches(run, execution) &&
+    !run.stopped &&
+    !execution.disposed &&
+    !execution.execution_settled else {
+    return None
+  }
+  @resources.capture_started_task_workspace(run.ledger, execution.reservation)
+}
+
+///|
 /// Stable selected registration identity for trusted Host wiring. This is not
 /// an implementation capability or permission to dispatch another attempt.
 pub fn task_execution_registration_key(

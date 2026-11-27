@@ -106,6 +106,93 @@ fn window_fixed_response(
 }
 
 ///|
+test "strict window observes a pending peer Entry without starting it" {
+  let calls = Ref(0)
+  let first_ready = Ref(false)
+  let peer_saved = Ref(false)
+  let peer_polls = Ref(0)
+  let entries : Array[@model.ModelCallEntry] = []
+  let (active, prefix, _, _) = original_io_consumer_fixture(
+    calls,
+    first_ready,
+    Ref(true),
+    Ref(true),
+    terminal=@model.PhysicalRejected(@model.RateLimit, {
+      input_tokens: Some(0L),
+      output_tokens: None,
+    }),
+    start_original=Some(() => {
+      contract_capacity_start(calls, 2, 133072L, asynchronous=true, strict=true)
+    }),
+  )
+  let prepared = prepared_call_set(active).unwrap()
+  let installation = Ref(0)
+  let io = @resources.issue_model_io_admission(installation, 2, 2).unwrap()
+  let access = @resources.issue_model_io_access(io, installation).unwrap()
+  @model.bind_prepared_model_io_access(prepared, access).unwrap()
+  bind_model_entry_persistence(
+    active,
+    prepared,
+    active.dispatch_admission.unwrap(),
+    entry => {
+      let first = entries.is_empty()
+      entries.push(entry)
+      @model.model_call_entry_persistence(entry, prepared, () => {
+        if !first {
+          peer_polls.val += 1
+        }
+        if first || peer_saved.val {
+          @model.Saved(
+            @model.acknowledge_saved_model_call_entry(entry, prepared).unwrap(),
+          )
+        } else {
+          @model.Pending
+        }
+      })
+    },
+  ).unwrap()
+  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+    abort("the first Call and the second Entry must both await")
+  }
+  assert_eq(entries.length(), 2)
+  assert_eq(calls.val, 1)
+  first_ready.val = true
+  guard fixture_finish(active, initial_work=work) is Settling(0, work=settled) else {
+    abort("await the first Slot's original settlement")
+  }
+  let peer = entries[1]
+  assert_false(@model.model_call_entry_current(peer, prepared))
+  let polls = peer_polls.val
+  guard advance(active, 31).unwrap() is Settling(0, work=unchanged) else {
+    abort("must not select the peer while settling the first failure")
+  }
+  assert_eq(unchanged, settled)
+  assert_eq(peer_polls.val, polls)
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(active).unwrap()),
+  )
+  guard advance(active, 31).unwrap()
+    is Failed(Model(@model.Provider(@model.RateLimit)), ..) else {
+    abort("the first known failure remains primary")
+  }
+  assert_eq(calls.val, 1)
+  assert_false(@model.model_call_entry_current(peer, prepared))
+  assert_false(cleanup(active).unwrap())
+  assert_true(peer_polls.val > polls)
+  peer_saved.val = true
+  // The saved peer had no transport. Its unresolved durable Entry and
+  // retaining I/O duty cannot be retired as a never-entered slot.
+  assert_false(cleanup(active).unwrap())
+  assert_true(unknown_calls(active))
+  assert_eq(calls.val, 1)
+  assert_eq(entries.length(), 2)
+  assert_eq(
+    @resources.model_io_admission_counts(io, installation),
+    Some((1, 1)),
+  )
+}
+
+///|
 // Explicit bounded fixture contracts, not changed product/normal limits.
 // Reverse source rows also test that original typed-key order is independent
 // from input arrival and physical response order.

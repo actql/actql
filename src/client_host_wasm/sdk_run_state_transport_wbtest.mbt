@@ -1,6 +1,6 @@
 ///|
-test "SDK RunState transport measures the original escaped Unicode packet" {
-  let key = "original"
+test "SDK RunState transport carries the original row and Unicode state exactly" {
+  let key = "sha256:" + "a".repeat(64)
   let body = @utf8.encode(
     (
       #|{"intent":"a\"b","text":"é🌱"}
@@ -8,23 +8,29 @@ test "SDK RunState transport measures the original escaped Unicode packet" {
   )
   let state =
     #|{"run_id":"é🌱","revision":2}
-  let expected =
-    #|{"body":"{\"intent\":\"a\\\"b\",\"text\":\"é🌱\"}","key":"original","kind":"replace","revision":"15","state":"{\"run_id\":\"é🌱\",\"revision\":2}"}
-  let expected_bytes = @utf8.encode(expected).length()
-  let measure = @encode.measuring_writer(1048576, 16, 1)
-  write_sdk_run_state_fields(measure, key, 15L, 16L, body, state)
-  assert_eq(@encode.finish_measurement(measure), expected_bytes)
-  let exact = @encode.writer(expected_bytes, 16, 1)
-  write_sdk_run_state_fields(exact, key, 15L, 16L, body, state)
-  assert_eq(@encode.finish(exact), expected)
-  let short = @encode.writer(expected_bytes - 1, 16, 1)
-  let refused = try {
-    write_sdk_run_state_fields(short, key, 15L, 16L, body, state)
-    @encode.finish(short) |> ignore
-    false
-  } catch {
-    @encode.OutputLimit => true
-    _ => false
-  }
-  assert_true(refused)
+  let state_bytes = @utf8.encode(state)
+  let bytes = 84 + body.length() + state_bytes.length()
+  assert_eq(sdk_run_state_transport_extent(key, body, state), Some(bytes))
+  let prefix = b"\x0f\x00\x00\x00\x00\x00\x00\x00"
+  let extent = Bytes::makei(4, index => (body.length() >> (index * 8)).to_byte())
+  let fields = @utf8.encode(key) + body + state_bytes
+  assert_eq(
+    sdk_run_state_transport_packet(key, 15L, 16L, body, state, bytes),
+    Some(prefix + extent + b"\x01" + fields),
+  )
+  assert_eq(
+    sdk_run_state_transport_packet(key, 15L, 15L, body, state, bytes),
+    Some(prefix + extent + b"\x00" + fields),
+  )
+}
+
+///|
+test "SDK RunState transport refuses foreign extents and revisions" {
+  let key = "sha256:" + "a".repeat(64)
+  let body = b"{}"
+  let state = "{}"
+  let bytes = 88
+  assert_eq(sdk_run_state_transport_packet(key, 15L, 16L, body, state, bytes - 1), None)
+  assert_eq(sdk_run_state_transport_packet(key, 15L, 17L, body, state, bytes), None)
+  assert_eq(sdk_run_state_transport_extent(key, body, ""), None)
 }

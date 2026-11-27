@@ -306,6 +306,18 @@ fn bounded_distinct_borrows_input(kernel : @lower.PreparedKernel) -> Bool {
 }
 
 ///|
+// The original Whole one-step SELECT uses the same bounded Relation
+// constructor as its selected-step view. A prefix or other kernel retains
+// its independently selected quote.
+fn whole_single_select_sequence(generated : GeneratedSequence) -> Bool {
+  generated.selected_steps is None &&
+  generated.selected_prefix_end is None &&
+  @lower.sequence_count(generated.sequence) == 1 &&
+  generated_sequence_step_at(generated, 0) is Some(@lower.RowStep(kernel)) &&
+  @lower.kernel_body(kernel) is @lower.Select(_)
+}
+
+///|
 /// Constructor-specific recipe for bounded Values, Append, primitive Set/Join,
 /// INNER JOIN with immediate keys, required-field CROSS JOIN, scalar grouped
 /// COUNT, UNNEST and binding-row
@@ -343,7 +355,8 @@ pub fn generated_bounded_sequence_capacity(
   if !(generated.selected_steps is Some([_]) ||
     operation is @lower.ValuesStep(_) ||
     whole_distinct ||
-    whole_set) {
+    whole_set ||
+    whole_single_select_sequence(generated)) {
     return generated_sequence_capacity(generated, limits, measurement)
   }
   match operation {

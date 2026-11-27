@@ -280,6 +280,18 @@ fn protocol_string_pattern(value : String, pattern : Int) -> Bool {
       value.length() <= 20 &&
       protocol_string_pattern(value, 8) &&
       (value.length() < 20 || value <= "18446744073709551615")
+    16 => {
+      if value.is_empty() || value.length() > 128 {
+        return false
+      }
+      for index = 0; index < value.length(); index = index + 1 {
+        let unit = value[index].to_int()
+        if !version_token_char(unit) || unit == 43 {
+          return false
+        }
+      }
+      true
+    }
     _ => false
   }
 }

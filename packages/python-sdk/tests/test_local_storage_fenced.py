@@ -36,6 +36,244 @@ class LocalFencedBatchTests(unittest.TestCase):
         # checks callback ordering; None cannot itself issue any authority.
         return None
 
+    def test_named_census_transfers_keys_and_generations_without_nonselected_bodies(self) -> None:
+        namespace = 'client_submission_names'
+        first, second = 'a' * 64, 'b' * 64
+        with TemporaryDirectory(prefix='actql-local-name-keys-') as directory:
+            with self.store(Path(directory) / 'core.sqlite') as store:
+                self.initialize(store)
+                self.assertEqual(store.compare_exchange(
+                    store.namespaced_key(namespace, first), None, b'first-name'), 0)
+                self.assertEqual(store.compare_exchange(
+                    store.namespaced_key(namespace, second), None, b'selected-name'), 0)
+                statements: list[str] = []
+                store._connection.set_trace_callback(statements.append)
+
+                def inspect(reader):
+                    query = reader.query_current
+                    self.assertIsNotNone(query)
+                    self.assertEqual(query(reader, 2, namespace, '', self.current),
+                                     (first, StoredBytes(0, b'')))
+                    self.assertEqual(query(reader, 2, namespace, first, self.current),
+                                     (second, StoredBytes(0, b'')))
+                    self.assertIsNone(query(reader, 2, namespace, second, self.current))
+                    self.assertEqual(query(reader, 1, namespace, second, self.current),
+                                     (second, StoredBytes(0, b'selected-name')))
+
+                store.inspect_namespaces(_FENCES, inspect=inspect, current=self.current)
+                self.assertEqual(statements.count('BEGIN'), 1)
+                self.assertEqual(statements.count('ROLLBACK'), 1)
+                key_reads = [sql for sql in statements if 'ORDER BY key COLLATE BINARY LIMIT 1' in sql
+                             and namespace in sql and 'length(payload)' in sql]
+                self.assertEqual(len(key_reads), 4)
+                self.assertEqual(sum('THEN payload' in sql for sql in key_reads), 1)
+                with self.assertRaisesRegex(ValueError, 'original Local current query'):
+                    store.inspect_namespaces(_FENCES, inspect=lambda reader:
+                        reader.query_current(reader, 2, 'client_submitted_intents', '', self.current),
+                        current=self.current)
+                store.close()
+                self.assertTrue(store._closed)
+
+    def test_saved_payload_row_and_reservation_share_one_physical_read(self) -> None:
+        with TemporaryDirectory(prefix='actql-local-payload-read-') as directory:
+            path = Path(directory) / 'core.sqlite'
+            with self.store(path) as store:
+                self.initialize(store)
+                namespace = 'publication_payload'
+                key = store.namespaced_key('payload_record', 'original')
+                self.assertEqual(store.compare_exchange(key, None, b'original'), 0)
+                self.assertEqual(store.compare_exchange(
+                    store.namespaced_key('journal', 'control'), None, b'control'), 0)
+                self.assertTrue(store.reserve_capacity(namespace, key, 37, 1, 1024, 8))
+                statements, rows, reservations = [], [], []
+                store._connection.set_trace_callback(statements.append)
+
+                def inspect(reader, observe):
+                    self.assertIs(reader.owner, store)
+                    self.assertTrue(store._connection.in_transaction)
+                    current = []
+                    reader.read('journal', 'control', current.append)
+                    self.assertEqual(current, [('control', StoredBytes(0, b'control'))])
+                    observe()
+
+                store.inspect_record_capacity_inspected(namespace, key, 64, _FENCES,
+                    inspect=inspect, consume_record=rows.append,
+                    consume_capacity=reservations.append, current=self.current)
+                self.assertEqual(rows, [StoredBytes(0, b'original')])
+                reservation, = reservations
+                self.assertEqual((reservation.namespace, reservation.key, reservation.reserved_bytes,
+                                  reservation.reserved_objects), (namespace, key, 37, 1))
+                self.assertEqual((statements.count('BEGIN'), statements.count('ROLLBACK')), (1, 1))
+                self.assertEqual(sum('FROM main.actql_capacity' in sql for sql in statements), 1)
+
+                statements.clear()
+                cause = ValueError('Original payload bytes changed')
+                def refuse(row):
+                    self.assertEqual(row, StoredBytes(0, b'original'))
+                    raise cause
+                with self.assertRaises(ValueError) as failure:
+                    store.inspect_record_capacity_inspected(namespace, key, 64, _FENCES,
+                        inspect=inspect, consume_record=refuse,
+                        consume_capacity=reservations.append, current=self.current)
+                self.assertIs(failure.exception, cause)
+                self.assertEqual(reservations, [reservation])
+                self.assertEqual((statements.count('BEGIN'), statements.count('ROLLBACK')), (1, 1))
+                self.assertFalse(any('FROM main.actql_capacity' in sql for sql in statements))
+            self.assertTrue(store._closed)
+
+    def test_projected_journal_uses_same_fenced_sqlite_transaction(self) -> None:
+        with TemporaryDirectory(prefix='actql-local-projected-journal-') as directory:
+            path = Path(directory) / 'core.sqlite'
+            with self.store(path) as store:
+                self.initialize(store)
+                row = store.namespaced_key('journal', 'original')
+                self.assertEqual(store.compare_exchange(row, None, b'original'), 0)
+                events: list[str] = []
+
+                def inspect(reader, stage):
+                    self.assertIs(reader.owner, store)
+                    self.assertTrue(store._connection.in_transaction)
+                    observed = []
+                    reader.read('journal', 'original', observed.append)
+                    self.assertEqual(observed, [('original', StoredBytes(0, b'original'))])
+                    events.append('inspect')
+                    stage()
+
+                def before_commit():
+                    self.assertTrue(store._connection.in_transaction)
+                    self.assertEqual(store._connection.execute(
+                        'SELECT generation, payload FROM main.core_bytes WHERE key = ?', ('submitted',)
+                    ).fetchone(), (0, _INTENT))
+                    events.append('before_commit')
+
+                def produce(ordinal, consume):
+                    events.append('write-' + str(ordinal))
+                    consume(_WRITES[ordinal])
+
+                with self.assertRaisesRegex(ValueError, 'physical current and fences'):
+                    store.compare_exchange_journal_projected_inspected(
+                        len(_WRITES), produce, (), inspect=inspect, current=self.current,
+                        before_commit=before_commit)
+                self.assertEqual(events, [])
+
+                self.assertEqual(store.compare_exchange_journal_projected_inspected(
+                    len(_WRITES), produce, _FENCES[:2], inspect=inspect, current=self.current,
+                    before_commit=before_commit), (1, 0, 0))
+                self.assertEqual(events, ['inspect', 'write-0', 'write-1', 'write-2', 'before_commit'])
+            with self.store(path) as reopened:
+                self.assertEqual(tuple(reopened.read(write.key) for write in _WRITES), _OBSERVED)
+
+    def test_projected_journal_distinguishes_rollback_from_postcommit_refusal(self) -> None:
+        for committed in (False, True):
+            with self.subTest(committed=committed), TemporaryDirectory(
+                    prefix='actql-local-projected-journal-cutoff-') as directory:
+                path = Path(directory) / 'core.sqlite'
+                store = self.store(path)
+                with store:
+                    self.initialize(store)
+                    key = store.namespaced_key('journal', 'original')
+                    self.assertEqual(store.compare_exchange(key, None, b'original'), 0)
+                    statements: list[str] = []
+                    writes: list[int] = []
+                    cause = PermissionError('original projected Journal current refused')
+                    store._connection.set_trace_callback(statements.append)
+
+                    def read(reader):
+                        self.assertIs(reader.owner, store)
+                        observed = []
+                        reader.read('journal', 'original', observed.append)
+                        self.assertEqual(observed, [('original', StoredBytes(0, b'original'))])
+
+                    def inspect(reader, stage):
+                        read(reader)
+                        stage()
+
+                    def before_commit():
+                        self.assertTrue(store._connection.in_transaction)
+                        if not committed:
+                            raise cause
+
+                    def current():
+                        if committed and 'COMMIT' in statements:
+                            self.assertFalse(store._connection.in_transaction)
+                            raise cause
+
+                    def produce(ordinal, consume):
+                        writes.append(ordinal)
+                        consume(_WRITES[ordinal])
+
+                    failure = LocalStorageCommitUnknown if committed else PermissionError
+                    with self.assertRaises(failure) as caught:
+                        store.compare_exchange_journal_projected_inspected(
+                            len(_WRITES), produce, _FENCES[:2], inspect=inspect,
+                            current=current, before_commit=before_commit)
+                    self.assertEqual(writes, [0, 1, 2])
+                    self.assertEqual(statements.count('BEGIN IMMEDIATE'), 1)
+                    self.assertEqual(statements.count('COMMIT'), int(committed))
+                    self.assertEqual(statements.count('ROLLBACK'), int(not committed))
+                    if committed:
+                        self.assertIs(caught.exception.__cause__, cause)
+                        self.assertIs(caught.exception.cleanup_store, store)
+                        self.assertTrue(caught.exception.commit_confirmed)
+                    else:
+                        self.assertIs(caught.exception, cause)
+
+                    store.inspect_namespaces(_FENCES[:2], inspect=read, current=self.current)
+                    expected = _OBSERVED if committed else (StoredBytes(0, b'0'), None, None)
+                    self.assertEqual(tuple(store.read(write.key) for write in _WRITES), expected)
+                self.assertTrue(store._closed)
+                with self.store(path) as reopened:
+                    self.assertEqual(tuple(reopened.read(write.key) for write in _WRITES), expected)
+
+    def test_file_task_point_bytes_are_borrowed_only_in_original_read(self) -> None:
+        namespace = 'client_task_run_materials'
+        slot = 'sha256:' + 'a' * 64 + ':0'
+        physical_key = LocalByteStore.namespaced_key(namespace, slot)
+        with TemporaryDirectory(prefix='actql-local-task-points-') as directory:
+            with self.store(Path(directory) / 'core.sqlite') as store:
+                self.assertEqual(store.compare_exchange(physical_key, None, b'first'), 0)
+                backend = type(store._physical)
+                scan = backend.scan_range
+                acquisitions = []
+
+                def count(physical, lower, upper, limit, **options):
+                    if physical is store._physical and lower == physical_key:
+                        acquisitions.append(lower)
+                    return scan(physical, lower, upper, limit, **options)
+
+                def inspect(expected, *, change=False):
+                    def consume(reader):
+                        self.assertIsNotNone(reader.query_current)
+                        query = reader.query_current
+                        current = self.current
+                        self.assertEqual(query(reader, 1, namespace, slot, current),
+                                         (slot, expected))
+                        if change:
+                            def current():
+                                store._connection.execute(
+                                    'UPDATE main.core_bytes SET payload = ? WHERE key = ?',
+                                    (b'intervening', physical_key))
+                        self.assertEqual(query(reader, 1, namespace, slot, current),
+                                         (slot, expected))
+
+                    store._physical.begin_read()
+                    try:
+                        store._inspect_namespace_locked(consume, (), self.current,
+                                                         _retain_task_points=True)
+                    finally:
+                        store._physical.finish_read()
+
+                with patch.object(backend, 'scan_range', count):
+                    inspect(StoredBytes(0, b'first'))
+                    self.assertEqual(acquisitions, [physical_key])
+                    self.assertEqual(store.compare_exchange(physical_key, 0, b'second'), 1)
+                    inspect(StoredBytes(1, b'second'))
+                    self.assertEqual(acquisitions, [physical_key] * 2)
+                    with self.assertRaisesRegex(LocalStorageError, 'Task point snapshot changed'):
+                        inspect(StoredBytes(1, b'second'), change=True)
+                    self.assertEqual(acquisitions, [physical_key] * 3)
+                self.assertEqual(store.read(physical_key), StoredBytes(1, b'second'))
+
     def test_exact_originals_and_successors_are_atomic_and_survive_reopen(self) -> None:
         with TemporaryDirectory(prefix='actql-local-fenced-') as directory:
             path = Path(directory) / 'core.sqlite'

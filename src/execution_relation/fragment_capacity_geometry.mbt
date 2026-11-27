@@ -262,7 +262,9 @@ fn bounded_leaf_fragment_capacity(
   limits : SequenceExecutionLimits,
 ) -> Int64? {
   guard limits.rows.max_rows >= 0 &&
-    generated.selected_steps is Some([step]) &&
+    generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    (generated.selected_steps is Some([_]) ||
+      whole_single_select_sequence(generated)) &&
     generated_sequence_step_at(generated, 0) is Some(@lower.RowStep(kernel)) &&
     @lower.kernel_step(kernel) == step &&
     physical_equal(kernel, context.kernel) &&

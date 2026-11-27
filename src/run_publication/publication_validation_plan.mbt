@@ -315,7 +315,7 @@ pub fn start_planned_commit_validation(
   let preparation : PublicationCommitPreparation = {
     inputs: Some(i),
     retained_capture: None,
-    retained_effectful: None,
+    checked_effectful_receipt: None,
     max_workspace: workspace,
     phase: BeginResultEvidence,
     live: 12,

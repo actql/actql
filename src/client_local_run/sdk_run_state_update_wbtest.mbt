@@ -18,7 +18,7 @@ fn sdk_state_snapshot(
       definition: plan.definition,
       dispatch_reserved: false,
       physical_start_claimed: false,
-      cancellation_requested: false,
+      cancellation_head: None,
       publication_binding: None,
       publication_policy_originals: None,
       effect_material_originals: None,
@@ -49,6 +49,7 @@ fn sdk_state_snapshot(
             request: value.request,
             definition: value.definition,
             checkpoint: None,
+            cancellation_head: value.cancellation_head,
             task_materials_cid: value.task_materials_cid,
           })
         Err(_) => Err("invalid original Run")

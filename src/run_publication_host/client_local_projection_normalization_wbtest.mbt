@@ -308,7 +308,7 @@ test "projection journal refuses original journal limit overflow without an empt
   assert_true(
     _issue_prepared_client_legacy_local_normalization(owner) is Err(Evidence(_)),
   )
-  assert_true(owner.local_normalization is None)
+  assert_true(owner.local_normalization is NormalizationNotIssued)
 }
 
 ///|

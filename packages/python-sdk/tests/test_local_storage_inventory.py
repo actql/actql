@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import (
     ByteFence, ByteWrite, LocalByteStore, LocalStorageCommitUnknown,
-    LocalStorageError, StoredBytes, _NamespaceReader,
+    LocalStorageError, StoredBytes, _DurableStoreLimits, _NamespaceReader,
 )
 
 
@@ -16,7 +16,8 @@ class LocalInventoryTransactionTests(unittest.TestCase):
     def test_selected_query_work_budget_is_separate_from_persisted_row_capacity(self) -> None:
         with LocalByteStore(self.path.parent / 'selected.sqlite', max_records=2,
                             max_record_bytes=128, max_payload_bytes=512,
-                            max_inspection_queries=5) as store:
+                            max_inspection_queries=5,
+                            durable_limits=_DurableStoreLimits(2, 512, 4)) as store:
             key = store.namespaced_key('original', 'row')
             self.assertEqual(store.compare_exchange('epoch', None, b'original'), 0)
             self.assertEqual(store.compare_exchange(key, None, b'value'), 0)

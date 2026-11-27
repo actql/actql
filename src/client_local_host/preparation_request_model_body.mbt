@@ -71,6 +71,30 @@ pub fn[I] prepare_request_model_compilation(
   @publication_host.ClientTaskCompilation,
   ClientRequestProgramPlanIssue,
 ] {
+  prepare_request_model_compilation_owned(
+    owner,
+    input,
+    graph,
+    contracts,
+    manifests,
+    compilation_limits,
+    reserve_invocation_metadata=true,
+  )
+}
+
+///|
+fn[I] prepare_request_model_compilation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  graph : @publication_host.ClientInferPlanGraph,
+  contracts : ClientInstalledSequenceContracts,
+  manifests : @publication_host.ClientCompilationManifests,
+  compilation_limits : @publication_host.ClientPureCompilationLimits,
+  reserve_invocation_metadata~ : Bool,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
@@ -166,12 +190,21 @@ pub fn[I] prepare_request_model_compilation(
         Ok(_) => ()
       }
       let result = prepare_request_compilation_owned(
-        owner, input, prepared, manifests, compilation_limits,
+        owner,
+        input,
+        prepared,
+        manifests,
+        compilation_limits,
+        reserve_invocation_metadata~,
       )
       match result {
         Err(issue) => return Err(issue)
         Ok(@publication_host.Tasks(compilation)) => {
-          owner.phase = ModelPlanReserved
+          owner.phase = if reserve_invocation_metadata {
+            ModelPlanReserved
+          } else {
+            PortableModelArtifactReady
+          }
           Ok(compilation)
         }
         _ => Err(Preparation(ForeignOriginal))
@@ -199,6 +232,30 @@ pub fn[I] prepare_request_models_compilation(
   contracts : ClientInstalledSequenceContracts,
   manifests~ : @publication_host.ClientCompilationManifests,
   compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
+  prepare_request_models_compilation_owned(
+    owner,
+    input,
+    selected,
+    contracts,
+    manifests,
+    compilation_limits,
+    reserve_invocation_metadata=true,
+  )
+}
+
+///|
+fn[I] prepare_request_models_compilation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  selected : Array[@publication_host.ClientInferPlanGraph],
+  contracts : ClientInstalledSequenceContracts,
+  manifests : @publication_host.ClientCompilationManifests,
+  compilation_limits : @publication_host.ClientPureCompilationLimits,
+  reserve_invocation_metadata~ : Bool,
 ) -> Result[
   @publication_host.ClientTaskCompilation,
   ClientRequestProgramPlanIssue,
@@ -258,11 +315,20 @@ pub fn[I] prepare_request_models_compilation(
       }
       match
         prepare_request_compilation_owned(
-          owner, input, prepared, manifests, compilation_limits,
+          owner,
+          input,
+          prepared,
+          manifests,
+          compilation_limits,
+          reserve_invocation_metadata~,
         ) {
         Err(issue) => Err(issue)
         Ok(@publication_host.Tasks(compilation)) => {
-          owner.phase = ModelPlanReserved
+          owner.phase = if reserve_invocation_metadata {
+            ModelPlanReserved
+          } else {
+            PortableModelArtifactReady
+          }
           Ok(compilation)
         }
         _ => Err(Preparation(ForeignOriginal))
@@ -275,6 +341,67 @@ pub fn[I] prepare_request_models_compilation(
       }
     },
   )
+}
+
+///|
+/// Compile the exact Request-owned Model graph for fresh Portable issuance.
+/// The artifact stays on this Request, and legacy timed Plan constructors
+/// cannot use this phase. The next owner must fund metadata from the actual
+/// Run inputs after selection, before issuing a Run or Definition.
+pub fn[I] prepare_request_portable_model_artifact(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  contracts : ClientInstalledSequenceContracts,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  if graphs.length() == 1 {
+    // The legacy compiler can accept an external graph in its own entrance.
+    // Portable always has the Graph already constructed on this same Request.
+    guard owner.program_domain_compilation_inputs
+      is Some(RequestModelGraph(_, _, _, _)) ||
+      owner.program_domain_compilation_inputs
+      is Some(RequestModelCompilation(_, _, _, _)) else {
+      return Err(Preparation(ForeignOriginal))
+    }
+    prepare_request_model_compilation_owned(
+      owner,
+      input,
+      graphs[0],
+      contracts,
+      manifests,
+      compilation_limits,
+      reserve_invocation_metadata=false,
+    ).map(_ => ())
+  } else {
+    prepare_request_models_compilation_owned(
+      owner,
+      input,
+      graphs,
+      contracts,
+      manifests,
+      compilation_limits,
+      reserve_invocation_metadata=false,
+    ).map(_ => ())
+  }
+}
+
+///|
+fn request_model_module_invocation_matches(
+  phase : ClientRequestPreparationPhase,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  match phase {
+    ModelPlanReserved => true
+    PortableModelModuleReady(original) =>
+      physical_equal(original.request, request) &&
+      physical_equal(original.compiled, compiled) &&
+      physical_equal(original.definition, definition)
+    _ => false
+  }
 }
 
 ///|
@@ -298,7 +425,12 @@ pub fn[I] prepare_request_model_source_free_plan(
   max_delegations : Int,
   bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
-  guard owner.phase == ModelPlanReserved &&
+  guard request_model_module_invocation_matches(
+      owner.phase,
+      request,
+      compiled,
+      definition,
+    ) &&
     owner.input is Some(same_input) &&
     physical_equal(same_input, input) &&
     owner.program_source_free is Some(selected_module) &&
@@ -314,7 +446,7 @@ pub fn[I] prepare_request_model_source_free_plan(
     (Some(_), SerializationContent(prefix)) => Some(prefix)
     _ => return Err(ForeignOriginal)
   }
-  prepare_installed_mock_model_source_free_plan(
+  let plan = prepare_installed_mock_model_source_free_plan(
     original,
     request,
     compiled,
@@ -330,6 +462,12 @@ pub fn[I] prepare_request_model_source_free_plan(
     content_prefix~,
     bootstrap~,
   )
+  if (owner.phase, plan) is (PortableModelModuleReady(_), Ok(selected)) {
+    // Retain the exact selected Plan before the physical ticket can be
+    // funded, as the portable group constructor already does.
+    owner.program_model = Some(selected)
+  }
+  plan
 }
 
 ///|
@@ -407,7 +545,7 @@ pub fn[I] prepare_request_model_capture_plan(
   max_delegations : Int,
   bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
-  guard owner.phase == ModelPlanReserved &&
+  guard request_model_module_invocation_matches(owner.phase, request, compiled, definition) &&
     owner.input is Some(same_input) &&
     physical_equal(same_input, input) &&
     owner.program_captured is Some(selected_module) &&
@@ -424,7 +562,7 @@ pub fn[I] prepare_request_model_capture_plan(
     (Some(_), SerializationContent(prefix)) => Some(prefix)
     _ => return Err(ForeignOriginal)
   }
-  prepare_installed_mock_model_capture_plan_binding(
+  let plan = prepare_installed_mock_model_capture_plan_binding(
     original,
     compiled,
     definition,
@@ -439,6 +577,10 @@ pub fn[I] prepare_request_model_capture_plan(
     content_prefix~,
     bootstrap~,
   )
+  if (owner.phase, plan) is (PortableModelModuleReady(_), Ok(selected)) {
+    owner.program_model = Some(selected)
+  }
+  plan
 }
 
 ///|
@@ -492,6 +634,84 @@ pub fn[I] prepare_request_node_model_capture_plan(
     max_holdings,
     max_delegations,
     bootstrap~,
+  )
+}
+
+///|
+// The installed VM Host selects the same Request ticket before either
+// singular or group Scope construction. Retry can only use that same Plan.
+fn[P, C, I] fund_request_portable_model_run(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledManagedModelPlan,
+  access : @resources.BackedExecutionLiveAccess[P, C, I],
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  let same_module = match (owner.program_captured, plan.captured,
+                          owner.program_source_free, plan.source_free) {
+    (Some(original), Some(selected), None, None) => physical_equal(original, selected)
+    (None, None, Some(original), Some(selected)) => physical_equal(original, selected)
+    _ => false
+  }
+  guard (
+      owner.phase is PortableModelModuleReady(_) ||
+      owner.phase == ModelScopeQuoted
+    ) &&
+    owner.program_model is Some(selected) &&
+    physical_equal(selected, plan) &&
+    !owner.program_body_attempted &&
+    owner.initial is BackedRequestInitial(initial) &&
+    owner.input is Some(same_input) &&
+    physical_equal(same_input, input) &&
+    owner.compiled_program is Some(prepared) &&
+    physical_equal(prepared, plan.prepared) &&
+    same_module else {
+    return Err(ForeignOriginal)
+  }
+  let demand = plan.limits
+  let phase = owner.phase
+  owner.phase = Selecting
+  let funded = @resources.fund_platform_vm_preparation_run(
+    initial,
+    access,
+    input,
+    demand.attempts,
+    demand.holdings,
+    demand.transfer_bytes,
+  ).map_err(issue => ClientInstalledManagedRunIssue::Resource(issue))
+  if owner.phase != Selecting {
+    // The original physical callback may have stopped the Request. Its
+    // cleanup still owns any allowance already debited on this ticket.
+    return match funded {
+      Err(issue) => Err(issue)
+      Ok(_) => Err(ForeignOriginal)
+    }
+  }
+  owner.phase = phase
+  funded
+}
+
+///|
+/// Fund and bind the selected singular Model scope on this VM Request.
+pub fn[P, C, I] prepare_request_portable_model_read_scope(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledManagedModelPlan,
+  access : @resources.BackedExecutionLiveAccess[P, C, I],
+  quantity_limits : @resources.QuantityAmounts,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  ClientInstalledManagedRunIssue,
+] {
+  guard plan.models is None else { return Err(ForeignOriginal) }
+  prepare_request_model_read_scopes_owned(
+    owner,
+    input,
+    plan,
+    Some(quantity_limits),
+    bind_request_single_model_read_scope,
+    fund_run=Some(() => {
+      fund_request_portable_model_run(owner, input, plan, access)
+    }),
   )
 }
 
@@ -550,6 +770,7 @@ fn[I, T] prepare_request_model_read_scopes_owned(
     @resources.Ledger,
     @resources.OriginalLedgerIdentity,
   ) -> Result[T, @publication_host.ClientModelReadPreparationIssue],
+  fund_run? : (() -> Result[Unit, ClientInstalledManagedRunIssue])? = None,
 ) -> Result[T, ClientInstalledManagedRunIssue] {
   // A mixed module carries the same already constructed prefix, not a
   // successful quote or a Model Scope standing in for Content retention.
@@ -583,15 +804,20 @@ fn[I, T] prepare_request_model_read_scopes_owned(
   }
   guard (
       (
-        owner.phase == ModelPlanReserved &&
-        (
-          owner.program_model is None ||
-          (
-            plan.models is Some(_) &&
-            owner.program_model is Some(original_plan) &&
-            physical_equal(original_plan, plan)
-          )
+        request_model_module_invocation_matches(
+          owner.phase,
+          plan.request,
+          plan.compiled,
+          plan.definition,
         ) &&
+        (match (owner.phase, owner.program_model) {
+          (PortableModelModuleReady(_), Some(selected)) =>
+            physical_equal(selected, plan)
+          (PortableModelModuleReady(_), None) => false
+          (_, None) => true
+          (_, Some(selected)) =>
+            plan.models is Some(_) && physical_equal(selected, plan)
+        }) &&
         owner.program_domain_quote is None
       ) ||
       (
@@ -619,8 +845,20 @@ fn[I, T] prepare_request_model_read_scopes_owned(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !quoted {
-    let quote = match
+  if fund_run is None &&
+    owner.phase is PortableModelModuleReady(_) &&
+    owner.initial is BackedRequestInitial(_) {
+    let limits = @resources.ledger_limits(owner.ledger)
+    if plan.limits.attempts != limits.attempts ||
+      plan.limits.holdings != limits.holdings ||
+      plan.limits.transfer_bytes != limits.transfer_bytes {
+      return Err(InsufficientCapacity)
+    }
+  }
+  let quote = if quoted {
+    owner.program_domain_quote.unwrap()
+  } else {
+    match
       request_model_scope_construction_quote(
         capacity,
         input,
@@ -636,10 +874,21 @@ fn[I, T] prepare_request_model_read_scopes_owned(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
+  }
+  // Quote the original Scope before debiting its Run allowance. Once that
+  // debit returns, the same already admitted Plan is selected without another
+  // callback or fallible quote in between. On retry it is already selected.
+  if fund_run is Some(fund) {
+    match fund() {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  if !quoted {
     owner.program_model = Some(plan)
     owner.program_domain_quote = Some(quote)
   }
-  let (r, e) = owner.program_domain_quote.unwrap()
+  let (r, e) = quote
   owner.phase = Selecting
   // Configure the SAME Request before its original Run binding. This uses
   // Resource's one-shot preparation entrance; no reset or late configuration
@@ -776,7 +1025,8 @@ pub fn[I] begin_request_model_managed_run(
   scope : @publication_host.ClientModelReadScope,
   scopes? : Array[@publication_host.ClientModelReadScope]? = None,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  guard owner.phase == ProgramBodyReady &&
+  guard !owner.debug_plan_read &&
+    owner.phase == ProgramBodyReady &&
     owner.input is Some(input) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&

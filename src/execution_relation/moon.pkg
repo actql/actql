@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/decode_shape" @shape,
   "actql/actql/capacity_arithmetic" @preparation_counts,
+  "actql/actql/physical_resources" @resources,
   "actql/actql/expression_typing" @typing,
   "actql/actql/text_time_policy" @text_policy,
   "actql/actql/text_time_bounds" @text_bounds,

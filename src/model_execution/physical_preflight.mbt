@@ -31,7 +31,7 @@ pub struct ModelPhysicalRequestPlan {
   request : ModelRequest
   wire_bytes : Int64
   quantities : @resources.QuantityAmounts
-  invocation : ModelPhysicalInvocation
+  mut invocation : ModelPhysicalInvocation
   response_profile : @environment.ModelResponseProfile?
   evidence : ModelPhysicalRequestEvidence?
   attachments : Array[ModelContentAdmission]
@@ -41,10 +41,7 @@ pub struct ModelPhysicalRequestPlan {
 enum ModelPhysicalInvocation {
   Synchronous(() -> Result[ModelResponse, ModelProviderFailure])
   Asynchronous((ModelCallEntry) -> ModelPhysicalCall?)
-  AsynchronousHttpChat(
-    PreparedModelHttpChatRequest,
-    (ModelCallEntry) -> ModelPhysicalCall?
-  )
+  AsynchronousHttpChat(PreparedModelHttpChatRequest, ModelHttpChatStart?)
   AsynchronousMeasuredHttpChat(
     PreparedModelHttpChatRequest,
     (ModelCallEntry) -> ModelPhysicalCall?
@@ -340,12 +337,6 @@ fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
   if !cleanup_model_window_calls(state) {
     return false
   }
-  if state.progress.entry is Some(entry) {
-    if entry.persistence is Some(operation) && operation.terminal is None {
-      return false
-    }
-    retire_model_entering(state)
-  }
   // The bounded session must keep its cleanup pending until all physical
   // cursors release successfully. Its cleanup result reports a transition,
   // not an idempotent success flag.
@@ -443,8 +434,11 @@ fn advance_model_physical_preflight(
       if plan.quantities.duration_ms > capacity.per_attempt.duration_ms {
         return @bounded.Failed(Ledger(@resources.DurationLimit), 1, 1)
       }
-      if plan.invocation is AsynchronousSavedStructured(_, _, _) {
-        match prepare_saved_structured_attempt_report(state, request) {
+      if plan.invocation
+        is (AsynchronousSavedStructured(_, _, _)
+        | AsynchronousHttpChat(_, _)
+        | AsynchronousMeasuredHttpChat(_, _)) {
+        match prepare_original_model_attempt_report(state, request) {
           Err(issue) => return @bounded.Failed(issue, 1, 1)
           Ok(_) => ()
         }

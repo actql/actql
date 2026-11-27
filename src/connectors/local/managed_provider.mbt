@@ -1,4 +1,21 @@
 ///|
+priv enum ManagedInferRelationPrefix {
+  Prepaid(
+    @execution.GeneratedSequence,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits
+  )
+  Metered(
+    @execution.GeneratedSequence,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits,
+    @execution.ExecutionCapacity
+  )
+}
+
+///|
 /// One family execution selected before runtime data access. The common Local
 /// driver owns selection and lifecycle; the provider owns only typed bounded
 /// kernel progress for the exact prepared sequence.
@@ -32,12 +49,7 @@ struct ManagedProvider {
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?
   // A trusted Model family can delegate its exact pre-boundary Relation
   // segment to the same bounded Local owner. This is not an acceptance Bool.
-  infer_relation_prefix : (
-    @execution.GeneratedSequence,
-    Int,
-    @execution.SequenceExecutionLimits,
-    @execution.FixedInputGuardMeasureLimits,
-  )?
+  infer_relation_prefix : ManagedInferRelationPrefix?
 }
 
 ///|
@@ -280,10 +292,17 @@ pub fn managed_provider_with_infer_relation_prefix(
   boundary_step : Int,
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
+  metered_output_start? : @execution.ExecutionCapacity? = None,
 ) -> ManagedProvider {
   {
     ..provider,
-    infer_relation_prefix: Some((prefix, boundary_step, execution, measurement)),
+    infer_relation_prefix: Some(
+      match metered_output_start {
+        Some(start) =>
+          Metered(prefix, boundary_step, execution, measurement, start)
+        None => Prepaid(prefix, boundary_step, execution, measurement)
+      },
+    ),
   }
 }
 

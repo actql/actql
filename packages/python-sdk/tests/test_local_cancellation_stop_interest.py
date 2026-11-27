@@ -5,11 +5,12 @@ from threading import Event, RLock, current_thread
 from types import MethodType, SimpleNamespace
 import unittest
 
-from actql_sdk._local_core import LocalCore, LocalCoreError
+from actql_sdk._local_core import LocalCore, LocalCoreError, _TaskDrive
 from actql_sdk._local_product import (
     InstalledLocalHost, LocalProductCleanupPending, _OriginalExecution,
     _OriginalCancellationStop, _LOCAL_SELECTION,
 )
+from actql_sdk._local_run import _SourceFreeCompute
 from actql_sdk._local_work import OriginalLocalWork
 
 
@@ -17,7 +18,7 @@ class CancellationStopInterestTests(unittest.TestCase):
     def fixture(self, interest, *, pending=False):
         host = object.__new__(InstalledLocalHost)
         run = SimpleNamespace(handle=71)
-        compute = SimpleNamespace(start=SimpleNamespace(run=run), core=object())
+        compute = _SourceFreeCompute(host, object(), SimpleNamespace(run=run), object())
         core = SimpleNamespace(_lock=RLock(), _task_loans={}, _host_retained_work=None)
         host._core, host._original = core, host
         host._tasks, host._projections, host._append_sources = [], [], {}
@@ -102,10 +103,10 @@ class CancellationStopInterestTests(unittest.TestCase):
                 first_drive.set()
                 if not registered.wait(2):
                     raise AssertionError('Control interest was not registered')
-                return False
+                return _TaskDrive.PROGRESSED
             raise primary
 
-        core.reserve_next_sdk_task, core.drive_task = reserve, drive
+        core.reserve_next_sdk_task, core.drive_task_step = reserve, drive
         core.close_native_compute = lambda value: events.append('seal-original-compute') or False
         core._owned_task = lambda value: self.assertIs(core._task_loans.get(value.handle), value)
         core.task_cleanup_continuation = lambda value: -1

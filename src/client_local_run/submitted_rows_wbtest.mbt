@@ -472,7 +472,7 @@ test "original submitted rows bind nominal checked input without starting or adm
   guard run is Object(run) else { fail("Expected original Run row") }
   for
     field in [
-      "dispatch_reserved", "physical_start_claimed", "cancellation_requested",
+      "dispatch_reserved", "physical_start_claimed", "cancellation_head",
     ] {
     assert_eq(run.get(field), Some(@json.to_json(false)))
   }

@@ -60,7 +60,8 @@ class StoreInventoryFactsTests(unittest.TestCase):
         with self.fixture() as (caller, core, _, _, _, _, first, second, _, _):
             original = core._call
             def check(family, name, *args):
-                if family == 'publication' and name in ('prepare_lookup', 'prepare_observation', 'finish_observation'):
+                if family == 'publication' and name in ('prepare_lookup', 'prepare_observation',
+                        'observation_exact_index', 'finish_observation'):
                     self.assertTrue(first._active and second._active)
                     self.assertIsNotNone(first._reader.descriptor)
                     self.assertIsNotNone(second._reader.descriptor)

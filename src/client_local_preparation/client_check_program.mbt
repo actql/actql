@@ -13,10 +13,23 @@ pub fn client_program_check_program(
   correlation_ref : String,
   scope : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
+  runtime_available? : Bool = true,
+  original_project_catalog? : Bool = false,
 ) -> String {
   client_program_check_program_with_format(
-    document, "json", environment, visible_publication, parameters, context_ref,
-    program_revision, parameters_revision, correlation_ref, scope, selector_namespace,
+    document,
+    "json",
+    environment,
+    visible_publication,
+    parameters,
+    context_ref,
+    program_revision,
+    parameters_revision,
+    correlation_ref,
+    scope,
+    selector_namespace,
+    runtime_available~,
+    original_project_catalog~,
   )
 }
 
@@ -36,6 +49,8 @@ pub fn client_program_check_program_with_format(
   correlation_ref : String,
   scope : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
+  runtime_available? : Bool = true,
+  original_project_catalog? : Bool = false,
 ) -> String {
   let format = match admit_local_program_input(format, None) {
     Ok((format, _)) => format
@@ -68,20 +83,28 @@ pub fn client_program_check_program_with_format(
     scope,
     selector_namespace,
     format,
+    original_project_catalog,
   )
-  check_outcome_json(findings, stop, context_ref, correlation_ref, {
-    scope,
-    structured_program: true,
-    program_pointer: pointer,
-    source_revision: program_revision,
-    source_bytes: @utf8.encode(document).length(),
-    declarations_revision: Some(program_revision),
-    declarations_bytes: 0,
-    parameters_revision,
-    parameters_bytes: parameters
-    .map(body => @utf8.encode(body).length())
-    .unwrap_or(0),
-  })
+  check_outcome_json(
+    findings,
+    stop,
+    context_ref,
+    correlation_ref,
+    {
+      scope,
+      structured_program: true,
+      program_pointer: pointer,
+      source_revision: program_revision,
+      source_bytes: @utf8.encode(document).length(),
+      declarations_revision: Some(program_revision),
+      declarations_bytes: 0,
+      parameters_revision,
+      parameters_bytes: parameters
+      .map(body => @utf8.encode(body).length())
+      .unwrap_or(0),
+    },
+    runtime_available~,
+  )
 }
 
 ///|
@@ -95,6 +118,7 @@ fn check_program_findings(
   scope : @checked.CheckScope,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
   format : @syntax.Format,
+  original_project_catalog : Bool,
 ) -> CheckStop {
   let limits = @host.client_standard_program_preparation_limits().checking
   let supplied = match admit_local_program_input("json", parameters) {
@@ -232,7 +256,22 @@ fn check_program_findings(
   let publication = source_publication_cursor(visible_publication) catch {
     _ => return Failed("check_context_invalid")
   }
-  let _ = check_published_context(environment, visible_publication, None) catch {
+  let project_catalog = try {
+    if original_project_catalog {
+      match
+        @publication.bind_published_query_parts_with_catalog(
+          environment,
+          visible_publication,
+          None,
+        ) {
+        Ok((_, _, _, _, _, catalog)) => Some(catalog)
+        Err(issue) => raise CheckPublicationStop(issue)
+      }
+    } else {
+      ignore(check_published_context(environment, visible_publication, None))
+      None
+    }
+  } catch {
     CheckPublicationStop(Limit) => {
       findings.push(Limit("analysis_budget_exhausted"))
       return Report
@@ -285,14 +324,49 @@ fn check_program_findings(
       }
     }
   }
+  // Complete omitted selectors only for a Host that supplies the complete
+  // original Project Catalog. Default selection precedes audience filtering.
+  // This supplies no negative disclosure or independent Source authority.
+  let mut needs_default = false
+  if original_project_catalog {
+    for index in 0..<@sourceview_input.count(inputs) {
+      if @sourceview_input.at(inputs, index).unwrap().view is None {
+        needs_default = true
+        break
+      }
+    }
+  }
+  let completed = if needs_default && project_catalog is Some(original) {
+    @acquisition.resolve(inputs, @checked.source_catalog_contracts(original), {
+      max_work: 1000000,
+      max_inputs: 1024,
+      max_views: 1024,
+    }).to_option()
+  } else {
+    None
+  }
   let mut has_hidden_dependency = false
   for index in 0..<@sourceview_input.count(inputs) {
     let input = @sourceview_input.at(inputs, index).unwrap()
-    let visible = input.view is Some(view) &&
+    let selected = completed.bind(original => @acquisition.at(original, index))
+    let view = match input.view {
+      Some(_) => input.view
+      None => selected.map(@acquisition.selected_name)
+    }
+    let visible = view is Some(view) &&
       aliases.any(entry => {
         check_program_public_text(entry, "sourceRef") ==
         Some(
           "connector://" + input.connector + "/" + input.resource + "#" + view,
+        ) &&
+        (
+          input.view is Some(_) ||
+          (
+            selected is Some(source) &&
+            physical_equal(@acquisition.declaration(source), input) &&
+            check_program_public_text(entry, "sourceViewContractCid") ==
+            Some(@acquisition.selected_cid(source))
+          )
         )
       })
     if !visible &&
@@ -324,6 +398,7 @@ fn check_program_findings(
         supplied,
         limits,
         source_preparation=Some(source),
+        source_catalog=project_catalog,
       )
       is Rejected(diagnostic) &&
       @checked.diagnostic_cause(diagnostic)
@@ -354,6 +429,7 @@ fn check_program_findings(
           supplied,
           limits,
           source_preparation=Some(source),
+          source_catalog=project_catalog,
         ),
       )
     TemplateOnly =>
@@ -416,6 +492,7 @@ fn check_program_findings(
             supplied,
             [],
             @host.client_standard_effect_computation_limits(),
+            source_catalog=project_catalog,
           ) {
           Ok(_) => return Report
           Err(issue) =>
@@ -687,7 +764,39 @@ pub fn client_program_project_original_static_effect_check(
   let mut issue_visible = false
   for index in 0..<@syntax.effect_header_count(headers) {
     let header = @syntax.effect_header_at(headers, index).unwrap()
-    if @syntax.effect_header_kind(header) != "update" {
+    let kind = @syntax.effect_header_kind(header)
+    let delete_mapping = match result {
+      Ok(complete) if kind == "delete" => {
+        // Use the completed rule for this exact retained Effect header.
+        let rules = @effect_results.effect_static_candidate_mapping_rules(
+          @checked.effect_program_static_effects(complete),
+        )
+        @effect_results.effect_mapping_rule_at(rules, index).bind(rule => {
+          let shape = @effect_results.effect_mapping_rule_effect(rule)
+          let binding = @effect_results.effect_mapping_shape_effect(shape)
+          guard physical_equal(
+              @effect_results.effect_result_binding_header(binding),
+              header,
+            ) &&
+            @effect_results.effect_result_binding_result(binding) is Some(_) else {
+            return None
+          }
+          let (kind, selector, fields) = @environment.mapping_permission_rule(
+            @effect_results.effect_mapping_rule_selection(rule),
+          )
+          guard kind == "delete" && selector == "id" && fields.is_empty() else {
+            return None
+          }
+          Some(
+            @environment.mapping_shape_cid(
+              @effect_results.effect_mapping_shape_contract(shape),
+            ),
+          )
+        })
+      }
+      _ => None
+    }
+    if kind != "update" && delete_mapping is None {
       // This header retains its original Program stage, not a lowered Query
       // position. Only authored structured input may expose that effects node.
       findings.push(
@@ -717,9 +826,15 @@ pub fn client_program_project_original_static_effect_check(
             target,
             @syntax.effect_header_contract_ref(header),
             1000000,
+            effect_kind=kind,
             match_tuple=@decode.lookup(body, "match_tuple") is Some(_),
           ) {
-          Ok(_) => true
+          Ok(resolved) =>
+            delete_mapping
+            .map(expected => {
+              @query.resolved_update_target_identity(resolved).1 == expected
+            })
+            .unwrap_or(true)
           Err(WorkLimit) => {
             findings.push(Limit("analysis_budget_exhausted"))
             false

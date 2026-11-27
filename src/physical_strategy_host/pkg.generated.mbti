@@ -94,6 +94,8 @@ pub fn borrow_captured_table_input_output(CapturedDAG, Int, @execution_relation.
 
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
 
+pub fn cancel_captured_effect_pin_admission(CapturedEffectPinAdmission) -> Result[Bool, RunIssue]
+
 pub fn cancel_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Unit
 
 pub fn cancel_captured_effect_proposal_plan(CapturedEffectProposalPlan) -> Unit
@@ -136,9 +138,15 @@ pub fn captured_completed_unit_result_at(CapturedCompletedUnitResults, Int) -> C
 
 pub fn captured_completed_unit_result_count(CapturedCompletedUnitResults) -> Int
 
+pub fn captured_completed_unit_result_export_matches_output(CapturedCompletedUnitResultHandoff, CapturedDAG, Int, Int, @execution_relation.CompletedOutput) -> Bool
+
 pub fn captured_completed_unit_result_export_original(CapturedCompletedUnitResultHandoff, CapturedCompletedUnitResults, Int) -> (@relation_results.ResultPort, @execution_relation.CompletedRelationExportReceipt)?
 
+pub fn captured_completed_unit_result_input_matches(CapturedCompletedUnitResultHandoff, Int, @execution_relation.ProducerRead) -> Bool
+
 pub fn captured_completed_unit_result_input_original(CapturedCompletedUnitResultHandoff) -> @execution_relation.CompletedOutput?
+
+pub fn captured_completed_unit_result_input_retained(CapturedCompletedUnitResultHandoff, Int, @execution_relation.ProducerRead) -> Bool
 
 pub fn captured_completed_unit_results_match(CapturedCompletedUnitResults, CapturedDAG, Int) -> Bool
 
@@ -158,7 +166,11 @@ pub fn captured_dag_strategy_revision(CapturedDAG) -> Int
 
 pub fn captured_effect_apply_preflight_target_version_changed(CapturedEffectApplyPreflightIssue) -> Bool
 
+pub fn captured_effect_checked_proposal_change_count(CapturedEffectProposalPlan) -> Int?
+
 pub fn captured_effect_checked_proposal_row_available(CapturedEffectCheckedProposalRow) -> Bool
+
+pub fn captured_effect_checked_proposal_row_data(CapturedEffectCheckedProposalRow) -> @stage_results.EffectPlanCheckedRow?
 
 pub fn captured_effect_checked_proposal_row_field_at(CapturedEffectCheckedProposalRow, Int) -> (String, @value_admission.CheckedValue)?
 
@@ -286,6 +298,8 @@ pub fn captured_effect_preview_ledger_identity(CapturedEffectPreviewInputs) -> @
 
 pub fn captured_effect_preview_member_count(CapturedEffectPreviewInputs) -> Int?
 
+pub fn captured_effect_preview_member_occurrence(CapturedEffectPreviewInputs, Int) -> Result[(Int, Int, String, String), RunIssue]
+
 pub fn captured_effect_preview_owner(CapturedEffectPreviewInputs) -> @effect_program_binding.EffectProgramRunPreview
 
 pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, Int, Int) -> Result[@stage_results.EffectPlanTerminal?, CapturedEffectPlanIssue]
@@ -333,6 +347,8 @@ pub fn captured_effect_table_input_occurrence(CapturedEffectTableInput) -> @exec
 pub fn captured_effect_table_input_stage(CapturedEffectTableInput) -> Int
 
 pub fn captured_effect_table_input_task(CapturedEffectTableInput) -> Int
+
+pub fn captured_effect_task_control_started(CapturedEffectRunDAG, CapturedTaskBoundaryHooks, Int) -> Bool
 
 pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootStatistics?
 
@@ -472,6 +488,10 @@ pub fn captured_task_boundary_task(CapturedTaskBoundary) -> Int
 
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
+pub fn captured_task_continuation_completion(CapturedDAG, CapturedTaskContinuation, Int) -> (Int, Int, Bool)?
+
+pub fn captured_task_continuation_position(CapturedDAG, CapturedTaskContinuation) -> (Int, Int, Int, Int, Int)?
+
 pub fn captured_task_control_construction_bytes(Int) -> Int64
 
 pub fn captured_task_control_entry_task(CapturedDAG, CapturedTaskBoundaryHooks) -> Int?
@@ -512,7 +532,7 @@ pub fn charge_resident_transfer(CapturedDAG, ResidentTransfer, Int64) -> Result[
 
 pub fn charge_task_execution_transfer(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
-pub fn check_captured_effect_apply_preflight(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, CapturedEffectApplyPreflightIssue]
+pub fn check_captured_effect_apply_preflight(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int, recovery_guards? : @effect_application.RecoveredEffectTargetGuards) -> Result[Unit, CapturedEffectApplyPreflightIssue]
 
 pub fn check_captured_effect_plan_proofs(CapturedEffectPreviewInputs, Array[CapturedEffectPlanProof], Int, Int) -> Result[Unit, CapturedEffectPlanInventoryIssue]
 
@@ -530,7 +550,7 @@ pub fn check_captured_effect_risk_acceptance_body(CapturedEffectPreviewInputs, @
 
 pub fn check_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int) -> Result[Unit, CapturedEffectApplyKeyIssue]
 
-pub fn check_effect_preview_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int, recovery_guards? : @effect_application.RecoveredEffectTargetGuards) -> Result[Unit, CapturedEffectApplyPreflightIssue]
+pub fn check_effect_preview_apply_semantics(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectTargetVersionObservation], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int, recovery_guards? : @effect_application.RecoveredEffectTargetGuards, selected_member? : Int) -> Result[Unit, CapturedEffectApplyPreflightIssue]
 
 pub fn check_effect_preview_current_bindings(@run_publication.EffectPreviewIdentity, Array[String], Array[String], Array[String], Array[String], Int, Int) -> Result[Unit, CapturedEffectCurrentBindingIssue]
 
@@ -538,7 +558,7 @@ pub fn checked_effect_computation_graph(@physical_strategy.CheckedEffectComputat
 
 pub fn checked_effect_computation_owner(@physical_strategy.CheckedEffectComputationDAG) -> @program_check.EffectProgramStaticCandidate
 
-pub fn checked_effect_preview_source_indexes(@physical_strategy.CheckedEffectRunDAG, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[Array[Int?], RunIssue]
+pub fn checked_effect_preview_member_indexes(@physical_strategy.CheckedEffectRunDAG, @effect_program_binding.EffectProgramRunPreview, Int) -> Result[Array[Int], RunIssue]
 
 pub fn checked_effect_run_graph(@physical_strategy.CheckedEffectRunDAG) -> @physical_strategy.CheckedDAG
 
@@ -568,7 +588,11 @@ pub fn checked_effect_table_input_stage(@physical_strategy.CheckedEffectTableInp
 
 pub fn checked_effect_table_input_task(@physical_strategy.CheckedEffectTableInputPort) -> Int
 
+pub fn checked_source_free_effect_control_has_entry(@physical_strategy.CheckedDAG) -> Bool
+
 pub fn checked_task_control_entry_boundary_issue(@physical_strategy.CheckedDAG) -> Int?
+
+pub fn checked_task_control_operation_task(@physical_strategy.CheckedDAG, Int, Int) -> Int?
 
 pub fn checked_task_identity(@physical_strategy.CheckedTaskReference) -> @physical_strategy.CheckedTaskIdentity
 
@@ -586,11 +610,15 @@ pub fn close_task_execution(CapturedDAG, TaskExecution) -> Unit
 
 pub fn close_task_numeric_reduction(CapturedDAG, TaskNumericExecution) -> Bool
 
-pub fn command_captured_task_control(CapturedDAG, CapturedTaskBoundaryHooks, Int, CapturedTaskControlCommand, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String) -> Result[Unit, CapturedTaskControlIssue]
+pub fn command_captured_effect_task_control(CapturedEffectRunDAG, CapturedTaskBoundaryHooks, Int, Int, CapturedTaskControlCommand, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple) -> Result[Unit, CapturedTaskControlIssue]
+
+pub fn command_captured_task_control(CapturedDAG, CapturedTaskBoundaryHooks, Int, CapturedTaskControlCommand, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, String, acknowledge_breakpoint? : () -> Bool) -> Result[Unit, CapturedTaskControlIssue]
 
 pub fn commit_strategy_choice(StrategyChoiceSet, Int?) -> Result[StrategyDecision, SearchIssue]
 
 pub fn commit_strategy_policy_decision(StrategyChoiceSet, PolicyRequest, PolicyResponse, Int64) -> Result[StrategyDecision, SearchIssue]
+
+pub fn complete_captured_effect_pin_admission(CapturedEffectPinAdmission, CapturedEffectInputs) -> Bool
 
 pub fn complete_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[ManagedTransferReceipt, RunIssue]
 
@@ -790,7 +818,7 @@ pub fn pin_captured_table_input_output_set(CapturedDAG, Array[(Int, @execution_r
 
 pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
 
-pub fn pin_censused_captured_effect_sources(CapturedEffectDependencyPortCensus, Int?) -> Result[CapturedEffectInputs, RunIssue]
+pub fn pin_censused_captured_effect_sources(CapturedEffectDependencyPortCensus, Int?, CapturedEffectPinAdmission) -> Result[CapturedEffectInputs, RunIssue]
 
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
 
@@ -802,9 +830,13 @@ pub fn[T] prepare_captured_cleanup(CapturedDAG, TaskExecution, (Array[ResidentTa
 
 pub fn[T] prepare_captured_completed_unit_result_handoff(CapturedCompletedUnitResults, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedRelationExportReceipt) -> Result[CapturedCompletedUnitResultHandoff, RunIssue]
 
+pub fn prepare_captured_effect_pin_admission(CapturedEffectRunDAG) -> CapturedEffectPinAdmission
+
 pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectPlanVerifier, CapturedEffectPlanVerifyIssue]
 
 pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int, published_target? : CapturedEffectCommandTarget?, input_key? : CapturedEffectCommandKeyValidation?) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
+
+pub fn prepare_captured_effect_task_control(CapturedEffectRunDAG, CapturedTaskBoundaryHooks, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple) -> Result[Unit, CapturedTaskControlIssue]
 
 pub fn prepare_captured_task_boundary_hooks(CapturedDAG, @physical_strategy.CheckedDAG, Int) -> Result[CapturedTaskBoundaryHooks, CapturedTaskBoundaryIssue]
 
@@ -814,7 +846,7 @@ pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relati
 
 pub fn prepare_checked_debug_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedDAG, @physical_strategy.DebugTaskGraphIssue]
 
-pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[@physical_strategy.CheckedEffectComputationDAG, @physical_strategy.GraphIssue]
+pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int, split_debug_operations? : Bool) -> Result[@physical_strategy.CheckedEffectComputationDAG, @physical_strategy.GraphIssue]
 
 pub fn prepare_checked_task_reference(@physical_strategy.CheckedDAG, Int, Int, Int) -> Result[@physical_strategy.CheckedTaskReference, @physical_strategy.CheckedTaskReferenceIssue]
 
@@ -869,6 +901,8 @@ pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSideca
 pub fn read_captured_paused_materialized_dependency_cell(CapturedPausedMaterializedDependency, Int, Int) -> Result[@execution_relation.Value?, CapturedPausedDependencyIssue]
 
 pub fn read_captured_task_boundary(CapturedDAG, CapturedTaskBoundaryHooks, CapturedTaskBoundaryPhase) -> Result[CapturedTaskBoundary?, CapturedTaskBoundaryIssue]
+
+pub fn read_captured_task_continuation(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int, visitor_backing? : Int64) -> Result[CapturedTaskContinuation, CapturedTaskContinuationIssue]
 
 pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
 
@@ -980,7 +1014,11 @@ pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStor
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
-pub fn retain_captured_completed_unit_result_input(CapturedCompletedUnitResultHandoff, Int, Int, Int) -> Result[Unit, RunIssue]
+pub fn restore_captured_task_cut(CapturedDAG, CapturedTaskBoundaryHooks, RestoredTaskCut, @physical_resources.CapacityReservation, () -> Bool) -> Result[Unit, CapturedTaskContinuationIssue]
+
+pub fn restored_task_cut_backing(Int) -> Int64
+
+pub fn retain_captured_completed_unit_result_input(CapturedCompletedUnitResultHandoff, Int, Int, Int) -> Result[(Int, @execution_relation.ProducerRead), RunIssue]
 
 pub fn retain_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Unit, CapturedEffectCommandKeyIssue]
 
@@ -1013,6 +1051,8 @@ pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physic
 pub fn return_captured_relation_sample_prefix(CapturedRelationSamplePrefix) -> Result[Unit, CapturedTaskBoundaryIssue]
 
 pub fn return_captured_task_boundary(CapturedTaskBoundary) -> Result[Unit, CapturedTaskBoundaryIssue]
+
+pub fn return_captured_task_continuation(CapturedTaskContinuation) -> Result[Unit, CapturedTaskBoundaryIssue]
 
 pub fn return_resident_read(ResidentRead) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -1126,6 +1166,8 @@ pub fn task_execution_numeric_reduction_member_cid(CapturedDAG, TaskExecution, I
 
 pub fn task_execution_numeric_reduction_slot_cid(CapturedDAG, TaskExecution, Int) -> String?
 
+pub fn task_execution_output_workspace(CapturedDAG, TaskExecution) -> @physical_resources.StartedTaskWorkspace?
+
 pub fn task_execution_registration_key(CapturedDAG, TaskExecution) -> String?
 
 pub fn task_numeric_observation_family(@physical_strategy.TaskNumericObservation) -> @physical_strategy.NumericObservationFamily
@@ -1146,7 +1188,17 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 
 pub fn validate_strategy_policy_request(StrategyChoiceSet, PolicyRequest, Int64) -> Result[Unit, SearchIssue]
 
+pub fn visit_captured_paused_next_sample_inputs(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int, (Int, @physical_strategy.DataEdge, Int, Int, Int) -> Unit) -> Result[Unit, CapturedPausedDependencyIssue]
+
+pub fn visit_captured_task_breakpoint_targets(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int, (Int, Int) -> Bool) -> Result[Unit, CapturedTaskControlIssue]
+
 pub fn with_captured_paused_materialized_dependency(CapturedDAG, CapturedTaskBoundary, Int, Int, Int, (@physical_strategy.DataEdge, CapturedPausedMaterializedDependency) -> Unit) -> Result[Unit, CapturedPausedDependencyIssue]
+
+pub fn with_captured_task_continuation_materialized_relation(CapturedDAG, CapturedTaskContinuation, Int, () -> Bool, CapturedContinuationRelationLimits, (CapturedContinuationRelation, () -> Bool) -> Bool, handoff_bytes? : Int64) -> Result[Unit, CapturedTaskContinuationIssue]
+
+pub fn[T] with_captured_task_continuation_output(CapturedDAG, CapturedTaskContinuation, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, () -> Bool, (() -> Bool) -> Unit) -> Result[Unit, CapturedTaskContinuationIssue]
+
+pub fn[T] with_captured_task_continuation_relation(CapturedDAG, CapturedTaskContinuation, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, () -> Bool, CapturedContinuationRelationLimits, (CapturedContinuationRelation, () -> Bool) -> Bool, handoff_bytes? : Int64) -> Result[Unit, CapturedTaskContinuationIssue]
 
 // Errors
 
@@ -1158,6 +1210,31 @@ type CapturedAnyResultOutputSet
 type CapturedCompletedUnitResultHandoff
 
 type CapturedCompletedUnitResults
+
+pub(all) struct CapturedContinuationRelation {
+  start_revision : Int
+  pause_revision : Int
+  task : Int
+  committed_generation : Int
+  attempt : Int
+  relation_cid : String
+  relation_wire : String
+  relation_bytes : Int
+  schema_cid : String
+  schema_wire : String
+  schema_bytes : Int
+  rows : Int
+}
+
+pub(all) struct CapturedContinuationRelationLimits {
+  rows : Int
+  wire : @execution_relation.RowWireLimits
+  values : @execution_relation.ValueLimits
+  schema : @execution_relation.RelationSchemaIdentityLimits
+  work : Int
+  workspace_slots : Int
+  workspace_bytes : Int64
+}
 
 type CapturedDAG
 
@@ -1247,6 +1324,8 @@ pub(all) enum CapturedEffectLocalResultExportIssue {
 
 type CapturedEffectLocalUnitInputs
 
+type CapturedEffectPinAdmission
+
 pub(all) enum CapturedEffectPlanInventoryIssue {
   InvalidLimits
   CapacityExceeded
@@ -1319,6 +1398,7 @@ pub(all) enum CapturedPausedDependencyIssue {
   Boundary(CapturedTaskBoundaryIssue)
   InvalidDependency
   InputWorkLimit
+  InputCapacity(@physical_resources.LedgerIssue)
   DependencyUnavailable(RunIssue)
   Cell(@execution_relation.RelationPresenceIssue)
 }
@@ -1372,9 +1452,24 @@ pub(all) enum CapturedTaskBoundaryPhase {
   OutputEmitted
 } derive(Eq, @debug.Debug)
 
+type CapturedTaskContinuation
+
+pub(all) enum CapturedTaskContinuationIssue {
+  StalePause
+  WorkLimit
+  InvalidCut
+  MissingCompletion(Int)
+  MissingOutput(Int)
+  OutputCapacity
+  OutputEncoding
+  OutputRefused
+  Boundary(CapturedTaskBoundaryIssue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum CapturedTaskControlCommand {
   Pause
   ResumeStep
+  ResumeBefore(Int, Int)
   ResumeTerminal
 } derive(Eq, @debug.Debug)
 
@@ -1396,6 +1491,7 @@ pub(all) enum CapturedTaskControlPhase {
   Paused
   Running
   Stepping(Int)
+  RunningToBreakpoint(Int)
   PausePending
   Completed
   Retired
@@ -1602,6 +1698,23 @@ type ResidentRead
 type ResidentTable
 
 type ResidentTransfer
+
+pub(all) struct RestoredTaskCut {
+  start_revision : Int
+  control_revision : Int
+  generation : Int
+  completed_task : Int
+  next_task : Int
+  completed : ReadOnlyArray[RestoredTaskOccurrence]
+}
+
+pub(all) struct RestoredTaskOccurrence {
+  task : Int
+  generation : Int
+  attempt : Int
+  output : @execution_relation.CompletedOutput?
+  retire : (() -> Bool)?
+}
 
 pub(all) enum RunIssue {
   UnsupportedGraph

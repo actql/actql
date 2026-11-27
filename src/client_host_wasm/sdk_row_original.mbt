@@ -181,6 +181,7 @@ fn sdk_run_row_inspection(
     request: record.request,
     definition: record.definition,
     checkpoint: None,
+    cancellation_head: record.cancellation_head,
     task_materials_cid: record.task_materials_cid,
   })
 }

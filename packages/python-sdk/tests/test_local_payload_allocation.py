@@ -32,7 +32,8 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
             self.assertEqual(family, 'payload_allocation')
             if name == 'reserve':
                 self.assertEqual(args[:3], (23, 1, 8))
-                self.assertGreaterEqual(args[3], 2 * 65536)
+                self.assertEqual(args[3], 1024)
+                self.assertGreaterEqual(args[4], 2 * 1024)
             if name == 'length':
                 return state.get('length', len(wire))
             if name == 'close' and state['close'] == 0:
@@ -44,7 +45,7 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
 
     def test_original_request_current_context_and_physical_input_are_forwarded(self):
         core, request, observation, calls, _, wire = self.bridge()
-        record = core.reserve_payload_allocation(request, 1, cleanup=lambda: True)
+        record = core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: True)
         core.produce_payload_allocation(record, observation, 31)
         self.assertEqual(core.read_payload_allocation(record, 37), wire)
         core.begin_payload_allocation(record, 41)
@@ -55,7 +56,7 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
 
     def test_allocation_requires_original_actual_store_observation(self):
         core, request, observation, calls, _, _ = self.bridge()
-        record = core.reserve_payload_allocation(request, 1, cleanup=lambda: True)
+        record = core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: True)
         with self.assertRaises(ValueError):
             core.produce_payload_allocation(record, None, 31)
         core.produce_payload_allocation(record, observation, 31)
@@ -67,11 +68,11 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
         def call(family, name, *args):
             if family == 'payload_allocation' and name == 'reserve':
                 calls.append((family, name, args))
-                self.assertEqual(args[:3], (23, 2, 8))
+                self.assertEqual(args[:4], (23, 2, 8, 1200))
                 return 29
             return original_call(family, name, *args)
         core._call = original_byte_fixture_port(call)
-        record = core.reserve_payload_allocation(request, 2, cleanup=lambda: True)
+        record = core.reserve_payload_allocation(request, 2, 1200, cleanup=lambda: True)
         core.produce_payload_allocation(record, observation, 31)
         self.assertIn(('payload_allocation', 'produce', (29, 11, 31)), calls)
 
@@ -79,14 +80,14 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
         core, request, _, calls, _, _ = self.bridge()
         for kind in (True, False, 0, 3, 1.0, '1', None):
             with self.assertRaises(ValueError):
-                core.reserve_payload_allocation(request, kind, cleanup=lambda: True)
+                core.reserve_payload_allocation(request, kind, 1024, cleanup=lambda: True)
         self.assertEqual(calls, [])
         self.assertEqual(core._next_ticket, 8)
         self.assertEqual(core._inputs, {})
 
     def test_cached_bytes_still_recheck_current_authority(self):
         core, request, _, calls, state, wire = self.bridge()
-        record = core.reserve_payload_allocation(request, 1, cleanup=lambda: True)
+        record = core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: True)
         self.assertEqual(core.read_payload_allocation(record, 31), wire)
         copies = sum(f == 'buffer' for f, _, _ in calls)
         self.assertIs(core.read_payload_allocation(record, 37), core._inputs[8].payload)
@@ -98,7 +99,7 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
 
     def test_repeated_begin_and_bad_observation_are_not_physical_write_permission(self):
         core, request, observation, calls, state, _ = self.bridge()
-        record = core.reserve_payload_allocation(request, 1, cleanup=lambda: True)
+        record = core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: True)
         core.begin_payload_allocation(record, 31)
         state['begin'] = -33
         with self.assertRaises(LocalCoreError):
@@ -111,10 +112,10 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
 
     def test_copies_foreign_family_and_invalid_controls_fail_before_io(self):
         core, request, observation, calls, _, _ = self.bridge()
-        record = core.reserve_payload_allocation(request, 1, cleanup=lambda: True)
+        record = core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: True)
         before = len(calls)
         for action in (
-            lambda: core.reserve_payload_allocation(copy.copy(request), 1, cleanup=lambda: True),
+            lambda: core.reserve_payload_allocation(copy.copy(request), 1, 1024, cleanup=lambda: True),
             lambda: core.produce_payload_allocation(copy.copy(record), observation, 31),
             lambda: core.read_payload_allocation(request, 31),
             lambda: core.begin_payload_allocation(record, True),
@@ -129,7 +130,7 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
 
     def test_pending_close_keeps_original_handle_and_allocation_for_confirmation(self):
         core, request, observation, _, state, _ = self.bridge()
-        record = core.reserve_payload_allocation(request, 1, cleanup=lambda: state['cleanup_ready'])
+        record = core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: state['cleanup_ready'])
         core.begin_payload_allocation(record, 31)
         core._closing = True
         self.assertFalse(core.close_payload_allocation(record))
@@ -148,10 +149,10 @@ class PayloadAllocationCustodyTests(unittest.TestCase):
         core, request, _, calls, state, _ = self.bridge()
         state['reserve'] = -4
         with self.assertRaises(LocalCoreError):
-            core.reserve_payload_allocation(request, 1, cleanup=lambda: True)
+            core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: True)
         self.assertNotIn(8, core._inputs)
         core._closing = True
         before = len(calls)
         with self.assertRaises(RuntimeError):
-            core.reserve_payload_allocation(request, 1, cleanup=lambda: True)
+            core.reserve_payload_allocation(request, 1, 1024, cleanup=lambda: True)
         self.assertEqual(len(calls), before)

@@ -15,6 +15,7 @@ pub(all) enum LocalValuesResultExportIssue {
   Bridge(@execution.ManagedProducerBridgeIssue)
   Export(@publication_host.PublicationOutputExportIssue)
   Transformation(@publication_host.CapturedClientResultTransformationIssue)
+  Selection(@publication_host.ClientResultTransformationIssue)
   Preparation(ClientClosedValuesPreparationIssue)
 }
 
@@ -203,8 +204,7 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
       .map(stream => { stream, bridge: None, closed: false, })
   }
   let (bridge, output) = match
-    prepare_publication_bridge_for_original(
-      self.available,
+    self.prepare_publication_bridge_for_original(
       operations,
       managed,
       row_limits,
@@ -246,6 +246,418 @@ pub fn LocalValuesExecution::prepare_captured_result_export(
       @execution.close_managed_publication_bridge(bridge)
       Err(local_values_transformation_issue(issue))
     }
+  }
+}
+
+///|
+fn installed_whole_publication_original(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  invocation : @publication.PublicationContract,
+) -> (
+  ClientInstalledManagedCapturePlan,
+  @strategy.CapturedDAG,
+  @publication.PublicationContract,
+)? {
+  guard owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    !plan.whole_sources.is_empty() &&
+    !owner.effect_operation_closing &&
+    owner.publication_definition is Some(definition) &&
+    owner.publication_invocation is Some(bound) &&
+    physical_equal(bound, invocation) &&
+    @publication_host.client_compiled_run_has_original_definition(
+      compiled, definition,
+    ) &&
+    plan.compilation is Some(@publication_host.Tasks(tasks)) &&
+    @publication_host.client_compiled_run_matches_tasks(
+      compiled, prepared, tasks,
+    ) &&
+    owner.source_free_captured is Some(captured) &&
+    physical_equal(plan.graph, @strategy.captured_dag_graph(captured)) else {
+    return None
+  }
+  Some((plan, captured, definition))
+}
+
+///|
+/// Recheck one captured File occurrence against the installed Run and return
+/// its exact DAG and logical relation CID for the original publication.
+pub fn installed_single_whole_publication_source(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  capture : @row_source_host.RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+) -> Result[(@strategy.CapturedDAG, String), ClientInstalledManagedRunIssue] {
+  check_installed_managed_run(owner, prepared, request).bind(_ => {
+    guard installed_whole_publication_original(
+        owner, prepared, request, compiled, invocation,
+      )
+      is Some((plan, dag, bound_definition)) &&
+      physical_equal(bound_definition, definition) &&
+      plan.whole_sources.length() == 1 &&
+      whole_source_publication_capture_matches(owner, plan, capture) &&
+      @row_source_host.row_capture_source(capture) is Ok(input) &&
+      @query.captured_source_relation_identity_matches_source(identity, input) else {
+      return Err(ForeignOriginal)
+    }
+    // Capture liveness can call its original supplier. After it returns,
+    // recheck installed bindings without entering that supplier again.
+    check_installed_managed_run_binding(owner, prepared, request).bind(_ => {
+      guard owner.source_free_captured is Some(still) &&
+        physical_equal(still, dag) &&
+        owner.publication_invocation is Some(bound) &&
+        physical_equal(bound, invocation) &&
+        !owner.effect_operation_closing &&
+        whole_source_publication_capture_matches(owner, plan, capture) else {
+        return Err(ForeignOriginal)
+      }
+      Ok((dag, @query.captured_source_relation_logical_cid(identity)))
+    })
+  })
+}
+
+///|
+/// Original named Result material and one bounded preparation cursor. Its
+/// bridge remains under the same managed task until Finish transfers it.
+struct LocalWholeNamedResultPreparation {
+  execution : LocalValuesExecution
+  operations : @local_driver.LocalManagedDispatchOperations[Int]
+  completed : @execution.ManagedCompletedOutput[Int]
+  definition : @publication.PublicationContract
+  occurrence : @execution.ManagedResultOccurrence
+  result_index : Int
+  row_count : Int
+  row_limits : @execution.RetainedRowDecodeLimits
+  limits : @publication_host.PublicationOutputExportLimits
+  bridge_max_entries : Int
+  bridge_max_name_bytes : Int
+  reserve_row_copy : (Int64, Int64) -> Bool
+  mut bridge : @execution.ManagedPublicationBridge[Int]?
+  mut funding : LocalPublicationBridgeCopyFunding?
+  mut metadata_retained : Int64
+  mut position : Int
+  mut transformation : @publication_host.CapturedClientResultTransformation?
+  exported : Ref[@publication_host.PublicationOutputExport?]
+  mut ready : Bool
+  mut finished : Bool
+  mut failed : Bool
+  mut closed : Bool
+}
+
+///|
+/// Select one checked named occurrence and its physical output before any
+/// row is copied. Narrowing the quantum never reselects its managed Task.
+pub fn start_installed_whole_named_result_export(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  invocation : @publication.PublicationContract,
+  execution : LocalValuesExecution,
+  result_index : Int,
+  definition : @publication.PublicationContract,
+  max_payload_bytes : Int,
+  reserve_row_copy : (Int64, Int64) -> Bool,
+) -> Result[LocalWholeNamedResultPreparation, LocalValuesResultExportIssue] {
+  guard installed_whole_publication_original(
+      owner, prepared, request, compiled, invocation,
+    )
+    is Some((plan, captured, _)) &&
+    physical_equal(captured, execution.run) else {
+    return Err(Transformation(@publication_host.ForeignSelection))
+  }
+  guard installed_managed_publication_limits(owner, prepared, max_payload_bytes)
+    is Some(limits) else {
+    return Err(MissingOutput)
+  }
+  // installed_whole_publication_original checks the same compiled material
+  // and the exact installed graph. Select its Result directly.
+  let graph = @strategy.captured_dag_graph(captured)
+  guard @strategy.graph_result_occurrence(graph, result_index)
+    is Some(occurrence) &&
+    @strategy.graph_result_task(graph, result_index) is Some(task) &&
+    @strategy.graph_result_name(graph, result_index) is Some(name) else {
+    return Err(UnknownResult)
+  }
+  let original = @publication_host.prepared_client_graph(prepared)
+  if @strategy.graph_result_task(original, result_index) != Some(task) ||
+    !(@strategy.graph_result_occurrence(original, result_index) is Some(checked) &&
+    physical_equal(checked, occurrence)) ||
+    !@publication.result_definition_contract_matches(
+      definition,
+      @strategy.graph_program_definition_cid(graph),
+      name,
+    ) {
+    return Err(Transformation(@publication_host.ForeignSelection))
+  }
+  guard execution.publication_original_for_task(task)
+    is Some((operations, completed)) else {
+    return Err(MissingOutput)
+  }
+  let row_count = @execution.managed_completed_output_row_count(completed)
+  if row_count < 0 ||
+    row_count > limits.max_rows ||
+    (operations.output_rows)() != row_count {
+    return Err(MissingOutput)
+  }
+  Ok({
+    execution,
+    operations,
+    completed,
+    definition,
+    occurrence,
+    result_index,
+    row_count,
+    row_limits: plan.capacity_plan.imports.row,
+    limits,
+    bridge_max_entries: plan.capacity_plan.metadata.bridge_entries,
+    bridge_max_name_bytes: plan.capacity_plan.metadata.name_bytes,
+    reserve_row_copy,
+    bridge: None,
+    funding: None,
+    metadata_retained: 0L,
+    position: 0,
+    transformation: None,
+    exported: Ref(None),
+    ready: false,
+    finished: false,
+    failed: false,
+    closed: false,
+  })
+}
+
+///|
+fn local_publication_bridge_issue(
+  issue : LocalValuesPublicationBridgeIssue,
+) -> LocalValuesResultExportIssue {
+  match issue {
+    MissingOutput => MissingOutput
+    Bridge(issue) => Bridge(issue)
+  }
+}
+
+///|
+fn LocalWholeNamedResultPreparation::reserve_view(
+  self : LocalWholeNamedResultPreparation,
+) -> Bool {
+  let port = @execution.managed_result_occurrence_port(self.occurrence)
+  let fields = @schema.field_count(@results.port_schema(port)).to_int64()
+  let terms = @results.port_order_term_count(port).to_int64()
+  let rows = self.row_count.to_int64()
+  let indexes = if terms > 0L && rows > 1L { 2L * rows } else { rows }
+  // The projected names borrow the original Text. Include both row-index
+  // arrays while sorting, the mapped columns and terms, all growth backing,
+  // and the existing recursive comparison controls up to the checked depth.
+  guard @execution.preparation_array_representation(
+      5L,
+      indexes + 2L * fields + terms,
+      true,
+    )
+    is Some(arrays) &&
+    @execution.preparation_representation_cost({
+      ..arrays,
+      record_headers: arrays.record_headers + terms,
+      reference_slots: arrays.reference_slots + 2L * terms,
+      scalar_words: arrays.scalar_words + 3L * terms,
+    })
+    is Some(retained) &&
+    @execution.execution_capacity_inventory_add(
+      0L,
+      CursorRootSlots,
+      self.limits.values.max_depth.to_int64(),
+      4,
+    )
+    is Some(comparison) else {
+    return false
+  }
+  (self.reserve_row_copy)(retained, comparison)
+}
+
+///|
+fn LocalWholeNamedResultPreparation::reserve_metadata(
+  self : LocalWholeNamedResultPreparation,
+  capacity : @execution.ExecutionCapacity,
+) -> Bool {
+  let retained = @execution.execution_capacity_retained_bytes(capacity)
+  let execution = @execution.execution_capacity_execution_bytes(capacity)
+  let next = Int64::max(self.metadata_retained, retained)
+  if !(self.reserve_row_copy)(
+      next - self.metadata_retained,
+      execution - retained,
+    ) {
+    return false
+  }
+  self.metadata_retained = next
+  true
+}
+
+///|
+fn LocalWholeNamedResultPreparation::step(
+  self : LocalWholeNamedResultPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), LocalValuesResultExportIssue] {
+  if self.transformation is Some(transform) {
+    return transform
+      .advance(
+        quantum,
+        before_metadata=Some(capacity => self.reserve_metadata(capacity)),
+      )
+      .map_err(local_values_transformation_issue)
+  }
+  if self.bridge is None {
+    let (bridge, copy) = match
+      self.execution.open_publication_bridge_for_original(
+        self.operations,
+        self.completed,
+        self.row_limits,
+        self.bridge_max_entries,
+        self.bridge_max_name_bytes,
+        self.limits,
+        Some(self.reserve_row_copy),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(local_publication_bridge_issue(issue))
+    }
+    self.bridge = Some(bridge)
+    self.funding = copy
+    return Ok((false, 1))
+  }
+  guard self.bridge is Some(bridge) else { return Err(MissingOutput) }
+  let rows = Int::min(quantum, self.row_count - self.position)
+  if rows > 0 {
+    for _ in 0..<rows {
+      let row = match (self.operations.output_row)(self.position) {
+        Ok(value) => value
+        Err(_) => return Err(MissingOutput)
+      }
+      match
+        append_local_publication_bridge_row(
+          self.execution.available,
+          bridge,
+          row,
+          self.row_limits,
+          self.position,
+          self.funding,
+        ) {
+        Err(issue) => return Err(local_publication_bridge_issue(issue))
+        Ok(_) => self.position += 1
+      }
+    }
+    return Ok((false, rows))
+  }
+  let output = match @execution.finish_managed_publication_bridge(bridge) {
+    Err(issue) => return Err(Bridge(issue))
+    Ok(output) => output
+  }
+  if !self.reserve_view() {
+    return Err(MissingOutput)
+  }
+  match
+    @publication_host.start_captured_managed_result_publication_export(
+      self.execution.run,
+      self.result_index,
+      self.completed,
+      bridge,
+      output,
+      self.limits,
+      definition=self.definition,
+    ) {
+    Err(issue) => Err(local_values_transformation_issue(issue))
+    Ok(transformation) => {
+      self.transformation = Some(transformation)
+      Ok((false, 1))
+    }
+  }
+}
+
+///|
+/// Copy or transform only the current quantum. A refusal seals the cursor;
+/// its already retained bridge and task remain reachable by close.
+pub fn LocalWholeNamedResultPreparation::advance(
+  self : LocalWholeNamedResultPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), LocalValuesResultExportIssue] {
+  if quantum <= 0 ||
+    self.closed ||
+    self.finished ||
+    self.failed ||
+    !self.execution.available.val {
+    return Err(Export(@publication_host.InvalidState))
+  }
+  if self.ready {
+    return Ok((true, 0))
+  }
+  match self.step(quantum) {
+    Err(issue) => {
+      self.failed = true
+      Err(issue)
+    }
+    Ok((done, work)) => {
+      self.ready = done
+      Ok((done, work))
+    }
+  }
+}
+
+///|
+/// The same preparation keeps the bridge and finished export until close.
+/// Finish exposes a borrowed stream, and cannot move its pin to a new owner.
+pub fn LocalWholeNamedResultPreparation::finish(
+  self : LocalWholeNamedResultPreparation,
+) -> Result[
+  @publication_host.PublicationOutputExport,
+  LocalValuesResultExportIssue,
+] {
+  guard !self.closed &&
+    !self.finished &&
+    !self.failed &&
+    self.ready &&
+    self.execution.available.val &&
+    self.transformation is Some(transformation) else {
+    return Err(Export(@publication_host.InvalidState))
+  }
+  match transformation.finish(handoff=Some(self.exported)) {
+    Err(issue) => {
+      self.failed = true
+      Err(local_values_transformation_issue(issue))
+    }
+    Ok(stream) => {
+      self.finished = true
+      Ok(stream)
+    }
+  }
+}
+
+///|
+pub fn LocalWholeNamedResultPreparation::inputs_ready(
+  self : LocalWholeNamedResultPreparation,
+) -> Bool {
+  !self.closed && !self.failed && self.transformation is Some(_)
+}
+
+///|
+pub fn LocalWholeNamedResultPreparation::close(
+  self : LocalWholeNamedResultPreparation,
+) -> Unit {
+  if !self.closed {
+    if self.transformation is Some(transformation) {
+      transformation.cancel()
+    }
+    self.transformation = None
+    if self.bridge is Some(bridge) {
+      @execution.close_managed_publication_bridge(bridge)
+    }
+    self.bridge = None
+    self.funding = None
+    self.closed = true
   }
 }
 
@@ -305,9 +717,9 @@ fn LocalValuesExecution::publication_original_for_task(
 let publication_bridge_row_quote_controls : Int64 = {
   let source = @source.json_source_preflight_control_extent()
   @execution.preparation_representation_cost({
-    record_headers: source.record_headers + 9L,
-    reference_slots: source.reference_slots + 12L,
-    scalar_words: source.scalar_words + 29L,
+    record_headers: source.record_headers + 10L,
+    reference_slots: source.reference_slots + 15L,
+    scalar_words: source.scalar_words + 31L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
@@ -399,6 +811,27 @@ fn reserve_publication_bridge_row_copy(
 // Conversion keeps the selected operations and SAME managed completion
 // together across material/row callbacks. No second task lookup can replace
 // that generation. An optional Host funding boundary precedes row decoding.
+fn LocalValuesExecution::prepare_publication_bridge_for_original(
+  self : LocalValuesExecution,
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  completed : @execution.ManagedCompletedOutput[Int],
+  row_limits : @execution.RetainedRowDecodeLimits,
+  bridge_max_entries : Int,
+  bridge_max_name_bytes : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+  before_row? : ((String) -> Bool)? = None,
+  reserve_row_copy? : ((Int64, Int64) -> Bool)? = None,
+) -> Result[
+  (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
+  LocalValuesPublicationBridgeIssue,
+] {
+  prepare_publication_bridge_for_original(
+    self.available, operations, completed, row_limits, bridge_max_entries,
+    bridge_max_name_bytes, limits, before_row~, reserve_row_copy~,
+  )
+}
+
+///|
 fn prepare_publication_bridge_for_original(
   available : Ref[Bool],
   operations : @local_driver.LocalManagedDispatchOperations[Int],
@@ -411,6 +844,86 @@ fn prepare_publication_bridge_for_original(
   reserve_row_copy? : ((Int64, Int64) -> Bool)? = None,
 ) -> Result[
   (@execution.ManagedPublicationBridge[Int], @execution.CompletedOutput),
+  LocalValuesPublicationBridgeIssue,
+] {
+  let (bridge, copy_funding) = match
+    open_publication_bridge_for_original(
+      available, operations, completed, row_limits, bridge_max_entries, bridge_max_name_bytes,
+      limits, reserve_row_copy,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  for index in 0..<(operations.output_rows)() {
+    let row = match (operations.output_row)(index) {
+      Ok(value) => value
+      Err(_) => {
+        @execution.close_managed_publication_bridge(bridge)
+        return Err(MissingOutput)
+      }
+    }
+    if before_row is Some(prepare) && !prepare(row) {
+      @execution.close_managed_publication_bridge(bridge)
+      return Err(MissingOutput)
+    }
+    match
+      append_local_publication_bridge_row(
+        available,
+        bridge,
+        row,
+        row_limits,
+        index,
+        copy_funding,
+      ) {
+      Err(issue) => {
+        @execution.close_managed_publication_bridge(bridge)
+        return Err(issue)
+      }
+      Ok(_) => ()
+    }
+  }
+  let output = match @execution.finish_managed_publication_bridge(bridge) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(bridge)
+      return Err(Bridge(issue))
+    }
+  }
+  Ok((bridge, output))
+}
+
+///|
+fn LocalValuesExecution::open_publication_bridge_for_original(
+  self : LocalValuesExecution,
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  completed : @execution.ManagedCompletedOutput[Int],
+  row_limits : @execution.RetainedRowDecodeLimits,
+  bridge_max_entries : Int,
+  bridge_max_name_bytes : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+  reserve_row_copy : ((Int64, Int64) -> Bool)?,
+) -> Result[
+  (@execution.ManagedPublicationBridge[Int], LocalPublicationBridgeCopyFunding?),
+  LocalValuesPublicationBridgeIssue,
+] {
+  open_publication_bridge_for_original(
+    self.available, operations, completed, row_limits, bridge_max_entries,
+    bridge_max_name_bytes, limits, reserve_row_copy,
+  )
+}
+
+///|
+fn open_publication_bridge_for_original(
+  available : Ref[Bool],
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  completed : @execution.ManagedCompletedOutput[Int],
+  row_limits : @execution.RetainedRowDecodeLimits,
+  bridge_max_entries : Int,
+  bridge_max_name_bytes : Int,
+  limits : @publication_host.PublicationOutputExportLimits,
+  reserve_row_copy : ((Int64, Int64) -> Bool)?,
+) -> Result[
+  (@execution.ManagedPublicationBridge[Int], LocalPublicationBridgeCopyFunding?),
   LocalValuesPublicationBridgeIssue,
 ] {
   if !available.val {
@@ -449,7 +962,7 @@ fn prepare_publication_bridge_for_original(
         available.val else {
         return Err(MissingOutput)
       }
-      Some((imports, reserve))
+      Some({ imports, reserve, retained: 0L, decoder: 0L, })
     }
   }
   let bridge = match
@@ -464,86 +977,74 @@ fn prepare_publication_bridge_for_original(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
-  let mut copied_prefix = 0L
-  let mut decoder_peak = 0L
-  for index in 0..<(operations.output_rows)() {
-    let row = match (operations.output_row)(index) {
-      Ok(value) => value
-      Err(_) => {
-        @execution.close_managed_publication_bridge(bridge)
+  Ok((bridge, copy_funding))
+}
+
+///|
+priv struct LocalPublicationBridgeCopyFunding {
+  imports : @local.LocalImportLimits
+  reserve : (Int64, Int64) -> Bool
+  mut retained : Int64
+  mut decoder : Int64
+}
+
+///|
+fn append_local_publication_bridge_row(
+  available : Ref[Bool],
+  bridge : @execution.ManagedPublicationBridge[Int],
+  row : String,
+  row_limits : @execution.RetainedRowDecodeLimits,
+  index : Int,
+  copy_funding : LocalPublicationBridgeCopyFunding?,
+) -> Result[Unit, LocalValuesPublicationBridgeIssue] {
+  let funded = match copy_funding {
+    None => None
+    Some(state) => {
+      let bytes = match
+        @scalar.admit_utf8_length64(row, row_limits.max_bytes.to_int64()) {
+        Ok(value) => value
+        Err(_) => return Err(Bridge(Wire(InputLimit)))
+      }
+      guard @execution.managed_publication_bridge_import_usage(bridge)
+        is Some(usage) &&
+        reserve_publication_bridge_row_copy(
+          state.imports,
+          @execution.managed_publication_bridge_import_schema(bridge),
+          row,
+          bytes,
+          index.to_int64(),
+          usage,
+          state.retained,
+          state.decoder,
+          state.reserve,
+        )
+        is Some((retained, decoder, nodes, text)) else {
         return Err(MissingOutput)
       }
-    }
-    if before_row is Some(prepare) && !prepare(row) {
-      @execution.close_managed_publication_bridge(bridge)
-      return Err(MissingOutput)
-    }
-    let funded = match copy_funding {
-      None => None
-      Some((imports, reserve)) => {
-        let bytes = match
-          @scalar.admit_utf8_length64(row, row_limits.max_bytes.to_int64()) {
-          Ok(value) => value
-          Err(_) => {
-            @execution.close_managed_publication_bridge(bridge)
-            return Err(Bridge(Wire(InputLimit)))
-          }
-        }
-        guard @execution.managed_publication_bridge_import_usage(bridge)
-          is Some(usage) &&
-          reserve_publication_bridge_row_copy(
-            imports,
-            @execution.managed_publication_bridge_import_schema(bridge),
-            row,
-            bytes,
-            index.to_int64(),
-            usage,
-            copied_prefix,
-            decoder_peak,
-            reserve,
-          )
-          is Some((retained, decoder, nodes, text)) else {
-          @execution.close_managed_publication_bridge(bridge)
-          return Err(MissingOutput)
-        }
-        copied_prefix = retained
-        decoder_peak = decoder
-        Some((nodes, text))
-      }
-    }
-    // The Host's storage callback can reenter retirement. Keep this cheap
-    // execution fence in addition to the bridge's original material checks.
-    if !available.val {
-      @execution.close_managed_publication_bridge(bridge)
-      return Err(MissingOutput)
-    }
-    match
-      @execution.append_managed_publication_bridge_wire(bridge, row, row_limits) {
-      Ok(_) => ()
-      Err(issue) => {
-        @execution.close_managed_publication_bridge(bridge)
-        return Err(Bridge(issue))
-      }
-    }
-    if funded is Some((nodes, text)) &&
-      !(@execution.managed_publication_bridge_import_usage(bridge)
-      is Some(usage) &&
-      usage.nodes >= 0 &&
-      usage.nodes.to_int64() <= nodes &&
-      usage.text_bytes >= 0 &&
-      usage.text_bytes.to_int64() <= text) {
-      @execution.close_managed_publication_bridge(bridge)
-      return Err(MissingOutput)
+      state.retained = retained
+      state.decoder = decoder
+      Some((nodes, text))
     }
   }
-  let output = match @execution.finish_managed_publication_bridge(bridge) {
-    Ok(value) => value
-    Err(issue) => {
-      @execution.close_managed_publication_bridge(bridge)
-      return Err(Bridge(issue))
-    }
+  // The Host's storage callback can reenter retirement. Keep this cheap
+  // execution fence in addition to the bridge's original material checks.
+  if !available.val {
+    return Err(MissingOutput)
   }
-  Ok((bridge, output))
+  match
+    @execution.append_managed_publication_bridge_wire(bridge, row, row_limits) {
+    Ok(_) => ()
+    Err(issue) => return Err(Bridge(issue))
+  }
+  if funded is Some((nodes, text)) &&
+    !(@execution.managed_publication_bridge_import_usage(bridge) is Some(usage) &&
+    usage.nodes >= 0 &&
+    usage.nodes.to_int64() <= nodes &&
+    usage.text_bytes >= 0 &&
+    usage.text_bytes.to_int64() <= text) {
+    return Err(MissingOutput)
+  }
+  Ok(())
 }
 
 ///|

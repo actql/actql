@@ -325,6 +325,7 @@ fn advance_partial_model_restore(
     return accept_failed_model_slot(
       state,
       saved_model_failure(saved.outcome).unwrap(),
+      restored=true,
     )
   }
   state.restored_binding = Some(saved.binding)

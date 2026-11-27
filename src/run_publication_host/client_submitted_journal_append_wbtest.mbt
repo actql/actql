@@ -520,3 +520,84 @@ test "selected retained byte budget governs fresh append while canonical usage r
   }
   assert_eq(client_saved_submission_revision(retained), 6L)
 }
+
+///|
+test "missing named preparing original refuses before the append inventory" {
+  let original = append_original_record()
+  let point_reads : Array[(String, String)] = []
+  let scans : Array[(String, String)] = []
+  let material : ClientTaskMaterialsOriginal[Unit]? = None
+  let result = prepare_client_submitted_journal_append_with_task_original(
+    original.reference,
+    original.intent,
+    @request_scope.Admissible,
+    1024,
+    (table, cursor) => {
+      scans.push((table, cursor))
+      Err("no replacement append")
+    },
+    (table, key) => {
+      point_reads.push((table, key))
+      Ok(
+        if table == "client_submitted_intent_custody" {
+          Some(inventory_row("issued", b"0"))
+        } else {
+          None
+        },
+      )
+    },
+    _ => Err("unexpected decode"),
+    _ => Err("unexpected Run"),
+    "custody",
+    material,
+    missing_observation=Some("original missing"),
+  )
+  assert_true(result is Err(Observation("original missing")))
+  assert_eq(scans, [])
+  assert_eq(point_reads, [
+    ("client_submitted_intent_custody", "issued"),
+    ("client_submitted_intents", append_request_id),
+  ])
+}
+
+///|
+test "fresh adopted usage and issuance must share a generation, including after 1000 intents" {
+  let count = 1000
+  let issued = inventory_row("issued", b"1000", revision=1000L)
+  let rows = [("client_submitted_intent_custody", issued)]
+  let original = append_original_record()
+  let decide = usage => {
+    let material : ClientTaskMaterialsOriginal[Unit]? = None
+    prepare_client_submitted_journal_append_with_task_original(
+      original.reference,
+      original.intent,
+      @request_scope.Admissible,
+      1024,
+      (_, _) => Err("full compatibility sweep"),
+      (table, key) => inventory_read(rows, table, key),
+      _ => Err("unexpected intent"),
+      _ => Err("unexpected Run"),
+      "custody",
+      material,
+      usage=Some(() => Ok(usage)),
+      fresh_store_usage=true,
+    )
+  }
+  let body = client_submitted_journal_usage_body(count, 7000L, 1024).unwrap()
+  guard decide(Some(inventory_row("retained", body, revision=1000L)))
+    is Ok(Append(candidate)) else { fail("same original usage refused") }
+  let (revision, successor) = client_submitted_journal_append_usage(candidate).unwrap()
+  assert_eq(revision, 1000L)
+  let (_, _, issued_revision, issued_body) = client_submitted_journal_append_rows(candidate)
+  assert_eq(issued_revision, revision)
+  assert_eq(issued_body, b"1001")
+  assert_eq(
+    client_submitted_journal_usage(
+      inventory_row("retained", successor, revision=1001L), 1001, 1024,
+    ).unwrap(),
+    7000L + @utf8.encode(client_submitted_intent_wire(original.intent)).length().to_int64(),
+  )
+  assert_true(decide(Some(inventory_row("retained", body, revision=999L))) is Err(Observation("custody")))
+  assert_true(decide(Some(inventory_row("retained", b"999:7000", revision=1000L))) is Err(Observation("custody")))
+  assert_true(decide(None) is Err(Observation("custody")))
+}

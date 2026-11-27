@@ -379,3 +379,43 @@ test "original Relation packet real one-byte-short parent refuses before constru
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
+
+///|
+test "a returned dependency workspace is excluded from later construction" {
+  let (prepared, request, plan, owner, ledger, captured, execution) = dependency_original_fixture()
+  let inputs = pin_installed_effect_sources(
+    owner, prepared, request, plan, captured, 64,
+  ).unwrap()
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, _) &&
+    owner.effect_operation_controls is Some(control) else {
+    fail("original adopted Effect preparation required")
+  }
+  let previous = @execution.execution_capacity(17L, 4096L).unwrap()
+  retain_installed_effect_dependency_capacity(
+    owner, preparation, admission, plan, ledger, control, previous,
+  ).unwrap()
+  let held = control.dependency_capacity.unwrap()
+  let next = @execution.execution_capacity(31L, 47L).unwrap()
+  retain_installed_effect_dependency_capacity(
+    owner,
+    preparation,
+    admission,
+    plan,
+    ledger,
+    control,
+    next,
+    previous_workspace_retired=true,
+  ).unwrap()
+  let selected = control.dependency_capacity.unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(selected)
+  assert_eq(retained, @execution.execution_capacity_retained_bytes(held) + 31L)
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected),
+    retained + 16L,
+  )
+  assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}

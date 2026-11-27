@@ -36,6 +36,7 @@ class OriginalCommitProjection:
         self._configuration = current_configuration
         self._cleanup = cleanup
         self._outputs: list[_Output] = []
+        self._delivery_preparation: _Output | None = None
         self._projecting = False
         self._closing = False
 
@@ -60,6 +61,7 @@ class OriginalCommitProjection:
             value._core, value._publication = core, original
             value._configuration, value._cleanup = current_configuration, cleanup
             value._outputs = []
+            value._delivery_preparation = None
             value._projecting = value._closing = False
             return value
 
@@ -83,9 +85,10 @@ class OriginalCommitProjection:
         with self._core._lock:
             self._core._owned_output(output, 'publication_commit_export')
             if (not self._projecting or self._closing or len(self._outputs) != 1
-                    or self._outputs[0] is not output):
+                    or self._outputs[0] is not output or self._delivery_preparation is not output):
                 raise ValueError('Foreign original SDK delivery output custody')
             self._outputs.pop()
+            self._delivery_preparation = None
 
     def count(self) -> int:
         self._require_live()
@@ -365,7 +368,9 @@ class OriginalCommitProjection:
 
     def _consume_sdk_read_decision(self, request: _Input, original_run: int,
                                    consume: Callable[[bytes], object]) -> None:
-        output = self._output()
+        # Match local_sdk_read_evidence_decision_wire: a 64 KiB packet,
+        # worst-case JSON quoting and its fixed decision envelope.
+        output = self._output(maximum=6 * 65_536 + 256)
         self._core.produce_publication_sdk_read_evidence_decision(
             output, request, original_run, self._configuration)
         raw = self._core.read_publication_commit_material(output)
@@ -401,9 +406,10 @@ class OriginalCommitProjection:
             raise ValueError('Invalid synchronous SDK delivery lookup consumer result')
 
     def project_sdk_read_delivery_storage(self, request: _Input, original_run: int,
-                                         consume: Callable[[bytes], object]) -> None:
-        """Borrow original closed CAS materials; not a use/ACK or read stream."""
-        if (not callable(consume) or type(original_run) is not int
+                                         consume: Callable[[bytes], object], *,
+                                         require_frame: Callable[[], None]) -> None:
+        """Borrow the original closed CAS materials under the Store reader."""
+        if (not callable(consume) or not callable(require_frame) or type(original_run) is not int
                 or not 0 < original_run < 2**31):
             raise ValueError('Invalid original SDK delivery storage consumer')
         with self._core._lock:
@@ -411,7 +417,7 @@ class OriginalCommitProjection:
             self._ready()
             self._projecting = True
             try:
-                self._consume_sdk_delivery_storage(request, original_run, consume)
+                self._consume_sdk_delivery_storage(request, original_run, consume, require_frame)
                 self._retire_outputs()
                 if self._outputs:
                     raise LocalCoreError('original_sdk_delivery_storage_cleanup', -9)
@@ -419,11 +425,26 @@ class OriginalCommitProjection:
                 self._projecting = False
 
     def _consume_sdk_delivery_storage(self, request: _Input, original_run: int,
-                                      consume: Callable[[bytes], object]) -> None:
-        output = self._output()
-        self._core.produce_publication_sdk_read_delivery_storage(
-            output, request, original_run, self._configuration)
-        raw = self._core.read_publication_commit_material(output)
+                                      consume: Callable[[bytes], object],
+                                      require_frame: Callable[[], None]) -> None:
+        first = self._output(maximum=1)
+        self._delivery_preparation = first
+        require_frame()
+        size = self._core.measure_publication_sdk_read_delivery_storage(
+            first, request, original_run, self._configuration)
+        body = self._output(maximum=size)
+        require_frame()
+        self._core.emit_publication_sdk_read_delivery_storage(body, first, self._configuration)
+        require_frame()
+        raw = self._core.read_publication_commit_material(body)
+        if len(raw) != size:
+            raise LocalCoreError('original_sdk_delivery_storage_wire_extent', -33)
+        # The already funded Store inspection owns the copied bytes. Release
+        # only their transport before staging, with the same first holder live.
+        if not self._core.close_publication_commit_export(body):
+            raise LocalCoreError('original_sdk_delivery_storage_cleanup', -9)
+        self._outputs.remove(body)
+        require_frame()
         if consume(raw) is not None:
             raise ValueError('Invalid synchronous SDK delivery storage consumer result')
 
@@ -615,9 +636,18 @@ class OriginalCommitProjection:
             raise ValueError('Invalid synchronous Local commit consumer result')
 
     def _retire_outputs(self) -> None:
+        preparation = self._delivery_preparation
+        if preparation is not None and not self._saved:
+            self._core.begin_interrupted_sdk_delivery_preparation_cleanup(
+                self._publication, preparation)
         for value in tuple(reversed(self._outputs)):
-            if self._core.close_publication_commit_export(value):
-                self._outputs.remove(value)
+            if not self._core.close_publication_commit_export(value):
+                if preparation is not None:
+                    return
+                continue
+            self._outputs.remove(value)
+            if value is preparation:
+                self._delivery_preparation = None
 
     def retire_outputs(self) -> bool:
         """Explicit same-loan cleanup after physical failure, retaining the view.
@@ -643,15 +673,3 @@ class OriginalCommitProjection:
             self._closing = True
             self._retire_outputs()
             return not self._outputs
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(OriginalCommitProjection, (
-        '_address', '_current', '_lookup_key',
-        '_output', '_ready', '_require_live',
-        '_retire_outputs', 'project_index_lookup_key', 'project_stored_contract_lookup_key',
-        'validate_payload_binding', 'validate_reader_facts',
-    )),
-)

@@ -45,20 +45,29 @@ pub fn prepare_source_free_invocation(
         host: Some(host),
         start: Some(start),
         ..
-      }
+      } as compute
     ) &&
+    compute.current_configuration == Some(current_configuration) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
   if value.closing || value.runtime_closing || record.closing {
     return -5
   }
-  if record.invoked || record.pending {
+  if record.pending || record.produced {
     return -33
   }
   match run_configuration_current(value, current) {
     Ok(_) => ()
     Err(code) => return code
+  }
+  if @local_run.local_compute_model_run(host) is Some(adopted) {
+    return advance_portable_model_invocation(
+      value, record, compute, host, start, current, adopted,
+    )
+  }
+  if record.invoked {
+    return -33
   }
   record.invoked = true
   let borrow = match record.borrow {

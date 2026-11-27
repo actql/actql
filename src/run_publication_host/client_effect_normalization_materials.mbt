@@ -27,6 +27,7 @@ pub fn issue_prepared_client_effect_normalization_materials(
   definition : @publication.PublicationContract,
   original : ClientEffectNormalization,
   request? : ClientRequestIdentity? = None,
+  before_body? : ((String, Int, Int, Int) -> Bool)? = None,
 ) -> Result[
   ClientEffectIssuedNormalizationMaterials,
   ClientEffectRunMaterialsIssue,
@@ -37,6 +38,7 @@ pub fn issue_prepared_client_effect_normalization_materials(
       definition,
       request~,
       normalization=Some(original),
+      before_body~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

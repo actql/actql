@@ -1094,3 +1094,222 @@ fn relation_target_insert_workspace_inventory_with_width(
     },
   ])
 }
+
+///|
+/// Shared construction of the replacement wire. The original file and
+/// its row projection have separate backing. Physical write buffers and
+/// transport belong to the installed adapter.
+pub struct RelationTargetWriteWireConstruction {
+  change_limits : (Int, Int, Int)
+  encoded_change_bytes : Int64
+  replacement_bytes : Int64
+  value_writer_cost : Int64
+  placement : @execution.PreparationRepresentationUnits
+}
+
+///|
+/// The checked Contract, schema wrapper and column names retained after
+/// Mapping readers return. The original declaration, resource and limits
+/// are borrowed. Retain the decoded text that those checked values may alias.
+pub fn relation_document_prepared_contract_retained_inventory(
+  original : RelationDocumentPreparedContract,
+) -> @execution.PreparationRepresentationUnits? {
+  let limits = original.limits
+  let nodes = limits.max_nodes
+  guard @source.json_index_borrowed_construction_extent(
+      nodes,
+      nodes - 1,
+      limits.max_bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(text) &&
+    @schema.unqualified_presence_retained_extent(original.columns.length(), 1)
+    is Some(carrier) &&
+    @schema.from_object_construction_extent(1) is Some(schema) &&
+    @execution.preparation_array_representation(
+      1L,
+      original.columns.length().to_int64(),
+      true,
+    )
+    is Some(columns) &&
+    @canonical.nfc_lf_retained_output_units(limits.max_bytes.to_int64())
+    is Some(normalized) else {
+    return None
+  }
+  let parts = [
+    columns,
+    relation_construction_collection_units(carrier),
+    relation_construction_collection_units(schema),
+    {
+      record_headers: text.record_headers + 3L,
+      reference_slots: text.reference_slots + 12L,
+      scalar_words: text.scalar_words + 7L,
+      owned_utf16_units: text.owned_utf16_units + normalized,
+      owned_wire_bytes: 0L,
+    },
+  ]
+  for objects in [0, nodes] {
+    guard @contract.read_construction_inventory({
+        nodes,
+        objects,
+        arrays: nodes - objects,
+        fields: nodes - 1,
+        max_fields: nodes - 1,
+        max_array_items: nodes - 1,
+        max_selected_text_units: limits.max_bytes,
+        outer_depth: limits.max_depth,
+        work: nodes.to_int64(),
+      })
+      is Some(inventory) else {
+      return None
+    }
+    parts.push(relation_construction_collection_units(inventory.retained))
+  }
+  @execution.compose_preparation_representation(parts)
+}
+
+///|
+// The same closed Text-only Contract profile used by measured projection.
+// Each field is one typed Contract node; no array/nested Contract or value
+// enumeration is traversed by the quote. Broader contracts keep old bounds.
+pub fn relation_document_text_contract_nodes(
+  contract : @contract.Contract,
+) -> Int? {
+  guard contract.shape is @contract.Object(fields) else { return None }
+  let count = @contract.field_count(fields)
+  if count == 2147483647 {
+    return None
+  }
+  for index in 0..<count {
+    if !(@contract.field_at(fields, index).unwrap().contract.shape
+      is @contract.Text(_)) {
+      return None
+    }
+  }
+  Some(count + 1)
+}
+
+///|
+/// Quote from the observed file extent and the held changes String length
+/// before encoding, parsing, normalizing or constructing replacement bytes.
+pub fn relation_target_write_wire_construction(
+  contract : @contract.Contract,
+  page : RowPageLimits,
+  file_bytes : Int,
+  changes_utf16_units : Int,
+  deleting~ : Bool,
+) -> RelationTargetWriteWireConstruction? {
+  guard relation_document_construction_limits_valid(page) &&
+    file_bytes >= 0 &&
+    file_bytes <= page.max_bytes &&
+    changes_utf16_units >= 0 &&
+    changes_utf16_units <= page.max_bytes &&
+    (!deleting || changes_utf16_units == 0) else {
+    return None
+  }
+  // Count the full UTF-8 allocation even when the original parser later
+  // refuses it. The parser and writer themselves retain their page limits.
+  let encoded_change_bytes = 3L * changes_utf16_units.to_int64()
+  let change_bytes = Int::max(
+    1,
+    Int64::min(page.max_bytes.to_int64(), encoded_change_bytes).to_int(),
+  )
+  let change_nodes = Int::min(page.max_nodes, change_bytes)
+  let change_depth = Int::min(page.max_depth, change_nodes)
+  guard @decode.preserving_json_admission_construction_inventory(
+      change_bytes, change_nodes, change_depth,
+    )
+    is Some(request) &&
+    @canonical.nfc_lf_construction_scratch_extent(change_bytes)
+    is Some(normalizing) &&
+    @canonical.nfc_lf_retained_output_units(change_bytes.to_int64())
+    is Some(text) &&
+    @execution.checked_preparation_add_product(128L, text, 6L) is Some(encoded) else {
+    return None
+  }
+  let text_profile = relation_document_text_contract_nodes(contract) is Some(_)
+  let value_bytes = if deleting {
+    1
+  } else if text_profile {
+    Int64::min(page.max_bytes.to_int64(), encoded).to_int()
+  } else {
+    page.max_bytes
+  }
+  let value_nodes = if deleting || text_profile {
+    change_nodes
+  } else {
+    page.max_nodes
+  }
+  let value_depth = if deleting || text_profile {
+    change_depth
+  } else {
+    page.max_depth
+  }
+  let replacement_bytes = Int64::min(
+    page.max_bytes.to_int64(),
+    file_bytes.to_int64() + (if deleting { 0L } else { value_bytes.to_int64() }),
+  )
+  guard @encode.text_writer_construction_inventory(
+      value_bytes, value_nodes, value_depth,
+    )
+    is Some(value_writer) else {
+    return None
+  }
+  let emitter : @execution.PreparationRepresentationUnits = {
+    record_headers: value_writer.record_headers,
+    reference_slots: value_writer.reference_slots,
+    scalar_words: value_writer.scalar_words,
+    owned_utf16_units: value_writer.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  }
+  guard @execution.preparation_representation_cost(emitter)
+    is Some(value_writer_cost) &&
+    @execution.compose_preparation_representation([
+      {
+        record_headers: request.record_headers,
+        reference_slots: request.reference_slots,
+        scalar_words: request.scalar_words,
+        owned_utf16_units: request.owned_utf16_units,
+        owned_wire_bytes: encoded_change_bytes,
+      },
+      {
+        record_headers: normalizing.record_headers,
+        reference_slots: normalizing.reference_slots,
+        scalar_words: normalizing.scalar_words,
+        owned_utf16_units: normalizing.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      emitter,
+      {
+        // UPDATE's checked layout and returned Result also stay live while
+        // the original placement emits its complete replacement.
+        record_headers: if deleting {
+          8L
+        } else {
+          10L
+        },
+        reference_slots: if deleting {
+          16L
+        } else {
+          19L
+        },
+        scalar_words: if deleting {
+          8L
+        } else {
+          10L
+        },
+        owned_utf16_units: text,
+        owned_wire_bytes: replacement_bytes,
+      },
+    ])
+    is Some(placement) else {
+    return None
+  }
+  Some({
+    change_limits: (change_bytes, change_nodes, change_depth),
+    encoded_change_bytes,
+    replacement_bytes,
+    value_writer_cost,
+    placement,
+  })
+}

@@ -70,7 +70,7 @@ fn start_chat_envelope_decode(
       data_keys=true,
     ) {
     Ok(parse) => parse
-    Err(_) => return Err(OutputValue)
+    Err(issue) => return Err(model_response_source_issue(issue.issue))
   }
   Ok({
     phase: ParseChat(parse),
@@ -207,11 +207,18 @@ fn scan_chat_envelope_field(
           }
         }
         "content" =>
-          match @decode.text(value) {
-            Ok(answer) => facts.answer = Some(answer)
-            _ => facts.malformed = true
+          if !@decode.is_null(value) {
+            match @decode.text(value) {
+              Ok(answer) => facts.answer = Some(answer)
+              _ => facts.malformed = true
+            }
           }
-        "refusal" => if !@decode.is_null(value) { facts.refused = true }
+        "refusal" =>
+          match chat_optional_text(value) {
+            Ok(Some(_)) => facts.refused = true
+            Ok(None) => ()
+            Err(_) => facts.malformed = true
+          }
         "tool_calls" | "annotations" =>
           if !@decode.is_null(value) && @decode.array_length(value) != Some(0) {
             facts.malformed = true
@@ -274,16 +281,20 @@ fn advance_chat_envelope_decode(
               max_total_string_bytes: cursor.limits.response_bytes,
             }) {
             Ok(admission) => admission
-            Err(_) => {
+            Err(issue) => {
               cancel_chat_envelope_decode(cursor)
-              return Err(OutputValue)
+              return Err(model_response_admission_issue(issue.kind))
             }
           }
           cursor.phase = AdmitChat(admission)
         }
-        _ => {
+        Ok(@source.JsonParseFailed(issue, ..)) => {
           cancel_chat_envelope_decode(cursor)
-          return Err(OutputValue)
+          return Err(model_response_source_issue(issue.issue))
+        }
+        Err(_) => {
+          cancel_chat_envelope_decode(cursor)
+          return Err(OutputIdentity)
         }
       }
     AdmitChat(admission) =>
@@ -311,9 +322,13 @@ fn advance_chat_envelope_decode(
           cursor.frames.push({ source: root, role: RootEnvelope, next: 0, })
           cursor.phase = ScanChat
         }
-        _ => {
+        Ok(@decode.AdmissionFailed(issue, ..)) => {
           cancel_chat_envelope_decode(cursor)
-          return Err(OutputValue)
+          return Err(model_response_admission_issue(issue.kind))
+        }
+        Err(_) => {
+          cancel_chat_envelope_decode(cursor)
+          return Err(OutputIdentity)
         }
       }
     ScanChat => {

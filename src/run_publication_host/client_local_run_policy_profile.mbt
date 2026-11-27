@@ -18,15 +18,26 @@ pub(all) enum ClientLocalRunPolicyProfileIssue {
 } derive(Eq, Debug)
 
 ///|
+const LOCAL_POLICY_JSON_BYTES : Int = 8192
+
+///|
+const LOCAL_POLICY_JSON_NODES : Int = 512
+
+///|
+const LOCAL_POLICY_JSON_DEPTH : Int = 8
+
+///|
 fn run_profile_value(wire : String) -> @canonical.CanonicalValue? {
   @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-    max_input_bytes: 8192,
-    max_nodes: 512,
-    max_depth: 8,
+    max_input_bytes: LOCAL_POLICY_JSON_BYTES,
+    max_nodes: LOCAL_POLICY_JSON_NODES,
+    max_depth: LOCAL_POLICY_JSON_DEPTH,
   })
   .to_option()
   .bind(value => {
-    Some(@canonical.from_source(value, 512, 8, 8192)) catch {
+    Some(@canonical.from_source(
+      value, LOCAL_POLICY_JSON_NODES, LOCAL_POLICY_JSON_DEPTH, LOCAL_POLICY_JSON_BYTES,
+    )) catch {
       _ => None
     }
   })

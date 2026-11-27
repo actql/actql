@@ -9,7 +9,7 @@ fn cancellation_operation_facts(
     request: value.request,
     definition: value.definition,
     revision,
-    cancellation_requested: value.cancellation_requested,
+    cancellation_requested: value.cancellation_requested(),
     publication_binding: value.publication_binding,
   }
 }
@@ -17,7 +17,7 @@ fn cancellation_operation_facts(
 ///|
 test "shared cancellation append preserves original Run and exact independent three rows" {
   let run = journal_encoding_original()
-  let empty = [("client_cancel_custody", inventory_row("issued", b"0"))]
+  let empty = empty_cancellation_journal_rows()
   let plan = prepare_client_cancellation_journal_append(
     run.request,
     "namespace-a",
@@ -37,6 +37,9 @@ test "shared cancellation append preserves original Run and exact independent th
   let record = client_cancellation_append_record(plan)
   assert_eq(record.action, AcceptCancellation)
   assert_eq(record.observed_revision, 20L)
+  let head = client_cancellation_append_accepted_head(plan).unwrap()
+  assert_eq(head.record_key, cancellation_journal_key_fixture)
+  assert_eq(head.observed_revision, 20L)
   let (key, body, witness, issued_revision, issued_body) = client_cancellation_append_rows(
     plan,
   ).unwrap()
@@ -49,7 +52,10 @@ test "shared cancellation append preserves original Run and exact independent th
 
 ///|
 test "shared cancellation replay and lookup retain immutable outcome without a new terminal observation" {
-  let run = { ..journal_encoding_original(), cancellation_requested: true, }
+  let run = {
+    ..journal_encoding_original(),
+    cancellation_head: Some(cancellation_journal_head_fixture),
+  }
   let original = cancellation_journal_original()
   let observed = Ref(0)
   let census = () => cancellation_journal_inspect(cancellation_journal_rows())
@@ -114,7 +120,7 @@ test "shared cancellation replay and lookup retain immutable outcome without a n
 ///|
 test "shared cancellation missing lookup is unresolved and failed census cannot reach another owner" {
   let run = journal_encoding_original()
-  let empty = [("client_cancel_custody", inventory_row("issued", b"0"))]
+  let empty = empty_cancellation_journal_rows()
   assert_true(
     lookup_client_cancellation_journal_original(
       run.request,
@@ -154,7 +160,7 @@ test "shared cancellation missing lookup is unresolved and failed census cannot 
 ///|
 test "shared cancellation terminal current and capacity are distinct from physical stop" {
   let run = journal_encoding_original()
-  let empty = [("client_cancel_custody", inventory_row("issued", b"0"))]
+  let empty = empty_cancellation_journal_rows()
   let prepare = (current, terminal) => {
     prepare_client_cancellation_journal_append(
       run.request,
@@ -177,8 +183,12 @@ test "shared cancellation terminal current and capacity are distinct from physic
   let record = client_cancellation_append_record(plan)
   assert_eq(record.action, AlreadyTerminal)
   assert_eq(record.observed_revision, 19L)
+  assert_true(client_cancellation_append_accepted_head(plan) is None)
   assert_true(prepare(false, true) is Err(AuthorizationDenied))
-  let requested = { ..run, cancellation_requested: true, }
+  let requested = {
+    ..run,
+    cancellation_head: Some(cancellation_journal_head_fixture),
+  }
   assert_true(
     prepare_client_cancellation_journal_append(
       requested.request,
@@ -195,5 +205,78 @@ test "shared cancellation terminal current and capacity are distinct from physic
       () => true,
     )
     is Err(CapacityExceeded),
+  )
+}
+
+///|
+test "accepted cancellation head observes the exact original receipt and witness only" {
+  let fixture = cancellation_journal_rows()
+  let run = {
+    ..journal_encoding_original(),
+    cancellation_head: Some(cancellation_journal_head_fixture),
+  }
+  let facts = cancellation_operation_facts(run, 21L)
+  let head : ClientAcceptedCancellationHead = {
+    record_key: cancellation_journal_key_fixture,
+    observed_revision: 20L,
+  }
+  let reads = []
+  let read = (table, key) => {
+    reads.push((table, key))
+    inventory_read(fixture, table, key)
+  }
+  let original = observe_client_accepted_cancellation_head(
+    head, "namespace-a", facts, read, "custody",
+  ).unwrap()
+  assert_eq(original.cancel_id, "cancel-é")
+  assert_eq(original.observed_revision, 20L)
+  assert_eq(reads, [
+    ("client_cancellations", cancellation_journal_key_fixture),
+    ("client_cancel_originals", cancellation_journal_key_fixture),
+  ])
+  for
+    (head, namespace_id, facts) in [
+      (head, "another-namespace", facts),
+      ({ ..head, observed_revision: 21L, }, "namespace-a", facts),
+      (head, "namespace-a", { ..facts, revision: 19L, }),
+    ] {
+    assert_true(
+      observe_client_accepted_cancellation_head(
+        head, namespace_id, facts, read, "custody",
+      )
+      is Err("custody"),
+    )
+  }
+  assert_true(
+    observe_client_accepted_cancellation_head(
+      head,
+      "namespace-a",
+      facts,
+      (table, key) => {
+        if table == "client_cancel_originals" {
+          Ok(Some({ ..fixture[2].1, key: "different-witness", }))
+        } else {
+          inventory_read(fixture, table, key)
+        }
+      },
+      "custody",
+    )
+    is Err("custody"),
+  )
+  assert_true(
+    observe_client_accepted_cancellation_head(
+      head,
+      "namespace-a",
+      facts,
+      (table, key) => {
+        if table == "client_cancel_originals" {
+          Err("physical")
+        } else {
+          inventory_read(fixture, table, key)
+        }
+      },
+      "custody",
+    )
+    is Err("physical"),
   )
 }

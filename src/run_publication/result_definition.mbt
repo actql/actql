@@ -150,6 +150,19 @@ pub fn result_definition_contract(
 }
 
 ///|
+/// Check the original sealed Definition against a selected Program and name.
+pub fn result_definition_contract_matches(
+  definition : PublicationContract,
+  program_definition_cid : String,
+  result_name : String,
+) -> Bool {
+  definition.name == "result_definition" &&
+  contract_string(definition, "program_definition_cid") ==
+  Some(program_definition_cid) &&
+  contract_string(definition, "result_name") == Some(result_name)
+}
+
+///|
 /// Canonical complete body for a representation adapter. Identity and schema
 /// decisions have already been made; this is not a second contract encoder.
 pub fn result_definition_json(

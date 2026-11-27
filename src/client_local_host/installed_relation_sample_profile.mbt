@@ -25,6 +25,7 @@ pub(all) enum InstalledRelationSampleProfileIssue {
 priv enum InstalledRelationSampleStartMode {
   UnattendedTerminal
   PausedEntry
+  PausedBeforeBreakpoint(Int, Int, String, ReadOnlyArray[String])
   UnsupportedControl
 }
 
@@ -266,6 +267,132 @@ pub fn check_installed_relation_sample_profile_journal_reference(
     max_depth,
     matches=true,
     decode_original=true,
+  ).bind(checked => {
+    reserve_installed_sample_start_proof_copies(
+      observation.cleanup.holder,
+      checked.prepared,
+      records.intent,
+      records.resolved,
+      records.admission,
+      records.effective,
+    ).map(_ => checked)
+  })
+}
+
+///|
+/// The recovery Read funds the four coexisting evidence constructors and the
+/// original submission-reference decoder before passing their wires in.
+pub fn retained_relation_sample_profile_read_bytes(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  stored_bytes : Int,
+) -> Int64? {
+  let stored = stored_bytes.to_int64()
+  guard stored >= 0L &&
+    result_read_data_cost(stored, 6L * stored, 2L * stored) is Some(metadata) &&
+    @execution.checked_preparation_add_product(
+      installed_sample_journal_reference_bytes, metadata, 1L,
+    )
+    is Some(base) else {
+    return None
+  }
+  guard @publication.run_evidence_admission_construction_inventory(
+      max_bytes,
+      Int::min(max_nodes, max_bytes),
+      max_depth,
+    )
+    is Some(codec) &&
+    @execution.preparation_representation_cost({
+      record_headers: codec.record_headers + 16L,
+      reference_slots: codec.reference_slots + 28L,
+      scalar_words: codec.scalar_words + 16L,
+      owned_utf16_units: codec.owned_utf16_units,
+      owned_wire_bytes: codec.owned_wire_bytes,
+    })
+    is Some(one) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(base, one, 4L)
+}
+
+///|
+/// Re-admit exactly the canonical records supplied by the authorized Journal
+/// Read. Plan/Map selection work still debits the original captured Run.
+pub fn readmit_installed_relation_sample_profile_wires(
+  owner : ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  observation : ClientLogicalObservation,
+  reference_wire : String,
+  intent_wire : String,
+  profile_wire : String,
+  resolved_wire : String,
+  admission_wire : String,
+  resolved_cid : String,
+  admission_cid : String,
+  wire_bytes : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientCheckedRelationSampleProfile,
+  InstalledRelationSampleProfileIssue,
+] {
+  if wire_bytes < 1 || wire_bytes > max_bytes {
+    return Err(SampleProfileLimits)
+  }
+  guard @publication_host.admit_client_submission_reference_record(
+      reference_wire,
+    )
+    is Ok(original_reference) &&
+    @publication_host.client_submission_reference_record_wire(
+      original_reference,
+    ) ==
+    reference_wire &&
+    @publication_host.client_submission_reference_matches_request(
+      original_reference, request,
+    ) else {
+    return Err(ForeignSampleProfile)
+  }
+  fn admit(name : String, wire : String) {
+    @publication.admit_run_evidence_value(
+      name,
+      wire,
+      wire_bytes,
+      Int::min(max_nodes, wire_bytes),
+      max_depth,
+    )
+  }
+  guard admit("control_request_intent", intent_wire) is Ok(intent) &&
+    admit("control_profile", profile_wire) is Ok(profile) &&
+    admit("resolved_control_profile", resolved_wire) is Ok(resolved) &&
+    admit("control_admission", admission_wire) is Ok(admission) &&
+    observation.original is Some(original) &&
+    @publication.run_evidence_value_identity(resolved) == resolved_cid &&
+    @publication.run_evidence_value_identity(admission) == admission_cid else {
+    return Err(ForeignSampleProfile)
+  }
+  check_installed_relation_sample_profile_input(
+    owner,
+    request,
+    definition,
+    observation,
+    reference_wire,
+    {
+      intent,
+      requested: profile,
+      effective: profile,
+      resolved,
+      map: original.sealed_map,
+      admission,
+    },
+    max_bytes,
+    max_nodes,
+    max_depth,
+    matches=true,
+    decode_original=false,
+    use_exact_map_nodes=true,
   )
 }
 
@@ -282,6 +409,7 @@ fn check_installed_relation_sample_profile_input(
   max_depth : Int,
   matches~ : Bool,
   decode_original~ : Bool,
+  use_exact_map_nodes? : Bool = false,
 ) -> Result[
   ClientCheckedRelationSampleProfile,
   InstalledRelationSampleProfileIssue,
@@ -320,6 +448,7 @@ fn check_installed_relation_sample_profile_input(
     max_nodes,
     max_depth,
     decode_original~,
+    use_exact_map_nodes~,
   )
   observation.reading = false
   owner.source_free_opening = false
@@ -341,6 +470,7 @@ fn check_installed_relation_sample_profile_original(
   max_depth : Int,
   decode_original~ : Bool,
   use_exact_map_nodes? : Bool = false,
+  measured_reference_bytes? : Int? = None,
 ) -> Result[
   ClientCheckedRelationSampleProfile,
   InstalledRelationSampleProfileIssue,
@@ -400,15 +530,26 @@ fn check_installed_relation_sample_profile_original(
   let ledger = @strategy.captured_dag_ledger(captured)
   let (reference_bytes, reference_nodes, _) = @publication.interactive_submission_reference_limits()
   if decode_original {
-    // Closed wire/parse/encode and key comparisons are bounded before any
-    // input traversal. The same Ledger also pays the later map visits.
-    match @resources.charge_planning(ledger, reference_bytes) {
-      Err(issue) => return Err(SampleProfileWork(issue))
-      Ok(_) => ()
-    }
-    guard @scalar.admit_utf8_length(reference_wire, reference_bytes)
-      is Ok(extent) else {
-      return Err(ForeignSampleProfile)
+    // A fresh issuer already measured this same immutable reference under
+    // the original Ledger. Other callers fund the exact UTF-16 scan before
+    // finding its UTF-8 extent. The parser still checks the retained wire.
+    let extent = match measured_reference_bytes {
+      Some(bytes) => bytes
+      None => {
+        let units = reference_wire.length()
+        if units > reference_bytes {
+          return Err(ForeignSampleProfile)
+        }
+        match @resources.charge_planning(ledger, units) {
+          Err(issue) => return Err(SampleProfileWork(issue))
+          Ok(_) => ()
+        }
+        guard @scalar.admit_utf8_length(reference_wire, reference_bytes)
+          is Ok(bytes) else {
+          return Err(ForeignSampleProfile)
+        }
+        bytes
+      }
     }
     match
       @resources.charge_planning(ledger, 12 * extent + 16 * reference_nodes) {
@@ -459,6 +600,9 @@ fn check_installed_relation_sample_profile_original(
   ) else {
     return Err(ForeignSampleProfile)
   }
+  let breakpoints = @publication.interactive_profile_breakpoint_count(
+    records.effective,
+  ).to_int64()
   let plan = @publication_host.client_compiled_run_plan(compiled)
   guard @publication.interactive_logical_map_binding_construction(
       records.map,
@@ -475,15 +619,21 @@ fn check_installed_relation_sample_profile_original(
       // in the entry prefix, and the first pass has its own inventory.
       // At most one retained original projection tuple per output. It
       // borrows the three identity strings already on the checked map.
-      records: binding.outputs.to_int64(),
-      record_references: 3L * binding.outputs.to_int64(),
+      records: binding.outputs.to_int64() + breakpoints,
+      record_references: 3L * (binding.outputs.to_int64() + breakpoints),
       record_words: 0L,
       reference_arrays: 0L,
       reference_items: 0L,
       scalar_arrays: 0L,
       scalar_items: 0L,
-      maps: 3L,
-      map_entries: binding.steps.to_int64() + 2L * binding.outputs.to_int64(),
+      maps: if breakpoints == 0L {
+        3L
+      } else {
+        4L
+      },
+      map_entries: binding.steps.to_int64() +
+      2L * binding.outputs.to_int64() +
+      breakpoints,
     })
     is Some(inventory) &&
     @execution.preparation_representation_cost({
@@ -504,6 +654,35 @@ fn check_installed_relation_sample_profile_original(
     is Some(bytes) else {
     return Err(SampleProfileLimits)
   }
+  // A marked start can retain a later Step coordinate. Its tuple, Option,
+  // Result and start-mode payload coexist with one resolved ID/output lookup
+  // and the forward coordinate check. The marked owner also covers the
+  // co-held start ticket and synchronous ACK receiver (H1/R8/W4).
+  let bytes = if breakpoints == 0L {
+    bytes
+  } else {
+    let coordinates = @execution.preparation_representation_cost({
+      record_headers: 10L,
+      reference_slots: 16L,
+      scalar_words: 12L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+    let markers = @execution.preparation_representation_cost({
+      record_headers: 3L,
+      reference_slots: 2L * breakpoints + 9L,
+      scalar_words: 8L,
+      owned_utf16_units: 71L * breakpoints,
+      owned_wire_bytes: 0L,
+    }).unwrap()
+    guard @execution.checked_preparation_add_product(bytes, coordinates, 1L)
+      is Some(total) &&
+      @execution.checked_preparation_add_product(total, markers, 1L)
+      is Some(total) else {
+      return Err(SampleProfileLimits)
+    }
+    total
+  }
   match grow_installed_sample_profile_binding(holder, prepared, bytes) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -515,11 +694,18 @@ fn check_installed_relation_sample_profile_original(
     is Some((_, resolved_nodes, _)) else {
     return Err(ForeignSampleProfile)
   }
+  // The sealed Map node extent bounds visits to all Steps and names for
+  // each selector. The verifier stops at its own max_nodes visit limit.
+  let breakpoint_visits = Int64::min(
+    max_nodes.to_int64(),
+    (map_nodes.to_int64() + 2L) * breakpoints,
+  )
   // Two admission passes, the bounded selector/name scan and both resolved
   // lists. A refused profile never opens the physical task index.
   let visits = 2L * (binding.steps.to_int64() + binding.ports.to_int64()) +
     map_visit_limit.to_int64() +
-    resolved_nodes.to_int64()
+    resolved_nodes.to_int64() +
+    breakpoint_visits
   if visits > 2147483647L {
     return Err(SampleProfileLimits)
   }
@@ -572,6 +758,40 @@ fn check_installed_relation_sample_profile_original(
     Ok(value) => value
     Err(_) => return Err(ForeignSampleProfile)
   }
+  let start_mode = if @publication.interactive_profile_allows_unattended_terminal(
+      records.effective,
+    ) {
+    UnattendedTerminal
+  } else if @publication.interactive_profile_requires_entry_stop(
+      records.effective,
+    ) {
+    PausedEntry
+  } else if @publication.interactive_profile_requires_breakpoint_entry(
+      records.effective,
+    ) {
+    let coordinate = match
+      select_installed_entry_breakpoint(
+        records.resolved,
+        captured,
+        driver_outputs,
+        breakpoints,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(value) => value
+    }
+    guard installed_sample_profile_binding_current(
+      observation, holder, prepared, compiled, captured,
+    ) else {
+      return Err(ForeignSampleProfile)
+    }
+    match coordinate {
+      Some((stage, operation, selected, marks)) =>
+        PausedBeforeBreakpoint(stage, operation, selected, marks)
+      None => PausedEntry
+    }
+  } else {
+    UnsupportedControl
+  }
   Ok({
     owner,
     prepared,
@@ -580,17 +800,7 @@ fn check_installed_relation_sample_profile_original(
     definition,
     captured,
     selection,
-    start_mode: if @publication.interactive_profile_allows_unattended_terminal(
-        records.effective,
-      ) {
-      UnattendedTerminal
-    } else if @publication.interactive_profile_requires_entry_stop(
-        records.effective,
-      ) {
-      PausedEntry
-    } else {
-      UnsupportedControl
-    },
+    start_mode,
     driver_outputs,
     control_admission_cid: @publication.run_evidence_value_identity(
       records.admission,
@@ -600,6 +810,119 @@ fn check_installed_relation_sample_profile_original(
     ),
     logical_map_cid: @publication.run_evidence_value_identity(records.map),
   })
+}
+
+///|
+// Resolve every selected Step through the existing checked task/output index.
+// Keep the ordered original IDs and the first later coordinate. A mark on
+// the entry is already held by the initial pause. A Step without a task refuses.
+fn select_installed_entry_breakpoint(
+  resolved : @publication.RunEvidenceValue,
+  captured : @strategy.CapturedDAG,
+  outputs : Map[Int, (String, String, String)],
+  count : Int64,
+) -> Result[
+  (Int, Int, String, ReadOnlyArray[String])?,
+  InstalledRelationSampleProfileIssue,
+] {
+  let graph = @strategy.captured_dag_graph(captured)
+  let tasks = @strategy.graph_task_count(graph)
+  let entry = @strategy.captured_compute_first_task(captured)
+  guard count > 0L && count <= 64L && entry == 0 && tasks > 0 else {
+    return Err(SampleProfileNotSelected)
+  }
+  let stages = @checked.unit_count(@strategy.graph_program(graph)).to_int64()
+  // Each mark has one resolved lookup and at most a full task scan. The
+  // selected coordinate needs one reverse traversal, a forward check and
+  // one lookup of the already indexed original Step.
+  let work = 5L +
+    count * (3L + 2L * tasks.to_int64()) +
+    stages +
+    tasks.to_int64()
+  guard work <= 2147483647L else { return Err(SampleProfileLimits) }
+  match
+    @resources.charge_planning(
+      @strategy.captured_dag_ledger(captured),
+      work.to_int(),
+    ) {
+    Err(issue) => return Err(SampleProfileWork(issue))
+    Ok(_) => ()
+  }
+  let marks = Array(capacity=count.to_int())
+  let mut earliest = tasks
+  for index in 0..<count.to_int() {
+    guard @publication.interactive_resolved_before_step(resolved, index)
+      is Some(id) else {
+      return Err(SampleProfileNotSelected)
+    }
+    let mut found = false
+    for task in entry..<tasks {
+      if outputs.get(task) is Some((original, _, _)) && original == id {
+        found = true
+        if task > entry && task < earliest {
+          earliest = task
+        }
+        break
+      }
+    }
+    if !found {
+      return Err(SampleProfileNotSelected)
+    }
+    marks.push(id)
+  }
+  if earliest == tasks {
+    return Ok(None)
+  }
+  let operation = @strategy.graph_task_selected_step(graph, earliest).unwrap_or(
+    0,
+  )
+  guard outputs.get(earliest) is Some((selected, _, _)) &&
+    @strategy.graph_task_unit_index(graph, earliest) is Some(stage) &&
+    @strategy.checked_task_control_operation_task(graph, stage, operation) ==
+    Some(earliest) else {
+    return Err(SampleProfileNotSelected)
+  }
+  Ok(Some((stage, operation, selected, ReadOnlyArray::from_array(marks))))
+}
+
+///|
+/// Match only the exact Map and ordered original marks while this issued
+/// profile is still owned by the selected Run. The Journal checks its CAS.
+pub fn installed_relation_sample_entry_breakpoint_matches(
+  owner : ClientInstalledManagedRun,
+  profile : ClientCheckedRelationSampleProfile,
+  logical_map_cid : String,
+  before_step_ids : ReadOnlyArray[String],
+) -> Bool {
+  guard installed_relation_sample_profile_current(owner, profile) &&
+    profile.logical_map_cid == logical_map_cid &&
+    profile.start_mode is PausedBeforeBreakpoint(_, _, _, marks) &&
+    before_step_ids.length() == marks.length() else {
+    return false
+  }
+  if @resources.charge_planning(
+      @strategy.captured_dag_ledger(profile.captured),
+      marks.length() + 1,
+    )
+    is Err(_) ||
+    !installed_relation_sample_profile_current(owner, profile) {
+    return false
+  }
+  for index in 0..<marks.length() {
+    if marks[index] != before_step_ids[index] {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// The initial Step is already parked. Only a later checked target needs
+/// the marked physical start receipt.
+pub fn installed_relation_sample_profile_requires_entry_breakpoint(
+  profile : ClientCheckedRelationSampleProfile,
+) -> Bool {
+  profile.start_mode is PausedBeforeBreakpoint(_, _, _, _)
 }
 
 ///|

@@ -132,12 +132,17 @@ pub fn reserve_publisher(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publication_preflights.get(parent)
-    is Some({ closing: false, produced: true, preflight: Some(_), .. }) &&
+    is Some({ closing: false, produced: true, .. } as preflight) &&
+    stored_publication_preflight_prepared(preflight) &&
     value.copies.get(input) is Some((input_slot, physical)) else {
     return -2
   }
   if value.closing || value.runtime_closing {
     return -5
+  }
+  if preflight.origin is FilePublicationPreflight(file) &&
+    (file.request_started || value.publishers.values().any(child => child.parent == parent)) {
+    return -3
   }
   if physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
@@ -189,8 +194,8 @@ pub fn install_publisher(
   guard selected(nonce) is Some(value) &&
     value.publishers.get(handle) is Some(child) &&
     value.publication_preflights.get(child.parent)
-    is Some({ closing: false, preflight: Some(preflight), compute, .. }) &&
-    value.run_configurations.get(current_configuration) is Some(_) else {
+    is Some({ closing: false, produced: true, .. } as parent) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
   if value.closing || value.runtime_closing || child.closing {
@@ -198,6 +203,15 @@ pub fn install_publisher(
   }
   if child.port is Some(_) {
     return -3
+  }
+  if parent.origin is SavedEffectPublicationPreflight(original) {
+    return install_saved_effect_preflight_publisher(value, child, original, current_configuration, current)
+  }
+  if parent.origin is FilePublicationPreflight(file) {
+    return install_file_preflight_publisher(value, child, file, current_configuration, current)
+  }
+  guard parent.origin is ComputePublicationPreflight({ prepared: Some(preflight), compute, .. }) else {
+    return -2
   }
   // Follow the original Run's retained configuration. A newer current Account
   // may revoke publication, but cannot supply or replace its original policy.
@@ -265,12 +279,46 @@ pub fn authorize_publisher(
     value.publishers.get(handle) is Some(child) &&
     child.port is Some(port) &&
     value.publication_preflights.get(child.parent) is Some(parent) &&
-    parent.preflight is Some(preflight) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
   if value.closing || value.runtime_closing || child.closing || parent.closing {
     return -5
+  }
+  if parent.origin is SavedEffectPublicationPreflight(original) {
+    if child.configuration != current_configuration { return -32 }
+    if stage == 0 && publication == 0 {
+      return authorize_saved_effect_preflight_request(value, handle, child, original, port, current)
+    }
+    return authorize_saved_effect_publication(
+      value, handle, child, original, port, current_configuration, current, stage, publication,
+    )
+  }
+  if parent.origin is FilePublicationPreflight(file) {
+    match stage {
+      0 if publication == 0 =>
+        return authorize_file_preflight_request(
+          value, handle, child, parent, file, port, current_configuration, current,
+        )
+      1 | 2 => {
+        guard value.publications.get(publication) is Some(captured) &&
+          captured.preflight == child.parent else { return -2 }
+        if stage == 1 {
+          return authorize_sdk_file_commit(
+            value, captured, handle, child, parent, file, port, current_configuration, current,
+          )
+        }
+        guard captured.observation_checked && captured.observation_publisher == Some(handle) &&
+          captured.observation_index is Some(index) else { return -7 }
+        return authorize_sdk_file_observed_index(
+          value, captured, handle, child, parent, file, port, current_configuration, index,
+        )
+      }
+      _ => return -3
+    }
+  }
+  guard parent.origin is ComputePublicationPreflight({ prepared: Some(preflight), compute, .. }) else {
+    return -2
   }
   if !stored_preflight_current(value, parent, current.account) {
     return -32
@@ -307,15 +355,15 @@ pub fn authorize_publisher(
     _ => return -3
   }
   if stage != 2 {
-    guard value.computes.get(parent.compute) is Some(compute) &&
-      stored_compute_original_run(value, compute) is Some(original_run) &&
+    guard value.computes.get(compute) is Some(native_compute) &&
+      stored_compute_original_run(value, native_compute) is Some(original_run) &&
       value.run_configurations.get(original_run.configuration)
       is Some(original_configuration) else {
       return -2
     }
     if original_configuration.sdk is Some(_) {
       guard original_run.outcome is Some(Ok(plan)) &&
-        compute.origin is SourceFree(_, start) &&
+        native_compute.origin is SourceFree(_, start) &&
         value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) else {
         return -2
       }
@@ -338,6 +386,14 @@ pub fn authorize_publisher(
     preflight,
   )
   let result = port.check(request, attempt, child.store, selected_stage, index)
+  publisher_check_status(child, result)
+}
+
+///|
+fn publisher_check_status(
+  child : StoredPublisher,
+  result : Result[Unit, @publication.PublicationPublisherIssue],
+) -> Int {
   if child.unknown {
     return -36
   }
@@ -379,6 +435,9 @@ pub fn close_publisher(nonce : Int64, handle : Int) -> Int {
     Err(_) => 0
   }
   if code == 0 {
+    // The installed port's callbacks retain this child. Cut that back-edge
+    // only after the original output and input borrow have retired.
+    child.port = None
     value.publishers.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }

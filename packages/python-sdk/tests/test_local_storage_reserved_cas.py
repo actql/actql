@@ -134,7 +134,7 @@ class ReservedByteCASTests(unittest.TestCase):
             updates = 0
 
             def execute(self, sql: str, *args: object, **kwargs: object) -> sqlite3.Cursor:
-                if sql.startswith('UPDATE core_bytes'):
+                if sql.startswith('UPDATE main.core_bytes'):
                     self.updates += 1
                 result = super().execute(sql, *args, **kwargs)
                 if self.lose and sql == 'COMMIT':

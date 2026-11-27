@@ -29,9 +29,11 @@ class SDKTerminalPortTests(unittest.TestCase):
                 core.produce_publication_sdk_terminal_storage(child, original, tick, config)
         self.assertEqual(calls, [])
         core.produce_publication_sdk_terminal_storage(output, first, clock, 23)
+        core.confirm_publication_sdk_terminal_commit(output, first)
         core.observe_publication_sdk_terminal(first, 23)
         self.assertEqual(calls, [('publication_commit_export', 'produce_sdk_terminal_storage',
                                 (31, 19, 17, 23)),
+                               ('publication_commit_export', 'confirm_sdk_terminal_commit', (31, 19)),
                                ('publication_commit_export', 'observe_sdk_terminal', (19, 23))])
         for result in (True, False, None, 0.0):
             status[0] = result
@@ -76,6 +78,11 @@ class SDKTerminalStoreTests(unittest.TestCase):
                     return -41
             return 0
         def call(family, name, *args):
+            if name == 'confirm_sdk_terminal_commit':
+                self.assertFalse(store._connection.in_transaction)
+                self.assertEqual(args, (holder._payload_outputs[request.ticket].handle, first.handle))
+                calls.append((name, args))
+                return 0
             if name in ('produce_sdk_terminal_storage', 'observe_sdk_terminal'):
                 frame = core._journal_callbacks(observation._binding._current.ticket).reader
                 self.assertIs(frame.owner, store)
@@ -97,14 +104,17 @@ class SDKTerminalStoreTests(unittest.TestCase):
         core._call = original_byte_fixture_port(call)
         return holder, store, core, request, first, clock, state, calls, rows
 
-    def test_success_is_observed_in_new_transaction_not_precommit_callback(self):
+    def test_success_confirms_after_physical_commit_without_an_observation_transaction(self):
         files = file_fixture.ReaderFactsTests()
         with files.file() as (_, root, _, final):
             holder, store, core, request, first, clock, _, calls, rows = self.bridge(root, files.transfer_ready(root, final))
             changes = store._connection.total_changes
-            holder.persist_original_terminal(request, clock)
+            observation = holder._observation
+            with patch.object(observation, '_validate_facts', wraps=observation._validate_facts) as facts:
+                holder.persist_original_terminal(request, clock)
+                self.assertEqual(facts.call_count, 4)
             self.assertEqual(store._connection.total_changes - changes, 3)
-            self.assertEqual([name for name, _ in calls], ['produce_sdk_terminal_storage'] * 2 + ['observe_sdk_terminal'])
+            self.assertEqual([name for name, _ in calls], ['produce_sdk_terminal_storage'] * 2 + ['confirm_sdk_terminal_commit'])
             self.assertEqual(calls[0], calls[1])
             for row in rows:
                 self.assertEqual(store.read(store.namespaced_key(row['table'], row['key'])),
@@ -127,6 +137,7 @@ class SDKTerminalStoreTests(unittest.TestCase):
                 with self.assertRaises(LocalStorageError): holder.persist_original_terminal(request, clock)
                 holder.observe_original_terminal(request, clock)
                 self.assertEqual(write.call_count, 1)
+            self.assertNotIn('confirm_sdk_terminal_commit', [name for name, _ in calls])
             child = holder._payload_outputs[request.ticket]
             state['cleanup'] = False
             self.assertFalse(holder.close_original_first(request))
@@ -154,6 +165,36 @@ class SDKTerminalStoreTests(unittest.TestCase):
             self.assertEqual(error.exception.code, -41)
             with self.assertRaises(LocalStorageError): holder.persist_original_terminal(request, clock)
             self.assertEqual(sum(name == 'produce_sdk_terminal_storage' for name, _ in calls), 2)
+            self.assertTrue(holder.close())
+
+    def test_file_change_between_terminal_rows_rolls_back_the_group(self):
+        from actql_sdk._local_files import LocalFileError
+
+        files = file_fixture.ReaderFactsTests()
+        with files.file() as (path, root, _, final):
+            holder, store, core, request, first, clock, _, _, rows = self.bridge(
+                root, files.transfer_ready(root, final))
+            statements = []
+            def mutate(statement):
+                statements.append(statement)
+                if statement.startswith('INSERT INTO main.core_bytes'):
+                    original = path / 'payload-original'
+                    body = original.read_bytes()
+                    original.write_bytes(b'X' + body[1:])
+
+            store._connection.set_trace_callback(mutate)
+            try:
+                with self.assertRaises(LocalFileError):
+                    holder.persist_original_terminal(request, clock)
+            finally:
+                store._connection.set_trace_callback(None)
+            self.assertNotIn('COMMIT', statements)
+            self.assertIn('ROLLBACK', statements)
+            self.assertIs(core._loans[first.ticket], first)
+            for row in rows[:2]:
+                self.assertIsNone(store.read(store.namespaced_key(row['table'], row['key'])))
+            key = store.namespaced_key(rows[2]['table'], rows[2]['key'])
+            self.assertEqual(store.read(key), StoredBytes(0, b'opaque-streaming'))
             self.assertTrue(holder.close())
 
     def test_precommit_revocation_rolls_back_but_keeps_registered_original_output(self):

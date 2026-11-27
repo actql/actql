@@ -80,6 +80,7 @@ pub fn client_program_check_source(
   correlation_ref : String,
   scope : String,
   source_namespace : ClientCheckSourceNamespace?,
+  runtime_available? : Bool = true,
 ) -> String {
   let scope = match check_scope(scope) {
     Some(scope) => scope
@@ -101,21 +102,28 @@ pub fn client_program_check_source(
     findings, document, format, environment, visible_publication, declarations, parameters,
     scope, source_namespace,
   )
-  check_outcome_json(findings, stop, context_ref, correlation_ref, {
-    scope,
-    structured_program: false,
-    program_pointer: None,
-    source_revision,
-    source_bytes: @utf8.encode(document).length(),
-    declarations_revision,
-    declarations_bytes: declarations
-    .map(body => @utf8.encode(body).length())
-    .unwrap_or(0),
-    parameters_revision,
-    parameters_bytes: parameters
-    .map(body => @utf8.encode(body).length())
-    .unwrap_or(0),
-  })
+  check_outcome_json(
+    findings,
+    stop,
+    context_ref,
+    correlation_ref,
+    {
+      scope,
+      structured_program: false,
+      program_pointer: None,
+      source_revision,
+      source_bytes: @utf8.encode(document).length(),
+      declarations_revision,
+      declarations_bytes: declarations
+      .map(body => @utf8.encode(body).length())
+      .unwrap_or(0),
+      parameters_revision,
+      parameters_bytes: parameters
+      .map(body => @utf8.encode(body).length())
+      .unwrap_or(0),
+    },
+    runtime_available~,
+  )
 }
 
 ///|
@@ -1265,6 +1273,7 @@ fn write_check_report(
   verdict : String,
   documents : CheckDocuments,
   requirement_limit : Int,
+  runtime_available? : Bool = true,
 ) -> Unit raise @encode.EncodeFailure {
   let required_count = findings
     .iter()
@@ -1359,6 +1368,11 @@ fn write_check_report(
     if !runnable_reasons.contains(code) {
       runnable_reasons.push(code)
     }
+  }
+  if reported_verdict == "verified" &&
+    !runtime_available &&
+    !runnable_reasons.contains("implementation_limit") {
+    runnable_reasons.push("implementation_limit")
   }
   runnable_reasons.sort()
   @encode.begin_object(writer)
@@ -2055,12 +2069,14 @@ fn check_outcome_json(
   context_ref : String,
   correlation_ref : String,
   documents : CheckDocuments,
+  runtime_available? : Bool = true,
 ) -> String {
   let mut requirement_limit = 128
   for attempt = 0; attempt < 9; attempt = attempt + 1 {
     match
       check_outcome_attempt(
         findings, stop, context_ref, correlation_ref, documents, requirement_limit,
+        runtime_available,
       ) {
       Some(value) => return value
       None => requirement_limit = requirement_limit / 2
@@ -2077,6 +2093,7 @@ fn check_outcome_attempt(
   correlation_ref : String,
   documents : CheckDocuments,
   requirement_limit : Int,
+  runtime_available : Bool,
 ) -> String? {
   try {
     if stop is TemplateVerified(checked) &&
@@ -2117,6 +2134,7 @@ fn check_outcome_attempt(
           },
           documents,
           requirement_limit,
+          runtime_available~,
         )
       }
       Failed(problem) => {

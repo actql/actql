@@ -104,6 +104,7 @@ test "SDK payload current rejects a substituted grant without creating a receipt
     attempt_key: original.attempt_key,
     usage_key: original.usage_key,
     usage_revision: original.usage_revision,
+    evidence: original.evidence,
     usage: original.usage,
   }
   let rows = sdk_payload_codec_rows(fixture)

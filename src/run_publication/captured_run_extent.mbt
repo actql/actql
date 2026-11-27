@@ -18,6 +18,14 @@ fn capture_contract_extent(
 }
 
 ///|
+fn capture_evidence_extent(value : RunEvidenceValue) -> (Int64, Int64, Int64) {
+  match value.wire_usage {
+    Some((b, n, d)) => (b.to_int64(), n.to_int64(), d.to_int64())
+    None => capture_metadata_extent(value.wire)
+  }
+}
+
+///|
 // Exact field names and empty container kinds mirror EffectContextPreparation;
 // retaining the placeholders is conservative when adding the real children.
 let capture_context_extent_skeleton : String =
@@ -46,8 +54,8 @@ fn captured_plain_run_construction_extent(
   let (receipt_bytes, receipt_nodes, receipt_depth) = capture_contract_extent(
     receipt,
   )
-  let (authoring_bytes, authoring_nodes, authoring_depth) = capture_metadata_extent(
-    authoring.wire,
+  let (authoring_bytes, authoring_nodes, authoring_depth) = capture_evidence_extent(
+    authoring,
   )
   let mut bytes = capture_context_extent_skeleton.length().to_int64() +
     capture_outer_extent_skeleton.length().to_int64() +
@@ -96,7 +104,7 @@ fn captured_plain_run_construction_extent(
     }
   }
   for model in models {
-    let (b, n, d) = capture_metadata_extent(model.wire)
+    let (b, n, d) = capture_evidence_extent(model)
     bytes += b + 1L + 3L + 6L * model.identity.length().to_int64()
     nodes += n + 1L
     metadata_nodes += n + 1L

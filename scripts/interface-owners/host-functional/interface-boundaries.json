@@ -43903,7 +43903,7 @@
             "extension": [
               {
                 "path": "src/run_publication/interactive_current_run_view.mbt",
-                "anchor": "park is Some(debug) && debug.resume_available"
+                "anchor": "Some(debug) if debug.continuation_available"
               }
             ],
             "verification": [

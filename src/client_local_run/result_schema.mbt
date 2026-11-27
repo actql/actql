@@ -14,6 +14,15 @@ pub(all) enum LocalResultSchemaField {
 }
 
 ///|
+/// Borrow the measurement from this same completed export. A transport quote
+/// supplies no independent read or publication authority.
+pub fn local_result_publication_schema_bytes(
+  original : LocalResultPublication,
+) -> Int? {
+  original.output.schema_usage().to_option().map(usage => usage.0)
+}
+
+///|
 pub fn local_preflight_result_schema_field(
   preflight : LocalPublicationPreflight,
   result : Int,

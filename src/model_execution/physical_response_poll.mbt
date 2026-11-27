@@ -34,6 +34,7 @@ pub struct ModelPhysicalChatResponse {
   priv observed_at : String
   priv provider_metadata : @canonical.CanonicalValue?
   priv saved_raw : ModelSavedRawReceipt
+  priv mut failure_observation : @publication.ModelCaptureObservation?
 }
 
 ///|
@@ -241,11 +242,14 @@ fn poll_model_physical_call(
   if call.terminal is None {
     match inner {
       PhysicalPending => ()
-      PhysicalMeasuredHttp(receipt, uploaded, downloaded, result) =>
+      PhysicalMeasuredHttp(receipt, uploaded, downloaded, result) as measured =>
         match
           settle_model_http_observation(
             call, receipt, uploaded, downloaded, result,
           ) {
+          // A bare rejection has no authenticated Raw. Keep the original
+          // measured carrier when this rejection passed receipt admission.
+          Ok(PhysicalRejected(_, _)) => call.terminal = Some(measured)
           Ok(settled) => call.terminal = Some(settled)
           Err(issue) => return Err(issue)
         }
@@ -265,6 +269,42 @@ fn poll_model_physical_call(
 }
 
 ///|
+/// Classify an already rejected complete HTTP response. For 2xx, the
+/// caller has independently established that its body cannot be decoded.
+/// A status supplies neither a transport nor a settlement proof.
+pub fn model_http_rejected_response_failure(
+  status : Int,
+) -> ModelProviderFailure {
+  if status == 429 {
+    RateLimit
+  } else if status >= 200 && status < 300 {
+    SchemaInvalid
+  } else {
+    ProviderError
+  }
+}
+
+///|
+// Both envelope carriers use this only after authenticating a complete Raw
+// response. A syntax/shape failure supplied no decodable usage.
+fn accept_saved_model_http_rejection_without_usage(
+  state : ModelState,
+  call : ModelPhysicalCall,
+  status : Int,
+) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  let unreported = PhysicalUnknown({ input_tokens: None, output_tokens: None, })
+  if observe_model_physical_usage(state, call, unreported) is Err(issue) {
+    return @bounded.Failed(issue, 1, 1)
+  }
+  match retire_model_raw_usage_child(call) {
+    Err(issue) => return @bounded.Failed(issue, 1, 1)
+    Ok(_) => ()
+  }
+  state.progress.observing_response = false
+  accept_failed_model_slot(state, model_http_rejected_response_failure(status))
+}
+
+///|
 fn settle_model_http_observation(
   call : ModelPhysicalCall,
   receipt : ModelSavedRawReceipt,
@@ -279,8 +319,13 @@ fn settle_model_http_observation(
   let matching_outcome = match result {
     PhysicalChatResponse(response) =>
       physical_equal(response.saved_raw, receipt)
-    PhysicalRejected(ProviderError, _) => status >= 300
-    PhysicalRejected(SchemaInvalid, _) => status < 300
+    PhysicalRejected(failure, usage) =>
+      eof &&
+      failure == model_http_rejected_response_failure(status) &&
+      usage.input_tokens is None &&
+      usage.output_tokens is None &&
+      raw.usage_reader is None &&
+      !raw.usage_advancing
     _ => false
   }
   // A foreign view cannot publish its answer or redeem the entered ceiling.
@@ -296,6 +341,15 @@ fn settle_model_http_observation(
     model_raw_capture_call_owned(call) &&
     matching_outcome else {
     return Ok(PhysicalUnknown({ input_tokens: None, output_tokens: None, }))
+  }
+  if result is PhysicalRejected(_, _) {
+    // The authenticated bytes did not produce a UTF-8 decoder child or
+    // usage facts. Retire that exact empty reader obligation before the
+    // caller can obtain the original Attempt evidence for settlement.
+    match retire_model_raw_usage_child(call) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   let state = binding.entry.prepared.owner.state
   let request_bytes = request.body.length().to_int64()
@@ -472,7 +526,9 @@ fn observe_original_model_physical_usage(
         output_tokens: response.observation.bind(value => value.output_tokens),
       }
     }
-    PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
+    PhysicalRejected(_, usage)
+    | PhysicalMeasuredHttp(_, _, _, PhysicalRejected(_, usage))
+    | PhysicalUnknown(usage) => usage
     PhysicalPending
     | PhysicalChatResponse(_)
     | PhysicalNativeResponse(_)
@@ -527,16 +583,15 @@ fn advance_model_physical_response(
     Ok(_) => ()
   }
   match observed {
-    PhysicalPending
-    | PhysicalIoPending(_, _)
-    | PhysicalIoQuiescent(_, _)
-    | PhysicalMeasuredHttp(_, _, _, _) => @bounded.Failed(RequestIdentity, 1, 1)
+    PhysicalPending | PhysicalIoPending(_, _) | PhysicalIoQuiescent(_, _) =>
+      @bounded.Failed(RequestIdentity, 1, 1)
     PhysicalUnknown(_) => {
       state.progress.observing_response = false
       adopt_model_outcome(state, UnresolvedUnknown)
       @bounded.Failed(UnknownCalls, 1, 1)
     }
-    PhysicalRejected(failure, _) => {
+    PhysicalRejected(failure, _)
+    | PhysicalMeasuredHttp(_, _, _, PhysicalRejected(failure, _)) => {
       state.progress.observing_response = false
       observe_model_physical(state, InvokeFailed)
       if state.stop_requested || failure == Cancelled {
@@ -545,6 +600,7 @@ fn advance_model_physical_response(
         accept_failed_model_slot(state, failure)
       }
     }
+    PhysicalMeasuredHttp(_, _, _, _) => @bounded.Failed(RequestIdentity, 1, 1)
     PhysicalResponse(response) => {
       observe_model_physical(state, InvokeReturned)
       begin_reported_model_response(state, prepared, response, reader)
@@ -566,11 +622,7 @@ fn advance_model_physical_response(
         Err(failure) => accept_structured_model_failure(state, failure)
         Ok(encoded) => {
           observe_model_physical(state, InvokeReturned)
-          match begin_encoded_model_response(state, prepared, encoded, reader) {
-            @bounded.Failed(OutputValue, _, _) =>
-              accept_structured_model_failure(state, SchemaInvalid)
-            step => step
-          }
+          begin_encoded_model_response(state, prepared, encoded, reader)
         }
       }
   }

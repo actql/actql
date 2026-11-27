@@ -326,7 +326,10 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                     closed.append(area)
                 return acknowledged
             try:
-                with patch.object(saved, 'close', side_effect=close_parent):
+                # This scalar fixture owns only the area/cleanup path. The
+                # separately exercised Saved transfer has its actual Store.
+                with (patch.object(saved, 'close', side_effect=close_parent),
+                      patch.object(saved, '_check_transfer_current')):
                     iterator = stream.__aiter__()
                     self.assertEqual(await anext(iterator), b'')
                     with self.assertRaises(LocalFileError):

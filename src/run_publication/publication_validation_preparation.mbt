@@ -105,7 +105,7 @@ priv enum PublicationCommitPhase {
 struct PublicationCommitPreparation {
   mut inputs : PublicationCommitInputs?
   mut retained_capture : CapturedRunIssuancePreparation?
-  mut retained_effectful : EffectfulFinalRunEvidence?
+  mut checked_effectful_receipt : PublicationContract?
   max_workspace : Int
   mut phase : PublicationCommitPhase
   mut live : Int
@@ -346,7 +346,7 @@ fn PublicationCommitPreparation::advance_bindings(
       )
       if done {
         child.cancel()
-        if preparation.retained_effectful is Some(_) {
+        if preparation.checked_effectful_receipt is Some(receipt) && physical_equal(receipt, chain.receipt) {
           // The same typed final original already proves computation. Keep
           // all remaining request/attempt/index work in the bounded checker.
           preparation.phase = BeginReferences
@@ -453,7 +453,7 @@ pub fn PublicationCommitPreparation::cancel(
   }
   preparation.inputs = None
   preparation.retained_capture = None
-  preparation.retained_effectful = None
+  preparation.checked_effectful_receipt = None
   preparation.phase = Done
   preparation.live = 0
   preparation.closed = true
@@ -516,7 +516,7 @@ fn new_publication_commit_preparation(
   {
     inputs: Some(inputs),
     retained_capture: None,
-    retained_effectful: None,
+    checked_effectful_receipt: None,
     max_workspace,
     phase: BeginResultEvidence,
     live: 12,

@@ -1,6 +1,7 @@
 {
   "source": "10ec17c17958aa84fab133abc3aac398e3130a1d",
   "qualification": "existing public Python Owner references; not fresh runtime or wheel admission",
+  "syntaxProjectionSha256": "ab5d1698ecaa36dd7e2a2bc7c361a357e763e96c5f944d8071e7d29bcfb3cf9a",
   "declarations": [
     {
       "exports": [
@@ -3367,26 +3368,27 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "AsyncClient",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": true,
           "name": "AsyncClient/__aenter__",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/__aexit__",
           "parameters": [
             "self",
             "*exc"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/__init__",
           "parameters": [
             "self",
@@ -3398,45 +3400,45 @@
             "timeout",
             "transport",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_accept_response",
           "parameters": [
             "self",
             "response"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_answer_checkpoint",
           "parameters": [
             "self",
             "body",
             "decision",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_attach",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_body",
           "parameters": [
             "self",
             "operation",
             "body"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_capture_start",
           "parameters": [
             "self",
@@ -3448,106 +3450,107 @@
             "stop_before",
             "read_only",
             "request_name"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_check",
           "parameters": [
             "self",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_checkpoints",
           "parameters": [
             "self",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_chunks",
           "parameters": [
             "response",
             "chunk_size"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_close_response",
           "parameters": [
             "self",
             "response"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_connect_local",
           "parameters": [
             "cls",
             "host",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_decide_checkpoint",
           "parameters": [
             "self",
             "checkpoint_id",
             "decision"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_from_local_host",
           "parameters": [
             "cls",
             "host",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_json",
           "parameters": [
             "self",
             "response",
             "max_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_lookup_submission",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_open",
           "parameters": [
             "self",
             "operation",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_open_installed_local",
           "parameters": [
             "cls",
             "state_dir",
             "signer",
             "discover_project",
-            "profile"
-          ],
-          "async": true
+            "profile",
+            "model_deployment"
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_prepare_start",
           "parameters": [
             "self",
@@ -3559,62 +3562,62 @@
             "stop_before",
             "read_only",
             "request_name"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_redact_connection_failure",
           "parameters": [
             "self",
             "failure"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_release",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_release_response",
           "parameters": [
             "self",
             "response"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_request",
           "parameters": [
             "self",
             "operation",
             "body",
             "max_bytes"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_resolve_checkpoints",
           "parameters": [
             "self",
             "items",
             "signer",
             "decided_at"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_review_checkpoint",
           "parameters": [
             "self",
             "checkpoint",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_source_query",
           "parameters": [
             "self",
@@ -3626,67 +3629,67 @@
             "attempt_id",
             "parameter_declarations",
             "result"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/_start",
           "parameters": [
             "self",
             "body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_submission_candidate",
           "parameters": [
             "self",
             "reference",
             "request_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/_valid_token",
           "parameters": [
             "token"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/approve",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/aql",
           "parameters": [
             "self",
             "text",
             "parameters",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/attach",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/check",
           "parameters": [
             "self",
@@ -3696,19 +3699,19 @@
             "format",
             "parameter_declarations",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/checkpoints",
           "parameters": [
             "self",
             "after",
             "limit"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/connect",
           "parameters": [
             "cls",
@@ -3716,79 +3719,80 @@
             "token",
             "mode",
             "installation",
+            "model_deployment",
             "**options"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/lookup_submission",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/new_submission",
           "parameters": [
             "self",
             "nonce"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncClient/open",
           "parameters": [
             "cls",
             "state_dir",
             "signer"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/profile",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/reject",
           "parameters": [
             "self",
             "checkpoint_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/resolve_checkpoints",
           "parameters": [
             "self",
             "items",
             "signer"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/review_checkpoint",
           "parameters": [
             "self",
             "checkpoint",
             "max_bytes"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/sql",
           "parameters": [
             "self",
             "text",
             "parameters",
             "**options"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/start",
           "parameters": [
             "self",
@@ -3799,10 +3803,10 @@
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncClient/start_source",
           "parameters": [
             "self",
@@ -3815,165 +3819,164 @@
             "attempt_id",
             "stop_before",
             "read_only"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "AsyncExecution/__init__",
           "parameters": [
             "self",
             "client",
             "admission",
             "submission"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/_cancel",
           "parameters": [
             "self",
             "cancel_id",
             "expected_revision",
             "attempt_id"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/_lookup_cancellation",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/_observe",
           "parameters": [
             "self",
             "operation",
             "**body"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/cancel",
           "parameters": [
             "self",
             "cancel_id",
             "expected_revision",
             "attempt_id"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/lookup_cancellation",
           "parameters": [
             "self",
             "reference"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/reconcile",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/ref",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/result",
           "parameters": [
             "self",
             "name"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/status",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "AsyncExecution/submission",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "AsyncExecution/wait",
           "parameters": [
             "self",
             "until",
             "since"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "_ExchangeFailure",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_ExchangeFailure/__init__",
           "parameters": [
             "self",
             "code",
             "sent"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_LocalCoreCleanupPort",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_LocalCoreCleanupPort/__init__",
           "parameters": [
             "self",
             "core"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": true,
           "name": "_LocalCoreCleanupPort/aclose",
           "parameters": [
             "self"
-          ],
-          "async": true
+          ]
         },
         {
+          "async": false,
           "name": "_submission_context",
           "parameters": [
             "body",
             "original"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "get_submission_input",
           "parameters": [
             "result"
-          ],
-          "async": false
+          ]
         }
       ],
-      "sha256": "ecb3aaf48c1f724a67c440e70de16f29c81bf850a2faf20b0084e0f941504630",
+      "sha256": "84daacf615a5e9dcb222d20fcd4cdc0b70e75bb5cd52f245c7ea56170a987e04",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4095,6 +4098,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _state_directory_option("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Portable Model physical custody"
               }
             ],
             "identity": [
@@ -4123,6 +4130,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "these ordinary limits cannot satisfy an imported-VM or worker-funding port."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Portable Model physical custody"
               }
             ],
             "synchronization": [
@@ -4207,6 +4218,10 @@
               {
                 "path": "packages/python-sdk/tests/test_wait_since.py",
                 "anchor": "test_observation_history_rejects_rollback_and_scope_substitution"
+              },
+              {
+                "path": "scripts/test_ci_python_wheels.py",
+                "anchor": "def test_original_typed_source_in_both_warm_requests_and_no_cold_open("
               }
             ]
           }
@@ -4558,6 +4573,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Named Local project preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Portable Model physical custody"
               }
             ],
             "identity": [
@@ -4570,6 +4589,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Named Local project preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Portable Model physical custody"
               }
             ],
             "synchronization": [
@@ -4606,6 +4629,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Named Local project preparation"
+              },
+              {
+                "path": "scripts/test_ci_python_wheels.py",
+                "anchor": "def test_original_typed_source_in_both_warm_requests_and_no_cold_open("
               }
             ]
           }
@@ -6742,6 +6769,7 @@
       "imports": [
         ".",
         "._errors",
+        "._local_sdk_response",
         "._values",
         "asyncio",
         "inspect",
@@ -6805,9 +6833,32 @@
         },
         {
           "async": true,
+          "name": "AsyncReader/_next_value",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": true,
           "name": "AsyncReader/_release",
           "parameters": [
             "self"
+          ]
+        },
+        {
+          "async": true,
+          "name": "AsyncReader/_return_row",
+          "parameters": [
+            "self",
+            "row"
+          ]
+        },
+        {
+          "async": false,
+          "name": "AsyncReader/_verify_terminal",
+          "parameters": [
+            "self",
+            "aggregate"
           ]
         },
         {
@@ -6927,7 +6978,7 @@
           ]
         }
       ],
-      "sha256": "acc9115dc61dea9b3c6a4b52c689e9276a4b9a01722212bc1b45b887aabbd11d",
+      "sha256": "b8fd96ab0cf721543941116a3fca614f875101ab9e202f47b0ea41ef486ffa2c",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -6942,7 +6993,10 @@
             "AsyncReader/__anext__",
             "AsyncReader/__init__",
             "AsyncReader/_iterate",
+            "AsyncReader/_next_value",
             "AsyncReader/_release",
+            "AsyncReader/_return_row",
+            "AsyncReader/_verify_terminal",
             "AsyncReader/aclose",
             "AsyncReader/attempt_id",
             "AsyncReader/delivery_attempt",
@@ -6998,6 +7052,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_reader.py",
                 "anchor": "\"\"\"Bounded rows with one retained delivery attempt and explicit local cleanup.\"\"\""
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_reader.py",
+                "anchor": "self._advance = asyncio.create_task(self._iterator.__anext__())"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_reader.py",
+                "anchor": "stream._check_transfer_current()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_reader.py",
+                "anchor": "def _verify_terminal(self, *, aggregate=False):"
               }
             ],
             "ownership": [
@@ -10535,6 +10601,5 @@
         }
       ]
     }
-  ],
-  "syntaxProjectionSha256": "ab5d1698ecaa36dd7e2a2bc7c361a357e763e96c5f944d8071e7d29bcfb3cf9a"
+  ]
 }

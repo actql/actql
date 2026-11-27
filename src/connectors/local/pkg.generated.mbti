@@ -58,6 +58,8 @@ pub fn guarded_relation_execution(GuardedRelationExecution) -> ManagedProviderEx
 
 pub fn install_local_export_retention(LocalMaterializingAttempt, () -> Bool) -> Result[Unit, LocalMaterializingIssue]
 
+pub fn literal_unique_relation_chain_capacity(@execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn local_bounded_relation_provider(@execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.GeneratedSequence, family? : Array[ManagedProvider]) -> ManagedProvider?
 
 pub fn local_default_import_limits(@execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> LocalImportLimits
@@ -136,17 +138,23 @@ pub fn local_module_managed_provider(LocalComputeModule, Int, @execution_relatio
 
 pub fn local_module_managed_sequence_supported(LocalComputeModule, Int) -> Bool
 
+pub fn local_module_managed_start_capacity(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> (@execution_relation.ExecutionCapacity, Int)?
+
 pub fn local_module_materializing_start_capacity(LocalComputeModule, Int) -> (@execution_relation.ExecutionCapacity, Bool?)?
 
 pub fn local_module_max_work(LocalComputeModule) -> Int
 
 pub fn local_module_measurement_limits(LocalComputeModule) -> @execution_relation.FixedInputGuardMeasureLimits
 
+pub fn local_module_metered_model_start_capacity(LocalComputeModule, Int, @execution_relation.GeneratedSequence, supplied? : @execution_relation.SuppliedRelationRead?) -> @execution_relation.ExecutionCapacity?
+
 pub fn local_module_metered_output_start_capacity(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?
 
 pub fn local_module_original_occurrence(LocalComputeModule, Int, @execution_relation.GeneratedSequence) -> Bool
 
 pub fn local_module_provider_field_inventory(Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn local_module_selected_sequence(LocalComputeModule, Int) -> @execution_relation.GeneratedSequence?
 
 pub fn local_module_sequence_contains_carrier_step(LocalComputeModule, Int) -> Bool
 
@@ -210,7 +218,7 @@ pub fn managed_provider_supplied_relation_input(@execution_relation.SuppliedRela
 
 pub fn managed_provider_waiting(Int64, Int64) -> ManagedProviderPoll
 
-pub fn managed_provider_with_infer_relation_prefix(ManagedProvider, @execution_relation.GeneratedSequence, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> ManagedProvider
+pub fn managed_provider_with_infer_relation_prefix(ManagedProvider, @execution_relation.GeneratedSequence, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, metered_output_start? : @execution_relation.ExecutionCapacity?) -> ManagedProvider
 
 pub fn managed_provider_with_inputs((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue], bounded_relation_capacity? : ((@execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> @execution_relation.ExecutionCapacity?)?) -> ManagedProvider
 
