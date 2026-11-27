@@ -15,7 +15,9 @@ import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   from '../../../host-node/installed-host-services.mjs';
 import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 import {prepareInstalledHubSpotUpdateMappings} from '../host/hubspot-effect-mappings.mjs';
-import {captureHubSpotEffectPlanRecipeBuilder} from '../host/hubspot-effect-plan.mjs';
+import {captureHubSpotUpdateConstruction} from '../host/hubspot-effect-plan.mjs';
+import {bindInstalledDeclaredUpdatePlan, composeInstalledTargetMutationRecipe, installedDeclaredUpdatePlan}
+  from '../../../host-node/installed-effect-plan.mjs';
 import {hubSpotEffectPlanFixture} from './hubspot-effect-plan.fixture.mjs';
 import {loadInstalledHubSpotEffect} from '../host/installed-hubspot-effect.mjs';
 import {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
@@ -76,7 +78,8 @@ function prepare(f, common, native) {
 
 async function rowConstructorFixture(common, t) {
   const {options} = hubSpotEffectPlanFixture();
-  const recipe = captureHubSpotEffectPlanRecipeBuilder({moon: common})(options);
+  const profile = captureHubSpotUpdateConstruction({moon: common})(options);
+  const recipe = composeInstalledTargetMutationRecipe(profile);
   const root = await mkdtemp(join(tmpdir(), 'actql-hubspot-kind-finalization-'));
   t.after(() => rm(root, {recursive: true}));
   let closed = 0;
@@ -93,7 +96,7 @@ async function rowConstructorFixture(common, t) {
     environmentWire: '{}', connectorId: 'hubspot', connectorRegistration: 'hubspot', connectorRevision: 'hubspot/0.1',
     connection: 'hubspot:hubspot', site: {issueEffectGrant: unused, issueReadGrant: unused, close() {closed++;}},
     authorization: {authorize: unused}, runtimeBundleCid: runtimeCid, bindingCid: runtimeCid, ledgerRoot: root};
-  return {input, recipe, closed: () => closed};
+  return {input, profile, recipe, closed: () => closed};
 }
 
 export function registerHubSpotMappingParentTests(common, native, baseEnvironmentWire) {
@@ -258,15 +261,35 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
     await legacy.close(); assert.equal(closed(), 1);
   });
 
-  test('HubSpot actual Row constructor accepts distinct finalization in each selected kind recipe', async t => {
-    const {input, recipe, closed} = await rowConstructorFixture(common, t);
-    const effect = await createInstalledRowEffect({...input, managedPlanRecipes: Object.freeze({update: recipe})});
-    assert(Object.isFrozen(effect)); await effect.close(); assert.equal(closed(), 1);
+  test('HubSpot standard UPDATE admits only the original writer and Site with its shared finalization', async t => {
+    const {input, profile, recipe, closed} = await rowConstructorFixture(common, t);
+    const {driver: {kinds: _kinds, writeOperation: _writeOperation, send: _send, ...methods}, ...options} = input;
+    const write = Object.freeze({...methods, kind: 'update', operation: 'hubspot:objects:batch-update',
+      prepareUpdateWrite() {assert.fail('Constructor ran a Provider request');}});
+    const ledgerRoot = join(input.ledgerRoot, 'must-not-open');
+    bindInstalledDeclaredUpdatePlan(write, options.site, profile);
+    assert.throws(() => installedDeclaredUpdatePlan(write, options.site, 18),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+    assert.equal(installedDeclaredUpdatePlan(write, options.site, 19).credentialOperations.length, 19);
+    assert.throws(() => bindInstalledDeclaredUpdatePlan(write, options.site, profile),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+    await assert.rejects(createInstalledRowEffect({...options, write: Object.freeze({...write}), ledgerRoot}),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+    await assert.rejects(createInstalledRowEffect({...options, site: {...options.site}, write, ledgerRoot}),
+      {code: 'ForeignInstalledDeclaredUpdatePlan'});
+    await assert.rejects(createInstalledRowEffect({...options, write, ledgerRoot,
+      managedPlanRecipes: Object.freeze({update: recipe})}), {code: 'InvalidInstalledEffectPlanRecipe'});
+    await assert.rejects(access(ledgerRoot), {code: 'ENOENT'});
+    assert.equal(closed(), 0);
+    const effect = await createInstalledRowEffect({...options, write});
+    assert(Object.isFrozen(effect));
+    await effect.close();
+    assert.equal(closed(), 1);
   });
 
   test('HubSpot actual Common builds the complete staged recipe through the JavaScript caller', () => {
     const {options} = hubSpotEffectPlanFixture();
-    const recipe = captureHubSpotEffectPlanRecipeBuilder({moon: common})(options);
+    const recipe = composeInstalledTargetMutationRecipe(captureHubSpotUpdateConstruction({moon: common})(options));
     assert.equal(recipe.memberOperations.length, 9);
     assert.equal(recipe.rowOperations.length, 15);
     assert.equal(recipe.credentialOperations.length, 19);
@@ -279,7 +302,7 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
       stages.set(checked(result), {initial, maximum});
       return result;
     }};
-    const recipe = captureHubSpotEffectPlanRecipeBuilder({moon})(options);
+    const recipe = composeInstalledTargetMutationRecipe(captureHubSpotUpdateConstruction({moon})(options));
     for (const operation of recipe.credentialOperations) {
       if (operation.responseExtent === undefined) continue;
       const entries = operation.perRow === false ? recipe.memberOperations : recipe.rowOperations;
@@ -304,7 +327,7 @@ export function registerHubSpotMappingParentTests(common, native, baseEnvironmen
       stages.set(checked(result), {initial, maximum});
       return result;
     }};
-    const recipe = captureHubSpotEffectPlanRecipeBuilder({moon})(options);
+    const recipe = composeInstalledTargetMutationRecipe(captureHubSpotUpdateConstruction({moon})(options));
     const original = stages.get(recipe.memberOperations[recipe.recoveryConstruction.operationIndex].extent);
     for (const size of [2, 1024, options.maxRecoveryBytes]) {
       const wire = size === 2 ? '{}' : JSON.stringify('x'.repeat(size - 2));

@@ -7,9 +7,11 @@ import {isInstalledConnectorTableEntry} from './installed-connectors.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction} from './installed-host-services.mjs';
 import {checkedTableWriteBinding} from './table-write-binding.mjs';
 import {deriveInstalledRowWrite} from './installed-row-effect-standard-write.mjs';
+import {deriveInstalledRowTextUpdate} from './installed-row-effect-text-update.mjs';
+import type {InstalledTextUpdateMapping} from './installed-row-effect-text-update.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation,
-  prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe} from './installed-effect-plan.mjs';
+  prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe, installedDeclaredUpdatePlan} from './installed-effect-plan.mjs';
 import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
 import type {InstalledConnectorEntry} from '../../packages/local-node/index.d.ts';
 import type {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
@@ -40,7 +42,7 @@ type DescriptorRuntime = UnitRuntime & Parameters<typeof checkedTableWriteBindin
 type MappingInput = Readonly<{resource: string; mappingRef: string; mappingCid: string; body: string}>;
 type CommandInput = Readonly<{resource: string; commandRef: string; commandCid: string; body: string}>;
 type StorePair = Readonly<{catalog_cid: string; command_ref: string; command_contract_cid: string}>;
-type MappingBody = Readonly<{
+type MappingBody = InstalledTextUpdateMapping & Readonly<{
   schema?: string;
   mapping_contract_cid: string; minimum_approval: 'required' | 'none'; target_ref: string; primary_identity?: unknown;
   permission_rules?: readonly Readonly<{effect_kind: string; selector_class?: string; permissions?: readonly string[]}>[];
@@ -181,23 +183,28 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
       Object.getOwnPropertyDescriptor(write, 'kind')?.value === 'update';
     const standard = write === undefined || declaredUpdate ? undefined
       : deriveInstalledRowWrite(write, connectorRegistration);
-    const owned = checkDriver((write === undefined ? driver : standard?.driver ?? write) as DriverInput, declaredUpdate);
-    if (declaredUpdate && (managedPlanDefinition !== undefined ||
-        managedTargetPlanRecipes !== undefined || owned.check !== undefined || owned.confirmResponse !== undefined)) {
+    const standardText = declaredUpdate ? deriveInstalledRowTextUpdate(moon, write) : undefined;
+    const candidate = write === undefined ? driver : standard?.driver ?? standardText?.owned ?? write;
+    const owned = checkDriver(candidate as DriverInput, declaredUpdate);
+    if (declaredUpdate && (managedPlanDefinition !== undefined || managedPlanRecipe !== undefined ||
+        managedPlanRecipes !== undefined || managedTargetPlanRecipes !== undefined ||
+        managedPlanConstruction !== undefined || owned.check !== undefined || owned.confirmResponse !== undefined)) {
       reject('InvalidInstalledEffectPlanRecipe');
     }
     const planDefinition = captureManagedPlanDefinition(managedPlanDefinition, owned as DefinitionDriver);
     const suppliedRecipe = captureInstalledEffectPlanRecipe(managedPlanRecipe, localContractLimits.maxNodes);
     const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned as DefinitionDriver,
-      localContractLimits.maxNodes, declaredUpdate);
+      localContractLimits.maxNodes);
     if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) reject('InvalidInstalledEffectPlanRecipe');
     if (selectInstalledEffectCredentialOperation(suppliedRecipe, 'write', 'absent') !== undefined &&
         (declaredUpdate || (owned as DefinitionDriver).kinds.length !== 1 || (owned as DefinitionDriver).kinds[0] !== 'upsert')) {
       reject('InvalidInstalledEffectPlanRecipe');
     }
-    const automaticUpdate = declaredUpdate && suppliedRecipe === undefined && suppliedRecipes === undefined;
-    if (automaticUpdate && (providerMoon === undefined || owned.describe !== undefined ||
-        owned.finalizeRequest !== undefined || managedPlanConstruction !== undefined)) {
+    const originalUpdatePlan = declaredUpdate
+      ? installedDeclaredUpdatePlan(write as object, site, localContractLimits.maxNodes) : undefined;
+    if (standardText !== undefined && originalUpdatePlan !== undefined) reject('InvalidInstalledEffectPlanRecipe');
+    if (declaredUpdate && originalUpdatePlan === undefined &&
+        ((providerMoon === undefined && standardText === undefined) || owned.describe !== undefined || owned.finalizeRequest !== undefined)) {
       reject('InvalidInstalledEffectPlanRecipe');
     }
     const checkedUpdateWrite = (recipe: InstalledEffectPlanRecipe | undefined) => {
@@ -206,8 +213,6 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
           recipe!.rowOperations[slot.operationIndex]?.operation !== owned.operation) reject('InvalidInstalledEffectPlanRecipe');
       return slot;
     };
-    const suppliedUpdateWrite = declaredUpdate && !automaticUpdate
-      ? checkedUpdateWrite(suppliedRecipes?.update ?? suppliedRecipe) : undefined;
     if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
         suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
         managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
@@ -263,6 +268,7 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
       }
       return Object.freeze({...mapping, target: body.target_ref,
         primaryIdentity: body.primary_identity,
+        ...(standardText?.admitsNull(mapping.resource, body) === true ? {standardTextAcceptsNull: true as const} : {}),
         rules: Object.freeze(body.permission_rules ?? []),
         ...(body.store_command === undefined ? {} : {
           storeCommand: Object.freeze({...body.store_command})}),
@@ -306,19 +312,20 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
         return mapping;
       }));
     let resourceTextUnits = 0;
-    if (automatic || automaticUpdate) {
+    if (automatic || declaredUpdate && originalUpdatePlan === undefined) {
       for (const selected of installed) resourceTextUnits += selected.resource.length;
       for (const selected of installedCommands) resourceTextUnits += selected.resource.length;
     }
-    const planRecipe = automaticUpdate ? prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon,
-      write: owned, credentialSite: installedRowCredentialOperationSite(site.credential),
+    const planRecipe = declaredUpdate ? originalUpdatePlan ?? prepareInstalledDeclaredUpdatePlanRecipe({moon,
+      providerMoon, write: owned, standardTextBounds: standardText?.bounds,
+      credentialSite: installedRowCredentialOperationSite(site.credential),
       limits, resourceTextUnits, connectorRegistration} as UpdatePlanInput)
       : automatic ? prepareInstalledStandardCreatePlanRecipe({moon, providerMoon,
         construction, credentialSite: installedRowCredentialOperationSite(site.credential),
         limits: limits.preview, resourceTextUnits,
         requestInput:Object.freeze({maxWireBytes:limits.body.maxBytes,
           maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})} as StandardPlanInput) : suppliedRecipe;
-    const updateWriteSlot = automaticUpdate ? checkedUpdateWrite(planRecipe) : suppliedUpdateWrite;
+    const updateWriteSlot = declaredUpdate ? checkedUpdateWrite(planRecipe) : undefined;
     // The driver hook applies to each checked kind. A kind-specific recipe is
     // not the absent legacy recipe: require its own distinct finalization slot.
     for (const recipe of suppliedRecipes === undefined ? [planRecipe] : Object.values(suppliedRecipes)) {

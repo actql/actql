@@ -7992,7 +7992,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
-      "sha256": "c1228df1136a3d4a56afc90100cfa624e446e044b9ed4b2b253376641b745488",
+      "sha256": "793033ba05cae7255d4db7405640395234f4b42fc5b80d988c5e74818454c181",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -8308,6 +8308,7 @@
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect-standard-write.mjs",
+        "./installed-row-effect-text-update.mjs",
         "./installed-row-source.mjs",
         "./table-write-binding.mjs",
         "node:fs/promises",
@@ -10449,7 +10450,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
-      "sha256": "b5f3b64075865ae4c4dfb82dc4d099a316a0263c0ad8e9d828de047faf885179",
+      "sha256": "013e778b685922d3f79529f150abe2e961d7891d769db3a55440f7d9aaf3e565",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10517,8 +10518,7 @@
           "parameters": [
             "recipes",
             "driver",
-            "maxOperations",
-            "declaredUpdate"
+            "maxOperations"
           ],
           "async": false
         },
@@ -10789,7 +10789,6 @@
         }
       ],
       "imports": [
-        "../host-common/owned-invocation-context.mjs",
         "./effect-ledger-implementation-bounds.mjs",
         "./installed-effect-recipe.mjs",
         "node:util"
@@ -12992,6 +12991,204 @@
         "./local-account-config.mjs",
         "./local-publication-limits.mjs",
         "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-row-effect-text-update.mjs",
+      "sha256": "db724be4c3a251ad0cf089bff7b25bdeb2035789aa32b7bad81555a70295e229",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing mapped row request, Effect continuation and Common constructor owners",
+      "exports": [
+        "deriveInstalledRowTextUpdate"
+      ],
+      "operations": [
+        {
+          "name": "deriveInstalledRowTextUpdate",
+          "parameters": [
+            "moon",
+            "write"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/admitsNull",
+          "parameters": [
+            "selectedResource",
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/deriveInstalledRowTextUpdate",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/deriveInstalledRowTextUpdate#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/deriveInstalledRowTextUpdate#3",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/method/method/method",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/owned/init:recoverRequests/init:recoverRequests",
+          "parameters": [
+            "members",
+            "body",
+            "durable"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/owned/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "member",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/owned/init:requestCid/init:requestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/owned/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowTextUpdate/prepareRequest",
+          "parameters": [
+            "member",
+            "value",
+            "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "deriveInstalledRowTextUpdate",
+            "deriveInstalledRowTextUpdate/deriveInstalledRowTextUpdate",
+            "deriveInstalledRowTextUpdate/deriveInstalledRowTextUpdate#2",
+            "deriveInstalledRowTextUpdate/deriveInstalledRowTextUpdate#3",
+            "deriveInstalledRowTextUpdate/method/method/method",
+            "deriveInstalledRowTextUpdate/owned/init:recoverRequests/init:recoverRequests",
+            "deriveInstalledRowTextUpdate/owned/init:recoveryEntry/init:recoveryEntry",
+            "deriveInstalledRowTextUpdate/owned/init:requestCid/init:requestCid",
+            "deriveInstalledRowTextUpdate/owned/init:requestFacts/init:requestFacts",
+            "deriveInstalledRowTextUpdate/prepareRequest",
+            "integer/integer",
+            "deriveInstalledRowTextUpdate/admitsNull"
+          ],
+          "exports": [
+            "deriveInstalledRowTextUpdate"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A declared single-text-field UPDATE supplies the installed resource"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The HTTP"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Matching its exact saved wire and digest"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "requires the durable claim"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "comes before construction of the request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Target reads, provider classification, Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "real write or cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "its actual writer and hash scratch in sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "physical observation and mutation codecs"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_update_text_wire_wbtest.mbt",
+                "anchor": "standard UPDATE quotes exact escaped body request CID and historic recovery independently"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-text-update.test.mjs",
+                "anchor": "standard textual UPDATE retains exact mapped facts and reproduces its historic recovery"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-effect-recipe.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -28838,13 +29035,17 @@
       "role": "common-semantics",
       "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
+        "bindInstalledDeclaredUpdatePlan",
         "captureDeclaredUpdateTargetCapacity",
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
+        "composeInstalledTargetMutationRecipe",
         "effectRecoveryPreviewBounds",
+        "installedDeclaredUpdatePlan",
         "installedEffectRecipeForControlEntryLimit",
         "installedEffectSavedControlEntryLimit",
         "installedEffectSavedControlResponseLimit",
+        "measureInstalledEffectRecoveryInput",
         "prepareInstalledDeclaredUpdatePlanRecipe",
         "prepareInstalledEffectCaptureChild",
         "prepareInstalledEffectControlConstruction",
@@ -29071,7 +29272,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "be349c2ee956134d114dba5df452528e69d588c6661ef863cfc79d3dcc7176af",
+      "sha256": "3200bb232813646d4875c04e54bd4d7a186d44c713f3d60769202c32eebebf1e",
       "contracts": [
         {
           "operations": [
@@ -29085,7 +29286,10 @@
             "prepareInstalledEffectManagedPlan",
             "prepareInstalledEffectRequestChild",
             "prepareInstalledStandardCreatePlanRecipe",
-            "prepareInstalledDeclaredUpdatePlanRecipe"
+            "prepareInstalledDeclaredUpdatePlanRecipe",
+            "composeInstalledTargetMutationRecipe",
+            "bindInstalledDeclaredUpdatePlan",
+            "installedDeclaredUpdatePlan"
           ],
           "attributes": {
             "responsibility": [
@@ -29270,6 +29474,14 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('installed author UPDATE funds the outgoing request and codec on the original physical slots'"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-effect-plan.test.mjs",
+                "anchor": "test('HubSpot typed Effect recipe declares all nineteen distinct original physical occurrences and cold constructor'"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "test('kintone recipe constructs thirteen distinct original physical slots in the existing Common owner'"
               }
             ]
           }
@@ -29395,7 +29607,8 @@
             "installedEffectSavedControlEntryLimit",
             "installedEffectSavedControlResponseLimit",
             "prepareInstalledPhysicalWritePlanRecipe",
-            "effectRecoveryPreviewBounds"
+            "effectRecoveryPreviewBounds",
+            "measureInstalledEffectRecoveryInput"
           ],
           "attributes": {
             "responsibility": [
@@ -30041,14 +30254,27 @@
       "role": "common-semantics",
       "owner": "D — existing installed Effect constructor, physical operation and provider protocol DATA",
       "exports": [
+        "bindInstalledDeclaredUpdatePlan",
         "captureDeclaredUpdateTargetCapacity",
         "captureInstalledStandardCreateLimits",
+        "composeInstalledTargetMutationRecipe",
         "effectRecoveryPreviewBounds",
+        "installedDeclaredUpdatePlan",
+        "measureInstalledEffectRecoveryInput",
         "prepareInstalledDeclaredUpdatePlanRecipe",
         "prepareInstalledPhysicalWritePlanRecipe",
         "prepareInstalledStandardCreatePlanRecipe"
       ],
       "operations": [
+        {
+          "name": "bindInstalledDeclaredUpdatePlan",
+          "parameters": [
+            "write",
+            "site",
+            "construction"
+          ],
+          "async": false
+        },
         {
           "name": "captureDeclaredUpdateTargetCapacity",
           "parameters": [
@@ -30072,10 +30298,47 @@
           "async": false
         },
         {
+          "name": "composeInstalledTargetMutationRecipe",
+          "parameters": [
+            "capture",
+            "request",
+            "finalization",
+            "footprint",
+            "describe",
+            "targets",
+            "writes",
+            "controlsPerRow",
+            "recoveryInputExtent",
+            "savedControlCodec"
+          ],
+          "async": false
+        },
+        {
           "name": "effectRecoveryPreviewBounds",
           "parameters": [
             "bytes",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedDeclaredUpdatePlan",
+          "parameters": [
+            "write",
+            "site",
+            "maxOperations"
+          ],
+          "async": false
+        },
+        {
+          "name": "measureInstalledEffectRecoveryInput",
+          "parameters": [
+            "previewWire",
+            "recovery",
+            "memberIndex",
+            "maxPreviewBytes",
+            "maxRecoveryBytes",
+            "refuse"
           ],
           "async": false
         },
@@ -30088,7 +30351,8 @@
             "credentialSite",
             "limits",
             "resourceTextUnits",
-            "connectorRegistration"
+            "connectorRegistration",
+            "standardTextBounds"
           ],
           "async": false
         },
@@ -30100,9 +30364,28 @@
           "async": false
         },
         {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/init:writes/init:writes",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/init:writes/init:writes/init:writes",
+          "parameters": [
+            "transfer"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledDeclaredUpdatePlanRecipe/prepareInstalledDeclaredUpdatePlanRecipe",
+          "parameters": [
+            "transfer"
           ],
           "async": false
         },
@@ -30164,6 +30447,11 @@
           "async": false
         },
         {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent/recoveryInputExtent",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
           "parameters": [
             "name"
@@ -30206,6 +30494,7 @@
         }
       ],
       "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/http-exchange.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
@@ -30215,7 +30504,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "69d949b5666169972d60a6000aaf9e4aee882b67d4b2105ac845e546f62b6671",
+      "sha256": "6f27e07a6547a9679d4a8f6b68035f2f288dff2949db2a693dba160c10992e88",
       "contracts": [
         {
           "operations": [
@@ -30228,13 +30517,22 @@
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
             "prepareInstalledDeclaredUpdatePlanRecipe",
             "prepareInstalledDeclaredUpdatePlanRecipe/bounds/bounds/bounds",
-            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method"
+            "prepareInstalledDeclaredUpdatePlanRecipe/method/method/method",
+            "composeInstalledTargetMutationRecipe",
+            "prepareInstalledDeclaredUpdatePlanRecipe/init:writes/init:writes",
+            "prepareInstalledDeclaredUpdatePlanRecipe/init:writes/init:writes/init:writes",
+            "prepareInstalledDeclaredUpdatePlanRecipe/prepareInstalledDeclaredUpdatePlanRecipe",
+            "bindInstalledDeclaredUpdatePlan",
+            "installedDeclaredUpdatePlan"
           ],
           "exports": [
             "captureDeclaredUpdateTargetCapacity",
             "captureInstalledStandardCreateLimits",
             "prepareInstalledStandardCreatePlanRecipe",
-            "prepareInstalledDeclaredUpdatePlanRecipe"
+            "prepareInstalledDeclaredUpdatePlanRecipe",
+            "composeInstalledTargetMutationRecipe",
+            "bindInstalledDeclaredUpdatePlan",
+            "installedDeclaredUpdatePlan"
           ],
           "attributes": {
             "responsibility": [
@@ -30419,6 +30717,14 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('installed author UPDATE funds the outgoing request and codec on the original physical slots'"
+              },
+              {
+                "path": "adapters/connectors/hubspot/test/hubspot-effect-plan.test.mjs",
+                "anchor": "test('HubSpot typed Effect recipe declares all nineteen distinct original physical occurrences and cold constructor'"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "test('kintone recipe constructs thirteen distinct original physical slots in the existing Common owner'"
               }
             ]
           }
@@ -30433,11 +30739,14 @@
             "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
-            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#3"
+            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#3",
+            "measureInstalledEffectRecoveryInput",
+            "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent/recoveryInputExtent"
           ],
           "exports": [
             "prepareInstalledPhysicalWritePlanRecipe",
-            "effectRecoveryPreviewBounds"
+            "effectRecoveryPreviewBounds",
+            "measureInstalledEffectRecoveryInput"
           ],
           "attributes": {
             "responsibility": [

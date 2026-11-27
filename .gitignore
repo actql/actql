@@ -2590,6 +2590,8 @@ adapters/host-node/installed-row-capture-cleanup.mjs
 adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-row-effect-plan-capture.mjs
 /adapters/host-node/installed-row-effect-plan-capture.d.mts
+/adapters/host-node/installed-row-effect-text-update.mjs
+/adapters/host-node/installed-row-effect-text-update.d.mts
 /adapters/host-node/installed-row-effect-standard-write.mjs
 /adapters/host-node/installed-row-effect-standard-write.d.mts
 /adapters/host-node/installed-row-effect-driver.mjs
@@ -4167,3 +4169,15 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/test-packed-provider-ai-sdk.d.mts
 /scripts/test-package-release-install.mjs
 /scripts/test-package-release-install.d.mts
+
+# Emitted from the installed Connector author verification.
+/scripts/fixtures/external-installed/normal-case.test.mjs
+/scripts/fixtures/external-installed/normal-case.test.d.mts
+/scripts/fixtures/record-approval/normal-case.test.mjs
+/scripts/fixtures/record-approval/normal-case.test.d.mts
+/scripts/record-approval-mock-inventory.test.mjs
+/scripts/record-approval-mock-inventory.test.d.mts
+/scripts/record-approval-ordered-https.test.mjs
+/scripts/record-approval-ordered-https.test.d.mts
+/scripts/record-approval-published-mapping.test.mjs
+/scripts/record-approval-published-mapping.test.d.mts

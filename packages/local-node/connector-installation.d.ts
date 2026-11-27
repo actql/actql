@@ -596,6 +596,20 @@ export interface RowEffectUpdateWrite<Request extends object, Current = unknown>
     Readonly<{kind: string; observationCid: string; wire: string}>;
   recoverRequests: NonNullable<RowEffectDriver<Request, Current, 'update'>['recoverRequests']>;
 }
+/** A fixed text-column UPDATE uses Common's request, facts, custody and
+ * recovery constructors. The author supplies the exact installed resource,
+ * unescaped identifier and text limits, and only the physical codec hooks. */
+export type RowEffectTextUpdateWrite<Request extends object, Current = unknown> = Omit<
+  RowEffectUpdateWrite<Request, Current>, 'prepareRequest' | 'requestFacts' | 'requestCid' |
+  'recoveryEntry' | 'recoverRequests' | 'recoverMemberRequests'
+> & Readonly<{
+  standardText: Readonly<{
+    resource: string; identityField: string; field: string; domain: string; boundaryCid: string;
+    maxIdentityUnits: number; maxTextUnits: number; maxRecoveryBytes: number;
+  }>;
+  prepareRequest?: never; requestFacts?: never; requestCid?: never; recoveryEntry?: never;
+  recoverRequests?: never; recoverMemberRequests?: never;
+}>;
 export type InstalledRowEffectOptions<Request extends object,
   Current = unknown, Kind extends RowEffectKind = RowEffectValueKind> = Readonly<{
     moon: ConnectorRuntimeOwner;
@@ -621,6 +635,9 @@ export type InstalledRowEffectOptions<Request extends object,
   }> | (Kind extends 'update' ? Readonly<{
     driver?: never; write: RowEffectUpdateWrite<Request, Current>;
     providerMoon: RowEffectUpdateConstructionProvider;
+  }> | Readonly<{
+    driver?: never; write: RowEffectTextUpdateWrite<Request, Current>;
+    providerMoon?: never;
   }> : never) | (Kind extends 'create' ? Readonly<{
     driver?: never; write: RowEffectCreateWrite<Request>;
   }> : never));

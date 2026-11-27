@@ -435,6 +435,10 @@ test('declared UPDATE requires a pure write preparation and an installed credent
     project: never, footprint: never, recoveryEntry: never, recoverRequests: never, requestCid: never,
     targetRead: Object.freeze({operation: 'read'}), observeTargets: never});
   await assert.rejects(createInstalledRowEffect({write}), {code: 'InvalidInstalledEffectPlanRecipe'});
+  await assert.rejects(createInstalledRowEffect({write, managedPlanRecipe: Object.freeze({})}),
+    {code: 'InvalidInstalledEffectPlanRecipe'});
+  await assert.rejects(createInstalledRowEffect({write, managedPlanRecipes: Object.freeze({update: {}})}),
+    {code: 'InvalidInstalledEffectPlanRecipe'});
   for (const invalid of [
     Object.freeze({...write, send: never}),
     Object.freeze({...write, async prepareUpdateWrite() {never();}}),

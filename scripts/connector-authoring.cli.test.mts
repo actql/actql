@@ -249,6 +249,50 @@ test('the packed author toolkit runs outside the checkout and binds its runner t
   assert.equal(refused.status, 1);
   assert.match(refused.stdout + refused.stderr, /ENOENT[^\n]*manifest\.json/u);
   assert(!readdirSync(authorRoot).includes('fresh-case'), 'Missing normal artifacts must refuse before fixture creation');
+
+  const recordCase = join(authorRoot, 'record-case.json');
+  const fixture = new URL('./fixtures/kintone-approval/', import.meta.url);
+  const recordBytes = readFileSync(new URL('case.json', fixture));
+  writeFileSync(recordCase, recordBytes);
+  for (const name of ['read.aql', 'update.aql']) writeFileSync(join(authorRoot, name), readFileSync(new URL(name, fixture)));
+  const record = {kind: 'actql-record-approval-normal/0.1', mode: 'http', connector: 'kintone', decision: 'rejected',
+    sourceSha, sourceTree, manifestPath: join(authorRoot, 'manifest.json'), manifestSha256: packageDigest,
+    outputRoot: join(authorRoot, 'fresh-record-case'), consumerRoot: authorRoot, casePath: recordCase,
+    caseSha256: createHash('sha256').update(recordBytes).digest('hex')};
+  writeFileSync(input, JSON.stringify(record));
+  const [recordStep] = connectorConformancePlan(toolkit, [input, '--timeout-seconds', '180']).steps;
+  const recordEnv: NodeJS.ProcessEnv = {...process.env, ...recordStep.env};
+  delete recordEnv.NODE_TEST_CONTEXT;
+  const recordAttempt = () => spawnSync(recordStep.command, recordStep.args,
+    {cwd: authorRoot, env: recordEnv, encoding: 'utf8', timeout: 10_000});
+  const missingRecordCohort = recordAttempt();
+  assert.equal(missingRecordCohort.status, 1);
+  assert.match(missingRecordCohort.stdout + missingRecordCohort.stderr, /ENOENT[^\n]*manifest\.json/u);
+  writeFileSync(recordCase, Buffer.concat([recordBytes, Buffer.from('\n')]));
+  const changedRecordCase = recordAttempt();
+  assert.equal(changedRecordCase.status, 1);
+  assert.match(changedRecordCase.stdout + changedRecordCase.stderr, /ChangedRecordApprovalCase/u);
+  assert(!readdirSync(authorRoot).includes('fresh-record-case'));
+
+  const external = {kind: 'actql-external-installed-normal/0.1', mode: 'provider-bundle', sourceSha, sourceTree,
+    manifestPath: join(authorRoot, 'external-cohort.json'), manifestSha256: packageDigest,
+    outputRoot: join(authorRoot, 'fresh-external-case'), consumerRoot: authorRoot};
+  writeFileSync(input, JSON.stringify(external));
+  assert.throws(() => connectorConformancePlan(root, [input, '--timeout-seconds', '180']), /composed Host/u);
+  const externalPlan = connectorConformancePlan(toolkit, [input, '--timeout-seconds', '180']);
+  assert.equal(externalPlan.heavy, false);
+  assert.equal(externalPlan.root, authorRoot);
+  const [externalStep] = externalPlan.steps;
+  assert.equal(externalStep.args.at(-1), join(toolkit, 'scripts/fixtures/external-installed/normal-case.test.mjs'));
+  const externalEnv: NodeJS.ProcessEnv = {...process.env, ...externalStep.env};
+  delete externalEnv.NODE_TEST_CONTEXT;
+  const noExternalManifest = spawnSync(externalStep.command, externalStep.args,
+    {cwd: authorRoot, env: externalEnv, encoding: 'utf8', timeout: 10_000});
+  assert.equal(noExternalManifest.status, 1);
+  assert.match(noExternalManifest.stdout + noExternalManifest.stderr, /ENOENT[^\n]*external-cohort\.json/u);
+  assert(!readdirSync(authorRoot).includes('fresh-external-case'));
+  writeFileSync(input, JSON.stringify({...external, mode: 'live'}));
+  assert.throws(() => connectorConformancePlan(toolkit, [input, '--timeout-seconds', '180']), /descriptor/u);
   writeFileSync(join(toolkit, 'scripts/test-execution.mjs'), '// invalid selected payload\n');
   await assert.rejects(observeInstalledAuthoringToolkit(toolkit, {manifest}), /toolkit payload mismatch/u);
 });
@@ -303,6 +347,37 @@ test('author conformance refuses implicit runtime, source-only selection and inv
   assert.equal(refused.status,1);assert.match(refused.stderr,/descriptor/u);
   assert.equal(refused.stdout,'');
   assert.deepEqual(readdirSync(scratch),['normal-input.json']);
+});
+
+test('author conformance selects the original Record approval child in checkout and installed toolkit', t => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-record-author-plan-'));
+  t.after(() => rmSync(scratch, {recursive: true, force: true}));
+  const packageRoot = join(scratch, 'local-node'), toolkit = join(packageRoot, authoringToolkitPath);
+  mkdirSync(toolkit, {recursive: true});
+  writeFileSync(join(packageRoot, 'package.json'), JSON.stringify({name: '@actql/local-node',
+    bin: {'actql-connector': authoringToolkitPath + '/scripts/connector.mjs'}}));
+  const input = join(scratch, 'record.json');
+  const descriptor = {kind: 'actql-record-approval-normal/0.1', mode: 'mock', connector: 'salesforce', decision: 'rejected',
+    sourceSha: 'a'.repeat(40), sourceTree: 'b'.repeat(40), manifestSha256: 'c'.repeat(64),
+    manifestPath: join(scratch, 'absent.json'), outputRoot: join(scratch, 'uncreated'), consumerRoot: join(scratch, 'consumer'),
+    casePath: join(scratch, 'case.json'), caseSha256: 'd'.repeat(64)};
+  writeFileSync(input, JSON.stringify(descriptor));
+  const args = [input, '--timeout-seconds', '180'];
+  const [checkoutStep] = connectorConformancePlan(root, args).steps;
+  assert.equal(checkoutStep.args.at(-1), 'scripts/fixtures/record-approval/normal-case.test.mjs');
+  const installed = connectorConformancePlan(toolkit, args);
+  assert.equal(installed.root, scratch);
+  assert.equal(installed.steps[0].args.at(-1), join(toolkit, checkoutStep.args.at(-1)!));
+  assert.deepEqual(checkoutStep.env, {ACTQL_RECORD_APPROVAL_CONFORMANCE_INPUT: input});
+  for (const changes of [{decision: 'auto'}, {mode: 'live'}, {mode: 'http'}, {consumerRoot: 'relative'},
+    {connector: 'uninstalled'}, {caseSha256: 'unpinned'}, {token: 'forbidden'}]) {
+    writeFileSync(input, JSON.stringify({...descriptor, ...changes}));
+    assert.throws(() => connectorConformancePlan(root, args), /descriptor/u);
+  }
+  writeFileSync(input, JSON.stringify({...descriptor, mode: 'http', connector: 'kintone'}));
+  assert.deepEqual(connectorConformancePlan(root, args).steps[0], checkoutStep);
+  assert.deepEqual(readdirSync(scratch).sort(), ['local-node', 'record.json']);
 });
 
 
