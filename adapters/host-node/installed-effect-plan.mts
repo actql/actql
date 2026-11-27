@@ -12,7 +12,8 @@ export {captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperati
 export {prepareInstalledEffectManagedPlan} from './installed-effect-managed-plan.mjs';
 export {effectRecoveryPreviewBounds, captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe,
   prepareInstalledDeclaredUpdatePlanRecipe, prepareInstalledPhysicalWritePlanRecipe,
-  captureDeclaredUpdateTargetCapacity} from './installed-effect-recipe-construction.mjs';
+  captureDeclaredUpdateTargetCapacity, measureInstalledEffectRecoveryInput,
+  composeInstalledTargetMutationRecipe, bindInstalledDeclaredUpdatePlan, installedDeclaredUpdatePlan} from './installed-effect-recipe-construction.mjs';
 import {NativePromise, nativePromiseThen} from './installed-effect-child-construction.mjs';
 export {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild,
   prepareInstalledEffectCaptureChild} from './installed-effect-child-construction.mjs';

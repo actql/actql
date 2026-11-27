@@ -3,11 +3,12 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe, captureDeclaredUpdateTargetCapacity} from '../../../host-node/installed-effect-plan.mjs';
+import {captureDeclaredUpdateTargetCapacity, measureInstalledEffectRecoveryInput}
+  from '../../../host-node/installed-effect-plan.mjs';
+import type {TargetMutationRecipe} from '../../../host-node/installed-effect-recipe-construction.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
-  httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum,
-  httpsCredentialResponseWindowBytes} from '../../../site-node/https-credential-resource.mjs';
+  httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum} from '../../../site-node/https-credential-resource.mjs';
 import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_RECORD_DELETE_OPERATION, KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
 import {KINTONE_RECORD_CREATE_OPERATION, KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
@@ -18,10 +19,6 @@ type RecipeOptions = Readonly<{mapping: unknown; fields: readonly string[]; form
   bindingUnits: number; credentialSite: unknown; limits: unknown;
   inputLimits: Readonly<{body: unknown; preview: unknown}>; maxRecoveryBytes: number; maxTargetBytes: number}>;
 type Profile = Readonly<{capacities: readonly unknown[]; output: readonly number[]}>;
-type CredentialOperation = Readonly<{phase: string; operationIndex: number; maxRequestBytes: number;
-  maxResponseBytes: number; maxTargetBytes?: number; slot?: string; resource?: string; perRow?: boolean;
-  responseExtent?(bytes: number, body: Uint8Array): unknown}>;
-type RecoveryInput = Readonly<{memberIndex?: unknown; wire?: unknown}> | undefined;
 
 const fail: () => never = () => {throw Object.assign(new Error('KintoneEffectRecipeUnavailable'), {code: 'KintoneEffectRecipeUnavailable'});};
 const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
@@ -42,7 +39,7 @@ const names = ['maxInputBytes', 'maxRequestBytes', 'maxResponseBytes', 'maxNodes
   'maxFields', 'maxNameUnits', 'maxColumns', 'maxCells', 'maxTableRows', 'maxValueNodes',
   'maxValueDepth', 'maxValueTextBytes', 'maxIdentityBytes', 'maxComparisonWork', 'maxRecoveryBytes'] as const;
 
-export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}: Readonly<{moon: object; kind?: 'update' | 'upsert' | 'delete'}>) {
+export function captureKintoneEffectConstruction({moon, kind = 'update'}: Readonly<{moon: object; kind?: 'update' | 'upsert' | 'delete'}>) {
   if (!['update', 'upsert', 'delete'].includes(kind)) fail();
   const keyed = kind === 'upsert', deleting = kind === 'delete';
   const writeOperation = deleting ? KINTONE_RECORD_DELETE_OPERATION : KINTONE_RECORD_UPDATE_OPERATION;
@@ -66,8 +63,8 @@ export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}: R
   const controlBound = method(moon, 'clientProgramInstalledEffectControlWireBound');
   const native = (value: unknown) => {const result = runtimeUnboxedReferenceOption(value); if (!result) fail(); return result;};
   const add = (left: unknown, right: unknown) => native(original.UpdateAddConstructionCapacity(left, right));
-  return function prepareKintoneEffectPlanRecipe({mapping, fields, formResource, bindingUnits,
-    credentialSite, limits, inputLimits, maxRecoveryBytes, maxTargetBytes}: RecipeOptions) {
+  return function prepareKintoneEffectConstruction({mapping, fields, formResource, bindingUnits,
+    credentialSite, limits, inputLimits, maxRecoveryBytes, maxTargetBytes}: RecipeOptions): TargetMutationRecipe {
     const policy = data(limits, names) as Numeric<(typeof names)[number]>;
     if (!Object.values(policy).every(positive) || policy.maxValueNodes > 2147483645 ||
         policy.maxValueDepth > 2147483645 || !positive(bindingUnits) || !positive(maxRecoveryBytes) ||
@@ -181,65 +178,51 @@ export function captureKintoneEffectPlanRecipeBuilder({moon, kind = 'update'}: R
     const capturedExtent = (values: readonly unknown[]) => checked(capture(captureName, values.slice(0, 6),
       preview.maxWireBytes, preview.maxNodes, preview.maxDepth));
     const operationExtent = (operation: string, capacity: unknown, transfer = 0n, physical = false) => checked(extent(operation, capacity, transfer, physical));
-    const memberOperations = [{operation: captureName, extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))}];
-    const rowOperations = [
-      {operation: recipeName + '.request', extent: operationExtent(recipeName + '.request', initial[2])},
-      {operation: recipeName + '.finalize', extent: operationExtent(recipeName + '.finalize', finalization)},
-    ];
-    const credentialOperations: CredentialOperation[] = [];
-    const physical = (phase: string, slot: string, resource: string | undefined, perRow: boolean, target: boolean) => {
+    const readOccurrence = (slot: string, resource: string | undefined, target: boolean) => {
       const operation = target ? KINTONE_TARGET_READ_OPERATION : KINTONE_FORM_READ_OPERATION;
-      const operations = perRow ? rowOperations : memberOperations, operationIndex = operations.length;
-      const transfer = BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes);
       const deferredTarget = target && deleting;
-      const of = (bytes: number) => {
-        const capacity = quantities(target ? profile(bytes, 0) : profile(0, bytes))[target ? 6 : 7];
-        return operationExtent(operation, deferredTarget ? composeUpdateTarget(capacity, maxTargetBytes) : capacity, transfer, true);
-      };
-      operations.push({operation, extent: checked(stage(of(0), of(policy.maxResponseBytes)))});
-      credentialOperations.push(Object.freeze({phase, slot, ...(resource === undefined ? {} : {resource}), perRow, operationIndex,
+      return {operation, slot, resource,
         maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes,
         ...(deferredTarget ? {maxTargetBytes} : {}),
-        responseExtent(bytes: number, body: Uint8Array) {
-          if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > policy.maxResponseBytes ||
-              !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
-          return of(bytes);
-        }}));
+        prepare(transfer: bigint) {
+          const of = (bytes: number) => {
+            const capacity = quantities(target ? profile(bytes, 0) : profile(0, bytes))[target ? 6 : 7];
+            return operationExtent(operation, deferredTarget ? composeUpdateTarget(capacity, maxTargetBytes) : capacity, transfer, true);
+          };
+          return {extent: checked(stage(of(0), of(policy.maxResponseBytes))), responseExtent(bytes: number, body: Uint8Array) {
+            if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > policy.maxResponseBytes ||
+                !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
+            return of(bytes);
+          }};
+        }};
     };
-    for (const phase of ['capture', 'apply', 'resume']) {
-      if (!keyed) physical(phase + '-describe', 'schema', formResource, false, false);
-      physical(phase + '-target', 'schema-before', formResource, true, false);
-      physical(phase + '-target', 'target', undefined, true, true);
-      physical(phase + '-target', 'schema-after', formResource, true, false);
-    }
-    const writeCapacity = composeUpdateTarget(initial[3], maxTargetBytes);
-    const physicalWrites: readonly (readonly [string | undefined, string])[] = keyed ? [['absent', KINTONE_RECORD_CREATE_OPERATION], ['present', KINTONE_RECORD_UPDATE_OPERATION]]
-      : [[undefined, writeOperation]];
-    for (const [slot, operation] of physicalWrites) {
-      const operationIndex = rowOperations.length;
-      rowOperations.push({operation, extent: operationExtent(operation, writeCapacity,
-        BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes), true)});
-      credentialOperations.push(Object.freeze({phase: 'write', ...(slot === undefined ? {} : {slot}), operationIndex,
-        maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes, maxTargetBytes}));
-    }
-    const recoveryIndex = memberOperations.length; memberOperations.push(memberOperations[0]);
-    return captureInstalledEffectPlanRecipe(Object.freeze({memberOperations: Object.freeze(memberOperations.map(Object.freeze)),
-      rowOperations: Object.freeze(rowOperations.map(Object.freeze)), credentialOperations: Object.freeze(credentialOperations),
-      captureConstruction: Object.freeze({operationIndex: 0}), recoveryConstruction: Object.freeze({operationIndex: recoveryIndex,
-        inputExtent(previewWire: string, recovery: readonly RecoveryInput[], memberIndex: number) {
-          if (typeof previewWire !== 'string' || !previewWire.isWellFormed() || !Array.isArray(recovery) ||
-              !Number.isSafeInteger(memberIndex) || memberIndex < 0) fail();
-          let bytes = Buffer.byteLength(previewWire);
-          if (!positive(bytes) || bytes > preview.maxWireBytes) fail();
-          let recoveryBytes = 1;
-          for (const entry of recovery) if (entry?.memberIndex === memberIndex) {
-            if (typeof entry.wire !== 'string' || !entry.wire.isWellFormed()) fail();
-            const size = Buffer.byteLength(entry.wire); if (!positive(size) || size > maxRecoveryBytes) fail();
-            bytes = Math.max(bytes, size); recoveryBytes = Math.max(recoveryBytes, size);
-          }
-          return capturedExtent(quantities(initialProfile, bytes, controlBytes, recoveryBytes));
-        }}), requestConstruction: Object.freeze({operationIndex: 0}), requestFinalization: Object.freeze({operationIndex: 1}),
-      controlsPerRow: initial[4], savedControlCodec: Object.freeze({maxEntryBytes: controlBytes, fallbackCapacity: fallback[4]}),
-    }), memberOperations.length + rowOperations.length);
+    return {
+      capture: {operation: captureName, extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))},
+      request: {operation: recipeName + '.request', extent: operationExtent(recipeName + '.request', initial[2])},
+      finalization: {operation: recipeName + '.finalize', extent: operationExtent(recipeName + '.finalize', finalization)},
+      describe: keyed ? [] : [readOccurrence('schema', formResource, false)],
+      targets: [
+        readOccurrence('schema-before', formResource, false),
+        readOccurrence('target', undefined, true),
+        readOccurrence('schema-after', formResource, false),
+      ],
+      writes() {
+        const writeCapacity = composeUpdateTarget(initial[3], maxTargetBytes);
+        const writes = keyed
+          ? [{slot: 'absent', operation: KINTONE_RECORD_CREATE_OPERATION},
+            {slot: 'present', operation: KINTONE_RECORD_UPDATE_OPERATION}]
+          : [{operation: writeOperation}];
+        return writes.map(write => ({...write,
+          maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes, maxTargetBytes,
+          prepare: (transfer: bigint) => ({extent: operationExtent(write.operation, writeCapacity, transfer, true)})}));
+      },
+      recoveryInputExtent(previewWire, recovery, memberIndex) {
+        const {previewBytes, recoveryBytes} = measureInstalledEffectRecoveryInput(previewWire, recovery,
+          memberIndex, preview.maxWireBytes, maxRecoveryBytes, fail);
+        return capturedExtent(quantities(initialProfile, Math.max(previewBytes, recoveryBytes), controlBytes, recoveryBytes));
+      },
+      controlsPerRow: initial[4],
+      savedControlCodec: Object.freeze({maxEntryBytes: controlBytes, fallbackCapacity: fallback[4]}),
+    };
   };
 }

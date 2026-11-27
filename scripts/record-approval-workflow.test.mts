@@ -21,6 +21,7 @@ import {readAuthoredCase, runRecordApprovalCommand} from './fixtures/record-appr
 import type {ConnectorPhaseOptions} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
+import {createRecordApprovalProviderState} from './fixtures/record-approval/provider-state.mjs';
 import {kintoneApprovalInstallation} from './fixtures/kintone-approval/installed.fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
 import {observeRecordApprovalDescriptors, recordApprovalScopedPaths} from './fixtures/record-approval/scoped-fds.fixture.mjs';
@@ -60,7 +61,7 @@ type TestCommandPhase = Omit<ConnectorPhaseOptions<typeof selection>, 'client' |
   save: (name: string, value: Record<string, unknown>) => Promise<unknown>;
 };
 type ProviderFields = Partial<RecordApprovalSeed & typeof selection>;
-type HubSpotResult = {status: string; results: {id: string; properties: {name: string}}[]};
+type HubSpotResult = {status: string; results: {id: string; properties: {name: string; actql_request_id?: string}}[]};
 type HubSpotWrite = {inputs: {id: string; objectWriteTraceId: string;
   properties: {name: string | null; actql_request_id?: string}; extra?: string}[]};
 type KintoneRecord = Record<string, {value: unknown}>;
@@ -1033,6 +1034,77 @@ test('HubSpot approval provider requires a credential-bearing request before tar
   assert.equal(f.value.snapshot().requests.length, 0);
   const response = read.handle(f.exchange(path, {inputs: [{id: selection.recordId}], properties: ['name']}));
   assert.equal((response.body as HubSpotResult).results[0].properties.name, selection.previousName);
+});
+
+test('the shared provider owns typed rows and a finite ordered mutation plan', () => {
+  type Row = {key: string; text?: string | null};
+  const a: Row = {key: 'a', text: null}, b: Row = {key: 'b'}, control: Row = {key: 'control', text: 'keep'};
+  const plan = {control, keyOf: (row: Readonly<Row>) => row.key,
+    writes: [{key: 'a', operation: 'update'}, {key: 'b', operation: 'delete'}, {key: 'c', operation: 'create'}]} as const;
+  assert.throws(() => createRecordApprovalProviderState<Row>({...plan, targets: [['a', b], ['b', b], ['c', null]]}),
+    /ForeignRecordApprovalFixtureRow/u);
+  const state = createRecordApprovalProviderState<Row>({...plan, targets: [['a', a], ['b', b], ['c', null]]});
+  const original = state.snapshot();
+  a.text = 'foreign'; b.text = 'foreign'; control.text = 'foreign';
+  assert.deepEqual(state.snapshot(), original);
+  assert.equal(state.target('a')?.text, null);
+  assert(!Object.hasOwn(state.target('b')!, 'text'));
+  assert.equal(state.target('c'), null);
+  assert.throws(() => state.apply('delete', 'b', null), /UnexpectedRecordApprovalFixtureWrite/u);
+  assert.throws(() => state.apply('update', 'a', null), /InvalidRecordApprovalFixtureSuccessor/u);
+  assert.throws(() => state.apply('update', 'a', {key: 'b', text: 'foreign'}), /ForeignRecordApprovalFixtureRow/u);
+  assert.deepEqual(state.snapshot(), original);
+  state.apply('update', 'a', {key: 'a', text: 'updated'});
+  assert.throws(() => state.apply('update', 'a', {key: 'a', text: 'repeat'}), /UnexpectedRecordApprovalFixtureWrite/u);
+  state.apply('delete', 'b', null);
+  state.apply('create', 'c', {key: 'c', text: null});
+  assert.deepEqual(state.snapshot(), {writes: 3, targets: [['a', {key: 'a', text: 'updated'}],
+    ['b', null], ['c', {key: 'c', text: null}]], control: {key: 'control', text: 'keep'}, requests: [], failures: []});
+  state.reset();
+  assert.deepEqual(state.snapshot(), original);
+});
+
+test('one HubSpot HTTPS fixture applies two marked updates to distinct original keys', {timeout: 15000}, async () => {
+  const first = '9007199254740993', second = '9007199254740995', control = '9007199254740997';
+  const provider = hubspotApprovalProvider({recordId: first, previousName: 'first', controlId: control},
+    {additionalTargets: [{id: second, name: 'second'}], writeOrder: [first, second]});
+  const tls = await openRecordApprovalExchange(undefined, {provider});
+  const request = (method: string, path: string, value?: unknown) => new Promise<{status: number; body: string}>((resolve, reject) => {
+    const bytes = value === undefined ? undefined : Buffer.from(JSON.stringify(value));
+    const call = requestHttps(new URL(path, tls.origin), {method, ca: tls.ca, agent: false,
+      headers: {authorization: 'Bearer fixture-credential', ...(bytes === undefined ? {} :
+        {'content-type': 'application/json', 'content-length': bytes.length})}}, response => {
+      response.setEncoding('utf8');
+      let body = '';
+      response.on('data', chunk => {body += chunk;});
+      response.once('end', () => resolve({status: response.statusCode!, body}));
+      response.once('error', reject);
+    });
+    call.setTimeout(5000, () => call.destroy(new Error('FixtureRequestTimeout')));
+    call.once('error', reject);
+    call.end(bytes);
+  });
+  const change = (id: string, name: string, marker: string) =>
+    request('POST', provider.writeRequest.pathname, {inputs: [{id, objectWriteTraceId: cid('a'),
+      properties: {name, actql_request_id: marker}}]});
+  const rows = async () => {
+    const response = await request('GET', '/crm/v3/objects/companies');
+    assert.equal(response.status, 200);
+    const {results} = JSON.parse(response.body) as HubSpotResult;
+    return results.map(({id, properties}) => [id, properties.name, properties.actql_request_id]);
+  };
+  try {
+    assert.deepEqual(await rows(), [[first, 'first', ''], [second, 'second', ''], [control, 'Untouched control', '']]);
+    assert.equal((await change(first, 'first updated', cid('b'))).status, 200);
+    assert.equal((await change(second, 'second updated', cid('c'))).status, 200);
+    assert.deepEqual(await rows(), [[first, 'first updated', cid('b')], [second, 'second updated', cid('c')],
+      [control, 'Untouched control', '']]);
+    assert.equal(provider.snapshot().writes, 2);
+    assert.equal(provider.snapshot().failures.length, 0);
+    assert.equal(tls.seen().filter(entry => entry.method === 'POST').length, 2);
+  } finally {
+    await tls.close();
+  }
 });
 
 test('shared record approval Account fixture preserves provider policy in one complete Host/Site wire', () => {

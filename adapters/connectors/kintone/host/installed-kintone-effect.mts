@@ -15,7 +15,8 @@ import {installedRowEffectUnit, retainInstalledRowEffectAdapter, validateInstall
 import {assertUpdateTargetSelectionMembersCurrent} from '../../../host-node/update-target-original-shape.mjs';
 import {installedKintoneSourceIdentityParts, installedKintoneSiteBinding, prepareInstalledKintoneMaterials}
   from './installed-kintone-source.mjs';
-import {captureKintoneEffectPlanRecipeBuilder} from './kintone-effect-plan.mjs';
+import {captureKintoneEffectConstruction} from './kintone-effect-plan.mjs';
+import {bindInstalledDeclaredUpdatePlan, composeInstalledTargetMutationRecipe} from '../../../host-node/installed-effect-plan.mjs';
 import {kintoneDeleteDriver, kintoneUpdateDriver, KINTONE_UPDATE_TARGET_VERSION} from './kintone-update-driver.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
 
@@ -40,8 +41,9 @@ type Mapping = Readonly<{kind: Kind; resource: string; beforeFields: readonly st
 type Member = Readonly<{effectId: string; memberIndex: number; targetRef: string; mapping: Mapping}>;
 type RowEffect = Awaited<ReturnType<typeof createInstalledRowEffect>>;
 type Driver = ReturnType<typeof kintoneUpdateDriver>;
-type Recipe = ReturnType<ReturnType<typeof captureKintoneEffectPlanRecipeBuilder>>;
-type Constructed = Readonly<{write?: Driver; driver?: Driver; managedPlanRecipes: Readonly<Partial<Record<Kind, Recipe>>>}>;
+type Recipe = ReturnType<typeof composeInstalledTargetMutationRecipe>;
+type Constructed = Readonly<{write: Driver}> |
+  Readonly<{driver: Driver; managedPlanRecipes: Readonly<Partial<Record<Exclude<Kind, 'update'>, Recipe>>>}>;
 type ConstructionInput<Value> = Readonly<{capacity(): unknown; project(): Value}>;
 type Prepared = Readonly<{environment: Readonly<{wire: string; evidenceCid: string}>}>;
 type OpenedSite = Readonly<{site: Readonly<{credential: unknown}>;
@@ -263,10 +265,15 @@ export async function loadInstalledKintoneEffect(profile: unknown, {moon, constr
         appId: source.appId, connectorId: source.connectorId, resource: source.resource, formResource: source.formResource,
         fields: beforeFields!, mapping: mapped.mapping, declaration: original, siteBindingCid, generationCid,
         guestSpaceId: siteProfile.guestSpaceId, limits: deleting ? deleteLimits : policy, maxMembers, maxRecoveryBytes, kind});
-      const recipe = captureKintoneEffectPlanRecipeBuilder({moon, kind})({mapping: mapped.mapping, fields: beforeFields!, formResource: source.formResource,
+      const profile = captureKintoneEffectConstruction({moon, kind})({mapping: mapped.mapping, fields: beforeFields!, formResource: source.formResource,
         bindingUnits: textUnits, credentialSite: installedRowCredentialOperationSite(site.credential), limits: policy,
         inputLimits: ownerLimits, maxRecoveryBytes, maxTargetBytes: prefix.length + 'records.json'.length});
-      return Object.freeze({[kind === 'update' ? 'write' : 'driver']: driver, managedPlanRecipes: Object.freeze({[kind]: recipe})});
+      if (kind === 'update') {
+        bindInstalledDeclaredUpdatePlan(driver, site, profile);
+        return Object.freeze({write: driver});
+      }
+      return Object.freeze({driver,
+        managedPlanRecipes: Object.freeze({[kind]: composeInstalledTargetMutationRecipe(profile)})});
     },
   }));
   const rowEffect = await construction.createRowEffect({connection, runtimeBundleCid, bindingCid: siteBindingCid,

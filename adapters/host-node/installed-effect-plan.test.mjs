@@ -9,13 +9,27 @@ import {captureInstalledEffectPlanRecipe, selectInstalledEffectWriteBranch, prep
   captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledDeclaredUpdatePlanRecipe,
   prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
   prepareInstalledEffectControlConstruction, installedEffectSavedControlEntryLimit,
-  installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit}
+  installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit,
+  measureInstalledEffectRecoveryInput}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {bindEffectLedgerCodecs, bindEffectLedgerConstruction} from './effect-ledger-frames.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
   from '../site-node/https-credential-resource.mjs';
+
+test('effect recovery quotes exact original UTF-8 Preview and the selected member envelope separately', () => {
+  const failure = new Error('original input is outside its bounds');
+  const measure = (preview, rows, index, previewLimit = 4, recoveryLimit = 6) =>
+    measureInstalledEffectRecoveryInput(preview, rows, index, previewLimit, recoveryLimit, () => { throw failure; });
+  const rows = [{memberIndex: 0, wire: 'é'}, {memberIndex: 0, wire: 'é😀'},
+    {memberIndex: 1, wire: '\ud800'}];
+  assert.deepEqual(measure('😀', rows, 0), {previewBytes: 4, recoveryBytes: 6});
+  assert.deepEqual(measure('😀', rows, 2), {previewBytes: 4, recoveryBytes: 1});
+  assert.throws(() => measure('😀', rows, 0, 3), error => error === failure);
+  assert.throws(() => measure('😀', rows, 0, 4, 5), error => error === failure);
+  assert.throws(() => measure('😀', rows, 1), error => error === failure);
+});
 
 test('shared control readers retain each plugin bound and restore full capacity for mixed receivers', () => {
   const capacity = {}, fallbackCapacity = {}, extent = {};

@@ -4,11 +4,12 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeTupleFromFields, runtimeUnboxedReferenceOption} from '../../../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe, captureDeclaredUpdateTargetCapacity} from '../../../host-node/installed-effect-plan.mjs';
+import {captureDeclaredUpdateTargetCapacity, measureInstalledEffectRecoveryInput}
+  from '../../../host-node/installed-effect-plan.mjs';
+import type {TargetMutationRecipe} from '../../../host-node/installed-effect-recipe-construction.mjs';
 import {effectLedgerImplementationBounds} from '../../../host-node/effect-ledger-implementation-bounds.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
-  httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum,
-  httpsCredentialResponseWindowBytes} from '../../../site-node/https-credential-resource.mjs';
+  httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum} from '../../../site-node/https-credential-resource.mjs';
 import {HUBSPOT_ACCOUNT_DETAILS_OPERATION} from '../site/hubspot-account-read.mjs';
 import {HUBSPOT_PROPERTIES_READ_OPERATION} from '../site/hubspot-object-read.mjs';
 import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.mjs';
@@ -38,11 +39,6 @@ type ReadField = 'maxResponseBytes' | 'maxRequestBytes' | 'maxNodes' | 'maxDepth
   'maxOutputBytes' | 'maxOutputNodes' | 'maxOutputDepth' | 'maxRequestNodes' | 'maxRequestDepth';
 type WriteField = 'maxRequestBytes' | 'maxResponseBytes' | 'maxNodes' | 'maxDepth' | 'maxRows';
 type NumericRecord<Key extends string> = Readonly<Record<Key, number>>;
-type RecoveryEntry = Readonly<{memberIndex?: unknown; wire?: unknown}>;
-type CredentialOperation = Readonly<{phase: string; operationIndex: number; maxRequestBytes: number;
-  maxResponseBytes: number; maxTargetBytes?: number; slot?: string; resource?: string; perRow?: boolean;
-  responseExtent?(bytes: number, body: Uint8Array, geometry?: readonly number[]): unknown;
-  discardResponseProjection?: true}>;
 
 const fail: () => never = () => {throw Object.assign(new Error('HubSpotEffectRecipeUnavailable'), {code: 'HubSpotEffectRecipeUnavailable'});};
 const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
@@ -65,7 +61,7 @@ const method = <Name extends keyof Native,>(receiver: unknown, name: Name): Nati
   return ((...args: unknown[]) => Reflect.apply(selected, receiver, args)) as Native[Name];
 };
 
-export function captureHubSpotEffectPlanRecipeBuilder({moon}: Readonly<{moon: object}>) {
+export function captureHubSpotUpdateConstruction({moon}: Readonly<{moon: object}>) {
   const composeUpdateTarget = captureDeclaredUpdateTargetCapacity(moon);
   const constructor = method(moon, 'clientProgramHubSpotEffectConstructorCapacity');
   const compose = method(moon, 'clientProgramHubSpotEffectRecipeCapacities');
@@ -78,8 +74,8 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}: Readonly<{moon: ob
   const emptyResponseHeaders = method(moon, 'clientProgramInstalledEffectOperationEmptyResponseHeadersExtentPrepare');
   // Matching Common must enforce this exact selection before the request.
   method(moon, 'clientProgramInstalledEffectOperationResponseHeadersRequire');
-  return function prepareHubSpotEffectPlanRecipe({mappings, origin, portalId, objectTypeUnits,
-    metadataResources, credentialSite, limits, inputLimits, maxRecoveryBytes}: Options) {
+  return function prepareHubSpotEffectConstruction({mappings, origin, portalId, objectTypeUnits,
+    metadataResources, credentialSite, limits, inputLimits, maxRecoveryBytes}: Options): TargetMutationRecipe {
     if (!Array.isArray(mappings) || nodeTypes.isProxy(mappings) || !Object.isFrozen(mappings) ||
         mappings.length < 1 || typeof origin !== 'string' || !origin || typeof portalId !== 'string' || !positive(portalId.length) ||
         !positive(objectTypeUnits) || !positive(maxRecoveryBytes)) fail();
@@ -172,99 +168,75 @@ export function captureHubSpotEffectPlanRecipeBuilder({moon}: Readonly<{moon: ob
     if ([initial, maximum, fallback].some(value => !Array.isArray(value) || value.length !== 8)) fail();
     const captureName = HUBSPOT_INSTALLED_UPDATE_OPERATION + '.capture';
     const capturedExtent = (values: readonly unknown[]) => checked(capture(captureName, values.slice(0, 6), ...preview));
-    const inputExtent = (previewWire: unknown, recovery: readonly RecoveryEntry[], memberIndex: number) => {
-      if (typeof previewWire !== 'string' || !previewWire.isWellFormed() || !Array.isArray(recovery) ||
-          !Number.isSafeInteger(memberIndex) || memberIndex < 0) fail();
-      const previewBytes = Buffer.byteLength(previewWire);
-      if (!positive(previewBytes) || previewBytes > preview[0]) fail();
-      let bytes = previewBytes;
-      for (const entry of recovery) {
-        if (entry?.memberIndex !== memberIndex) continue;
-        if (typeof entry.wire !== 'string' || !entry.wire.isWellFormed()) fail();
-        const size = Buffer.byteLength(entry.wire);
-        if (!positive(size) || size > maxRecoveryBytes) fail();
-        bytes = Math.max(bytes, size);
-      }
-      return capturedExtent(quantities(initialProfile, bytes, controlBytes));
+    const inputExtent = (previewWire: unknown, recovery: unknown, memberIndex: number) => {
+      const {previewBytes, recoveryBytes} = measureInstalledEffectRecoveryInput(previewWire, recovery,
+        memberIndex, preview[0], maxRecoveryBytes, fail);
+      return capturedExtent(quantities(initialProfile, Math.max(previewBytes, recoveryBytes), controlBytes));
     };
     const operationExtent = (operation: string, capacity: unknown, transfer = 0n, physical = false) =>
       checked(extent(operation, capacity, transfer, physical));
-    const memberOperations = [{operation: captureName,
-      extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))}];
-    const footprintIndex = memberOperations.length;
+    const captureOperation = {operation: captureName,
+      extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))};
     const footprint = runtimeUnboxedReferenceOption(footprintCapacity(origin, portalId, objectTypeUnits));
     if (footprint === undefined || footprint === null) fail();
     const footprintName = HUBSPOT_INSTALLED_UPDATE_OPERATION + '.footprint';
-    memberOperations.push({operation: footprintName, extent: operationExtent(footprintName, footprint)});
-    const rowOperations = [
-      {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION + '.request', extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION + '.request', initial[2])},
-      {operation: HUBSPOT_INSTALLED_UPDATE_OPERATION + '.finalize', extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION + '.finalize', finalization)},
-    ];
-    const credentialOperations: CredentialOperation[] = [];
-    const physical = (phase: string, slot: string, resource: string | undefined, perRow: boolean, operation: string,
-      position: number, requestBytes: number, responseBytes: number, kind: number) => {
-      const selected = perRow ? rowOperations : memberOperations, operationIndex = selected.length;
-      const transfer = BigInt(requestBytes) + httpsCredentialResponseWindowBytes(responseBytes);
-      const discardedProjection = slot === 'schema-after'
-        ? quantities(profile(0, 0, 9))[position] : undefined;
-      const extentOf = (values: readonly unknown[]) => {
-        const original = operationExtent(operation, values[position], transfer, true);
-        const output = discardedProjection === undefined ? original : checked(
-          discardProjection(original, discardedProjection));
-        // This original HubSpot read declares no observed response headers.
-        // Keep the full receive/parse peak; Common owns the success-only cut.
-        return checked(emptyResponseHeaders(output, httpsCredentialResponseHeaderByteLimit));
-      };
-      // The original physical backing and its received-input growth must use
-      // the SAME constructor. A generic Account/schema maximum is appropriate
-      // for the shared capture, but its retained schema output cannot become
-      // an Account operation's initial backing and then shrink at InputBegin.
-      const physicalProfile = (bytes: number, geometry?: readonly number[]) => kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind, geometry);
-      const responseExtent = (bytes: number, body: Uint8Array, geometry?: readonly number[]) => {
-        if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > responseBytes ||
-            !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
-        return extentOf(quantities(physicalProfile(bytes, geometry)));
-      };
-      selected.push({operation, extent: checked(stage(extentOf(quantities(physicalProfile(0))),
-        extentOf(quantities(physicalProfile(responseBytes)))))});
-      credentialOperations.push(Object.freeze({phase, slot, ...(resource === undefined ? {} : {resource}), perRow,
-        operationIndex, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, responseExtent,
-        ...(discardedProjection === undefined ? {} : {discardResponseProjection: true})}));
-    };
-    for (const phase of ['capture', 'apply', 'resume']) {
-      physical(phase + '-describe', 'account', resources.account, false, HUBSPOT_ACCOUNT_DETAILS_OPERATION,
-        7, httpsCredentialDefaultRequestBytes, read.maxResponseBytes, 3);
-      physical(phase + '-describe', 'schema', resources.properties, false, HUBSPOT_PROPERTIES_READ_OPERATION,
-        7, httpsCredentialDefaultRequestBytes, read.maxResponseBytes, 4);
-      for (const [slot, resource, operation, kind] of ([
-        ['account', resources.account, HUBSPOT_ACCOUNT_DETAILS_OPERATION, 3],
-        ['schema-before', resources.properties, HUBSPOT_PROPERTIES_READ_OPERATION, 4],
-        ['target', undefined, HUBSPOT_OBJECT_BATCH_READ_OPERATION, 1],
-        ['schema-after', resources.properties, HUBSPOT_PROPERTIES_READ_OPERATION, 4],
-      ] as const)) physical(phase + '-target', slot, resource, true, operation, kind === 1 ? 6 : 7,
-        kind === 1 ? read.maxRequestBytes : httpsCredentialDefaultRequestBytes, read.maxResponseBytes, kind);
-    }
-    const writeIndex = rowOperations.length;
-    // A BMP unit can encode to three UTF-8 bytes with three ASCII bytes each.
-    // A supplementary code point uses two units and fits the same bound.
-    const maxTargetBytes = hubspotUpdatePathFixedBytes + 9 * objectTypeUnits;
-    const writeCapacity = composeUpdateTarget(initial[3], maxTargetBytes);
-    rowOperations.push({operation: HUBSPOT_INSTALLED_UPDATE_OPERATION, extent: operationExtent(HUBSPOT_INSTALLED_UPDATE_OPERATION,
-      writeCapacity, BigInt(write.maxRequestBytes) + httpsCredentialResponseWindowBytes(write.maxResponseBytes), true)});
-    credentialOperations.push(Object.freeze({phase: 'write', operationIndex: writeIndex,
-      maxRequestBytes: write.maxRequestBytes, maxResponseBytes: write.maxResponseBytes, maxTargetBytes}));
-    const recoveryIndex = memberOperations.length;
-    memberOperations.push(memberOperations[0]);
-    return captureInstalledEffectPlanRecipe(Object.freeze({
-      memberOperations: Object.freeze(memberOperations.map(Object.freeze)),
-      rowOperations: Object.freeze(rowOperations.map(Object.freeze)),
-      credentialOperations: Object.freeze(credentialOperations),
-      captureConstruction: Object.freeze({operationIndex: 0}),
-      footprintConstruction: Object.freeze({operationIndex: footprintIndex}),
-      recoveryConstruction: Object.freeze({operationIndex: recoveryIndex, inputExtent}),
-      requestConstruction: Object.freeze({operationIndex: 0}), requestFinalization: Object.freeze({operationIndex: 1}),
+    const footprintOperation = {operation: footprintName, extent: operationExtent(footprintName, footprint)};
+    const readOccurrence = (slot: string, resource: string | undefined, operation: string, kind: number) => ({
+      operation, slot, resource,
+      maxRequestBytes: kind === 1 ? read.maxRequestBytes : httpsCredentialDefaultRequestBytes,
+      maxResponseBytes: read.maxResponseBytes,
+      prepare(transfer: bigint) {
+        const position = kind === 1 ? 6 : 7;
+        const discardedProjection = slot === 'schema-after'
+          ? quantities(profile(0, 0, 9))[position] : undefined;
+        const extentOf = (values: readonly unknown[]) => {
+          const original = operationExtent(operation, values[position], transfer, true);
+          const output = discardedProjection === undefined ? original : checked(
+            discardProjection(original, discardedProjection));
+          // This original HubSpot read declares no observed response headers.
+          // Keep the full receive/parse peak; Common owns the success-only cut.
+          return checked(emptyResponseHeaders(output, httpsCredentialResponseHeaderByteLimit));
+        };
+        // The original physical backing and its received-input growth must use
+        // the SAME constructor. A generic Account/schema maximum is appropriate
+        // for the shared capture, but its retained schema output cannot become
+        // an Account operation's initial backing and then shrink at InputBegin.
+        const physicalProfile = (bytes: number, geometry?: readonly number[]) => kind === 1 ? profile(bytes, 0) : profile(0, bytes, kind, geometry);
+        const responseExtent = (bytes: number, body: Uint8Array, geometry?: readonly number[]) => {
+          if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > read.maxResponseBytes ||
+              !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
+          return extentOf(quantities(physicalProfile(bytes, geometry)));
+        };
+        return {extent: checked(stage(extentOf(quantities(physicalProfile(0))),
+          extentOf(quantities(physicalProfile(read.maxResponseBytes))))), responseExtent,
+          ...(discardedProjection === undefined ? {} : {discardResponseProjection: true as const})};
+      },
+    });
+    const operation = HUBSPOT_INSTALLED_UPDATE_OPERATION;
+    return {
+      capture: captureOperation, footprint: footprintOperation, recoveryInputExtent: inputExtent,
+      request: {operation: operation + '.request', extent: operationExtent(operation + '.request', initial[2])},
+      finalization: {operation: operation + '.finalize', extent: operationExtent(operation + '.finalize', finalization)},
+      describe: [
+        readOccurrence('account', resources.account, HUBSPOT_ACCOUNT_DETAILS_OPERATION, 3),
+        readOccurrence('schema', resources.properties, HUBSPOT_PROPERTIES_READ_OPERATION, 4),
+      ],
+      targets: [
+        readOccurrence('account', resources.account, HUBSPOT_ACCOUNT_DETAILS_OPERATION, 3),
+        readOccurrence('schema-before', resources.properties, HUBSPOT_PROPERTIES_READ_OPERATION, 4),
+        readOccurrence('target', undefined, HUBSPOT_OBJECT_BATCH_READ_OPERATION, 1),
+        readOccurrence('schema-after', resources.properties, HUBSPOT_PROPERTIES_READ_OPERATION, 4),
+      ],
+      writes() {
+        // A BMP unit can encode to three UTF-8 bytes with three ASCII bytes each.
+        // A supplementary code point uses two units and fits the same bound.
+        const maxTargetBytes = hubspotUpdatePathFixedBytes + 9 * objectTypeUnits;
+        const writeCapacity = composeUpdateTarget(initial[3], maxTargetBytes);
+        return [{operation, maxRequestBytes: write.maxRequestBytes, maxResponseBytes: write.maxResponseBytes,
+          maxTargetBytes, prepare: transfer => ({extent: operationExtent(operation, writeCapacity, transfer, true)})}];
+      },
       controlsPerRow: initial[4],
       savedControlCodec: Object.freeze({maxEntryBytes: controlBytes, fallbackCapacity: fallback[4]}),
-    }), memberOperations.length + rowOperations.length);
+    };
   };
 }

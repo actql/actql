@@ -17,7 +17,8 @@ import {assertUpdateTargetSelectionMembersCurrent} from '../../../host-node/upda
 import {installedHubSpotSourceIdentityParts, installedHubSpotSiteBinding,
   prepareInstalledHubSpotMaterials} from './installed-hubspot-source.mjs';
 import {prepareInstalledHubSpotUpdateMappings} from './hubspot-effect-mappings.mjs';
-import {captureHubSpotEffectPlanRecipeBuilder} from './hubspot-effect-plan.mjs';
+import {captureHubSpotUpdateConstruction} from './hubspot-effect-plan.mjs';
+import {bindInstalledDeclaredUpdatePlan} from '../../../host-node/installed-effect-plan.mjs';
 import {hubspotUpdateDriver, HUBSPOT_UPDATE_TARGET_VERSION} from './hubspot-update-driver.mjs';
 import {HUBSPOT_OBJECT_BATCH_READ_OPERATION} from '../site/hubspot-target-read.mjs';
 import type {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
@@ -36,8 +37,7 @@ type BuiltMappings = ReturnType<typeof prepareInstalledHubSpotUpdateMappings> & 
 type Member = Readonly<{effectId: string; memberIndex: number; targetRef: string; mapping: Mapping}>;
 type RowEffect = Awaited<ReturnType<typeof createInstalledRowEffect>>;
 type Driver = ReturnType<typeof hubspotUpdateDriver>;
-type Recipe = ReturnType<ReturnType<typeof captureHubSpotEffectPlanRecipeBuilder>>;
-type Constructed = Readonly<{write: Driver; managedPlanRecipes: Readonly<{update: Recipe}>}>;
+type Constructed = Readonly<{write: Driver}>;
 type DriverInput = Readonly<{capacity(): unknown; project(): Constructed}>;
 type Construction = HubSpotMaterialsConstruction & Readonly<{
   configurationReader: HubSpotMaterialsConstruction['configurationReader'] &
@@ -260,7 +260,7 @@ export async function loadInstalledHubSpotEffect(profile: unknown, {moon, provid
     selected.writes.reduce((sum, value) => sum + value.resource.length + value.markerProperty.length +
       value.fields.reduce((total, field) => total + field.length, 0) + 2 * 71, 0);
   if (!Number.isSafeInteger(textUnits) || textUnits > 2147483647) fail('HubSpotEffectConstructionUnavailable');
-  const prepareRecipe = captureHubSpotEffectPlanRecipeBuilder({moon});
+  const prepareUpdate = captureHubSpotUpdateConstruction({moon});
   const constructed = prepareDriver(Object.freeze({
     capacity() {
       const value = runtimeUnboxedReferenceOption(quantity(7, [], [], [originals.length,
@@ -278,7 +278,7 @@ export async function loadInstalledHubSpotEffect(profile: unknown, {moon, provid
       const installedFor: Parameters<typeof hubspotUpdateDriver>[0]['installedFor'] = member => mappings!.find(value => value.resource === member?.resource &&
         value.mappingRef === member.mapping?.mappingRef && value.mappingCid === member.mapping?.mappingCid);
       const originalSite = installedRowCredentialOperationSite(site.credential);
-      const recipe = prepareRecipe({mappings, origin: siteProfile.apiOrigin, portalId: source.portalId,
+      const profile = prepareUpdate({mappings, origin: siteProfile.apiOrigin, portalId: source.portalId,
         objectTypeUnits: Math.max(...source.resources.map(value => value.objectType.length)),
         metadataResources: source.metadataResources, credentialSite: originalSite, limits,
         inputLimits: {body: ownerLimits.body, preview: ownerLimits.preview}, maxRecoveryBytes});
@@ -290,12 +290,13 @@ export async function loadInstalledHubSpotEffect(profile: unknown, {moon, provid
         requestLimits: Object.freeze({maxProperties: mappingLimits.maxProperties, body: bodyLimits,
           request: limits.request, maxRecoveryBytes}), readLimits: limits.read, writeLimits: limits.write,
         maxRows: ownerLimits.maxRows, maxMembers: ownerLimits.maxMembers, maxRecoveryBytes});
-      return Object.freeze({write, managedPlanRecipes: Object.freeze({update: recipe})});
+      bindInstalledDeclaredUpdatePlan(write, site, profile);
+      return Object.freeze({write});
     },
   }));
   const rowEffect = await construction.createRowEffect({connection, runtimeBundleCid, bindingCid: siteBindingCid!,
     continuationBinding: generationCid!, ledgerRoot, write: constructed.write,
-    managedPlanRecipes: constructed.managedPlanRecipes, limits: ownerLimits});
+    limits: ownerLimits});
   const targetReadInventory = installedHubSpotTargetReadInventory({moon, mappings: mappings!, connection,
     siteBindingCid: siteBindingCid!, generationCid: generationCid!, rowEffect});
   return retainInstalledRowEffectAdapter(rowEffect, Object.freeze({environmentWire: prepared.environment.wire,
