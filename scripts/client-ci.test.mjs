@@ -1159,6 +1159,13 @@ test('Client lanes cover local acceptance without positional command snapshots',
     } else if (name === 'client-model-packed') {
       assert.equal(jobs[name].strategy['fail-fast'], false);
       assert.deepEqual(jobs[name].strategy.matrix.node, ['22.22.0', '24']);
+      const steps = jobs[name].steps;
+      const inputs = steps.findIndex(step => step.id === 'client-inputs');
+      const parent = steps.findIndex(step => step.name === 'Prepare the registered Model evidence parent');
+      const consumers = steps.flatMap((step, index) =>
+        step.run?.includes('node scripts/test-packed-provider-ai-sdk.mjs') ? [index] : []);
+      assert(inputs >= 0 && parent > inputs && consumers.length === 3 && consumers.every(index => index > parent));
+      assert.equal(steps[parent].run, 'mkdir -- "$RUNNER_TEMP/client-model-packed"');
     } else if (name === 'client-distribution-mutations') {
       assert.equal(jobs[name].strategy['fail-fast'], false);
     } else assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
@@ -1169,6 +1176,7 @@ test('Client lanes cover local acceptance without positional command snapshots',
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
       if (name === 'client-packed' && step.id === 'table-python') preparation = 'client-inputs';
+      if (name === 'client-model-packed' && step.name === 'Prepare the registered Model evidence parent') preparation = 'client-inputs';
       if (name === 'client-packed') {
         const group = /matrix\.group == '([^']+)'/u.exec(step.if)?.[1];
         assert(jobs[name].strategy.matrix.group.includes(group));
