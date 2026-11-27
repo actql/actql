@@ -21130,8 +21130,29 @@ const schemas = {
                                 "const": true
                             }
                         }
+                    },
+                    "entry_breakpoint_profile": {
+                        "const": "all_operations"
                     }
-                }
+                },
+                "allOf": [
+                    {
+                        "if": {
+                            "required": [
+                                "entry_breakpoint_profile"
+                            ]
+                        },
+                        "then": {
+                            "properties": {
+                                "capabilities": {
+                                    "required": [
+                                        "debug_entry"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         }
     },
