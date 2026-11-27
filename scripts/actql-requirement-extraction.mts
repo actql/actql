@@ -44,9 +44,11 @@ export function normalizedParagraphs(source: string) {
     }
     if (table.length && !line.trimStart().startsWith('|')) flushTable();
     const anchorMatch = /^<a id="([^"]+)"><\/a>$/u.exec(line);
-    if (anchorMatch) { flush(); anchor = anchorMatch[1]; continue; }
+    const anchored = anchorMatch?.[1];
+    if (anchored !== undefined) { flush(); anchor = anchored; continue; }
     const codeMatch = /^<!-- normative-code: (grammar|envelope|law) -->$/u.exec(line);
-    if (codeMatch) { flush(); normativeFence = `NORMATIVE_${codeMatch[1].toUpperCase()}`; continue; }
+    const codeKind = codeMatch?.[1];
+    if (codeKind !== undefined) { flush(); normativeFence = `NORMATIVE_${codeKind.toUpperCase()}`; continue; }
     if (/^<!-- informative-table: [a-z0-9-]+ -->$/u.test(line)) {
       flush(); informativeTable = true; continue;
     }
@@ -56,14 +58,16 @@ export function normalizedParagraphs(source: string) {
     }
     if (line.startsWith('```')) { flush(); inFence = true; continue; }
     const headingMatch = /^(#{2,4})\s+(?:Appendix\s+)?((?:\d+|[A-Z])(?:\.\d+)*)\.?(?:\s+)(.*)$/u.exec(line);
-    if (headingMatch) {
+    const [, , sectionNumber, numberedHeading] = headingMatch ?? [];
+    if (sectionNumber !== undefined && numberedHeading !== undefined) {
       flush();
-      section = headingMatch[2];
-      heading = headingMatch[3];
+      section = sectionNumber;
+      heading = numberedHeading;
       continue;
     }
     const localHeading = /^#{1,6}\s+(.*)$/u.exec(line);
-    if (localHeading) { flush(); section = anchor; heading = localHeading[1]; continue; }
+    const headingText = localHeading?.[1];
+    if (headingText !== undefined) { flush(); section = anchor; heading = headingText; continue; }
     if (!line.trim()) { flush(); continue; }
     if (line.trimStart().startsWith('|')) {
       flush();

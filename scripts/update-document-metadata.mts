@@ -6,7 +6,7 @@ import { normalizedParagraphs } from './actql-requirement-extraction.mjs';
 import { fingerprint, machineCid, documentCid, type FamilyManifest, type Registry } from './actql-spec-family.mjs';
 
 type Descriptor = Pick<FamilyManifest['documents'][number], 'spec_id' | 'path'>;
-type RequirementChange = {id: string; change: 'changed' | 'added' | 'removed'; before?: string; after?: string};
+type RequirementChange = {id: string; change: 'changed' | 'added' | 'removed'; before?: string | undefined; after?: string};
 type CIDChange = {before: string; after: string} & ({path: string; pointer: string} | {owner: string});
 
 // Explicit requirement IDs belong to authors. Never infer ID continuity from similar prose.
@@ -20,14 +20,18 @@ export function updateRequirements<Fields extends Pick<Registry, 'requirements'>
   const completeEntries = normalizedParagraphs(body);
   let offset = 0;
   for (const [i, mark] of marks.entries()) {
-    const keys = mark[1].split(' ').map(key => `${descriptor.spec_id}/${key}`);
+    const names = mark[1];
+    assert.ok(names !== undefined, `Invalid requirement block in ${descriptor.path}`);
+    const keys = names.split(' ').map(key => `${descriptor.spec_id}/${key}`);
     const localEntries = normalizedParagraphs(body.slice(mark.index + mark[0].length, marks[i + 1]?.index ?? body.length));
     const entries = completeEntries.slice(offset, offset + localEntries.length);
-    assert.deepEqual(entries.map(fingerprint), localEntries.map(fingerprint), `Unmarked requirement before ${mark[1]}`);
+    assert.deepEqual(entries.map(fingerprint), localEntries.map(fingerprint), `Unmarked requirement before ${names}`);
     offset += entries.length;
-    assert.equal(keys.length, entries.length, `Assign one explicit requirement ID per extracted obligation: ${mark[1]}`);
+    assert.equal(keys.length, entries.length, `Assign one explicit requirement ID per extracted obligation: ${names}`);
     for (const [j, entry] of entries.entries()) {
-      const id = keys[j], hash = fingerprint(entry), previous = old.get(id);
+      const id = keys[j];
+      assert.ok(id !== undefined);
+      const hash = fingerprint(entry), previous = old.get(id);
       assert.ok(!ids.has(id), `Duplicate ID ${id}`); ids.add(id);
       if (previous?.statement_sha256 === hash && previous.source.anchor === entry.section) requirements.push(previous);
       else {

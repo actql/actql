@@ -30,7 +30,9 @@ Intentional network probes declare an exact `expectedOutbound` count; an observe
 callback alone does not exempt a test. The real-fetch injection tests deliberately
 bypass the phase spies and require finalization to reject the attempt.
 
-Local Compute composition is generated separately with the pinned MoonBit:
+From the repository root, install the locked dependencies and emit the
+TypeScript tools with `npm ci`. Generate the Local Compute composition
+with the pinned MoonBit:
 
 ```sh
 node scripts/workers-composition.mjs --write
@@ -47,6 +49,7 @@ With the pinned MoonBit on `PATH` and `MOON_HOME` set, run the complete current
 Workers verification command from the repository root:
 
 ```sh
+npm ci
 npm ci --prefix adapters/workers --ignore-scripts
 npm test --prefix adapters/workers
 ```

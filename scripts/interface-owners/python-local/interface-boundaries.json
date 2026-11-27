@@ -7,11 +7,11 @@
       "module": "packages/python-sdk/src/actql_sdk/_duckdb_environment.py",
       "sha256": "23c0704887bd927ceef9b67e060dc37dff950396c7df8b50aeddde812cbfbab8",
       "generator": {
-        "path": "scripts/check-duckdb-environment-contract.mjs",
+        "path": "scripts/check-duckdb-environment-contract.mts",
         "anchor": "const python = ["
       },
       "freshness": {
-        "path": "scripts/check-duckdb-environment-contract.mjs",
+        "path": "scripts/check-duckdb-environment-contract.mts",
         "anchor": "assert.equal(await readFile(pythonUrl, 'utf8'), python)"
       }
     },
@@ -2869,7 +2869,7 @@
                 "anchor": "{"
               },
               {
-                "path": "scripts/check-duckdb-environment-contract.mjs",
+                "path": "scripts/check-duckdb-environment-contract.mts",
                 "anchor": "const python = ["
               }
             ],

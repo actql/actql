@@ -86,7 +86,8 @@ report relationships for those consumers. No full engine is imported for Remote.
 
 ## Focused verification
 
-The focused `node scripts/check-public-wire-codecs.mjs` guard runs read-only
+Run `npm ci` from the repository root to emit the TypeScript tools. The focused
+`node scripts/check-public-wire-codecs.mjs` guard runs read-only
 generation, independent JS/Python vectors/mutations and actual Native vectors.
 It requires the pinned compiler only for target verification, never as a Remote
 package runtime dependency. To select affected regressions separately, run

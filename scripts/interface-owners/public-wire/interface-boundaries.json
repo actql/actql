@@ -624,7 +624,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -739,7 +739,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -845,7 +845,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -950,7 +950,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1097,7 +1097,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1117,7 +1117,7 @@
                 "anchor": "test('Take binding conditions are closed template Requirements"
               },
               {
-                "path": "packages/sdk/domain-carrier-presentation.test.mjs",
+                "path": "packages/sdk/domain-carrier-presentation.test.mts",
                 "anchor": "test('closed operand and carrier facts give immutable specific English and Japanese advice'"
               }
             ]
@@ -1283,7 +1283,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1473,7 +1473,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1671,7 +1671,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2468,7 +2468,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2579,7 +2579,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2781,7 +2781,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2900,7 +2900,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3131,7 +3131,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3242,7 +3242,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3348,7 +3348,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3444,7 +3444,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3653,7 +3653,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3767,7 +3767,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3865,7 +3865,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3963,7 +3963,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4065,7 +4065,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4173,7 +4173,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4522,7 +4522,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4631,7 +4631,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4737,7 +4737,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4843,7 +4843,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4945,7 +4945,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -5047,7 +5047,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -5153,7 +5153,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {

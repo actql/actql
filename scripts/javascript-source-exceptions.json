@@ -30,7 +30,7 @@
       "mode": "100644",
       "object": "b4db4e38b104611a72db1ace3d95406793265b90",
       "role": "generated",
-      "owner": "scripts/workers-composition.mjs",
+      "owner": "scripts/workers-composition.mts",
       "reason": "Generated registration for the existing Workers Local and independent Compute profiles."
     },
     {
@@ -38,7 +38,7 @@
       "mode": "100644",
       "object": "00211c0bfba27715a697637309b567ad8e0731f7",
       "role": "generated",
-      "owner": "scripts/workers-composition.mjs",
+      "owner": "scripts/workers-composition.mts",
       "reason": "Generated registration for the existing Workers Local and independent Compute profiles."
     },
     {
@@ -262,7 +262,7 @@
       "mode": "100644",
       "object": "76d497b803ad69ba3265d56554dc5a9dae9e1a12",
       "role": "generated",
-      "owner": "scripts/typed-json-literal-contract.mjs",
+      "owner": "scripts/typed-json-literal-contract.mts",
       "reason": "Client runtime CID table generated from the current JSON value wire and Result serialization laws."
     },
     {
@@ -278,7 +278,7 @@
       "mode": "100644",
       "object": "9d4539009d1cf2b03d16c885da15b0bbc928f118",
       "role": "consumer",
-      "owner": "scripts/test-packed-external-connector.mjs",
+      "owner": "scripts/test-packed-external-connector.mts",
       "reason": "Plain JavaScript ESM client copied unchanged into a fresh external Compute installation and executed by Node."
     },
     {
@@ -286,7 +286,7 @@
       "mode": "100644",
       "object": "ccd57379053d608e145a27631a23228e8a8a5013",
       "role": "consumer",
-      "owner": "scripts/test-packed-external-installed.mjs",
+      "owner": "scripts/test-packed-external-installed.mts",
       "reason": "Plain JavaScript ESM client run against an external installation, alongside the separate TypeScript API check."
     }
   ]

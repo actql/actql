@@ -741,7 +741,7 @@
       "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
     },
     {
-      "path": "scripts/decision-contract.mjs",
+      "path": "scripts/decision-contract.mts",
       "token": "actql.model_task/0.2",
       "contextSha256": "d3bd806ef1242381e86ede7f67fa3947f78507d08aee86a5a11c507372b00edf",
       "line": 27,
@@ -749,18 +749,18 @@
       "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
     },
     {
-      "path": "scripts/decision-vectors.mjs",
+      "path": "scripts/decision-vectors.mts",
       "token": "actql.model_task/0.2",
       "contextSha256": "2cf6e6c2c396c3aa84b21bde6f1e2d76450235f0b1e33cc1c86152eea3fe3ce6",
-      "line": 180,
+      "line": 254,
       "count": 1,
       "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
     },
     {
-      "path": "scripts/fixtures/decision-contract.mjs",
+      "path": "scripts/fixtures/decision-contract.mts",
       "token": "actql.model_task/0.2",
       "contextSha256": "35bb9a24ab75ba26b0bc42187c97b61e251776a9e6590066dd13d9602f1d7a94",
-      "line": 25,
+      "line": 37,
       "count": 1,
       "reason": "Explicit reviewed M0a Decision/generation discriminator upgrade; preserve exact 0.1 readers. See docs/design/infer-decision-contracts.md."
     },
@@ -1013,7 +1013,7 @@
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
     },
     {
-      "path": "scripts/fixtures/model-observation.mjs",
+      "path": "scripts/fixtures/model-observation.mts",
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "35283d8fda93aa4a529fcec6a4fc1f192c2347ce4f296d939b69b7257a0631d4",
       "line": 19,
@@ -1021,7 +1021,7 @@
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
     },
     {
-      "path": "scripts/model-observation-contract.mjs",
+      "path": "scripts/model-observation-contract.mts",
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "6092967b8be96ccb7f37dfdb9684870ca3bcf7170ead4e1f7b3a3ab5c014cdfa",
       "line": 19,
@@ -1029,7 +1029,7 @@
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
     },
     {
-      "path": "scripts/model-observation-contract.mjs",
+      "path": "scripts/model-observation-contract.mts",
       "token": "actql-model-capture-bundle/0.2",
       "contextSha256": "46375b92d209043005296782a26210cbe21d7fec67d21b4d25848f3122cb7bf4",
       "line": 45,
@@ -1037,42 +1037,26 @@
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
     },
     {
-      "path": "scripts/model-observation-contract.test.mjs",
-      "token": "actql-model-invocation-evidence/0.2",
-      "contextSha256": "727e245a8980b4b6ceed369bd4922c80e36b4ffba6e4a602534cc0dc6cad3b0f",
-      "line": 37,
-      "count": 1,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
-    },
-    {
-      "path": "scripts/model-observation-vectors.mjs",
+      "path": "scripts/model-observation-vectors.mts",
       "token": "actql-model-capture-bundle/0.2",
       "contextSha256": "c58d2aa4c9b7d5e6b7bc55b644902220e90fe066b1993332865e192cdbd807da",
-      "line": 40,
+      "line": 46,
       "count": 1,
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
     },
     {
-      "path": "scripts/model-observation-vectors.mjs",
+      "path": "scripts/model-observation-vectors.mts",
       "token": "actql-model-capture-bundle/0.2",
-      "contextSha256": "256c91c9b21b2c58c409a50dc7e12a703a1b89faed8e7192fae72d36f9fb021c",
-      "line": 70,
+      "contextSha256": "a386286b6e5291d2532baf32e70dece2de4480e9254005ad8e7f2044cfb2be5d",
+      "line": 125,
       "count": 1,
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
     },
     {
-      "path": "scripts/model-observation-vectors.mjs",
-      "token": "actql-model-capture-bundle/0.2",
-      "contextSha256": "f73247d4544569367984854dd11a3fdda622ac3e5e9661e34477508e895c0f8c",
-      "line": 82,
-      "count": 1,
-      "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
-    },
-    {
-      "path": "scripts/model-observation-vectors.mjs",
+      "path": "scripts/model-observation-vectors.mts",
       "token": "actql-model-capture-bundle/0.2",
       "contextSha256": "d93b2fbd508d76b7485033a5b06f425ce4d23987c6685959704a90280ca71f31",
-      "line": 95,
+      "line": 138,
       "count": 1,
       "reason": "Explicit reviewed October 11 M0b invocation/capture 0.2 compatibility decision; frozen exact schema/reader/vector context, not a global upgrade."
     },
@@ -1405,50 +1389,50 @@
       "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
     },
     {
-      "path": "scripts/model-observation-contract.test.mjs",
+      "path": "scripts/model-observation-contract.test.mts",
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "138a828e1105575ac3c1dfd47774e88c7170f998b37a30254254f66ef97064a7",
-      "line": 39,
+      "line": 52,
       "count": 1,
       "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
     },
     {
-      "path": "scripts/model-observation-contract.test.mjs",
+      "path": "scripts/model-observation-contract.test.mts",
       "token": "actql-model-invocation-evidence/0.2",
-      "contextSha256": "5230230edf60056b807fe314b061ae2d362effa9a0b1af9ed671d019802d0b19",
-      "line": 101,
+      "contextSha256": "c7cd62997e8c3c2d86ae9d8dea65ae1cc3aeec1be50a644ba416e937c89ed396",
+      "line": 120,
       "count": 1,
       "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
     },
     {
-      "path": "scripts/model-observation-vectors.mjs",
+      "path": "scripts/model-observation-vectors.mts",
       "token": "actql-model-capture-bundle/0.2",
       "contextSha256": "1202c03ac18bb723a8c5bd8e3a0c8d51e700ce1f2d04ad6794f6e73af9c9f0a6",
-      "line": 79,
+      "line": 85,
       "count": 1,
       "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
     },
     {
-      "path": "scripts/model-observation-vectors.mjs",
+      "path": "scripts/model-observation-vectors.mts",
       "token": "actql-model-capture-bundle/0.2",
       "contextSha256": "8fb58e53563de0d35ef61adea14c88c4abeed5ac64a727f438e139fda805744b",
-      "line": 83,
+      "line": 89,
       "count": 1,
       "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
     },
     {
-      "path": "scripts/model-observation-vectors.mjs",
+      "path": "scripts/model-observation-vectors.mts",
       "token": "actql-model-invocation-evidence/0.2",
       "contextSha256": "c0aa0170a98beec21df8e80e89f89512ad281ab53b216d766ba65c2872f78ef8",
-      "line": 103,
+      "line": 110,
       "count": 1,
       "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
     },
     {
-      "path": "scripts/model-observation-vectors.mjs",
+      "path": "scripts/model-observation-vectors.mts",
       "token": "actql-model-capture-bundle/0.2",
-      "contextSha256": "66be722b8c407b28fd082259cbf0c49f80c7bf3390192f6f2e7e42de0bf49375",
-      "line": 109,
+      "contextSha256": "b71e1acfbdc4f726f3e27bf417e44f62d193827244d65c78ce79299af2932cef",
+      "line": 116,
       "count": 1,
       "reason": "Explicit reviewed October 11 C10 mixed original evidence in capture 0.2; exact schema/discriminator/vector context, no global version upgrade."
     },

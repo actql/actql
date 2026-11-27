@@ -8,7 +8,7 @@ import type {loadSpecFamily} from './actql-spec-family.mjs';
 // Read-only views of the selected fixture data. The existing canonical
 // computation and independent identity assertions still check the values.
 type Data = Record<string, unknown>;
-type Fixture = {id: string; value: unknown; cid: string; text?: string};
+type Fixture = {id: string; value: unknown; cid: string; text?: string | undefined};
 type Cases<T> = {version: string; cases: T[]};
 type Case<K extends string> = Record<K, unknown> & {id: string; expected_cid: string; expected_canonical_bytes?: string};
 type ChangeCases = Cases<Case<never> & {changes: Data}> & {base: Data};
@@ -310,12 +310,15 @@ function fixtures() {
   result.push({ id: 'lookup key envelope', value: vector.expected_body, cid: vector.expected_cid, text: vector.expected_canonical_bytes });
   const aoa = read<{pipeline_registry_file: string; pipeline_registry_cid: string; execution_contracts: Data; target_registry_requirements: Record<string, {execution_contract: {cid: string}}>; kernel_law_manifest_cid: string}>('spec/contracts/actql-aoa.json');
   result.push({ id: 'selected pipeline registry', value: read(aoa.pipeline_registry_file), cid: aoa.pipeline_registry_cid });
+  const graphConstructor = aoa.target_registry_requirements['BRIDGE.rows.to_graph'];
+  assert.ok(graphConstructor, 'missing Graph constructor requirement');
   result.push({id: 'Graph constructor execution', value: aoa.execution_contracts['BRIDGE.rows.to_graph'],
-    cid: aoa.target_registry_requirements['BRIDGE.rows.to_graph'].execution_contract.cid});
+    cid: graphConstructor.execution_contract.cid});
   result.push({ id: 'historical pipeline registry', value: read('portability/fixtures/pipeline-registry-base.json'), cid: 'sha256:00ac46baefe7fa34412ad83beb85cf1899b906e792d74fa89211a7c4972f0d5a' });
   result.push({ id: 'kernel manifest', value: read('spec/dependencies/aoa-kernel-laws.json'), cid: aoa.kernel_law_manifest_cid });
   result.push({ id: 'inherited text/time base profile', value: read('spec/dependencies/actql-text-time-base.json'), cid: read<{inherited_text_time_profile_cid: string}>('spec/contracts/actql-expressions.json').inherited_text_time_profile_cid });
-  const base = read<{data_contract_cids: Record<string, string>}>('spec/dependencies/actql-text-time-base.json');
+  const base = read<{data_contract_cids: {regex_grammar_cid: string; timestamp_pattern_grammar_cid: string;
+    unicode_data_cid: string}}>('spec/dependencies/actql-text-time-base.json');
   const dependencies = read<Data & {regex_grammar: {ast_schema_cid: string; replacement_ast_schema_cid: string}; timestamp_pattern_grammar: {ast_schema_cid: string}; unicode_semantics: {data_cid: string}}>('spec/dependencies/actql-text-time-base-dependencies.json');
   for (const [name, cid] of [
     ['regex_grammar', base.data_contract_cids.regex_grammar_cid],
@@ -324,7 +327,7 @@ function fixtures() {
     ['regex_ast_schema', dependencies.regex_grammar.ast_schema_cid],
     ['regex_replacement_ast_schema', dependencies.regex_grammar.replacement_ast_schema_cid],
     ['timestamp_pattern_ast_schema', dependencies.timestamp_pattern_grammar.ast_schema_cid],
-  ]) result.push({ id: 'inherited text/time ' + name, value: dependencies[name], cid });
+  ] as const) result.push({ id: 'inherited text/time ' + name, value: dependencies[name], cid });
   result.push({ id: 'inherited text/time Unicode data', value: read('spec/dependencies/actql-text-time-unicode-data.json'), cid: dependencies.unicode_semantics.data_cid });
   result.push({
     id: 'Program source grammar resource',

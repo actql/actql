@@ -14,7 +14,9 @@ unregistered files remain ordinary JSON, so independent feature branches can add
 new historical snapshots without immediately converting them. Registered corruption
 fails closed. There is no fallback to current contracts or other snapshots.
 
-Run `node scripts/historical-json-archive.mjs check` to verify the complete archive.
+In a fresh checkout, run `npm ci` to install the locked tooling and emit the
+archive command. Run `node scripts/historical-json-archive.mjs check` to verify the
+complete archive.
 `npm run check:historical-json` also runs focused codec tests. The npm lifecycle
 script `precheck:expression-syntax` runs it before `check:expression-syntax`, hence
 through the existing `check:spec` aggregate and specification CI. Keep npm lifecycle

@@ -1,0 +1,167 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFileSync, writeFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+import {machineCid} from './actql-spec-family.mjs';
+
+export const arrayOffsetLaws = {
+  "array_offset": {
+    "signature": "Exactly two operands in value-then-index order: a typed Array and a finite Number index. Preserve the item contract and return it conservatively nullable. Untyped NULL index takes the unique Number signature; an untyped NULL receiver needs array type context. No implicit conversion or distinct INT64 overload is added.",
+    "value": "After both demanded children succeed, return NULL if either operand is NULL. Otherwise require an integral Number index. Indexes are zero-based. Negative or outside-array indexes fail evaluation. Fractional indexes fail evaluation. Compare in the Number domain against the bounded array length before integer narrowing, so huge integral offsets follow the same out-of-range rule rather than an arbitrary safe-integer limit.",
+    "evaluation": "Evaluate receiver then index exactly once, eagerly. Child failures precede NULL propagation and index-domain checks. Retain enclosing lazy demand, root leases, logical work, live-value and workspace budgets, and cancellation through the existing typed-subscript owner. SAFE changes only the operation-owned out-of-range outcome, never suppressing failures in child expressions.",
+    "identity": "The closed source is {array_offset: {value: receiver, index: offset}}; the closed machine node is {op: array_offset, body: {value: receiver_node, index: offset_node}}. SQL OFFSET and bare array indexing maps to this common owner without folding, duplication or frontend evaluation. Existing common subscript semantics and identities are unchanged."
+  },
+  "array_safe_offset": {
+    "signature": "Exactly two operands in value-then-index order: a typed Array and a finite Number index. Preserve the item contract and return it conservatively nullable. Untyped NULL index takes the unique Number signature; an untyped NULL receiver needs array type context. No implicit conversion or distinct INT64 overload is added.",
+    "value": "After both demanded children succeed, return NULL if either operand is NULL. Otherwise require an integral Number index. Indexes are zero-based. Negative or outside-array indexes return NULL. Fractional indexes fail evaluation. Compare in the Number domain against the bounded array length before integer narrowing, so huge integral offsets follow the same out-of-range rule rather than an arbitrary safe-integer limit.",
+    "evaluation": "Evaluate receiver then index exactly once, eagerly. Child failures precede NULL propagation and index-domain checks. Retain enclosing lazy demand, root leases, logical work, live-value and workspace budgets, and cancellation through the existing typed-subscript owner. SAFE changes only the operation-owned out-of-range outcome, never suppressing failures in child expressions.",
+    "identity": "The closed source is {array_safe_offset: {value: receiver, index: offset}}; the closed machine node is {op: array_safe_offset, body: {value: receiver_node, index: offset_node}}. SQL SAFE_OFFSET maps to this common owner without folding, duplication or frontend evaluation. Existing common subscript semantics and identities are unchanged."
+  }
+};
+const arrayLengthLaws = {
+  array_length: {
+    signature: 'One Array operand. The result is signed64 and is nullable exactly when the array operand is nullable.',
+    value: 'A NULL array returns NULL. A present array returns its exact number of entries, including NULL entries and duplicates. An empty array returns zero.',
+    evaluation: 'Evaluate the operand once under the existing demand, limits and cancellation. Propagate its failure. Count the admitted array entries without copying or evaluating elements again.',
+    identity: 'The source form is {array_length: operand}; the machine form is {op: array_length, body: operand_node}. SQL ARRAY_LENGTH selects this same operation.',
+  },
+};
+
+type Kind = 'source' | 'node';
+type Scope = [owner: 'expressions' | 'protocol', path: string, kind: Kind, reference: string];
+export type ArrayExpressionSchema = {$ref?: string; type?: string; additionalProperties?: boolean;
+  required?: string[]; properties?: Record<string, ArrayExpressionSchema>; const?: unknown;
+  oneOf?: ArrayExpressionSchema[]};
+type Expressions = {schemas: Record<string, unknown>; laws: Record<string, unknown>; grammar_sha256: string};
+type Protocol = {artifact_schemas: Record<string, unknown>; artifact_schema_cids: Record<string, string>;
+  artifact_registry_cid: string};
+type ArrayLaw = typeof arrayLengthLaws.array_length;
+
+// These are the declared common-expression embeddings, not a global spelling
+// replacement. Each child reference remains local to its owning schema scope.
+const scopes: Scope[] = [
+  ['expressions', 'schemas/expression/$defs/expression', 'source', 'expression'],
+  ['expressions', 'schemas/expression_node/$defs/expression', 'node', 'expression'],
+  ['expressions', 'schemas/fragment/$defs/source_expression', 'source', 'source_expression'],
+  ['expressions', 'schemas/fragment/$defs/machine_expression', 'node', 'machine_expression'],
+  ['expressions', 'schemas/predicate_consumer/$defs/source_expression', 'source', 'source_expression'],
+  ['expressions', 'schemas/predicate_consumer/$defs/machine_expression', 'node', 'machine_expression'],
+  ...['executable_plan', 'plan_document'].flatMap(artifact => {
+    const prefix = artifact === 'plan_document' ? 'properties/plan/' : '';
+    return ['predicate', 'value_expression'].map<Scope>(definition => ['protocol',
+      `artifact_schemas/${artifact}/${prefix}properties/execution_material/properties/program/$defs/${definition}`,
+      'source', 'value_expression']);
+  }),
+];
+const named = (shape: ArrayExpressionSchema, name: string, kind: Kind) => kind === 'source'
+  ? shape.required?.includes(name) || Object.hasOwn(shape.properties ?? {}, name)
+  : shape.properties?.op?.const === name;
+function shape(name: string, kind: Kind, reference: string): ArrayExpressionSchema {
+  const child = {$ref: `#/$defs/${reference}`};
+  const body = ['len', 'array_length'].includes(name) ? child : {type: 'object', additionalProperties: false,
+    required: ['value', 'index'], properties: {value: child, index: child}};
+  return kind === 'source'
+    ? {type: 'object', additionalProperties: false, required: [name], properties: {[name]: body}}
+    : {type: 'object', additionalProperties: false, required: ['op', 'body'],
+      properties: {op: {const: name}, body}};
+}
+function walk(value: unknown, visit: (value: ArrayExpressionSchema) => void) {
+  if (!value || typeof value !== 'object') return;
+  visit(value as ArrayExpressionSchema);
+  for (const child of Object.values(value)) walk(child, visit);
+}
+function requireGrammar(grammar: string, operations: string[]) {
+  // Comments or a similarly named function do not register a function token.
+  const source = grammar.replace(/\(\*[\s\S]*?\*\)/gu, '');
+  const productions = [...source.matchAll(/\bfunction_name\s*=([^;]+);/gu)];
+  assert.equal(productions.length, 1, 'one common function_name production');
+  const body = productions[0]?.[1];
+  assert.ok(body, 'common function_name body');
+  for (const name of operations) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+    assert.equal([...body.matchAll(new RegExp(`"${escaped}"`, 'gu'))].length, 1,
+      `${name} missing or duplicated in common function_name production`);
+  }
+}
+
+function updateArrayContracts<Laws extends Record<string, ArrayLaw>>(
+  expressions: Expressions, protocol: Protocol, grammar: string, laws: Laws, write: boolean,
+) {
+  const operations = Object.keys(laws) as (keyof Laws & string)[];
+  requireGrammar(grammar, operations);
+  const roots = {expressions, protocol};
+  const counts = {source: 0, node: 0};
+  // Preflight every scope and duplicate before mutating even in write mode.
+  const plans = scopes.flatMap(([owner, path, kind, reference]) => operations.map(name => {
+    const scope = path.split('/').reduce<unknown>((value, key) =>
+      value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined,
+    roots[owner]) as ArrayExpressionSchema | undefined;
+    assert.ok(scope && Array.isArray(scope.oneOf), `missing ${owner}/${path} expression scope`);
+    const choices = scope.oneOf;
+    const templates = choices.filter(candidate => named(candidate, 'len', kind));
+    assert.equal(templates.length, 1, `unique local len template at ${owner}/${path}`);
+    assert.deepEqual(templates[0], shape('len', kind, reference),
+      `closed local len template at ${owner}/${path}`);
+    const matches = choices.filter(candidate => named(candidate, name, kind));
+    assert.ok(matches.length <= 1, `duplicate ${kind} ${name} shape at ${owner}/${path}`);
+    counts[kind]++;
+    return {scope, choices, kind, name, previous: matches[0], expected: shape(name, kind, reference)};
+  }));
+  assert.deepEqual(counts, {source: 7 * operations.length, node: 3 * operations.length}, 'array schema embedding count');
+  const ownedScopes = new Set(plans.map(plan => plan.scope));
+  for (const root of [expressions.schemas, protocol.artifact_schemas]) walk(root, value => {
+    if (!Array.isArray(value.oneOf)) return;
+    for (const kind of ['source', 'node'] as const) {
+      if (value.oneOf.some(candidate => named(candidate, 'len', kind) || operations.some(name => named(candidate, name, kind)))) {
+        assert.ok(ownedScopes.has(value), `unregistered ${kind} expression scope`);
+      }
+    }
+  });
+  assert.ok(expressions.laws && protocol.artifact_schema_cids,
+    'existing expression law and protocol identity owners');
+  for (const {choices, kind, name, previous, expected} of plans) {
+    if (write) {
+      if (previous) choices[choices.indexOf(previous)] = expected;
+      else choices.push(expected);
+    } else assert.deepEqual(previous, expected, `stale ${kind} ${name} shape`);
+  }
+  const grammarHash = createHash('sha256').update(grammar).digest('hex');
+  if (write) {
+    for (const name of operations) expressions.laws[name] = structuredClone(laws[name]);
+    expressions.grammar_sha256 = grammarHash;
+  } else {
+    for (const name of operations) assert.deepEqual(expressions.laws[name], laws[name], `stale ${name} law`);
+    assert.equal(expressions.grammar_sha256, grammarHash, 'stale expression grammar pin');
+  }
+  for (const [name, schema] of Object.entries(protocol.artifact_schemas)) {
+    if (write) protocol.artifact_schema_cids[name] = machineCid(schema);
+    else assert.equal(protocol.artifact_schema_cids[name], machineCid(schema), `stale ${name} schema CID`);
+  }
+  if (write) protocol.artifact_registry_cid = machineCid(protocol.artifact_schemas);
+  else assert.equal(protocol.artifact_registry_cid, machineCid(protocol.artifact_schemas), 'stale artifact registry CID');
+  return counts;
+}
+
+export function updateArrayOffsetContracts(expressions: Expressions, protocol: Protocol, grammar: string, write = false) {
+  return updateArrayContracts(expressions, protocol, grammar, arrayOffsetLaws, write);
+}
+
+export function updateArrayLengthContracts(expressions: Expressions, protocol: Protocol, grammar: string, write = false) {
+  return updateArrayContracts(expressions, protocol, grammar, arrayLengthLaws, write);
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const expressionPath = 'spec/contracts/actql-expressions.json';
+  const protocolPath = 'spec/contracts/actql-protocol-schemas.json';
+  const expressions: Expressions & {grammar: string} = JSON.parse(readFileSync(expressionPath, 'utf8'));
+  const protocol: Protocol = JSON.parse(readFileSync(protocolPath, 'utf8'));
+  const grammar = readFileSync(expressions.grammar, 'utf8');
+  if (process.argv.includes('--write')) {
+    updateArrayOffsetContracts(expressions, protocol, grammar, true);
+    updateArrayLengthContracts(expressions, protocol, grammar, true);
+    writeFileSync(expressionPath, JSON.stringify(expressions, null, 2) + '\n');
+    writeFileSync(protocolPath, JSON.stringify(protocol, null, 2) + '\n');
+  }
+  console.log('GoogleSQL array offset contracts verified:', updateArrayOffsetContracts(expressions, protocol, grammar));
+  console.log('GoogleSQL array length contracts verified:', updateArrayLengthContracts(expressions, protocol, grammar));
+}

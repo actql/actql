@@ -4408,11 +4408,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/check-presentation.test.mjs",
+                "path": "packages/sdk/check-presentation.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/sdk/domain-carrier-presentation.test.mjs",
+                "path": "packages/sdk/domain-carrier-presentation.test.mts",
                 "anchor": "test('closed operand and carrier facts give immutable specific English and Japanese advice'"
               }
             ]
@@ -4696,11 +4696,11 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/check-presentation.test.mjs",
+                "path": "packages/sdk/check-presentation.test.mts",
                 "anchor": "test("
               },
               {
-                "path": "packages/sdk/domain-carrier-presentation.test.mjs",
+                "path": "packages/sdk/domain-carrier-presentation.test.mts",
                 "anchor": "test('closed operand and carrier facts give immutable specific English and Japanese advice'"
               }
             ]
@@ -4887,7 +4887,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/check-reason-catalog.test.mjs",
+                "path": "packages/sdk/check-reason-catalog.test.mts",
                 "anchor": "test("
               },
               {
@@ -5130,7 +5130,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/check-reason-catalog.test.mjs",
+                "path": "packages/sdk/check-reason-catalog.test.mts",
                 "anchor": "test("
               },
               {
@@ -7476,7 +7476,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/index.test.mjs",
+                "path": "packages/sdk/index.test.mts",
                 "anchor": "test("
               },
               {
@@ -8295,7 +8295,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/index.test.mjs",
+                "path": "packages/sdk/index.test.mts",
                 "anchor": "test("
               }
             ]
@@ -10860,7 +10860,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/profile-observation.test.mjs",
+                "path": "packages/sdk/profile-observation.test.mts",
                 "anchor": "test("
               },
               {
@@ -11098,7 +11098,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/profile-observation.test.mjs",
+                "path": "packages/sdk/profile-observation.test.mts",
                 "anchor": "test("
               },
               {
@@ -12594,7 +12594,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/index.test.mjs",
+                "path": "packages/sdk/index.test.mts",
                 "anchor": "test("
               },
               {
@@ -12806,7 +12806,7 @@
             ],
             "verification": [
               {
-                "path": "packages/sdk/index.test.mjs",
+                "path": "packages/sdk/index.test.mts",
                 "anchor": "test("
               },
               {
@@ -18903,7 +18903,7 @@
                 "anchor": "test("
               },
               {
-                "path": "scripts/typed-json-literal-contract.test.mjs",
+                "path": "scripts/typed-json-literal-contract.test.mts",
                 "anchor": "test('generated SDK serialization identities match all three independent existing wire vectors'"
               }
             ]
@@ -22325,7 +22325,7 @@
                 "anchor": "test("
               },
               {
-                "path": "scripts/typed-json-literal-contract.test.mjs",
+                "path": "scripts/typed-json-literal-contract.test.mts",
                 "anchor": "test('generated SDK serialization identities match all three independent existing wire vectors'"
               }
             ]

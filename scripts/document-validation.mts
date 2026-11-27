@@ -57,8 +57,9 @@ export function validateLocalLinks(file: string, source: string, anchorCache = n
     const url = node.url ?? definitions.get(node.identifier!);
     assert.ok(url, `${file}: unresolved link reference ${node.identifier}`);
     if (/^[a-z][a-z\d+.-]*:|^\/\//i.test(url)) continue;
-    const [pathname, fragment] = url.split('#');
-    const target = pathname ? resolve(dirname(file), decodeURIComponent(pathname.split('?')[0])) : resolve(file);
+    const [pathname = '', fragment] = url.split('#');
+    const [pathWithoutQuery = ''] = pathname.split('?');
+    const target = pathname ? resolve(dirname(file), decodeURIComponent(pathWithoutQuery)) : resolve(file);
     assert.ok(existsSync(target), `Broken link: ${file} -> ${url}`);
     if (fragment && extname(target) === '.md') {
       if (!anchorCache.has(target)) anchorCache.set(target, anchors(markdown(readFileSync(target, 'utf8'))));
@@ -76,7 +77,9 @@ export function anchors(tree: Root) {
       const text = nodes(node).filter((n): n is Extract<RootContent, { type: 'text' | 'inlineCode' }> => ['text', 'inlineCode'].includes(n.type)).map(n => n.value).join('');
       result.add(slugger.slug(text));
     }
-    if (node.type === 'html') for (const match of node.value.matchAll(/\b(?:id|name)=["']([^"']+)["']/g)) result.add(match[1]);
+    if (node.type === 'html') for (const [, anchor] of node.value.matchAll(/\b(?:id|name)=["']([^"']+)["']/g)) {
+      if (anchor !== undefined) result.add(anchor);
+    }
   }
   return result;
 }

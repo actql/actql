@@ -1399,8 +1399,8 @@
       ]
     },
     {
-      "module": "scripts/check-connector.mjs",
-      "sha256": "613b7af59261343231cd3b142d74d1aef34657e78fe404d8f702b0848a23731c",
+      "module": "scripts/check-connector.mts",
+      "sha256": "746f5340003b3257300ca4a71b5075279c86c5a9820e891bd4a1a33a9eec7fc2",
       "exports": [
         "connectorCheckUsage",
         "connectorSourceCheckPlan",
@@ -1410,40 +1410,38 @@
         {
           "name": "connectorSourceCheckPlan",
           "parameters": [
-            "root",
-            "name",
-            "tests",
-            "timeoutSeconds"
+            "root: string",
+            "{name, tests, timeoutSeconds}: CheckOptions"
           ],
-          "async": false
+          "result": null
         },
         {
-          "name": "connectorSourceCheckPlan/connectorSourceCheckPlan",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectorSourceCheckPlan/connectorSourceCheckPlan#2",
-          "parameters": [
-            "role"
-          ],
-          "async": false
-        },
-        {
-          "name": "connectorSourceCheckPlan/selected/selected",
+          "name": "connectorSourceCheckPlan/<call>",
           "parameters": [
             "path"
           ],
-          "async": false
+          "result": null
+        },
+        {
+          "name": "connectorSourceCheckPlan/<call>#2",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "connectorSourceCheckPlan/<call>#3",
+          "parameters": [
+            "role"
+          ],
+          "result": null
         },
         {
           "name": "parseConnectorCheckArguments",
           "parameters": [
-            "args"
+            "args: readonly string[]"
           ],
-          "async": false
+          "result": "CheckArguments"
         }
       ],
       "imports": [
@@ -1465,9 +1463,9 @@
           "operations": [
             "<module>",
             "connectorSourceCheckPlan",
-            "connectorSourceCheckPlan/connectorSourceCheckPlan",
-            "connectorSourceCheckPlan/connectorSourceCheckPlan#2",
-            "connectorSourceCheckPlan/selected/selected",
+            "connectorSourceCheckPlan/<call>",
+            "connectorSourceCheckPlan/<call>#2",
+            "connectorSourceCheckPlan/<call>#3",
             "parseConnectorCheckArguments"
           ],
           "exports": [
@@ -1484,7 +1482,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/check-connector.mjs",
+                "path": "scripts/check-connector.mts",
                 "anchor": "export function parseConnectorCheckArguments"
               }
             ],
@@ -1502,13 +1500,13 @@
             ],
             "synchronization": [
               {
-                "path": "scripts/check-connector.mjs",
+                "path": "scripts/check-connector.mts",
                 "anchor": "name: 'complete normal connector generation (read-only)'"
               }
             ],
             "failure": [
               {
-                "path": "scripts/check-connector.test.mjs",
+                "path": "scripts/check-connector.test.mts",
                 "anchor": "unsupported stages and flags cannot silently turn installed acceptance into source checks"
               }
             ],
@@ -1520,19 +1518,19 @@
             ],
             "resources": [
               {
-                "path": "scripts/check-connector.mjs",
+                "path": "scripts/check-connector.mts",
                 "anchor": "checkBudget(timeoutSeconds, workflow.jobs.lint['timeout-minutes'])"
               }
             ],
             "extension": [
               {
-                "path": "scripts/check-connector.mjs",
+                "path": "scripts/check-connector.mts",
                 "anchor": "Select each affected test file once."
               }
             ],
             "verification": [
               {
-                "path": "scripts/check-connector.test.mjs",
+                "path": "scripts/check-connector.test.mts",
                 "anchor": "author selection checks complete normal generation without selecting or writing a partial assembly"
               }
             ]

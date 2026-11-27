@@ -1,0 +1,142 @@
+// Exercise only installed public exports in a directory outside the checkout.
+import {spawnSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {dirname, join} from 'node:path';
+import {createRequire} from 'node:module';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
+import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
+import {packClientPackages, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {selectInstalledLocalMaterializationEnvironment} from '../adapters/host-node/installed-host-policy.mjs';
+
+const repository = fileURLToPath(new URL('../', import.meta.url));
+const approvalOnly = process.argv.includes('--approval-only');
+const recoveryOnly = process.argv.includes('--recovery-only');
+const cancellationOnly = process.argv.includes('--cancellation-only');
+assert.ok([approvalOnly, recoveryOnly, cancellationOnly].filter(Boolean).length <= 1,
+  'Select one packed INFER filter');
+const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
+  encoding: 'utf8'});
+if (revision.status !== 0) throw new Error('PackedInferRevisionUnavailable');
+await withPackedQueryEvidence({scratch: join(repository, '..', '.codex-scratch'),
+  revision: revision.stdout.trim(),
+  githubOutput: process.env.GITHUB_OUTPUT,
+  keepArtifacts: process.argv.includes('--keep-artifacts')},
+async ({root, directory, run, recordTarball}) => {
+  console.log(`Packed single INFER evidence: ${directory}`);
+  const env = {...process.env, npm_config_cache: packedNpmCache(root)};
+  const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
+  await packClientPackages({repository, destination: root, names: packages,
+    pack: async name => {
+    await packedClientPackage({repository, name, destination: root,
+      pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+        {cwd: join(repository, 'packages', name), env, timeout: 600000})});
+    recordTarball(join(root, `actql-${name}-0.0.0-development.tgz`));
+  }});
+  await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
+  run('npm', ['install', '--ignore-scripts', '--no-save', ...packages.map(name =>
+    join(root, `actql-${name}-0.0.0-development.tgz`))],
+  {cwd: root, env, timeout: 240000});
+  for (const name of ['installed-infer-fixture.mjs', 'model-provider-binding-fixture.mjs',
+    'model-custody-fixture.mjs', 'packed-infer-preparation-diagnostic.mjs',
+    'packed-single-infer.mjs']) {
+    await writeFile(join(root, name),
+      await readFile(join(repository, 'scripts', 'fixtures', name)));
+  }
+  // Fixture publication must use the SAME Local selector as its installed
+  // Host. Read the policy original from this exact normal installation's
+  // public runtime export; no checkout Common or copied numerical profile.
+  const installedRequire = createRequire(join(root, 'package.json'));
+  const installedRuntime: Parameters<typeof selectInstalledLocalMaterializationEnvironment>[0] = await import(pathToFileURL(
+    installedRequire.resolve('@actql/local-node/runtime')).href);
+  const baseEnvironment = (await readFile(join(repository,
+    'spec/local-check-environment.json'), 'utf8')).trimEnd();
+  const hostCapacityPolicy = JSON.parse(baseEnvironment).host_policy_profile.capacity;
+  await writeFile(join(root, 'base-environment.json'),
+    selectInstalledLocalMaterializationEnvironment(installedRuntime,
+      baseEnvironment, hostCapacityPolicy));
+  const runtimeEnv: NodeJS.ProcessEnv = {...env, PATH: `${dirname(process.execPath)}:/usr/bin:/bin`};
+  for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
+    'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) delete runtimeEnv[name];
+  for (const transport of ['local', 'http']) {
+    const modes = recoveryOnly || cancellationOnly ? [] : approvalOnly
+      ? ['approval-wait', 'approval-approve', 'approval-replay',
+        'approval-stop-wait', 'approval-stop-cancel', 'approval-stop-replay']
+      : ['success', 'cancel', 'failure', 'capture', 'replay',
+        'approval-wait', 'approval-approve', 'approval-replay',
+        'approval-stop-wait', 'approval-stop-cancel', 'approval-stop-replay'];
+    for (const mode of modes) {
+      console.log(run(process.execPath, ['packed-single-infer.mjs', mode,
+        transport], {cwd: root, env: runtimeEnv, timeout: 120000}).trimEnd());
+    }
+
+  }
+  if (!recoveryOnly && !cancellationOnly) {
+    const calls: {mode: unknown; transport: unknown}[] =
+      (await readFile(join(root, 'provider-calls.jsonl'), 'utf8'))
+      .trim().split('\n').map(line => JSON.parse(line));
+    const expectedCalls = ['local', 'http'].flatMap(transport =>
+      (approvalOnly ? ['approval-approve', 'approval-stop-cancel'] :
+        ['success', 'cancel', 'failure', 'capture', 'approval-approve', 'approval-stop-cancel']).map(mode =>
+        ({mode, transport})));
+    if (JSON.stringify(calls.map(({mode, transport}) => ({mode, transport}))) !==
+        JSON.stringify(expectedCalls)) {
+      throw new Error(`Unexpected provider dispatches: ${JSON.stringify(calls)}`);
+    }
+    for (const transport of ['local', 'http']) {
+      if (approvalOnly) continue;
+      const boundary = JSON.parse(await readFile(join(root,
+        `capture-boundary-${transport}.json`), 'utf8'));
+      if (boundary.calls !== 1 || boundary.boundary !== 'infer_capture_committed') {
+        throw new Error(`${transport}: capture process did not stop at its accepted boundary`);
+      }
+    }
+  }
+  {
+    // Reuse the source recovery harness unchanged. Every child imports only
+    // this fresh installation's public exports; no checkout runtime can help.
+    const files = [
+      'adapters/host-node/model-resume-public.test.mjs',
+      'scripts/fixtures/model-resume-public-process.mjs',
+      'scripts/fixtures/model-custody-fixture.mjs',
+      'scripts/fixtures/installed-infer-fixture.mjs',
+      'scripts/test-execution-reporter.mjs',
+    ];
+    for (const name of files) {
+      await mkdir(dirname(join(root, name)), {recursive: true});
+      await writeFile(join(root, name), await readFile(join(repository, name)));
+    }
+    const inputs = join(root, 'packed-model-recovery-inputs.json');
+    await writeFile(inputs, JSON.stringify({scratch: root, preserveArtifacts: true,
+      runtime: {client: '@actql/node', httpHost: '@actql/local-node/http-host',
+        inferFixture: pathToFileURL(join(root, 'installed-infer-fixture.mjs')).href,
+        providerFixture: pathToFileURL(join(root, 'model-provider-binding-fixture.mjs')).href,
+        environment: join(root, 'base-environment.json')}}));
+    const args = nodeTestArguments(['--test-name-pattern',
+      cancellationOnly ? '^public Model (local|https): (?:cancellation of a waiting Run fences all sends across restart|lost fence acknowledgement retains original pending cancellation across restart|(?:before|after) COMMIT reply loss separates original cancellation from physical stop|original cancellation survives (?:before|after) final COMMIT reply loss|sent unknown retains original cancellation after (?:before|after) final COMMIT reply loss|cancellation retains a sent unknown across restart|cancellation after one saved response retains it and prevents later sends)$'
+        : approvalOnly ? '^public Model (local|https): cancellation retains a sent unknown across restart$'
+        : '^public Model(?: (?:local|https))?:',
+      'adapters/host-node/model-resume-public.test.mjs']);
+    // The external consumer owns its own copied reporter, not a source link.
+    args[1] = '--test-reporter=' + pathToFileURL(join(root,
+      'scripts/test-execution-reporter.mjs')).href;
+    const stdout = run(process.execPath, args, {cwd: root,
+      env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 360000});
+    const checked = assertTestExecution('node', process.execPath, args,
+      {status: 0, stdout});
+    assert.equal(checked.counts!.passed, cancellationOnly ? 20 : approvalOnly ? 2 : 52,
+      'Both selected transports and every requested recovery case must execute');
+    console.log(stdout.trimEnd());
+  }
+  if (!recoveryOnly && !cancellationOnly) {
+    // Reuse the existing independent approval fixture and the exact producer.
+    // The child owns a separate external installation and verifies the same
+    // clean revision and tarball digests; it never rebuilds or reads a runtime
+    // from this checkout.
+    console.log(run(process.execPath, ['scripts/test-packed-salesforce-source.mjs',
+      '--model-approval-only', '--keep-artifacts'], {cwd: repository,
+      env: {...env, ACTQL_PACKED_CLIENT_PACKAGES: root,
+        ACTQL_TEST_NPM_CACHE: packedNpmCache(root)}, timeout: 360000}).trimEnd());
+  }
+});

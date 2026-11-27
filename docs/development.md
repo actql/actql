@@ -834,8 +834,8 @@ Local Compute dependency used by its handwritten carrier and Program bridges.
 
 ### Focused Connector source checks
 
-From a prepared development checkout, select the Connector and the affected
-test files in one command:
+Run `npm ci` in a fresh development checkout to prepare the command. The
+following example selects a Connector and two affected test files.
 
 ```sh
 node scripts/check-connector.mjs notion --stage source \
