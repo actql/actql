@@ -17,6 +17,9 @@ import zipfile
 
 SCRIPT = Path(__file__).with_name('benchmark-ordinary-processes.py')
 SOURCE = 'a' * 40
+SLOW_RESULT_NS = 225_000_000
+SLOW_QUERY_NS = 750_000_000
+CLOCK_STEP_NS = 1_000_000
 
 
 def sha(body):
@@ -172,7 +175,8 @@ class CollectorTests(unittest.TestCase):
         return path, consumer, None
 
     def python(self, fail_close=False, alter_on_close=False, priority=False, fail_query=None,
-               repeat_reference=False, slow_query=None, failure_chain=False, small_queries=False):
+               repeat_reference=False, slow_query=None, failure_chain=False, small_queries=False,
+               slow_first_result=False, slow_first_query=False, fail_result_at=None):
         root=self.root
         environment=root/'venv'
         venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
@@ -183,6 +187,47 @@ class CollectorTests(unittest.TestCase):
         key='darwin-arm64' if sys.platform=='darwin' else 'linux-x64'
         cohort=dict(source_sha=SOURCE,platform=key,wheels=[])
         code = PRIORITY_PYTHON if priority else PYTHON
+        if slow_first_result or slow_first_query:
+            # This clock is confined to the synthetic SDK child. The actual
+            # parent wait and subprocess deadlines keep their real clocks.
+            clock = (
+                "import time\n"
+                "clock_ns = time.perf_counter_ns()\n"
+                "def controlled_clock_ns():\n"
+                " global clock_ns\n"
+                f" clock_ns += {CLOCK_STEP_NS}\n"
+                " return clock_ns\n"
+                "def delay(ns):\n"
+                " global clock_ns\n"
+                " clock_ns += ns\n"
+                "time.perf_counter_ns = controlled_clock_ns\n"
+            )
+            code = clock + code
+        if slow_first_result or fail_result_at is not None:
+            original = " class Result:\n  def all(self):event('result');return [{'id':1}]"
+            self.assertEqual(code.count(original), 1)
+            code = code.replace(original,
+                " result_reads=0\n"
+                " class Result:\n"
+                "  def all(self):\n"
+                "   nonlocal result_reads\n"
+                "   result_reads+=1\n"
+                "   event('result')\n"
+                + (f"   if result_reads==1:delay({SLOW_RESULT_NS})\n" if slow_first_result else '')
+                + (f"   if result_reads=={fail_result_at}:raise chain_failure()\n"
+                   if fail_result_at is not None else '')
+                + "   return [{'id':1}]")
+        if slow_first_query:
+            original = "  def all(self):event('submit');return [{'id':1}]"
+            self.assertEqual(code.count(original), 1)
+            code = code.replace(" class Query:\n", " query_reads=0\n class Query:\n", 1).replace(original,
+                "  def all(self):\n"
+                "   nonlocal query_reads\n"
+                "   query_reads+=1\n"
+                "   event('submit')\n"
+                # The seed uses the first Query.all; the next is sampled.
+                f"   if query_reads==2:delay({SLOW_QUERY_NS})\n"
+                "   return [{'id':1}]")
         if small_queries:
             fixtures = runpy.run_path(str(SCRIPT))['SMALL_QUERIES']
             literal_rows = {'warm-join': [{'id': 1, 'label': 'joined'}], 'warm-decimal-sum': [{'total': '4.00'}],
@@ -195,7 +240,7 @@ class CollectorTests(unittest.TestCase):
                                 f"def sql(self,text,**options):\n   values={answers!r}\n   expected={{'parameters':{{'id':7}},'parameter_declarations':{{'id':{{'type':'number'}}}}}} if text=='SELECT @id AS id' else {{}}\n   assert options==expected\n   assert text in values;event('sql:'+text);return Query(values[text])")
         if fail_query is not None:
             code = code.replace('FAIL_QUERY=None', f'FAIL_QUERY={fail_query}')
-        if failure_chain:
+        if failure_chain or fail_result_at is not None:
             code += """
 def chain_failure():
  error=RuntimeError('Synthetic uncertain read')
@@ -212,7 +257,8 @@ def chain_failure():
  return error
 """
             code = code.replace("raise RuntimeError('Synthetic Unknown; no resend')", 'raise chain_failure()')
-            code = code.replace("event('result');return", "event('result');raise chain_failure();return")
+            if fail_result_at is None:
+                code = code.replace("event('result');return", "event('result');raise chain_failure();return")
         if slow_query is not None:
             code = code.replace('SLOW_QUERY=None', f'SLOW_QUERY={slow_query}')
         if repeat_reference:
@@ -246,6 +292,77 @@ def chain_failure():
         path=output/'measurements.json'
         report=json.loads(path.read_text()) if path.exists() else None
         return result,report,output
+
+    def check_slow_success_population(self, operation, fixture, delay_ns, event):
+        for mode, count in [('diagnostic', 1), ('final', 100)]:
+            with self.subTest(mode=mode):
+                result, report, output = self.collect('python', fixture, operation,
+                                                       self.root / mode, extra=['--mode', mode])
+                self.assertEqual(result.returncode, 0, result.stderr)
+                series = report['latency'][0]
+                rows = series['samples']
+                self.assertEqual([row['iteration'] for row in rows], list(range(count)))
+                self.assertEqual([row['wallNs'] for row in rows],
+                                 [delay_ns + CLOCK_STEP_NS, *[CLOCK_STEP_NS] * (count - 1)])
+                self.assertTrue(all(row['verified'] and row['completed'] for row in rows))
+                self.assertEqual(series['stoppedEarly'], mode == 'diagnostic')
+                self.assertTrue(report['cleanup']['closed'])
+                self.assertTrue(report['functional']['rows'][0]['completed'])
+                self.assertFalse(report['fullAcceptance'])
+                child = json.loads((output/'0-child.json').read_bytes())
+                self.assertEqual([row['wallNs'] for row in child['samples']], [row['wallNs'] for row in rows])
+                events = [json.loads(line)['event'] for line in (output/'existing-state/events').read_text().splitlines()]
+                self.assertEqual(events, ['open', 'submit', *[event] * count, 'close'])
+
+    def test_final_retains_slow_result_success_while_diagnostic_stops(self):
+        self.check_slow_success_population('warm-result', self.python(slow_first_result=True),
+                                           SLOW_RESULT_NS, 'result')
+
+    def test_final_retains_slow_query_success_while_diagnostic_stops(self):
+        self.check_slow_success_population('warm-select', self.python(slow_first_query=True),
+                                           SLOW_QUERY_NS, 'submit')
+
+    def test_final_cold_keeps_30_distinct_waited_processes_for_same_saved_run(self):
+        result, report, _ = self.collect('python', self.python(), 'cold-existing', extra=['--mode', 'final'])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        series = report['latency'][0]
+        rows = series['samples']
+        self.assertEqual([row['iteration'] for row in rows], list(range(30)))
+        self.assertFalse(series['stoppedEarly'])
+        self.assertEqual(len({row['pid'] for row in rows} | {report['seed']['pid']}), 31)
+        self.assertTrue(all(row['verified'] for row in rows))
+        self.assertEqual([item['originalRun'] for item in report['observations']], [report['seed']['originalRun']] * 30)
+        self.assertTrue(all(item['cleanup']['closed'] and item['command']['code'] == 0
+                            for item in report['observations']))
+        self.assertFalse(report['fullAcceptance'])
+
+    def test_final_retains_twelve_successes_and_original_thirteenth_failure(self):
+        fixture = self.python(slow_first_result=True, fail_result_at=13)
+        result, report, output = self.collect('python', fixture, 'warm-result', extra=['--mode', 'final'])
+        self.assertNotEqual(result.returncode, 0)
+        series = report['latency'][0]
+        rows = series['samples']
+        self.assertEqual([row['iteration'] for row in rows], list(range(13)))
+        self.assertEqual(rows[0]['wallNs'], SLOW_RESULT_NS + CLOCK_STEP_NS)
+        self.assertTrue(all(row['verified'] and row['completed'] for row in rows[:12]))
+        failure = rows[12]
+        self.assertEqual((failure['verified'], failure['completed']), (False, False))
+        self.assertTrue(series['stoppedEarly'])
+        self.assertFalse(report['functional']['rows'][0]['completed'])
+        self.assertFalse(report['fullAcceptance'])
+        child = report['failedObservation']
+        self.assertEqual(child['command']['code'], 1)
+        self.assertEqual(child['samples'][12]['error'], failure['error'])
+        self.assertTrue(child['cleanup']['closed'])
+        error = failure['error']
+        self.assertEqual((error['code'], error['rows_yielded'], error['cleanup_pending']),
+                         ('ClientTransportUnknown', 0, True))
+        cause = error['errorChain'][error['causes']['original_error']]
+        self.assertEqual((cause['code'], cause['message']), ('LocalFileError', 'Synthetic retained allocation'))
+        self.assertFalse(error['errorChainTruncated'])
+        self.assertEqual(json.loads((output/'0-child.json').read_bytes())['samples'], child['samples'])
+        events = [json.loads(line)['event'] for line in (output/'existing-state/events').read_text().splitlines()]
+        self.assertEqual(events, ['open', 'submit', *['result'] * 13, 'close'])
 
     def test_native_cold_uses_actual_distinct_children_and_same_original(self):
         result,report,output=self.collect('native',self.native(),'cold-existing')
