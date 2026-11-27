@@ -4,7 +4,7 @@ import {open, readFile, writeFile} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {createPrivateKey, sign} from 'node:crypto';
+import {createHash, createPrivateKey, sign} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import type {NodeConnectionOptions} from '@actql/node';
 import type {Client} from '@actql/sdk';
@@ -35,6 +35,54 @@ const text = (value: unknown): value is string => typeof value === 'string' && v
 const object = (value: unknown): value is Data => value !== null && typeof value === 'object' && !Array.isArray(value);
 const maxAuthoredCaseBytes = 1024 * 1024;
 
+type PublishedMapping = {resource: string; kind: string; mappingRef: string; mappingCid: string};
+
+// Only a trusted fixture installer supplies these original publication
+// results. The ordinary Host still checks each bound Program independently.
+export function bindPublishedRecordApprovalCase(
+  authored: AuthoredRecordApprovalCase, connectorId: string,
+  publication: {generationCid: string; mappings: readonly PublishedMapping[]},
+) {
+  const {review} = authored;
+  const cid = /^sha256:[a-f0-9]{64}$/u;
+  const prefix = 'connector://' + connectorId + '/';
+  if (!('effects' in review) || authored.effect.format !== 'json' || !text(connectorId) ||
+      !cid.test(publication.generationCid)) throw new TypeError('InvalidOrderedRecordMappingInput');
+  const document: unknown = JSON.parse(authored.effect.document);
+  if (!object(document) || !Array.isArray(document.stages)) throw new TypeError('InvalidOrderedRecordProgram');
+  const selected: (Omit<PublishedMapping, 'resource'> & {effectId: string; target: string})[] = [];
+  for (const stage of document.stages) {
+    if (!object(stage)) throw new TypeError('InvalidOrderedRecordProgram');
+    if (!Object.hasOwn(stage, 'effects')) continue;
+    if (!object(stage.effects)) throw new TypeError('InvalidOrderedRecordProgram');
+    for (const [id, member] of Object.entries(stage.effects)) {
+      const expected = review.effects[selected.length];
+      if (!expected || id !== expected.effectId || !object(member) || Object.keys(member).length !== 1 ||
+          !Object.hasOwn(member, expected.kind)) throw new TypeError('ForeignOrderedRecordEffect');
+      const operation = member[expected.kind];
+      if (!object(operation) || operation.target !== expected.target || !expected.target.startsWith(prefix) ||
+          Object.hasOwn(operation, 'mapping')) throw new TypeError('ForeignOrderedRecordMappingSlot');
+      const resource = expected.target.slice(prefix.length);
+      const candidates = publication.mappings.filter(mapping => mapping.resource === resource &&
+        (mapping.kind === expected.kind || expected.kind === 'create' && mapping.kind === 'createFromResult'));
+      if (candidates.length !== 1) throw new TypeError('MissingOrAmbiguousPublishedRecordMapping');
+      const [{mappingRef, mappingCid}] = candidates;
+      if (!text(mappingRef) || !mappingRef.startsWith('mapping:') || !cid.test(mappingCid)) {
+        throw new TypeError('InvalidPublishedRecordMapping');
+      }
+      operation.mapping = mappingRef;
+      selected.push({effectId: id, target: expected.target, kind: expected.kind, mappingRef, mappingCid});
+    }
+  }
+  if (selected.length !== review.effects.length) throw new TypeError('ForeignOrderedRecordEffect');
+  const definition = structuredClone(authored);
+  definition.effect.document = JSON.stringify(document);
+  if (Buffer.byteLength(JSON.stringify(definition)) > maxAuthoredCaseBytes) {
+    throw new TypeError('InvalidRecordApprovalCaseFile');
+  }
+  return {definition, generationCid: publication.generationCid, members: selected};
+}
+
 async function readCaseText(path: string, maxBytes: number, flags: number) {
   const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK | flags);
   try {
@@ -51,8 +99,11 @@ async function readCaseText(path: string, maxBytes: number, flags: number) {
   } finally {await file.close();}
 }
 
-export async function readAuthoredCase(path: string) {
-  const bytes = await readCaseText(path, maxAuthoredCaseBytes, 0);
+export async function readAuthoredCase(path: string, expectedSha256?: string) {
+  const bytes = await readCaseText(path, maxAuthoredCaseBytes, expectedSha256 === undefined ? 0 : constants.O_NOFOLLOW);
+  if (expectedSha256 !== undefined && createHash('sha256').update(bytes).digest('hex') !== expectedSha256) {
+    throw new TypeError('ChangedRecordApprovalCase');
+  }
   const decode = (bytes: Uint8Array) => new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes);
   try {
     const value = JSON.parse(decode(bytes)) as Data;

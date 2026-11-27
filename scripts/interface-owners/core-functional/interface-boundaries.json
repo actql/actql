@@ -68721,13 +68721,21 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "de6eb9be779d8d2cb3f758353537c664226a0327a4a7f9ef97741156000435d8",
+      "sha256": "6081c8f93edc4d359f0f0898c49e021dbe2d48589a9674504aa313f65a4a0b3e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
       "referenceQualification": "Existing typed Plan bridge plus new opaque fixed/per-checked-row capture DATA projection; source and type qualification only, not current Common/ordinary/full backing",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_construct_installed_update_text_recovery",
+          "declaration": "client_program_construct_installed_update_text_recovery ( boundary_cid : String , effect_id : String , member_index : Int , mapping_cid : String , target : String , text : String , max_recovery_bytes : Int , explicit_null : Bool , ) - > Result [ Array [ String ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_construct_installed_update_text_request",
+          "declaration": "client_program_construct_installed_update_text_request ( identity_field : String , field : String , target : String , text : String , request_domain : String , boundary_cid : String , max_body_bytes : Int , max_request_bytes : Int , max_request_cid_preimage_bytes : Int , explicit_null : Bool , ) - > Result [ Array [ String ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
         {
           "name": "client_program_installed_described_effect_input_recipe_capacities",
           "declaration": "client_program_installed_described_effect_input_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , target_reads : Bool , target_request_bytes : Int , target_response_bytes : Int , metadata_request_bytes : Int , metadata_response_bytes : Int , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
@@ -68883,6 +68891,14 @@
         {
           "name": "client_program_installed_standard_driver_recipe_capacities",
           "declaration": "client_program_installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_update_text_recipe_profiles",
+          "declaration": "client_program_installed_update_text_recipe_profiles ( body_bytes : Int , request_bytes : Int , preimage_bytes : Int , recovery_bytes : Int , target_response_bytes : Int , write_response_bytes : Int , ) - > Result [ ( Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , Array [ @ execution . ExecutionCapacity ] ? , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_update_text_request_bounds",
+          "declaration": "client_program_installed_update_text_request_bounds ( identity_field : String , field : String , request_domain : String , boundary_cid : String , target_ascii_units : Int , text_utf16_units : Int , ) - > Result [ Array [ Int ] , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_node_effect_managed_plan_cleanup",
@@ -69247,6 +69263,81 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_construct_installed_update_text_recovery",
+            "client_program_construct_installed_update_text_request",
+            "client_program_installed_update_text_recipe_profiles",
+            "client_program_installed_update_text_request_bounds"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A declared single-text-field UPDATE supplies the installed resource"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The HTTP"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Matching its exact saved wire and digest"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "requires the durable claim"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "comes before construction of the request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Target reads, provider classification, Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "real write or cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "its actual writer and hash scratch in sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "physical observation and mutation codecs"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_update_text_wire_wbtest.mbt",
+                "anchor": "standard UPDATE quotes exact escaped body request CID and historic recovery independently"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-text-update.test.mjs",
+                "anchor": "standard textual UPDATE retains exact mapped facts and reproduces its historic recovery"
               }
             ]
           }
@@ -101214,6 +101305,165 @@
               {
                 "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
                 "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_update_text_wire.mbt",
+      "sha256": "0aada09b3e7e74ae6ac14a346cd8cef87fbc78f9d791e9753bf6e2506ede76d0",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common Effect request, checked Mapping and continuation wire constructors",
+      "exports": [],
+      "operations": [
+        {
+          "name": "construct_installed_update_text_recovery",
+          "declaration": "construct_installed_update_text_recovery ( boundary_cid : String , effect_id : String , member_index : Int , mapping_cid : String , target : String , text : String , max_recovery_bytes : Int , explicit_null ? : Bool"
+        },
+        {
+          "name": "construct_installed_update_text_request",
+          "declaration": "construct_installed_update_text_request ( identity_field : String , field : String , target : String , text : String , request_domain : String , boundary_cid : String , max_body_bytes : Int , max_request_bytes : Int , max_request_cid_preimage_bytes : Int , explicit_null ? : Bool"
+        },
+        {
+          "name": "installed_update_text_field",
+          "declaration": "installed_update_text_field ( field : String ) - > Bool"
+        },
+        {
+          "name": "installed_update_text_observation_capacity",
+          "declaration": "installed_update_text_observation_capacity ( bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_update_text_output_capacity",
+          "declaration": "installed_update_text_output_capacity ( output_bytes : Int , nodes : Int , depth : Int , hash_nodes : Int , hash_depth : Int , row_request : Bool , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_update_text_recipe_profiles",
+          "declaration": "installed_update_text_recipe_profiles ( body_bytes : Int , request_bytes : Int , preimage_bytes : Int , recovery_bytes : Int , target_response_bytes : Int , write_response_bytes : Int , ) - > ( Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] , Array [ @ execution . ExecutionCapacity ] , ) ?"
+        },
+        {
+          "name": "installed_update_text_request_bounds",
+          "declaration": "installed_update_text_request_bounds ( identity_field : String , field : String , request_domain : String , boundary_cid : String , target_ascii_units : Int , text_utf16_units : Int , ) - > ( Int , Int , Int ) ?"
+        },
+        {
+          "name": "installed_update_text_value",
+          "declaration": "installed_update_text_value ( writer : @ encode . Writer , text : String , explicit_null : Bool , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "installed_update_text_wire_extents",
+          "declaration": "installed_update_text_wire_extents ( identity_field : String , field : String , target : String , text : String , request_domain : String , boundary_cid : String , effect_id : String , member_index : Int , mapping_cid : String , explicit_null ? : Bool"
+        },
+        {
+          "name": "installed_update_text_wire_fits",
+          "declaration": "installed_update_text_wire_fits ( extents : InstalledUpdateTextWireExtents , max_body_bytes : Int64 , max_request_bytes : Int64 , max_request_cid_preimage_bytes : Int64 , max_recovery_bytes : Int64 , ) - > Bool"
+        },
+        {
+          "name": "InstalledUpdateTextWireExtent::append",
+          "declaration": "InstalledUpdateTextWireExtent : : append ( self : InstalledUpdateTextWireExtent , other : InstalledUpdateTextWireExtent , ) - > InstalledUpdateTextWireExtent"
+        },
+        {
+          "name": "InstalledUpdateTextWireExtent::ascii",
+          "declaration": "InstalledUpdateTextWireExtent : : ascii ( self : InstalledUpdateTextWireExtent , bytes : Int64 , ) - > InstalledUpdateTextWireExtent"
+        },
+        {
+          "name": "update_member_digits",
+          "declaration": "update_member_digits ( index : Int ) - > Int64"
+        },
+        {
+          "name": "update_quote_inside_body",
+          "declaration": "update_quote_inside_body ( text : String , extent : InstalledUpdateTextWireExtent , ) - > InstalledUpdateTextWireExtent"
+        },
+        {
+          "name": "update_quoted_text",
+          "declaration": "update_quoted_text ( text : String ) - > InstalledUpdateTextWireExtent ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "construct_installed_update_text_recovery",
+            "construct_installed_update_text_request",
+            "installed_update_text_field",
+            "installed_update_text_observation_capacity",
+            "installed_update_text_output_capacity",
+            "installed_update_text_recipe_profiles",
+            "installed_update_text_request_bounds",
+            "installed_update_text_wire_extents",
+            "installed_update_text_wire_fits",
+            "InstalledUpdateTextWireExtent::append",
+            "InstalledUpdateTextWireExtent::ascii",
+            "update_member_digits",
+            "update_quote_inside_body",
+            "update_quoted_text",
+            "installed_update_text_value"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "A declared single-text-field UPDATE supplies the installed resource"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "The HTTP"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Matching its exact saved wire and digest"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "requires the durable claim"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "comes before construction of the request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "Target reads, provider classification, Unknown"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "real write or cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "its actual writer and hash scratch in sequence"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "physical observation and mutation codecs"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_update_text_wire_wbtest.mbt",
+                "anchor": "standard UPDATE quotes exact escaped body request CID and historic recovery independently"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-text-update.test.mjs",
+                "anchor": "standard textual UPDATE retains exact mapped facts and reproduces its historic recovery"
               }
             ]
           }

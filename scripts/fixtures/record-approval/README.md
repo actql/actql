@@ -1,6 +1,6 @@
 # Record update approval consumer fixtures
 
-The shared workflow uses the public Client API for one record UPDATE. A case
+The shared workflow uses the public Client API for record Effects. A case
 supplies its own Program, parameters, expected rows and Review fields. It does
 not implement a connector, permission decision, Effect claim or retry policy.
 
@@ -17,6 +17,24 @@ revision conditions remain separate. Existing standalone three-field Mock
 selections retain their original control defaults; existing Whole/binary/three-
 Source variants retain their original selections. Shared fixture DATA does not
 establish that either installed consumer executed or qualify live behavior.
+
+### Run an authored case through the installed author CLI
+
+Run `actql-connector conformance /absolute/descriptor.json --timeout-seconds 180`
+from an ordinary installation. Use the `actql-record-approval-normal/0.1`
+descriptor kind and supply `sourceSha`, `sourceTree`, `manifestPath`, and
+`manifestSha256` for the original five-package cohort. Set `consumerRoot` to
+the absolute directory of the matching installed packages and `outputRoot`
+to a fresh absolute directory. Supply the absolute `casePath` and its file
+SHA-256 in `caseSha256`. The runner snapshots the resolved documents before
+opening the fixture and checks them again afterward.
+
+Select `mode: "mock"` with `connector: "salesforce"`, `"hubspot"`, or
+`"kintone"` for ordered Mock cases. Select `mode: "http"` with `connector:
+"hubspot"` or `"kintone"` for the existing single-record loopback HTTPS
+fixtures. Choose `decision: "approved"` or `"rejected"`. The runner preserves
+the normal case's write and unchanged-control oracles, uses a fresh process
+for the same-Run Saved check, and retains the observations in `outputRoot`.
 
 Run `npm ci` in the source checkout to prepare the fixtures. The repository's
 prepare step emits their `.mjs` entry points from the `.mts` sources.

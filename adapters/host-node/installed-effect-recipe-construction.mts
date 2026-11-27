@@ -1,5 +1,6 @@
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit,
   httpsCredentialResponseReadQuantum, httpsCredentialAuthorizationPrefix} from '../site-node/https-credential-resource.mjs';
@@ -8,6 +9,7 @@ import {effectLedgerImplementationBounds} from './effect-ledger-implementation-b
 import {captureInstalledEffectPlanRecipe, rejectInstalledEffectPlan as fail, installedEffectPlanText as text}
   from './installed-effect-recipe.mjs';
 import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
+import type {InstalledTextUpdateBounds} from './installed-row-effect-text-update.mjs';
 
 type PreviewLimits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
 type BodyLimits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>;
@@ -38,8 +40,9 @@ type CreateOptions = Readonly<{
 }>;
 type UpdateOptions = Readonly<{
   moon: object;
-  providerMoon: object;
+  providerMoon?: object;
   write: unknown;
+  standardTextBounds?: InstalledTextUpdateBounds;
   credentialSite: CredentialSite;
   limits: InputLimits;
   resourceTextUnits: number;
@@ -82,6 +85,109 @@ type PhysicalOptions = Readonly<{
 type CredentialSlot = Pick<HttpOccurrence, 'maxRequestBytes' | 'maxResponseBytes'> & Readonly<{
   phase: string; operationIndex: number; maxTargetBytes?: number; slot?: string;
 }>;
+type RecipeOperation = Readonly<{operation: string; extent: unknown}>;
+type TargetMutationOccurrence = HttpOccurrence & Readonly<{
+  slot?: string;
+  resource?: string;
+  maxTargetBytes?: number;
+  prepare(transferBytes: bigint): Readonly<{
+    extent: unknown;
+    responseExtent?: (bytes: number, body: Uint8Array, geometry?: readonly number[]) => unknown;
+    discardResponseProjection?: true;
+  }>;
+}>;
+type TargetMutationSlot = CredentialSlot & Readonly<{
+  perRow?: boolean;
+  resource?: string;
+}> & Omit<ReturnType<TargetMutationOccurrence['prepare']>, 'extent'>;
+export type TargetMutationRecipe = Readonly<{
+  capture: RecipeOperation;
+  request: RecipeOperation;
+  finalization?: RecipeOperation;
+  footprint?: RecipeOperation;
+  describe?: readonly TargetMutationOccurrence[];
+  targets: readonly TargetMutationOccurrence[];
+  writes(): readonly TargetMutationOccurrence[];
+  controlsPerRow: unknown;
+  recoveryInputExtent?: (previewWire: unknown, recovery: unknown, memberIndex: number) => unknown;
+  savedControlCodec?: Readonly<{maxEntryBytes: number; fallbackCapacity: unknown}>;
+}>;
+
+// Build the original member and row operation tables from the provider's
+// physical occurrence descriptions. Each phase constructs its own extent,
+// and each credential slot names only that extent. Recipe admission remains
+// responsible for validating route, phase, slot and resource.
+export function composeInstalledTargetMutationRecipe({capture, request, finalization, footprint,
+    describe = [], targets, writes, controlsPerRow, recoveryInputExtent, savedControlCodec}:
+    TargetMutationRecipe): InstalledEffectPlanRecipe {
+  const memberOperations = [Object.freeze(capture)];
+  const rowOperations = [Object.freeze(request)];
+  const credentialOperations: TargetMutationSlot[] = [];
+  if (footprint !== undefined) memberOperations.push(Object.freeze(footprint));
+  if (finalization !== undefined) rowOperations.push(Object.freeze(finalization));
+
+  const addOccurrence = (phase: string, perRow: boolean, occurrence: TargetMutationOccurrence) => {
+    const {operation, maxRequestBytes, maxResponseBytes, maxTargetBytes, slot, resource} = occurrence;
+    const operations = perRow ? rowOperations : memberOperations;
+    const operationIndex = operations.length;
+    const transfer = BigInt(maxRequestBytes) + httpsCredentialResponseWindowBytes(maxResponseBytes);
+    const {extent, responseExtent, discardResponseProjection} = occurrence.prepare(transfer);
+    operations.push(Object.freeze({operation, extent}));
+    credentialOperations.push(Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes,
+      ...(phase === 'write' ? {} : {perRow}),
+      ...(maxTargetBytes === undefined ? {} : {maxTargetBytes}),
+      ...(slot === undefined ? {} : {slot}), ...(resource === undefined ? {} : {resource}),
+      ...(responseExtent === undefined ? {} : {responseExtent}),
+      ...(discardResponseProjection === undefined ? {} : {discardResponseProjection})}));
+  };
+  for (const phase of ['capture', 'apply', 'resume']) {
+    for (const occurrence of describe) addOccurrence(phase + '-describe', false, occurrence);
+    for (const occurrence of targets) addOccurrence(phase + '-target', true, occurrence);
+  }
+  for (const occurrence of writes()) addOccurrence('write', true, occurrence);
+
+  const recoveryIndex = memberOperations.length;
+  memberOperations.push(memberOperations[0]);
+  return captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations: Object.freeze(memberOperations),
+    rowOperations: Object.freeze(rowOperations),
+    credentialOperations: Object.freeze(credentialOperations),
+    captureConstruction: Object.freeze({operationIndex: 0}),
+    requestConstruction: Object.freeze({operationIndex: 0}),
+    recoveryConstruction: Object.freeze({operationIndex: recoveryIndex,
+      ...(recoveryInputExtent === undefined ? {} : {inputExtent: recoveryInputExtent})}),
+    ...(footprint === undefined ? {} : {footprintConstruction: Object.freeze({operationIndex: 1})}),
+    ...(finalization === undefined ? {} : {requestFinalization: Object.freeze({operationIndex: 1})}),
+    ...(savedControlCodec === undefined ? {} : {savedControlCodec: Object.freeze(savedControlCodec)}),
+    controlsPerRow,
+  }), memberOperations.length + rowOperations.length);
+}
+
+const declaredUpdatePlans = new WeakMap<object, Readonly<{site: object; recipe: InstalledEffectPlanRecipe}>>();
+
+// The provider supplies its original operation quantities under the existing
+// driver construction reservation. Common issues the plan, and keeps it with
+// the exact frozen writer that will enter standard UPDATE.
+export function bindInstalledDeclaredUpdatePlan(write: object, site: object, construction: TargetMutationRecipe): void {
+  if (write === null || typeof write !== 'object' || nodeTypes.isProxy(write) ||
+      !Object.isFrozen(write) || Object.getOwnPropertyDescriptor(write, 'kind')?.value !== 'update' ||
+      site === null || typeof site !== 'object' || nodeTypes.isProxy(site) ||
+      declaredUpdatePlans.has(write)) fail('InvalidInstalledEffectPlanRecipe');
+  declaredUpdatePlans.set(write, Object.freeze({site, recipe: composeInstalledTargetMutationRecipe(construction)}));
+}
+
+export function installedDeclaredUpdatePlan(write: object, site: object, maxOperations: number): InstalledEffectPlanRecipe | undefined {
+  const original = declaredUpdatePlans.get(write);
+  if (original === undefined) return undefined;
+  if (original.site !== site) fail('ForeignInstalledDeclaredUpdatePlan');
+  const {recipe} = original;
+  // The recipe was already captured in its paid phase. Preserve the normal
+  // installation's operation ceilings without copying its already owned tables.
+  if (!Number.isSafeInteger(maxOperations) || maxOperations < 1 ||
+      Math.max(recipe.memberOperations.length, recipe.rowOperations.length,
+        recipe.credentialOperations?.length ?? 0) > maxOperations) fail('InvalidInstalledEffectPlanRecipe');
+  return recipe;
+}
 
 // Allocation bounds for the SAME already-owned Preview. A larger Catalog or
 // request-recovery wire does not enlarge this independent parser input. The
@@ -90,6 +196,26 @@ export function effectRecoveryPreviewBounds(bytes: number, limits: PreviewLimits
   const extent = Math.max(1, bytes);
   return Object.freeze([Math.min(extent, limits.maxWireBytes),
     Math.min(extent, limits.maxNodes), Math.min(extent, limits.maxDepth)] as const);
+}
+
+// Measure the original Preview and this member's existing recovery envelope.
+// Each decoder keeps its own limit. The two byte counts can coexist but one
+// input's size does not enlarge the other input's structural allowance.
+export function measureInstalledEffectRecoveryInput(previewWire: unknown, recovery: unknown,
+    memberIndex: number, maxPreviewBytes: number, maxRecoveryBytes: number, refuse: () => never) {
+  if (typeof previewWire !== 'string' || !previewWire.isWellFormed() ||
+      !Array.isArray(recovery) || !Number.isSafeInteger(memberIndex) || memberIndex < 0) refuse();
+  const previewBytes = Buffer.byteLength(previewWire);
+  if (previewBytes < 1 || previewBytes > maxPreviewBytes) refuse();
+  let recoveryBytes = 1;
+  for (const entry of recovery) {
+    if (entry?.memberIndex !== memberIndex) continue;
+    if (typeof entry.wire !== 'string' || !entry.wire.isWellFormed()) refuse();
+    const bytes = Buffer.byteLength(entry.wire);
+    if (bytes < 1 || bytes > maxRecoveryBytes) refuse();
+    recoveryBytes = Math.max(recoveryBytes, bytes);
+  }
+  return {previewBytes, recoveryBytes};
 }
 
 // Fixed installed implementation metadata, not caller tuning or a Resource
@@ -231,7 +357,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
 // constructor profile, just as CREATE does. The Host selects the slots and
 // builds the Plan recipe against its own Common and installed Credential Site.
 export function prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon, write, credentialSite,
-  limits, resourceTextUnits, connectorRegistration}: UpdateOptions): InstalledEffectPlanRecipe {
+  limits, resourceTextUnits, connectorRegistration, standardTextBounds}: UpdateOptions): InstalledEffectPlanRecipe {
   const invalid: () => never = () => fail('InstalledDeclaredUpdateConstructionUnavailable');
   const data = (object: unknown, name: string): unknown => {
     if (object === null || typeof object !== 'object' || nodeTypes.isProxy(object)) invalid();
@@ -265,8 +391,14 @@ export function prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon, wr
   }
   const {preview, body} = limits;
   const input = [preview.maxWireBytes, preview.maxNodes, preview.maxDepth, body.maxBytes, body.maxNodes, body.maxDepth];
-  const native = method(providerMoon, 'installedDeclaredUpdateConstructionProfile')(...input);
-  const capture = method(providerMoon, 'installedDeclaredUpdateCaptureConstructionProfile')(...input);
+  const profiles = standardTextBounds === undefined ? undefined : checked(
+    method(moon, 'clientProgramInstalledUpdateTextRecipeProfiles')(
+      standardTextBounds.body, standardTextBounds.request, standardTextBounds.preimage,
+      standardTextBounds.recovery, target.maxResponseBytes, mutation.maxResponseBytes));
+  const native = standardTextBounds === undefined
+    ? method(providerMoon, 'installedDeclaredUpdateConstructionProfile')(...input) : runtimeField(profiles, 0);
+  const capture = standardTextBounds === undefined
+    ? method(providerMoon, 'installedDeclaredUpdateCaptureConstructionProfile')(...input) : runtimeField(profiles, 1);
   // This Common composer already supports a synchronous projector running
   // on the physical child's reservation. Its projected-response slot includes
   // HTTP backing, secret and the complete typed decoder. Select it for each
@@ -310,32 +442,20 @@ export function prepareInstalledDeclaredUpdatePlanRecipe({moon, providerMoon, wr
       workspace, 2n * (4n * query + 2n * target + headerText + body),
       target + headerText + body));
   };
-  const member = Object.freeze({operation, extent: checked(prepareCapture(operation, capacities.slice(0, 6), ...input.slice(0, 3)))});
-  const rowOperations = [Object.freeze({operation, extent: checked(extent(operation, capacities[2], 0n, false))})];
-  const credentialOperations: CredentialSlot[] = [];
-  const physical = (phase: string, name: string, bound: TransportLimits, quantity: unknown, slot?: string) => {
-    const operationIndex = rowOperations.length;
-    const transfer = BigInt(bound.maxRequestBytes) + httpsCredentialResponseWindowBytes(bound.maxResponseBytes);
-    rowOperations.push(Object.freeze({operation: name,
-      extent: checked(extent(name, quantity, transfer, true))}));
-    credentialOperations.push(Object.freeze({phase, operationIndex, ...bound, ...(slot === undefined ? {} : {slot})}));
-  };
+  const captureOperation = {operation, extent: checked(prepareCapture(operation, capacities.slice(0, 6), ...input.slice(0, 3)))};
+  const request = {operation, extent: checked(extent(operation, capacities[2], 0n, false))};
   const targetCapacity = checked(compose(capacities[7], [requestEnvelope(target, false)]));
-  for (const phase of ['capture-target', 'apply-target', 'resume-target']) {
-    physical(phase, targetOperation, target, targetCapacity, 'target');
-  }
-  // The mutation's pure transport builder can run while its original row
-  // request is still retained. Fund the declared constructor envelope in
-  // this physical child before invoking it, independently of the row slot.
-  const mutationCapacity = checked(compose(capacities[3],
-    [capacities[2], requestEnvelope(mutation, true)]));
-  physical('write', operation, mutation, mutationCapacity);
-  return captureInstalledEffectPlanRecipe(Object.freeze({
-    memberOperations: Object.freeze([member, member]), rowOperations: Object.freeze(rowOperations),
-    controlsPerRow: capacities[4], captureConstruction: Object.freeze({operationIndex: 0}),
-    recoveryConstruction: Object.freeze({operationIndex: 1}), requestConstruction: Object.freeze({operationIndex: 0}),
-    credentialOperations: Object.freeze(credentialOperations),
-  }), rowOperations.length + 2);
+  return composeInstalledTargetMutationRecipe({capture: captureOperation, request, controlsPerRow: capacities[4],
+    targets: [{operation: targetOperation, ...target, slot: 'target',
+      prepare: transfer => ({extent: checked(extent(targetOperation, targetCapacity, transfer, true))})}],
+    writes() {
+      // The original row request remains held while the mutation constructs
+      // its transport. The write child pays both before starting the codec.
+      const mutationCapacity = checked(compose(capacities[3],
+        [capacities[2], requestEnvelope(mutation, true)]));
+      return [{operation, ...mutation,
+        prepare: transfer => ({extent: checked(extent(operation, mutationCapacity, transfer, true))})}];
+    }});
 }
 
 // Non-HTTP providers retain their actual pure constructor metadata. These six
@@ -410,24 +530,9 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
   const recoveryExtent = checked(moon.clientProgramInstalledEffectOperationStagedExtentPrepare(
     recoveryInitial, capture));
   const recoveryInputExtent = (previewWire: unknown, recovery: unknown, memberIndex: number) => {
-    if (typeof previewWire !== 'string' || !previewWire.isWellFormed() ||
-        !Array.isArray(recovery) || !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
-      fail('InstalledPhysicalWriteConstructionUnavailable');
-    }
-    const previewBytes = Buffer.byteLength(previewWire);
-    if (previewBytes < 1 || previewBytes > inputLimits.preview.maxWireBytes) {
-      fail('InstalledPhysicalWriteConstructionUnavailable');
-    }
-    let recoveryBytes = 1;
-    for (const entry of recovery) {
-      if (entry?.memberIndex !== memberIndex) continue;
-      if (typeof entry.wire !== 'string' || !entry.wire.isWellFormed()) {
-        fail('InstalledPhysicalWriteConstructionUnavailable');
-      }
-      const bytes = Buffer.byteLength(entry.wire);
-      if (bytes < 1 || bytes > limits.maxRecoveryBytes) fail('InstalledPhysicalWriteConstructionUnavailable');
-      recoveryBytes = Math.max(recoveryBytes, bytes);
-    }
+    const {previewBytes, recoveryBytes} = measureInstalledEffectRecoveryInput(previewWire, recovery,
+      memberIndex, inputLimits.preview.maxWireBytes, limits.maxRecoveryBytes,
+      () => fail('InstalledPhysicalWriteConstructionUnavailable'));
     // Every JSON node/nesting level occupies an original UTF-8 byte. The
     // saved decoder's existing node/depth limits remain additional bounds;
     // no second parse or serialization is needed to quantify this constructor.

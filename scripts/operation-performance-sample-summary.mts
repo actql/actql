@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+
 export interface ResourceSample {
   cpuAvailable?: boolean;
   childCpuAvailable?: boolean;
@@ -19,8 +21,21 @@ export interface PublicLatencySample extends WallSample {
 }
 
 export const publicLatencyTarget = Object.freeze({p95Ms: 200, maxMs: 200});
+export const priorityTransitionTarget = Object.freeze({samples: 100, medianMs: 250, p95Ms: 500});
+export const sqliteComparisonPolicy = Object.freeze({ratio: 3, minimumSamples: 100,
+  noise: 'matched baseline p95 minus median', essentialTransactionsPerNewRun: 1});
+export const digest = (value: unknown) => typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value);
+export const evidenceHash = (value: unknown) => createHash('sha256').update(JSON.stringify(value) ?? 'null').digest('hex');
+export const nonempty = (value: unknown) => typeof value === 'string' && value.length > 0;
 export const integer = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
-export const requireValue = (condition: unknown, message: string) => { if (!condition) throw new Error(message); };
+export const requireValue: (condition: unknown, message: string) => asserts condition =
+  (condition, message) => { if (!condition) throw new Error(message); };
+
+export const outcome = <Detail extends object = object>(
+  failures: readonly string[], missing: readonly string[], detail: Detail = {} as Detail,
+) => ({
+  status: failures.length ? 'failed' : missing.length ? 'incomplete' : 'passed', failures, missing, ...detail,
+});
 
 export function latencySummary(samples: readonly WallSample[], minimum: number) {
   requireValue(integer(minimum) && minimum > 0, 'A nonzero sample minimum is required');
@@ -33,6 +48,14 @@ export function latencySummary(samples: readonly WallSample[], minimum: number) 
     // A small diagnostic never supplies an acceptance p95.
     p95Ms: n >= minimum ? values[Math.ceil(n * 0.95) - 1] : null,
     maxMs: n ? values[n - 1] : null, quantile: 'nearest-rank', minimum};
+}
+
+export function sqliteLatencyLimits({medianMs, p95Ms}: Pick<ReturnType<typeof latencySummary>, 'medianMs' | 'p95Ms'>) {
+  if (medianMs === null || p95Ms === null) throw new Error('Complete SQLite baseline distribution required');
+  const {ratio, noise} = sqliteComparisonPolicy;
+  const noiseMs = Math.max(0, p95Ms - medianMs);
+  // The measured control already includes its durable work.
+  return {ratio, noise, noiseMs, medianMs: ratio * medianMs + noiseMs, p95Ms: ratio * p95Ms + noiseMs};
 }
 
 type NoObservation = {available: false; scopes?: never};

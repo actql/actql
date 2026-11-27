@@ -526,6 +526,10 @@ pub fn compose_installed_source_construction_capacity(@execution_relation.Execut
 
 pub fn configure_source_free_effect_local_retained_host(@run_publication_host.PreparedClientEffectRun, @physical_strategy_host.CapturedEffectRunDAG, ClientInstalledSequenceContracts, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?
 
+pub fn construct_installed_update_text_recovery(String, String, Int, String, String, String, Int, explicit_null? : Bool) -> (String, String)?
+
+pub fn construct_installed_update_text_request(String, String, String, String, String, String, Int, Int, Int, explicit_null? : Bool) -> InstalledUpdateTextRequest?
+
 pub fn[I, P] construct_program_json_preparation(ClientProgramJsonPreparation[I, P]) -> Result[Unit, ClientProgramJsonPreparationIssue]
 
 pub fn[I, A] construct_request_effect_materials(ClientRequestPreparation[I], I, @run_publication_host.PreparedClientEffectComputation, codec_owner? : @run_publication_host.PreparedClientEffectComputation?, ((String, Int, Int, Int) -> Bool) -> Result[A, @run_publication_host.ClientEffectRunMaterialsIssue]) -> Result[A, ClientRequestProgramPlanIssue]
@@ -879,6 +883,14 @@ pub fn installed_table_source_completed_capacity(@execution_relation.ExecutionCa
 pub fn installed_table_source_reader_capacity(Int, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_table_source_serialization_capacity(@execution_relation.ExecutionCapacity, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn installed_update_text_recipe_profiles(Int, Int, Int, Int, Int, Int) -> (Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)], Array[@execution_relation.ExecutionCapacity])?
+
+pub fn installed_update_text_request_bounds(String, String, String, String, Int, Int) -> (Int, Int, Int)?
+
+pub fn installed_update_text_wire_extents(String, String, String, String, String, String, String, Int, String, explicit_null? : Bool) -> InstalledUpdateTextWireExtents?
+
+pub fn installed_update_text_wire_fits(InstalledUpdateTextWireExtents, Int64, Int64, Int64, Int64) -> Bool
 
 pub fn installed_whole_source_acquisition(ClientInstalledWholeSourceCapacity) -> @client_row_source_host.RowInputAcquisition
 
@@ -2498,6 +2510,23 @@ pub(all) enum InstalledRelationSampleStartIssue {
   SampleStartRun(ClientInstalledManagedRunIssue)
   SampleStartCapacity(@physical_resources.PreparationCapacityIssue)
   SampleStartControl(@physical_strategy_host.CapturedTaskControlIssue)
+}
+
+pub(all) struct InstalledUpdateTextRequest {
+  body : String
+  request_cid : String
+}
+
+pub(all) struct InstalledUpdateTextWireExtent {
+  bytes : Int64
+  utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct InstalledUpdateTextWireExtents {
+  body : InstalledUpdateTextWireExtent
+  request : InstalledUpdateTextWireExtent
+  request_cid_preimage : InstalledUpdateTextWireExtent
+  recovery : InstalledUpdateTextWireExtent
 }
 
 type LocalValuesEffectResultExport

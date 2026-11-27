@@ -10,7 +10,7 @@ type Resources = {memoryBytes: number; diskBytes: number; cpuThreads: number};
 type Headroom = Resources & {totalMemoryBytes: number};
 type HeavyPool = {version: string; token: string; slot?: number; resources?: Resources};
 type LockOwner = {token: string; pid: number; uid: number; host: string; worktree: string;
-  startedAt: string; evidence?: string; heavyPool?: HeavyPool};
+  startedAt: string; evidence?: string | undefined; heavyPool?: HeavyPool};
 type FileIdentity = Pick<Stats, 'dev' | 'ino'>;
 type HeldLock = {path: string; stat: Stats};
 type LockDirectory = ReturnType<typeof lockDirectory>;
@@ -64,9 +64,9 @@ export function lockDirectory(home = homedir()) {
     identities.push(stat);
   }
   const check = () => paths.forEach((path, index) => {
-    const stat = lstatSync(path);
+    const stat = lstatSync(path), original = identities[index];
     if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== uid() ||
-        !same(stat, identities[index])) throw new Error(`Local check state ownership changed: ${path}`);
+        !original || !same(stat, original)) throw new Error(`Local check state ownership changed: ${path}`);
   });
   return {path: paths.at(-1)!, check};
 }
@@ -291,6 +291,7 @@ function acquireHeavyReservation(root: string, owner: LockOwner, directory: Lock
         JSON.stringify({...admission, members: members.map(member => member.owner.pid)}));
       const occupied = new Set(members.map(member => member.owner.heavyPool.slot));
       const slot = [1, 2, 3, 4].find(value => !occupied.has(value));
+      if (slot === undefined) throw new Error('Heavy verification has no unoccupied reservation slot');
       const slotOwner = {...owner, heavyPool: {version: poolVersion,
         token: pool.token, slot, resources: admission.request}};
       reservation = newLock(join(directory.path, `heavy-slot-${slot}.lock`), slotOwner, directory);

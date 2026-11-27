@@ -16,7 +16,7 @@ import {inventory} from '../../package-release.mjs';
 import {createAuthorRestProvider, readAuthorRestCase, readRestConformanceInput} from './conformance-input.mjs';
 import {readAuthorPackage, selectAuthorPackage, stageAuthorDefinition, stagePackedAuthorPackage} from './author-package.mjs';
 import {normalNpmPackJsonArgs, parseNpmPackJson} from '../../packed-client-packages.mjs';
-import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from '../../benchmark-node-operations.mjs';
+import {verifyNodeBenchmarkPackages, nodeBenchmarkFailure} from '../../node-benchmark-evidence.mjs';
 import {externalRestDefinition, externalRestProvider} from './provider.fixture.mjs';
 import {externalRestConfiguration} from './configuration.mjs';
 import {prepareExternalRestCohort} from './installed-modules.mjs';

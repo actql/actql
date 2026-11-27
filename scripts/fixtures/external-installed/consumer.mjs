@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {Readable, Writable} from 'node:stream';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
@@ -10,14 +11,18 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import tls from 'node:tls';
+import {promisify} from 'node:util';
 import {connect, publishEffect} from '@actql/local-node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
+import {createHostObservationConnection} from '@actql/local-node/observation';
 import {canonicalJson} from '@actql/sdk/host-port';
 
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki',
   format: 'pem'});
 const principalId = userInfo().username;
 const terminal = ['succeeded', 'failed', 'cancelled', 'needs_reconciliation'];
+const execute = promisify(execFile);
+const privateFile = {mode: 0o600, flag: 'wx'};
 
 async function until(check) {
   const deadline = Date.now() + 20_000;
@@ -45,7 +50,10 @@ export function captureFixtureTransport() {
     httpsGet: https.get, httpRequest: http.request, httpGet: http.get,
     connect: net.connect, createConnection: net.createConnection, tlsConnect: tls.connect};
   const state = {requests: [], events: [], readMode: 'ok', effectMode: 'ok',
-    records: {selected: {id: 'selected', note: 'before'}, control: {id: 'control', note: 'unchanged'}},
+    records: {selected: {id: 'selected', note: 'before'}, cleared: {id: 'cleared', note: 'original note'},
+      refused: {id: 'refused', note: 'before refusal'},
+      lost: {id: 'lost', note: 'before lost response'}, conflict: {id: 'conflict', note: 'original before'},
+      control: {id: 'control', note: 'unchanged'}},
     updateWrites: 0, secretCalls: 0, forbiddenNetworkCalls: 0};
   const forbidden = () => {
     state.forbiddenNetworkCalls++;
@@ -84,18 +92,23 @@ export function captureFixtureTransport() {
               : options.path.endsWith('=0')
                 ? {items: [{key: 'alpha', amount: 7}, {key: 'beta', amount: 2}], next: 1}
                 : {items: [{key: 'gamma', amount: 11}], next: null};
-          } else if (options.path === '/events/selected') {
+          } else if (['/events/selected', '/events/cleared', '/events/refused', '/events/lost', '/events/conflict'].includes(options.path)) {
+            const id = options.path.slice('/events/'.length);
             assert.ok(['GET', 'PUT'].includes(options.method));
             if (options.method === 'PUT') {
               const change = JSON.parse(body);
               assert.deepEqual(Object.keys(change), ['note']);
-              state.records.selected = {...state.records.selected, note: change.note};
+              assert.ok(change.note === null || typeof change.note === 'string');
+              state.records[id] = {...state.records[id], note: change.note};
               state.updateWrites++;
+              if (id === 'lost') {
+                return request.destroy(Object.assign(new Error('FixtureUpdateReplyLost'), {code: 'ECONNRESET'}));
+              }
             } else {
               assert.equal(body, undefined);
             }
             statusCode = 200;
-            value = state.records.selected;
+            value = state.records[id];
           } else {
             assert.equal(options.method, 'POST');
             assert.equal(options.path, '/events');
@@ -184,11 +197,12 @@ function updateProgram(mapping, {id, note}) {
   return JSON.stringify({version: 'actql/0.1', id: 'external-update',
     stages: [{id: 'update', inputs: {}, steps: [
       {values: {schema: {id: {type: 'string', nullable: false},
-        note: {type: 'string', nullable: false}}, rows: [{id, note}]}, as: 'input'}],
-    results: {rows: {from: 'input', fields: ['id', 'note']}},
+        note: {type: 'string', nullable: true}}, rows: [{id, note}]}, as: 'input'}],
+    results: {rows: {from: 'input', fields: ['id', 'note']}, verification: {from: 'input', fields: ['id']}},
     effects: {update_event: {update: {target: mapping.target, id: 'id',
       set: {note: {field: 'note'}}, mapping: mapping.mappingRef, from: {result: 'rows'}}}}}],
-    results: {rows: {from: {stage: 'update', result: 'rows'}}}});
+    results: {rows: {from: {stage: 'update', result: 'rows'}},
+      verification: {from: {stage: 'update', result: 'verification'}}}});
 }
 
 export async function createFixtureProfiles(directory, {read = 'allow',
@@ -242,6 +256,69 @@ const stopped = (execution, expected) => until(async () => {
   return state;
 });
 
+// The child receives the original Host inputs and reference, with no signer.
+// Its transport refuses ambient network and measures recovery traffic itself.
+export async function observeExternalUpdateSaved(inputPath, outcomePath) {
+  const {directory, effectProfilePath, authorizationPath, reference, runId, status, results} =
+    JSON.parse(await readFile(inputPath, 'utf8'));
+  const authorization = JSON.parse(await readFile(authorizationPath, 'utf8'));
+  const transport = captureFixtureTransport();
+  let client, primary;
+  const observedResults = {};
+  try {
+    client = await connect({mode: 'local', owner: 'local', durability: 'durable',
+      installation: {directory, retainedRelationOutput: true, effectProfilePath,
+        resolveEffectSecret: transport.resolveSecret, authorization}});
+    const restored = await client.attach(reference);
+    assert.deepEqual(restored.ref, reference);
+    if (results !== undefined) {
+      for (const [name, expected] of Object.entries(results)) {
+        const observed = await restored.result(name).all();
+        assert.deepEqual(observed, expected);
+        observedResults[name] = observed;
+      }
+    }
+    const observed = await stateOf(restored);
+    assert.equal(observed.run_id, runId);
+    assert.equal(observed.status, status);
+  } catch (cause) {
+    primary = {cause};
+    throw cause;
+  } finally {
+    try { await client?.close(); }
+    catch (cleanup) {
+      if (primary === undefined) throw cleanup;
+      throw new AggregateError([primary.cause, cleanup], 'ExternalSavedReadAndCloseFailed', {cause: primary.cause});
+    } finally { transport.restore(); }
+  }
+  const {requests, updateWrites, secretCalls, forbiddenNetworkCalls} = transport.state;
+  assert.equal(requests.length + updateWrites + secretCalls + forbiddenNetworkCalls, 0);
+  await writeFile(outcomePath, JSON.stringify({pid: process.pid, reference, runId, status, firstClose: true,
+    resultNames: Object.keys(observedResults), results: observedResults,
+    requests: requests.length, updateWrites, secretCalls, forbiddenNetworkCalls}), privateFile);
+}
+
+async function externalUpdateCold(settings, receiptRoot) {
+  const input = join(receiptRoot, 'cold-input.json'), output = join(receiptRoot, 'cold-outcome.json');
+  await mkdir(receiptRoot, {mode: 0o700});
+  await writeFile(input, JSON.stringify(settings), privateFile);
+  const command = `import {observeExternalUpdateSaved} from ${JSON.stringify(import.meta.url)};\n` +
+    'await observeExternalUpdateSaved(...process.argv.slice(1));';
+  const child = execute(process.execPath, ['--input-type=module', '-e', command, input, output],
+    {timeout: 30000, maxBuffer: 8 * 1024 ** 2});
+  const pid = child.child.pid;
+  await child;
+  const outcome = JSON.parse(await readFile(output, 'utf8'));
+  assert.equal(outcome.pid, pid);
+  assert.notEqual(outcome.pid, process.pid);
+  assert.deepEqual(outcome.reference, settings.reference);
+  assert.equal(outcome.runId, settings.runId);
+  assert.equal(outcome.status, settings.status);
+  assert.equal(outcome.firstClose, true);
+  assert.deepEqual(outcome.results, settings.results ?? {});
+  return outcome;
+}
+
 // The harness passes the normal generated installation table and resolver.
 // Runtime modules are loaded from that resolver, not a fixture-specific path.
 export async function verifyExternalInstalledFixture({directory,
@@ -276,9 +353,10 @@ export async function verifyExternalInstalledFixture({directory,
   const profiles = await createFixtureProfiles(join(directory, 'profiles'), {
     observe: (name, details) => observations.push([name, details])});
   const transport = captureFixtureTransport();
-  const open = async (role, profilesForRun = profiles, name = role) => {
+  const open = async (role, profilesForRun = profiles, name = role, observation) => {
     const client = await connect({mode: 'local', owner: 'local', durability: 'durable',
       installation: {directory: join(directory, name), retainedRelationOutput: true,
+        ...(observation === undefined ? {} : {observation}),
         [`${role}ProfilePath`]: profilesForRun[`${role}ProfilePath`],
         [`resolve${role === 'source' ? 'Source' : 'Effect'}Secret`]: transport.resolveSecret,
         authorization: profilesForRun.authorization}});
@@ -286,11 +364,10 @@ export async function verifyExternalInstalledFixture({directory,
     return client;
   };
   const close = async client => { await client.close(); clients.delete(client); };
-  const approve = async (client, execution) => {
-    const checkpoints = await client.checkpoints();
-    const checkpoint = checkpoints.items.find(item => item.kind === 'effect_set');
+  const resolveCheckpoint = async (client, execution, {decision = 'approved', original} = {}) => {
+    const checkpoint = original ?? (await client.checkpoints()).items.find(item => item.kind === 'effect_set');
     assert.ok(checkpoint);
-    const result = await client.resolveCheckpoints([{checkpoint, decision: 'approved'}],
+    const result = await client.resolveCheckpoints([{checkpoint, decision}],
       {signer: {...profiles.signer, authorityScopeCid: execution.ref.authorityScopeCid}});
     assert.deepEqual(result.results.map(item => item.status), ['committed']);
     return {checkpoint, result};
@@ -360,7 +437,7 @@ export async function verifyExternalInstalledFixture({directory,
         {format: 'json', submissionRef: writer.newSubmission({nonce: `effect-${mode}`})});
       assert.equal((await stateOf(run)).status, 'waiting_checkpoint');
       assert.equal(transport.state.events.length, before);
-      await approve(writer, run);
+      await resolveCheckpoint(writer, run);
       const settled = await until(async () => {
         const state = await run.status();
         return terminal.includes(state.status) ? state : undefined;
@@ -388,59 +465,123 @@ export async function verifyExternalInstalledFixture({directory,
       effectProfilePath: updateProfilePath, resolveEffectSecret: transport.resolveSecret})).mappings;
     assert.equal(updateMapping.kind, 'update');
     assert.notEqual(updateMapping.mappingCid, mapping.mappingCid);
-    let updater = await open('effect', updateProfiles, 'update');
-    const recordsBefore = structuredClone(transport.state.records);
-    const expectedRow = {id: 'selected', note: 'approved update'};
-    const start = transport.state.requests.length;
-    const update = await updater.startSource(updateProgram(updateMapping, expectedRow), {format: 'json',
-      submissionRef: updater.newSubmission({nonce: 'external-update'})});
-    const waiting = await stateOf(update);
-    assert.equal(waiting.status, 'waiting_checkpoint', JSON.stringify(waiting));
-    assert.equal(transport.state.updateWrites, 0);
-    assert.deepEqual(transport.state.records, recordsBefore);
-    assert.deepEqual(transport.state.requests.slice(start).map(({method, path}) => [method, path]),
-      [['GET', '/events/selected'], ['GET', '/events/selected']],
-      'Capture read and current preflight both precede commit authorization');
-    const page = await updater.checkpoints({checkpointId: waiting.checkpoint.id});
-    assert.equal(page.items.length, 1);
-    const [summary] = page.items;
-    assert.equal(summary.kind, 'effect_set');
-    const review = await updater.reviewCheckpoint(summary);
-    const view = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
-    assert.equal(view.authority_scope_cid, update.ref.authorityScopeCid);
-    assert.equal(view.displayed_rows.length, 1);
-    const [row] = view.displayed_rows;
-    assert.equal(row.target_row_identity, expectedRow.id);
-    assert.equal(row.before.state, 'present');
-    assert.equal(row.before.value.note, recordsBefore.selected.note);
-    assert.deepEqual(row.intended_changes, {state: 'present', value: {note: expectedRow.note}});
-    const {checkpoint: approved, result: resolution} = await approve(updater, update);
-    assert.deepEqual(approved, summary);
-    assert.equal(resolution.signed.length, 1);
-    const signed = JSON.parse(resolution.signed[0].resolutionWire);
-    assert.equal(signed.run_id, waiting.run_id);
-    assert.equal(signed.run_definition_cid, update.ref.runDefinitionCid);
-    assert.equal(signed.checkpoint_id, waiting.checkpoint.id);
-    assert.equal(signed.checkpoint_cid, summary.checkpointCid);
-    const final = await until(async () => {
-      const state = await update.status();
-      return terminal.includes(state.status) ? state : undefined;
-    });
-    assert.equal(final.status, 'succeeded', JSON.stringify(final));
-    assert.deepEqual(await update.result('rows').all(), [expectedRow]);
-    assert.deepEqual(transport.state.records, {selected: expectedRow, control: recordsBefore.control});
-    assert.deepEqual(transport.state.requests.slice(start).map(({method, path}) => [method, path]),
-      [['GET', '/events/selected'], ['GET', '/events/selected'],
-        ['GET', '/events/selected'], ['PUT', '/events/selected']]);
-    await stopped(update, 'succeeded');
-    await close(updater);
-    updater = await open('effect', updateProfiles, 'update');
-    const restored = await updater.attach(update.ref);
-    assert.deepEqual(await restored.result('rows').all(), [expectedRow]);
-    assert.equal((await stateOf(restored)).status, 'succeeded');
-    assert.equal(transport.state.updateWrites, 1);
-    assert.equal(transport.state.requests.length, start + 4);
-    await close(updater);
+    const updateCases = [
+      {id: 'selected', note: 'approved update', decision: 'approved', status: 'succeeded', writes: 1},
+      {id: 'cleared', note: null, decision: 'approved', status: 'succeeded', writes: 1},
+      {id: 'refused', note: 'never written', decision: 'rejected', status: 'cancelled', writes: 0},
+      {id: 'lost', note: 'applied without response', decision: 'approved', status: 'needs_reconciliation', writes: 1},
+      {id: 'conflict', note: 'never applied', decision: 'approved', status: 'failed', writes: 0,
+        competingNote: 'different current value'},
+    ];
+    const authorizationPath = join(directory, 'profiles', 'update-cold-authorization.json');
+    await writeFile(authorizationPath, JSON.stringify(profiles.authorization), privateFile);
+    const updateObservations = [];
+    for (const selected of updateCases) {
+      const {id, note, status, decision, writes, competingNote} = selected;
+      const runName = id === 'selected' ? 'update' : `update-${id}`;
+      if (id !== 'selected') {
+        const repeated = await publishEffect({directory: join(directory, runName),
+          effectProfilePath: updateProfilePath, resolveEffectSecret: transport.resolveSecret});
+        assert.deepEqual(repeated.mappings, [updateMapping]);
+      }
+      const preflightFailures = [];
+      const observation = competingNote === undefined ? undefined : createHostObservationConnection({
+        include: ['effect'], correlation: {include: ['run']}, measurements: {include: []},
+        events: {level: 'diagnostic'}, deliver(record) {
+          if (record.operation !== 'effect' || record.event !== 'dispatch_failed') return;
+          const fields = record.attributes;
+          preflightFailures.push({runDefinitionCid: fields?.['actql.run.definition_cid'],
+            code: fields?.['error.type'], kind: fields?.['actql.failure.kind'], phase: fields?.['actql.failure.phase']});
+        },
+      });
+      const updater = await open('effect', updateProfiles, runName, observation);
+      const recordsBefore = structuredClone(transport.state.records);
+      const writesBefore = transport.state.updateWrites;
+      const expectedRow = {id, note}, path = `/events/${id}`;
+      const start = transport.state.requests.length;
+      const update = await updater.startSource(updateProgram(updateMapping, expectedRow), {format: 'json',
+        submissionRef: updater.newSubmission({nonce: `external-update-${id}`})});
+      const waiting = await stateOf(update);
+      assert.equal(waiting.status, 'waiting_checkpoint', JSON.stringify(waiting));
+      assert.equal(transport.state.updateWrites, writesBefore);
+      assert.deepEqual(transport.state.records, recordsBefore);
+      assert.deepEqual(transport.state.requests.slice(start).map(({method, path}) => [method, path]),
+        [['GET', path], ['GET', path]], 'Capture and current preflight precede approval');
+      const page = await updater.checkpoints({checkpointId: waiting.checkpoint.id});
+      assert.equal(page.items.length, 1);
+      const [summary] = page.items;
+      assert.equal(summary.kind, 'effect_set');
+      assert.equal(summary.checkpointCid, waiting.checkpoint.checkpoint_cid);
+      const review = await updater.reviewCheckpoint(summary);
+      const view = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
+      assert.equal(view.review_projection_cid, summary.reviewProjectionCid);
+      assert.equal(view.effect_preview_cid, summary.requiredArtifact.cid);
+      assert.equal(view.authority_scope_cid, update.ref.authorityScopeCid);
+      assert.deepEqual(view.approval_claims, summary.requirements);
+      assert.equal(view.displayed_rows.length, 1);
+      const [row] = view.displayed_rows;
+      assert.equal(row.target_row_identity, id);
+      assert.equal(row.before.state, 'present');
+      assert.equal(row.before.value.note, recordsBefore[id].note);
+      assert.deepEqual(row.intended_changes, {state: 'present', value: {note}});
+      if (competingNote !== undefined) {
+        assert.deepEqual(transport.state.records, recordsBefore);
+        transport.state.records[id] = {id, note: competingNote};
+      }
+      const {checkpoint, result: resolution} = await resolveCheckpoint(updater, update, {decision, original: summary});
+      assert.deepEqual(checkpoint, summary);
+      assert.equal(resolution.signed.length, 1);
+      const signed = JSON.parse(resolution.signed[0].resolutionWire);
+      assert.equal(signed.decision, decision);
+      assert.equal(signed.run_id, waiting.run_id);
+      assert.equal(signed.run_definition_cid, update.ref.runDefinitionCid);
+      assert.equal(signed.checkpoint_id, waiting.checkpoint.id);
+      assert.equal(signed.checkpoint_cid, summary.checkpointCid);
+      const final = await until(async () => {
+        const state = await update.status();
+        return terminal.includes(state.status) ? state : undefined;
+      });
+      assert.equal(final.status, status, JSON.stringify(final));
+      assert.equal(final.run_id, waiting.run_id);
+      const results = status === 'succeeded' ? {rows: [expectedRow], verification: [{id}]} : undefined;
+      const warmResults = {};
+      if (results !== undefined) {
+        for (const [name, expected] of Object.entries(results)) {
+          const observed = await update.result(name).all();
+          assert.deepEqual(observed, expected);
+          warmResults[name] = observed;
+        }
+      }
+      assert.equal(transport.state.updateWrites, writesBefore + writes);
+      const expectedAfter = {...recordsBefore};
+      if (writes === 1) expectedAfter[id] = expectedRow;
+      if (competingNote !== undefined) expectedAfter[id] = {id, note: competingNote};
+      assert.deepEqual(transport.state.records, expectedAfter);
+      const providerRequests = transport.state.requests.slice(start).map(({method, path}) => [method, path]);
+      assert.deepEqual(providerRequests, [['GET', path], ['GET', path],
+        ...(decision === 'approved' ? [['GET', path]] : []),
+        ...(writes === 1 ? [['PUT', path]] : [])]);
+      if (status === 'succeeded') await stopped(update, status);
+      await close(updater);
+      if (observation !== undefined) {
+        const report = observation.status();
+        assert.equal(report.closed, true);
+        assert.equal(report.cleanupPending, false);
+        assert(Object.values(report.loss).every(value => value === 0));
+        assert.deepEqual(preflightFailures, [{runDefinitionCid: update.ref.runDefinitionCid,
+          code: 'EffectTargetVersionMismatch', kind: 'target_version_mismatch', phase: 'effect_apply_preflight'}]);
+      }
+      const authority = {directory: join(directory, runName), effectProfilePath: updateProfilePath,
+        authorizationPath, reference: update.ref, runId: waiting.run_id, status, results};
+      const cold = await externalUpdateCold(authority, join(directory, `${runName}-receipt`));
+      assert.deepEqual(cold.resultNames, Object.keys(results ?? {}));
+      assert.equal(cold.requests + cold.updateWrites + cold.secretCalls + cold.forbiddenNetworkCalls, 0);
+      updateObservations.push({id, decision, status, writes, warmPid: process.pid, warmFirstClose: true,
+        checkpointCid: summary.checkpointCid, providerRequests, warmResults, cold,
+        ...(competingNote === undefined ? {} : {competingNote, preflightFailure: preflightFailures[0]})});
+    }
+    assert.equal(new Set(updateObservations.map(({cold}) => cold.pid)).size, updateObservations.length);
+    assert.equal(transport.state.updateWrites, 3);
 
     // Fail one real credential-journal close. The ordinary installed Host
     // keeps that same owner and exposes its existing retry handle.
@@ -479,7 +620,7 @@ export async function verifyExternalInstalledFixture({directory,
       startupSecretCalls: 0, refusedProviderCalls: 0, refusedSecretCalls: 0,
       capturedRows: 3, providerErrorCleanup: true, cancellationCleanup: true,
       effectSends: transport.state.events.length, unknownRecoveryResends: 0,
-      declaredUpdateWrites: transport.state.updateWrites, declaredUpdateSavedResends: 0,
+      declaredUpdateWrites: updateObservations[0].writes, declaredUpdateSavedResends: 0, updateObservations,
       failedCloseAttempts: attempts, successfulCloses: completed,
       networkCalls: transport.state.forbiddenNetworkCalls};
   } catch (error) {
@@ -491,7 +632,7 @@ export async function verifyExternalInstalledFixture({directory,
       const failures = settled.filter(result => result.status === 'rejected').map(result => result.reason);
       if (failures.length) throw new AggregateError(
         [...(primaryFailure === undefined ? [] : [primaryFailure]), ...failures],
-        'ExternalInstalledFixtureCleanupFailed');
+        'ExternalInstalledFixtureCleanupFailed', {cause: primaryFailure});
     } finally { transport.restore(); }
   }
 }

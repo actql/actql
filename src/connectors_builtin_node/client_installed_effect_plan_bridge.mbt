@@ -1100,3 +1100,112 @@ pub fn client_program_installed_physical_write_recipe_capacities_with_request(
     request_construction=Some(request_construction),
   )
 }
+
+///|
+#export_name("clientProgramConstructInstalledUpdateTextRequest")
+pub fn client_program_construct_installed_update_text_request(
+  identity_field : String,
+  field : String,
+  target : String,
+  text : String,
+  request_domain : String,
+  boundary_cid : String,
+  max_body_bytes : Int,
+  max_request_bytes : Int,
+  max_request_cid_preimage_bytes : Int,
+  explicit_null : Bool,
+) -> Result[Array[String], @client_local_host.ClientInstalledManagedRunIssue] {
+  match
+    @client_local_host.construct_installed_update_text_request(
+      identity_field,
+      field,
+      target,
+      text,
+      request_domain,
+      boundary_cid,
+      max_body_bytes,
+      max_request_bytes,
+      max_request_cid_preimage_bytes,
+      explicit_null~,
+    ) {
+    Some(original) => Ok([original.body, original.request_cid])
+    None => Err(Unsupported)
+  }
+}
+
+///|
+#export_name("clientProgramConstructInstalledUpdateTextRecovery")
+pub fn client_program_construct_installed_update_text_recovery(
+  boundary_cid : String,
+  effect_id : String,
+  member_index : Int,
+  mapping_cid : String,
+  target : String,
+  text : String,
+  max_recovery_bytes : Int,
+  explicit_null : Bool,
+) -> Result[Array[String], @client_local_host.ClientInstalledManagedRunIssue] {
+  match
+    @client_local_host.construct_installed_update_text_recovery(
+      boundary_cid,
+      effect_id,
+      member_index,
+      mapping_cid,
+      target,
+      text,
+      max_recovery_bytes,
+      explicit_null~,
+    ) {
+    Some((wire, digest)) => Ok([wire, digest])
+    None => Err(Unsupported)
+  }
+}
+
+///|
+#export_name("clientProgramInstalledUpdateTextRequestBounds")
+pub fn client_program_installed_update_text_request_bounds(
+  identity_field : String,
+  field : String,
+  request_domain : String,
+  boundary_cid : String,
+  target_ascii_units : Int,
+  text_utf16_units : Int,
+) -> Result[Array[Int], @client_local_host.ClientInstalledManagedRunIssue] {
+  match
+    @client_local_host.installed_update_text_request_bounds(
+      identity_field, field, request_domain, boundary_cid, target_ascii_units, text_utf16_units,
+    ) {
+    Some((body, request, preimage)) => Ok([body, request, preimage])
+    None => Err(Unsupported)
+  }
+}
+
+///|
+#export_name("clientProgramInstalledUpdateTextRecipeProfiles")
+pub fn client_program_installed_update_text_recipe_profiles(
+  body_bytes : Int,
+  request_bytes : Int,
+  preimage_bytes : Int,
+  recovery_bytes : Int,
+  target_response_bytes : Int,
+  write_response_bytes : Int,
+) -> Result[
+  (
+    Array[
+      (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+    ]?,
+    Array[@execution.ExecutionCapacity]?,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  match
+    @client_local_host.installed_update_text_recipe_profiles(
+      body_bytes, request_bytes, preimage_bytes, recovery_bytes, target_response_bytes,
+      write_response_bytes,
+    ) {
+    // Keep the same optional profile representation accepted by the shared
+    // described-effect bridge. The Host only selects the two profile handles.
+    Some((native, capture)) => Ok((Some(native), Some(capture)))
+    None => Err(Unsupported)
+  }
+}

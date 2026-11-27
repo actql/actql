@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import type {BinaryLike} from 'node:crypto';
 import {lstat, readFile, readdir} from 'node:fs/promises';
 import {dirname, join, relative} from 'node:path';
+import {priorityTransitionTarget} from './operation-performance-sample-summary.mjs';
 
 type FileFact = {path: string; bytes: number; mode: number; sha256: string};
 type PackageFact = {name: string; file: string; bytes: number; sha256: string; integrity: string;
@@ -145,3 +146,63 @@ export const nodeWarmSmallQueryFixtures = Object.freeze([
   {operation: 'warm-unicode', text: "SELECT 'é😀' AS label", expected: [{label: 'é😀'}]},
 ].map(fixture => Object.freeze({...fixture,
   expected: Object.freeze(fixture.expected.map(row => Object.freeze(row)))})));
+
+export function nodeWarmProtocol(mode: string) {
+  assert(['diagnostic', 'final', 'record-only'].includes(mode));
+  return {entry: 'ordinary open/stateDir', mode, priorState: 'new empty directory',
+    seed: {source: 'SELECT 1 AS id', format: 'sql', expected: [{id: 1}], successfulRuns: 1},
+    operationOrder: ['warm-select', 'warm-result', 'warm-status', ...nodeWarmSmallQueryFixtures.map(row => row.operation)],
+    smallQueries: nodeWarmSmallQueryFixtures, samplesPerOperation: mode === 'final' ? 100 : 3,
+    diagnosticContinuation: mode === 'diagnostic' ? 'verified success only; stop each slow family' : 'none',
+    newShortQueries: 'one per SELECT/JOIN/UNION/Decimal SUM/Parameters/Unicode sample', savedReads: 'same original seed Run',
+    status: 'same original revision after initial status observation', close: 'await original Client in finally'};
+}
+// One explicit experiment definition lets warm and process measurements share
+// the assessor's cohort/environment/history binding without accepting arbitrary
+// successful reports from different histories. Warm-only callers stay valid.
+export function nodeOperationProtocol(mode: string) {
+  return {warm: nodeWarmProtocol(mode), process: {
+    samplesPerOperation: mode === 'final' ? 30 : 3,
+    coldExisting: 'same candidate publicly initializes and closes state in a seed process; each distinct timed child submits a distinct NEW query/Run and materializes all rows, never Saved-only',
+    firstInit: 'distinct empty state and actual child per SELECT/Result/awaited close',
+    wall: 'parent launch to actual all-rows IPC notification separately from parent launch through natural child exit, including import/open/new-query/all-rows/first-close; child public spans nested, never added to parent totals',
+    cpu: 'actual child process; separate workers and subprocesses excluded',
+    failedOrUnknown: 'retain sample and stop; never replay the failed Run',
+  }, boundaries: {usedMaterial: nodeUsedMaterialProtocol()}};
+}
+export function nodeUsedMaterialProtocol() {
+  return {case: 'used-row-tamper', state: 'distinct empty directory',
+    seed: {source: 'SELECT 1 AS id', format: 'sql' as const, result: 'main', expected: [{id: 1}]},
+    selection: 'original Run index -> single durable binding -> selected material generation',
+    mutation: 'one same-size byte change, preserving the original generation bytes',
+    observation: 'one later public Result.all must reject; no retry or restoration',
+    close: 'await the original Client; cleanup failure cannot qualify the boundary'};
+}
+
+export function nodePriorityProtocol(mode: string, resourceObservations?: string, rowObservations?: string) {
+  assert(['diagnostic', 'final'].includes(mode));
+  assert(resourceObservations === undefined || resourceObservations === 'managed-run-ledger');
+  assert(rowObservations === undefined || rowObservations === 'selected-returned');
+  return {selection: 'priority-transition', mode, entry: 'ordinary open/stateDir',
+    ...(resourceObservations ? {resourceObservations: {
+      scope: resourceObservations, selection: 'compute/resources',
+      binding: 'one trace/span per public operation and exact original Run',
+      timing: 'resource observation enabled; not a whole-Host temporary population',
+    }} : {}),
+    ...(rowObservations ? {rowObservations: {
+      scope: rowObservations, selection: 'run/rows',
+      binding: 'actual trace/span per public operation; original Run correspondence when available',
+      timing: 'selected row observation enabled; compare only the same selected protocol',
+      coverage: 'partial selected returned Run rows; not all reads, unrelated history or a temporary population',
+    }} : {}),
+    state: 'new empty directory', firstQuery: {text: 'SELECT 0 AS id', expected: [{id: 0}]},
+    queries: Array.from({length: mode === 'final' ? priorityTransitionTarget.samples : 3}, (_, index) =>
+      ({text: `SELECT ${index + 1} AS id`, expected: [{id: index + 1}]})),
+    samplesPerOperation: mode === 'final' ? priorityTransitionTarget.samples : 3,
+    savedOriginals: 'first three successful new-query Results, read cyclically without resubmission',
+    order: ['first-query-separate', 'warm-select', 'warm-result'],
+    queryIdentity: 'SHA256 of JSON-encoded exact query string',
+    timing: 'public construction/all plus public original-reference capture and independent row oracle',
+    close: 'await the original Client once; no retry of failed or Unknown operations',
+    missing: 'scan/temporary/safety observations are not synthesized from timings or configuration'};
+}

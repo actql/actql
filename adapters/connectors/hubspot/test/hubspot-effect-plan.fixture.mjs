@@ -1,6 +1,7 @@
 // Explicit-port recipe fixtures shared with real Common constructor checks.
 import assert from 'node:assert/strict';
-import {captureHubSpotEffectPlanRecipeBuilder} from '../host/hubspot-effect-plan.mjs';
+import {captureHubSpotUpdateConstruction} from '../host/hubspot-effect-plan.mjs';
+import {bindInstalledDeclaredUpdatePlan, installedDeclaredUpdatePlan} from '../../../host-node/installed-effect-plan.mjs';
 const ok = value => ({$tag: 1, _0: value});
 const freeze = value => Object.freeze(value);
 export function hubSpotEffectPlanFixture() {
@@ -57,6 +58,12 @@ export function hubSpotEffectPlanFixture() {
     limits, maxRecoveryBytes: 65536, inputLimits: {
       body: {maxBytes: 65536, maxNodes: 10000, maxDepth: 100},
       preview: {maxWireBytes: 1000000, maxNodes: 10000, maxDepth: 100}}};
-  const build = captureHubSpotEffectPlanRecipeBuilder({moon});
+  const prepare = captureHubSpotUpdateConstruction({moon});
+  const build = input => {
+    const writer = freeze({kind: 'update'});
+    const site = Object.freeze({});
+    bindInstalledDeclaredUpdatePlan(writer, site, prepare(input));
+    return installedDeclaredUpdatePlan(writer, site, 64);
+  };
   return {moon, options, quotes, compositions, build};
 }

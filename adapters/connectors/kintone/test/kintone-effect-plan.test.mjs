@@ -3,14 +3,21 @@
 // into acceptance by these DATA/slot correspondence cases.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {captureKintoneEffectPlanRecipeBuilder} from '../host/kintone-effect-plan.mjs';
+import {captureKintoneEffectConstruction} from '../host/kintone-effect-plan.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {selectInstalledEffectCredentialOperation} from '../../../host-node/installed-effect-plan.mjs';
+import {bindInstalledDeclaredUpdatePlan, installedDeclaredUpdatePlan, composeInstalledTargetMutationRecipe,
+  selectInstalledEffectCredentialOperation} from '../../../host-node/installed-effect-plan.mjs';
 import {fixture as nativeFixture, policy} from './kintone-update.fixture.mjs';
 
 function fixture() {
   const f = nativeFixture(), moon = f.moon;
-  const prepare = captureKintoneEffectPlanRecipeBuilder({moon});
+  const profile = captureKintoneEffectConstruction({moon});
+  const prepare = options => {
+    const writer = Object.freeze({kind: 'update'});
+    const site = Object.freeze({});
+    bindInstalledDeclaredUpdatePlan(writer, site, profile(options));
+    return installedDeclaredUpdatePlan(writer, site, 64);
+  };
   const options = {mapping: f.options.mapping, fields: Object.freeze(['Computed', 'Subject', 'Tags']),
     formResource: 'inquiries-form', bindingUnits: 1000, maxTargetBytes: '/k/guest/12/v1/records.json'.length,
     credentialSite: {construction: {scope: {connectorRegistration: 'kintone', resourceOrigin: f.options.origin},
@@ -24,7 +31,7 @@ test('kintone DELETE recipe binds all reads, finalization and the distinct DELET
   const {f, options} = fixture(), {moon} = f;
   const mapping = checked(moon.clientProgramKintonePrepareDeleteMapping(f.options.declaration,
     'inquiries', 'required', moon.clientProgramKintoneDeclarationLimits(65536, 8000, 32, 4, 16)));
-  const plan = captureKintoneEffectPlanRecipeBuilder({moon, kind: 'delete'})({...options, mapping});
+  const plan = composeInstalledTargetMutationRecipe(captureKintoneEffectConstruction({moon, kind: 'delete'})({...options, mapping}));
   assert.equal(plan.credentialOperations.length, 13);
   const write = selectInstalledEffectCredentialOperation(plan, 'write');
   assert.equal(plan.rowOperations[write.operationIndex].operation, 'kintone:records:delete');
