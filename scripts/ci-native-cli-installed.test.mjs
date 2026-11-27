@@ -23,6 +23,15 @@ test('shared Source fault selection refuses an unsupported case before software 
     /Unsupported shared Source acceptance scenario/u);
 });
 
+test('normal shared Source requires the parent locked transport before state acquisition', async () => {
+  for (const scenario of ['client-crash', 'owner-crash']) {
+    await assert.rejects(runSharedHostSourceAcceptance({scenario}),
+      /Normal Client packages require the locked Local transport archive/u);
+    await assert.rejects(runSharedHostSourceAcceptance({scenario, transportArchive: '/foreign.tgz'}),
+      /Expected the locked Local transport archive path/u);
+  }
+});
+
 test('shared Source connector pack requires exactly one original package in either npm JSON shape', () => {
   const connector = {name: '@actql-connectors/acme', filename: 'actql-connectors-acme-0.0.1.tgz'};
   for (const output of [[connector], {[connector.name]: connector}]) {
