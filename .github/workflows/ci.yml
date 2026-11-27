@@ -1808,6 +1808,9 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
+      - name: Prepare the registered Model evidence parent
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
+        run: mkdir -- "$RUNNER_TEMP/client-model-packed"
       - name: Test the optional provider through installed public entrances
         if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' }}
         run: |

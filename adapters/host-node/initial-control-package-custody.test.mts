@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {cpSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
-import {createRequire} from 'node:module';
+import {cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test, {type TestContext} from 'node:test';
+import {admitFixtureUndici} from './fixtures/ordinary-undici-custody.fixture.mjs';
 
 type ImageFact = ReturnType<typeof fact>;
 type Dependency = {name: string; package?: number; local?: boolean};
@@ -463,49 +463,6 @@ test('ordinary external adapters share only the exact installed dependency under
 });
 
 const sharedImageSource = 'exports.value="captured-local-shared";';
-function admitFixtureUndici(f: ReturnType<typeof fixture>) {
-  const packagePath = createRequire(import.meta.url).resolve('undici/package.json');
-  const original = dirname(packagePath), packageBytes = readFileSync(packagePath);
-  const {version} = JSON.parse(packageBytes.toString('utf8')) as {version: string};
-  assert.equal(version, '7.30.0');
-  const localManifestPath = join(f.root, 'package.json');
-  const manifest = JSON.parse(readFileSync(localManifestPath, 'utf8'));
-  manifest.dependencies = {undici: version};
-  const transportPath = 'adapters/host-node/original-model-http-transport.mjs';
-  manifest.exports = {'.': './index.mjs', './_internal/model-http-transport': './' + transportPath};
-  const localBytes = Buffer.from(JSON.stringify(manifest));
-  writeFileSync(localManifestPath, localBytes);
-  mkdirSync(join(f.directory, 'node_modules'), {recursive: true});
-  symlinkSync(original, join(f.directory, 'node_modules/undici'));
-  mkdirSync(join(f.directory, 'node_modules/@actql'), {recursive: true});
-  symlinkSync(f.root, join(f.directory, 'node_modules/@actql/local-node'));
-  const transportImages = [transportPath, 'adapters/host-common/model-response-reader.mjs',
-    ...['normal-http-chat','installed-http-chat','model-port','original-chat-request','original-materials',
-      'bounded-response','compiler-binding.generated'].map(name => 'adapters/host-node/model-http/' + name + '.mjs'),
-  ].map(path => {
-    const prefix = 'adapters/host-node/model-http/';
-    const relative = path.startsWith(prefix) ? 'packages/provider-http/_internal/' + path.slice(prefix.length) : path;
-    const source = readFileSync(new URL('../../' + relative, import.meta.url));
-    mkdirSync(dirname(join(f.root, path)), {recursive: true});
-    writeFileSync(join(f.root, path), source);
-    return fact(path, source);
-  });
-  const images = readdirSync(original, {recursive: true, withFileTypes: true})
-    .filter(entry => entry.isFile() && /\.(?:[cm]?js|json|wasm)$/u.test(entry.name))
-    .map(entry => {
-      const path = join(entry.parentPath, entry.name);
-      return fact(path.slice(original.length + 1), readFileSync(path));
-    });
-  function include(data: FixtureInventory) {
-    data.images = data.images.map(image => image.path === 'package.json' ? fact('package.json', localBytes) : image);
-    data.images.push(...transportImages);
-    const index = data.packages.push({name: 'undici', version, images: [...images], dependencies: []}) - 1;
-    data.dependencies.push({name: 'undici', package: index});
-    return index;
-  }
-  return {original, include};
-}
-
 function selectPreparedOptionalSdk(inventory: FixtureInventory) {
   const image = (name: string, dependencies: Dependency[] = []): FixturePackage => {
     const manifest = Buffer.from(JSON.stringify({name, version: '1.0.0', main: './index.cjs'}));

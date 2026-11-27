@@ -44,7 +44,19 @@ test "installed Chat checks the selected transport on the exact current original
     )
   }
   assert_true(verifies(portable, "fixture", https, "portable-http"))
-  assert_true(verifies(sdk, "fixture", https, "ai-sdk"))
+  assert_false(verifies(sdk, "fixture", https, "ai-sdk"))
+  assert_true(
+    @publication_host.client_model_registered_sdk_structured_support(
+      sdk.0,
+      sdk.1,
+      provider,
+      "risk",
+      "fixture",
+      "chat_completions",
+      https,
+    )
+    is None,
+  )
   assert_false(verifies(portable, "fixture", https, "ai-sdk"))
   assert_false(verifies(sdk, "fixture", https, "portable-http"))
   assert_false(verifies(portable, "fixture", https, ""))
