@@ -19,13 +19,26 @@ type ReviewOracle = {target: string; identity: unknown} & (
   {kind?: undefined; before: Data; changes: Data} |
   {kind: 'upsert'; before: Data | null; changes: Data} |
   {kind: 'delete'; before: Data; changes?: never});
+type ReviewKind = 'create' | 'update' | 'delete' | 'upsert';
+type ReviewRow = {identity: unknown; before: Data | null; changes?: Data};
+type ReviewCollection = {effects: readonly {
+  effectId: string; kind: ReviewKind; target: string; rows: readonly ReviewRow[];
+}[]};
 type ReplyLossStatus = 'succeeded' | 'needs_reconciliation';
 type ReplyLossExpectation = Readonly<{approveStatus: ReplyLossStatus; lookupStatus: ReplyLossStatus}>;
+type OrderedRecordFixture = {
+  connection: string;
+  projectFiles: Record<string, string>;
+  expectedData: string;
+  controls: readonly {resource: string; key: readonly (string | number | boolean)[]}[];
+  expectedWrites: number;
+};
 export type AuthoredRecordApprovalCase = {
   name: string;
   effect: Program & {expectedRows: readonly Data[]; additionalResults?: Record<string, readonly Data[]>};
   read: Program & {beforeRows: readonly Data[]; afterRows: readonly Data[]};
-  review: ReviewOracle;
+  review: ReviewOracle | ReviewCollection;
+  collection?: OrderedRecordFixture;
   fixture?: {
     seed: RecordMutationFixtureSeed;
     expected: {before: RecordApprovalFixtureState; after: RecordApprovalFixtureState};
@@ -55,8 +68,9 @@ type PhaseOptions<C extends ApprovalClient> = {
 type UncheckedReview = {
   version: unknown; review_projection_cid: unknown; effect_preview_cid: unknown;
   authority_scope_cid: unknown; approval_claims: unknown;
-  displayed_scope: {effects: readonly {kind: unknown; target: unknown; count: unknown}[]};
+  displayed_scope: {effects: readonly {effect_id: unknown; kind: unknown; target: unknown; count: unknown}[]};
   displayed_rows: readonly {
+    effect_id: unknown;
     target_row_identity: unknown;
     preview_strength: unknown;
     row_preview_cid: string;
@@ -73,25 +87,51 @@ const text = (value: unknown): value is string => typeof value === 'string' && v
 const object = (value: unknown): value is Data => value !== null && typeof value === 'object' && !Array.isArray(value);
 const closed = (value: unknown, keys: readonly string[]): value is Data => object(value) && Object.keys(value).length === keys.length &&
   keys.every(key => Object.hasOwn(value, key));
+const hasExternalParameterDeclarations = (format: Program['format']) => format === 'aql' || format === 'sql';
+
+function assertReviewCollection(value: unknown) {
+  assert(closed(value, ['effects']) && Array.isArray(value.effects) && value.effects.length > 0);
+  const ids = new Set<string>();
+  for (const effect of value.effects) {
+    assert(closed(effect, ['effectId', 'kind', 'target', 'rows']) && text(effect.effectId) && text(effect.target));
+    assert(!ids.has(effect.effectId), 'Duplicate original Effect member');
+    ids.add(effect.effectId);
+    const kind = effect.kind;
+    assert(kind === 'create' || kind === 'update' || kind === 'delete' || kind === 'upsert');
+    assert(Array.isArray(effect.rows) && effect.rows.length > 0);
+    for (const row of effect.rows) {
+      assert(closed(row, kind === 'delete' ? ['identity', 'before'] : ['identity', 'before', 'changes']));
+      if (kind === 'create') assert.equal(row.before, null);
+      else if (kind !== 'upsert' || row.before !== null) assert(object(row.before) && Object.keys(row.before).length > 0);
+      if (kind !== 'delete') assert(object(row.changes) && Object.keys(row.changes).length > 0);
+    }
+  }
+}
 
 export function admitAuthoredRecordApprovalCase(value: unknown) {
   const fields = ['document', 'format', 'resultName', 'parameterDeclarations', 'parameters'];
   const rows = (value: unknown) => Array.isArray(value) && value.every(object);
   assert(object(value));
   const fixture = Object.hasOwn(value, 'fixture');
-  assert(closed(value, ['name', 'effect', 'read', 'review', ...(fixture ? ['fixture'] : [])]));
+  const collection = Object.hasOwn(value, 'collection');
+  assert(closed(value, ['name', 'effect', 'read', 'review',
+    ...(fixture ? ['fixture'] : []), ...(collection ? ['collection'] : [])]));
   const {effect, read, review} = value as Data & {review?: Data};
   assert(object(effect));
-  const keyed = review?.kind === 'upsert';
   const additional = Object.hasOwn(effect, 'additionalResults');
   assert(closed(effect, [...fields, 'expectedRows', ...(additional ? ['additionalResults'] : [])]));
   assert(closed(read, [...fields, 'beforeRows', 'afterRows']));
-  const deleting = review?.kind === 'delete';
-  assert(closed(review, deleting ? ['kind', 'target', 'identity', 'before']
-    : ['target', 'identity', 'before', 'changes', ...(keyed ? ['kind'] : [])]));
   assert([effect, read].every(program => object(program.parameterDeclarations) && object(program.parameters)));
   assert(rows(effect.expectedRows) && rows(read.beforeRows) && rows(read.afterRows));
   assert(!additional || object(effect.additionalResults) && Object.values(effect.additionalResults).every(rows));
+  if (object(review) && Object.hasOwn(review, 'effects')) {
+    assert(!fixture, 'The single-record seed cannot admit a collection of Effect members');
+    return retainCase(value);
+  }
+  assert(!collection, 'An ordered fixture requires the original Effect member collection');
+  const keyed = review?.kind === 'upsert', deleting = review?.kind === 'delete';
+  assert(closed(review, deleting ? ['kind', 'target', 'identity', 'before']
+    : ['target', 'identity', 'before', 'changes', ...(keyed ? ['kind'] : [])]));
   assert(object(review.before) || keyed && review.before === null);
   assert(deleting || object(review.changes) && Object.keys(review.changes).length > 0);
   assert(!deleting || fixture, 'A DELETE case requires independent provider state');
@@ -161,6 +201,8 @@ function retainCase(original: unknown) {
     assert(text(program?.document) && ['aql', 'sql', 'json', 'yaml'].includes(program.format));
     assert(text(program.resultName));
     assert(program.parameterDeclarations && typeof program.parameterDeclarations === 'object');
+    assert(hasExternalParameterDeclarations(program.format) || Object.keys(program.parameterDeclarations).length === 0,
+      'JSON and YAML declare parameters inside the Program');
     assert(program.parameters && typeof program.parameters === 'object');
   }
   assert(Array.isArray(value.effect.expectedRows));
@@ -171,7 +213,29 @@ function retainCase(original: unknown) {
     }
   }
   assert(Array.isArray(value.read.beforeRows) && Array.isArray(value.read.afterRows));
-  assert(text(value.review?.target));
+  if (object(value.review) && Object.hasOwn(value.review, 'effects')) {
+    assertReviewCollection(value.review);
+    assert(value.fixture === undefined, 'The single-record seed cannot admit a collection of Effect members');
+    if (value.collection !== undefined) {
+      const fixture = value.collection;
+      assert(closed(fixture, ['connection', 'projectFiles', 'expectedData', 'controls', 'expectedWrites']));
+      assert(text(fixture.connection) && text(fixture.expectedData));
+      assert(Number.isSafeInteger(fixture.expectedWrites) && fixture.expectedWrites > 0);
+      assert(object(fixture.projectFiles));
+      const files = ['actql.config.json', 'connectors.json', 'mock/catalog.json', 'mock/data.json'];
+      if (Object.hasOwn(fixture.projectFiles, 'model-tasks.json')) files.push('model-tasks.json');
+      assert(closed(fixture.projectFiles, files) && files.every(name => text(fixture.projectFiles[name])));
+      assert(Array.isArray(fixture.controls) && fixture.controls.length > 0);
+      for (const control of fixture.controls) {
+        assert(closed(control, ['resource', 'key']) && text(control.resource));
+        assert(Array.isArray(control.key) && control.key.length > 0 && control.key.every(value =>
+          typeof value === 'string' || Number.isSafeInteger(value) || typeof value === 'boolean'));
+      }
+    }
+    return value;
+  }
+  assert(value.collection === undefined);
+  assert(value.review && !('effects' in value.review) && text(value.review.target));
   assert(Object.hasOwn(value.review, 'identity'));
   assert(value.review.kind === 'upsert' && value.review.before === null ||
     object(value.review.before) && Object.keys(value.review.before).length > 0);
@@ -184,20 +248,40 @@ function binding(value: AuthoredRecordApprovalCase) {
   const {document: read, ...readInput} = value.read;
   return {caseName: value.name, effectSha256: sha256(effect), readSha256: sha256(read),
     effect: effectInput, read: readInput, review: value.review,
-    ...(value.fixture === undefined ? {} : {fixture: value.fixture})};
+    ...(value.fixture === undefined ? {} : {fixture: value.fixture}),
+    ...(value.collection === undefined ? {} : {collection: value.collection})};
 }
 
-function checkReview(review: UncheckedReview, summary: CheckpointSummary, ref: RunReference, expected: ReviewOracle) {
+function checkReview(review: UncheckedReview, summary: CheckpointSummary, ref: RunReference, expected: ReviewOracle | ReviewCollection) {
   assert.equal(review.version, 'actql-review-projection/0.1');
   assert.equal(review.review_projection_cid, summary.reviewProjectionCid);
   assert.equal(review.effect_preview_cid, summary.requiredArtifact!.cid);
   assert.equal(review.authority_scope_cid, ref.authorityScopeCid);
   assert.deepEqual(review.approval_claims, summary.requirements);
+  if ('effects' in expected) {
+    assert.deepEqual(review.displayed_scope.effects.map(({effect_id, kind, target, count}) => ({effect_id, kind, target, count})),
+      expected.effects.map(effect => ({effect_id: effect.effectId, kind: effect.kind, target: effect.target, count: effect.rows.length})));
+    let offset = 0;
+    for (const effect of expected.effects) {
+      for (const wanted of effect.rows) {
+        const row = review.displayed_rows[offset++];
+        assert.equal(row?.effect_id, effect.effectId, 'Expected the original ordered Effect row');
+        checkReviewRow(row, wanted, effect.kind, true);
+      }
+    }
+    assert.equal(review.displayed_rows.length, offset);
+    return;
+  }
   const kind = expected.kind ?? 'update';
   assert.deepEqual(review.displayed_scope.effects.map(({kind, target, count}) =>
     ({kind, target, count})), [{kind, target: expected.target, count: 1}]);
   assert.equal(review.displayed_rows.length, 1);
-  const row = review.displayed_rows[0];
+  checkReviewRow(review.displayed_rows[0], expected, kind, false);
+}
+
+function checkReviewRow(row: UncheckedReview['displayed_rows'][number], expected: ReviewRow,
+  kind: ReviewKind, completeBefore: boolean,
+) {
   assert.deepEqual(row.target_row_identity, expected.identity);
   assert.equal(row.preview_strength, 'full_diff');
   assert.match(row.row_preview_cid, cid);
@@ -208,9 +292,9 @@ function checkReview(review: UncheckedReview, summary: CheckpointSummary, ref: R
     assert.equal(row.target_guard.state, 'version');
     assert.match(row.target_guard.version_cid, cid);
     assert.equal(row.before.state, 'present');
-    for (const [field, value] of Object.entries(expected.before)) {
+    if (completeBefore) assert.deepEqual(row.before.value, expected.before);
+    else for (const [field, value] of Object.entries(expected.before))
       assert.deepEqual(row.before.value[field], value, 'Independent original field: ' + field);
-    }
   }
   if (kind === 'delete') {
     assert.deepEqual(row.before.value, expected.before);
@@ -232,10 +316,14 @@ async function readAdditionalResults(run: Execution, effect: AuthoredRecordAppro
   return retained;
 }
 
+function sourceProgramOptions(program: Program) {
+  return {format: program.format, parameters: program.parameters,
+    ...(Object.keys(program.parameterDeclarations).length === 0 ? {} : {parameterDeclarations: program.parameterDeclarations})};
+}
+
 async function readOriginal(client: ApprovalClient, program: Program,
     phase: 'before' | 'after' | 'after-reject', expectedRows: readonly Data[], save: SaveReceipt) {
-  const run = await client.startSource(program.document, {format: program.format,
-    parameterDeclarations: program.parameterDeclarations, parameters: program.parameters});
+  const run = await client.startSource(program.document, sourceProgramOptions(program));
   await save(phase + '-ref', {ref: run.ref});
   assert.equal((await run.wait()).status, 'succeeded');
   const rows = await run.result(program.resultName).all();
@@ -278,9 +366,7 @@ export async function runRecordUpdateApprovalPhase<C extends ApprovalClient>({ph
       ...(loss === undefined ? {} : {replyLossExpectation: loss})};
     if (phase === 'capture') {
       const program = value.effect;
-      const run = await client.startSource(program.document, {format: program.format,
-        parameterDeclarations: program.parameterDeclarations, parameters: program.parameters,
-        stopBefore: 'commit'});
+      const run = await client.startSource(program.document, {...sourceProgramOptions(program), stopBefore: 'commit'});
       // Persist the actual public reference before the first wait can fail.
       await save('submitted', {binding: originalBinding, ref: run.ref});
       const state = await run.wait();

@@ -97388,7 +97388,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
-      "sha256": "c1228df1136a3d4a56afc90100cfa624e446e044b9ed4b2b253376641b745488",
+      "sha256": "793033ba05cae7255d4db7405640395234f4b42fc5b80d988c5e74818454c181",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
@@ -97704,6 +97704,7 @@
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect-standard-write.mjs",
+        "./installed-row-effect-text-update.mjs",
         "./installed-row-source.mjs",
         "./table-write-binding.mjs",
         "node:fs/promises",
@@ -99842,7 +99843,7 @@
     {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b5f3b64075865ae4c4dfb82dc4d099a316a0263c0ad8e9d828de047faf885179",
+      "sha256": "013e778b685922d3f79529f150abe2e961d7891d769db3a55440f7d9aaf3e565",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -99909,8 +99910,7 @@
           "parameters": [
             "recipes",
             "driver",
-            "maxOperations",
-            "declaredUpdate"
+            "maxOperations"
           ],
           "async": false
         },
@@ -100181,7 +100181,6 @@
         }
       ],
       "imports": [
-        "../host-common/owned-invocation-context.mjs",
         "./effect-ledger-implementation-bounds.mjs",
         "./installed-effect-recipe.mjs",
         "node:util"

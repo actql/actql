@@ -370,3 +370,24 @@ guards to decide progress. Sending still requires its current checks and grant.
 The direct scalar check stays inside the same existing construction envelope;
 the fixed copied-control reference and sequential status word are prepaid. No
 entry forests or cross-query cache survive this comparison.
+
+A declared single-text-field UPDATE supplies the installed resource, the
+identity and write fields, the ASCII key and typed text limits, and its
+physical observation and mutation codecs. The existing checked Mapping and
+member select the row. Common retains the facts and issues the original request
+and continuation witness on the existing row and member children. The HTTP
+body, logical request, CID preimage and recovery wire have independent bounds.
+The request hash streams the original UTF-8 preimage. The same capture quotes
+its actual writer and hash scratch in sequence.
+
+On recovery, Common rebuilds the compact witness from the original approved
+Preview and current checked member. Matching its exact saved wire and digest
+comes before construction of the request. The existing recovery owner still
+requires the durable claim's request CID and the approved target and value.
+Target reads, provider classification, Unknown, and real write or cleanup
+acknowledgement remain with their existing owners.
+
+The checked Mapping must select `write_null` for a nullable text target before
+this constructor may emit an explicit JSON null. The request facts, body,
+request CID and recovery witness keep that null as the original value. An
+absent cell is refused before the request constructor starts.

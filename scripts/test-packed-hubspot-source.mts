@@ -3,13 +3,12 @@
 // installs only the existing exact-checkout five-package producer input.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
-import {copyFile, mkdir, readFile, readdir, readlink, symlink, unlink, writeFile} from 'node:fs/promises';
-import {isAbsolute, join, dirname, resolve} from 'node:path';
+import {mkdir, readFile, readdir, readlink, symlink, unlink, writeFile} from 'node:fs/promises';
+import {isAbsolute, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {runFocusedTests} from './test-execution.mjs';
-import {admitRecordApprovalCIInput, packedRecordApprovalInvocation} from './record-approval-ci-input.mjs';
+import {admitRecordApprovalCIInput, packedRecordApprovalInvocation, stagePackedRecordApprovalFixtures} from './record-approval-ci-input.mjs';
 import {packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {createCommandEvidence} from './packed-query-evidence.mjs';
 import {installedRecordHttpCase, installedRecordReplyLossExpectation} from './fixtures/record-approval/installed.fixture.mjs';
@@ -101,7 +100,7 @@ const approval = approvalConnector !== undefined;
 const mockCaseInput = process.env.ACTQL_RECORD_APPROVAL_MOCK_CASE;
 const httpCaseInput = installedRecordHttpCase().casePath;
 if (mockCaseInput !== undefined) {
-  assert(isAbsolute(mockCaseInput) && ['hubspot', 'kintone'].includes(mockConnector!) &&
+  assert(isAbsolute(mockCaseInput) && ['hubspot', 'kintone', 'salesforce'].includes(mockConnector!) &&
     !wholeMock && !threeSourceMock && !binarySourceMock && process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS !== '1',
   'Select one supported authored mock case');
 }
@@ -110,17 +109,22 @@ if (httpCaseInput !== undefined) {
 }
 const caseInput = mockCaseInput ?? httpCaseInput;
 const authoredCase = caseInput === undefined ? undefined : await readAuthoredCase(caseInput);
-assert(authoredCase === undefined || authoredCase.fixture !== undefined, 'An authored case requires a seed and state oracle');
-const fixtureWrite = authoredCase?.review.kind === 'delete' ? 'DELETE'
-  : authoredCase?.review.kind === 'upsert' && authoredCase.review.before === null ? 'CREATE' : 'UPDATE';
+const orderedReview = authoredCase?.collection !== undefined;
+const authoredReview = orderedReview ? undefined : authoredCase?.review;
+assert(!orderedReview || mockCaseInput !== undefined, 'Select the installed Mock for this ordered fixture');
+assert(authoredReview === undefined ||
+  (authoredCase?.fixture !== undefined && mockConnector !== 'salesforce' && !('effects' in authoredReview)),
+  'An authored single-record case requires a seed and state oracle');
+const fixtureWrite = authoredReview?.kind === 'delete' ? 'DELETE'
+  : authoredReview?.kind === 'upsert' && authoredReview.before === null ? 'CREATE' : 'UPDATE';
 const configuredReplyLoss = installedRecordReplyLossExpectation();
 const authoredFaults = httpCaseInput === undefined ? undefined : authoredCase!.fixture!.faults;
 assert(authoredFaults === undefined || configuredReplyLoss === undefined, 'Select one original fixture fault schedule');
 const replyLossExpectation = authoredFaults === undefined ? configuredReplyLoss : authoredFaults[0]?.expected;
 assert(replyLossExpectation === undefined || approval && mockConnector === undefined,
   'Applied reply loss is an explicit installed provider fixture selection');
-assert(!reject || (approval && mockConnector === undefined && replyLossExpectation === undefined),
-  'Rejection requires the ordinary installed HubSpot or kintone case');
+assert(!reject || (approval && (mockConnector === undefined || orderedReview) && replyLossExpectation === undefined),
+  'Rejection requires an ordinary installed HTTP case or an authored ordered Mock case');
 if (!ci) for (const path of [source, release, consumer]) assert(isAbsolute(path!), 'Require absolute original input paths');
 assert(!process.env.NODE_PATH && !process.env.NODE_OPTIONS,
   'Ordinary installed acceptance refuses ambient module/loader overlays');
@@ -165,53 +169,9 @@ await writeFile(join(application, 'package.json'), '{"private":true,"type":"modu
 // Read-only borrow of the independently installed exact artifact closure;
 // fresh Host/Run/credential/TLS/SQLite roots below never mutate that donor.
 const software = join(consumer!, 'node_modules'), softwareAlias = join(application, 'node_modules');
-const fixtureFiles = mockConnector ? ['scripts/fixtures/packed-record-approval-mock.mjs',
-  ...['mock-project.mjs', 'run.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
-    .map(name => `scripts/fixtures/${mockConnector}-approval/` + name),
-  ...(!wholeMock && !threeSourceMock && !binarySourceMock && ['hubspot', 'kintone'].includes(mockConnector)
-    ? [`scripts/fixtures/${mockConnector}-approval/case.json`] : []),
-  ...(binarySourceMock ? ['scripts/fixtures/hubspot-approval/binary-source-mock-project.mjs'] : []),
-  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'mock-project.mjs',
-    'scoped-fds.fixture.mjs', 'installed-child.mjs'].map(name => 'scripts/fixtures/record-approval/' + name),
-  'adapters/host-node/fixtures/work-observation.fixture.mjs']
-  : approval ? [`scripts/fixtures/packed-${approvalConnector}-approval.mjs`,
-  ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql', 'case.json']
-    .map(name => `scripts/fixtures/${approvalConnector}-approval/` + name),
-  ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs',
-    'installed.fixture.mjs', 'installed-child.mjs', 'provider-state.mjs']
-    .map(name => 'scripts/fixtures/record-approval/' + name),
-  'adapters/host-node/fixtures/work-observation.fixture.mjs',
-  ...(approvalConnector === 'kintone' ? ['adapters/connectors/kintone/test/kintone-update-form.fixture.mjs'] : []),
-  'adapters/site-node/https-exchange-fixture.mjs'] : ['scripts/fixtures/packed-hubspot-public.mjs',
-  'scripts/fixtures/packed-hubspot-public.fixture.mjs',
-  'scripts/fixtures/packed-hubspot-restart.mjs',
-  'adapters/site-node/https-exchange-fixture.mjs'];
-const inputs: {path: string; bytes: number; sha256: string}[] = [];
-let stagedCasePath: string | undefined, stagedCaseBytes: Buffer | undefined;
-if (authoredCase !== undefined) {
-  const path = 'authored-case.json';
-  stagedCasePath = join(application, path);
-  stagedCaseBytes = Buffer.from(JSON.stringify(authoredCase));
-  await writeFile(stagedCasePath, stagedCaseBytes, {mode: 0o600, flag: 'wx'});
-  inputs.push({path, bytes: stagedCaseBytes.byteLength, sha256: createHash('sha256').update(stagedCaseBytes).digest('hex')});
-}
-for (const path of fixtureFiles) {
-  // This is an independently authored consumer input, not a product overlay.
-  // Every approval/Result/Saved/close helper remains the same original file.
-  const sourcePath = threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'
-    ? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'
-    : (wholeMock || threeSourceMock || binarySourceMock) && path === 'scripts/fixtures/hubspot-approval/update.aql'
-      ? binarySourceMock ? 'scripts/fixtures/hubspot-approval/binary-source-update.aql'
-        : threeSourceMock ? 'scripts/fixtures/hubspot-approval/three-source-update.aql'
-          : 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
-  const from = join(repository, sourcePath), to = join(application, path);
-  await mkdir(dirname(to), {recursive: true}); await copyFile(from, to);
-  const bytes = await readFile(from);
-  assert.deepEqual(await readFile(to), bytes, `Changed fixture: ${path}`);
-  inputs.push({path, ...(sourcePath === path ? {} : {sourcePath}), bytes: bytes.byteLength,
-    sha256: createHash('sha256').update(bytes).digest('hex')});
-}
 const mockVariant = binarySourceMock ? 'binary-source' : wholeMock ? 'whole-input' : threeSourceMock ? 'three-source' : '';
+const {inputs, stagedCasePath, verifyStagedCase} = await stagePackedRecordApprovalFixtures({
+  repository, application, authoredCase, approvalConnector, mockConnector, mockVariant});
 const invocation = packedRecordApprovalInvocation({application, approvalConnector, mockConnector,
   mockVariant, authoredCasePath: stagedCasePath, reject});
 const {expectedTests} = invocation.options;
@@ -224,7 +184,7 @@ try {
   assert.equal(await readlink(softwareAlias), software);
   await unlink(softwareAlias);
   await original.verifyUnchanged(); await verifyInstalled();
-  if (stagedCasePath !== undefined) assert.deepEqual(await readFile(stagedCasePath), stagedCaseBytes);
+  await verifyStagedCase();
 }
 // No false pass from startup failure, zero discovery, timeout or failed cleanup.
 assert.equal(code, 0, `Ordinary installed HubSpot runtime refused; original evidence: ${scratch.path}`);
@@ -241,7 +201,9 @@ const receipt = {fixtureVariant: reject ? 'rejected' : replyLossExpectation !== 
   ...(authoredCase === undefined ? {} : {authoredCase: authoredCase.name}),
   ...(replyLossExpectation === undefined ? {} : {replyLossExpectation}),
   qualification: reject
-  ? 'Owned TLS provider fixture: one same-checkpoint rejection, unchanged full target and control, and separate-process same-Run lookup.'
+  ? mockConnector
+    ? 'Declared Mock: one same-checkpoint rejection, unchanged authored tables, and separate-process same-Run lookup.'
+    : 'Owned TLS provider fixture: one same-checkpoint rejection, unchanged full target and control, and separate-process same-Run lookup.'
   : mockConnector
   ? 'Actual declared mock capture, explicit default Local approval and separate-process original Saved before status on the selected normal installation. No provider or installed Effect acceptance claim.'
   : replyLossExpectation !== undefined

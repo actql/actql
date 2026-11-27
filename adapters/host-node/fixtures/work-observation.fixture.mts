@@ -32,10 +32,10 @@ export function workflowObservationComplete(status: ObservationStatus | null) {
 // Authored no-Model fixture expectations, established by their checked Source
 // occurrences and the one-start-per-selected-Source dispatch boundary. Counts
 // from a previous execution never supply these expectations.
-export function assertRecordWorkflowWork(work: RecordWork, {phase, variant}: {
-  phase?: 'capture' | 'approve' | 'recover'; variant?: RecordVariant;
+export function assertRecordWorkflowWork(work: RecordWork, {phase, variant, approvedWrites = 1}: {
+  phase?: 'capture' | 'approve' | 'reject' | 'recover'; variant?: RecordVariant; approvedWrites?: number;
 } = {}) {
-  assert(['capture', 'approve', 'recover'].includes(phase!));
+  assert(['capture', 'approve', 'reject', 'recover'].includes(phase!));
   const sourceStarts = {'whole-input': 1, 'binary-source': 2, 'three-source': 3};
   if (variant !== undefined) assert(Object.hasOwn(sourceStarts, variant));
   assert.equal(work.complete, true, 'Unbound or lost starts cannot establish original-Run reuse');
@@ -46,7 +46,8 @@ export function assertRecordWorkflowWork(work: RecordWork, {phase, variant}: {
     else assert.equal(work.sourceAcquisitionStarts, sourceStarts[variant],
       'One original acquisition start per authored checked Source occurrence');
   } else assert.equal(work.sourceAcquisitionStarts, 0, 'The completed original Source must not reacquire');
-  assert.equal(work.effectReplacementReturns, phase === 'approve' ? 1 : 0);
+  assert(Number.isSafeInteger(approvedWrites) && approvedWrites > 0);
+  assert.equal(work.effectReplacementReturns, phase === 'approve' ? approvedWrites : 0);
   assert.equal(work.totals.effectReplacementReturns, work.effectReplacementReturns);
 }
 

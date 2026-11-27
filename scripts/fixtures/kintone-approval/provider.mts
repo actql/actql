@@ -1,4 +1,4 @@
-// Synthetic provider DATA only. Revision comparison and exactly one mutation
+// Synthetic provider DATA only. Revision comparison and the selected mutation
 // are protocol assertions; actual grants, claims and cleanup stay installed.
 import assert from 'node:assert/strict';
 import {createRecordUpdateProviderState} from '../record-approval/provider-state.mjs';
@@ -14,7 +14,9 @@ export function kintoneApprovalProvider(selection: RecordMutationFixtureSeed, ki
   if (keyed) assert(typeof key === 'string' && key.length > 0 && key !== controlKey);
   for (const value of [recordId, controlId]) assert.match(value, /^[1-9][0-9]*$/u);
   const revision = '9007199254740994', nextRevision = '9007199254740995';
-  const state = createRecordUpdateProviderState(selection, {revision}, {allowCreate: keyed});
+  const state = createRecordUpdateProviderState(selection, {revision}, {
+    allowCreate: keyed, operation: creating ? 'create' : kind === 'delete' ? 'delete' : 'update',
+  });
   const {route} = state;
   const fields = ['$id', '$revision', 'Computed', ...(keyed ? ['CustomerKey'] : []), 'Subject', 'Tags'];
   const projectedForm = structuredClone(form) as typeof form & {properties: {

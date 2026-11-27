@@ -9,7 +9,8 @@ import {isEffectPreparationRefusal} from '../../../host-common/effect-preparatio
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {selectInstalledEffectCredentialOperation, selectInstalledEffectWriteBranch}
   from '../../../host-node/installed-effect-plan.mjs';
-import {captureKintoneEffectPlanRecipeBuilder} from '../host/kintone-effect-plan.mjs';
+import {captureKintoneEffectConstruction} from '../host/kintone-effect-plan.mjs';
+import {composeInstalledTargetMutationRecipe} from '../../../host-node/installed-effect-plan.mjs';
 import {createKintoneKeyUpsertRequestAdapter} from '../host/kintone-key-upsert-request.mjs';
 import {kintoneUpdateDriver} from '../host/kintone-update-driver.mjs';
 import {form, cid, encode, bytes, identity as nativeId, revision, policy} from './kintone-update.fixture.mjs';
@@ -68,13 +69,13 @@ function fixture() {
 
 test('keyed UPSERT quotes the original lookup and distinct approved write branches', () => {
   const {options, adapter} = fixture();
-  const prepare = captureKintoneEffectPlanRecipeBuilder({moon: options.moon, kind: 'upsert'});
-  const plan = prepare({mapping: options.mapping, fields: Object.freeze(['Computed', 'CustomerKey', 'Subject', 'Tags']),
+  const prepare = captureKintoneEffectConstruction({moon: options.moon, kind: 'upsert'});
+  const plan = composeInstalledTargetMutationRecipe(prepare({mapping: options.mapping, fields: Object.freeze(['Computed', 'CustomerKey', 'Subject', 'Tags']),
     formResource: 'inquiries-form', bindingUnits: 1000, maxTargetBytes: adapter.binding.path.length,
     credentialSite: {construction: {scope: {connectorRegistration: 'kintone', resourceOrigin: options.origin},
       issuer: {keyId: 'component'}, limits: {maxSecretBytes: 256}}}, limits: options.limits,
     inputLimits: {body: {maxBytes: 2048, maxNodes: 8000, maxDepth: 32},
-      preview: {maxWireBytes: 65536, maxNodes: 8000, maxDepth: 32}}, maxRecoveryBytes: 65536});
+      preview: {maxWireBytes: 65536, maxNodes: 8000, maxDepth: 32}}, maxRecoveryBytes: 65536}));
   assert.equal(plan.memberOperations.length, 2);
   assert.equal(plan.credentialOperations.length, 11);
   assert.equal(new Set(plan.credentialOperations.map(slot => slot.operationIndex)).size, 11);

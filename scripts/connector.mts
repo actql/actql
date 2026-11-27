@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import {realpathSync} from 'node:fs';
+import assert from 'node:assert/strict';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {initRestConnector, writeRestConnector} from './connector-authoring.mjs';
 import {durationSeconds, runLocalCheck} from './local-checks-guard.mjs';
-import {readRestConformanceInput} from './connector-conformance-input.mjs';
+import {readConnectorConformanceInput} from './connector-conformance-input.mjs';
 import {isInstalledAuthoringToolkit} from './connector-authoring-toolkit.mjs';
 
 const usage = 'Usage: connector.mjs init <directory> <id> | build|test <connector.json> <output> | conformance <normal-input.json> --timeout-seconds <seconds>';
@@ -15,22 +16,30 @@ export function connectorConformancePlan(root: string, args: readonly string[]) 
   if (args.length !== 3 || args[1] !== '--timeout-seconds') throw new Error(usage);
   const timeoutSeconds = durationSeconds(args[2]);
   const input = resolve(args[0]);
-  const selected = readRestConformanceInput(input);
+  const selected = readConnectorConformanceInput(input);
+  const approve = selected.kind === 'actql-record-approval-normal/0.1';
+  const external = selected.kind === 'actql-external-installed-normal/0.1';
   const installed = isInstalledAuthoringToolkit(root);
+  assert(!external || installed, 'Select the composed Host’s installed authoring toolkit');
   const testRunner = installed ? pathToFileURL(join(root, 'scripts/test-execution.mjs')).href
     : './scripts/test-execution.mjs';
-  const testFile = 'scripts/fixtures/external-rest/normal-case.test.mjs';
+  const testFile = external ? 'scripts/fixtures/external-installed/normal-case.test.mjs'
+    : approve ? 'scripts/fixtures/record-approval/normal-case.test.mjs'
+    : 'scripts/fixtures/external-rest/normal-case.test.mjs';
   return {
-    root: installed ? dirname(selected.outputRoot) : resolve(root), heavy: true,
-    heavyResources: {memoryBytes: 4 * 1024 ** 3, diskBytes: 1024 ** 3, cpuThreads: 1},
+    root: installed ? dirname(selected.outputRoot) : resolve(root), heavy: !external,
+    ...(external ? {} : {heavyResources: {memoryBytes: 4 * 1024 ** 3, diskBytes: 1024 ** 3, cpuThreads: 1}}),
     timeoutSeconds, graceSeconds: 5,
-    steps: [{name: 'ordinary installed REST conformance and original cold Saved',
+    steps: [{name: external ? 'ordinary composed external provider bundle and original Saved'
+      : approve ? 'ordinary installed Record approval and original cold Saved'
+      : 'ordinary installed REST conformance and original cold Saved',
       command: process.execPath,
       args: ['--input-type=module', '-e',
         `import {runFocusedTests} from ${JSON.stringify(testRunner)};` +
         "process.exitCode=runFocusedTests('node',process.argv.slice(1),{cwd:process.cwd(),expectedTests:1});",
         installed ? join(root, testFile) : testFile],
-      env: {ACTQL_REST_CONFORMANCE_INPUT: input}}],
+      env: external ? {ACTQL_EXTERNAL_INSTALLED_CONFORMANCE_INPUT: input}
+        : approve ? {ACTQL_RECORD_APPROVAL_CONFORMANCE_INPUT: input} : {ACTQL_REST_CONFORMANCE_INPUT: input}}],
   };
 }
 

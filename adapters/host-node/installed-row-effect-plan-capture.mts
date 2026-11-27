@@ -1,5 +1,4 @@
 import {types as nodeTypes} from 'node:util';
-import {declaredRowUpdateKinds} from '../host-common/owned-invocation-context.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
 import {captureInstalledEffectPlanRecipe, installedEffectRecipeForControlEntryLimit} from './installed-effect-recipe.mjs';
 import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
@@ -114,12 +113,12 @@ export function createInstalledRowEffectPlanCapture({fail, text}: CaptureOptions
   // create, update and upsert never borrow one another's credential occurrence.
   // Selection below uses the checked member kind, not provider DATA or a label.
   function captureManagedPlanRecipes(recipes: unknown, driver: Pick<DefinitionDriver, 'kinds'>,
-      maxOperations: number, declaredUpdate?: boolean): CapturedRecipes | undefined {
+      maxOperations: number): CapturedRecipes | undefined {
     if (recipes === undefined) return undefined;
     if (recipes === null || typeof recipes !== 'object' || nodeTypes.isProxy(recipes) ||
         !Object.isFrozen(recipes)) reject('InvalidInstalledEffectPlanRecipe');
     const fields = Object.getOwnPropertyDescriptors(recipes);
-    const supportedKinds = declaredUpdate ? declaredRowUpdateKinds : driver.kinds;
+    const supportedKinds = driver.kinds;
     if (Reflect.ownKeys(fields).length !== supportedKinds.length || supportedKinds.some(kind =>
       !Object.hasOwn(fields[kind] ?? {}, 'value') || fields[kind].value === undefined)) {
       reject('InvalidInstalledEffectPlanRecipe');
