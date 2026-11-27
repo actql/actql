@@ -3,6 +3,7 @@ import asyncio
 import copy
 import unittest
 from contextlib import contextmanager
+from threading import RLock
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -21,6 +22,36 @@ import test_local_submission_lookup as host_fixture
 
 
 class SavedReadPortsTests(unittest.TestCase):
+    def test_saved_return_checks_the_original_deadline_before_and_after_current(self):
+        deadline = '2026-11-27T12:00:00.001Z'
+        allowed = '2026-11-27T12:00:00.000Z'
+        for times, reason, observed in (
+                ((allowed, allowed), None, 1),
+                ((deadline,), 'return context expired', 0),
+                ((allowed, deadline), 'expired during its return observation', 1)):
+            with self.subTest(times=times):
+                clock = iter(times)
+                host = SimpleNamespace(_core=SimpleNamespace(_lock=RLock()),
+                                       _original_physical_observed_at=lambda: next(clock))
+                saved = OriginalSavedResultRead(host)
+                saved._return_target = saved_read_module._SavedRunControl('sha256:' + 'a' * 64, 0, 1, deadline)
+                calls = []
+                reader, selection = object(), object()
+                saved._root = SimpleNamespace(observe_original=calls.append)
+                saved._reader, saved._payload_selection = reader, selection
+
+                def current(action, selected):
+                    self.assertIs(selected, selection)
+                    action()
+
+                with patch.object(saved, '_current', side_effect=current):
+                    if reason is None:
+                        saved._check_transfer_current()
+                    else:
+                        with self.assertRaisesRegex(ValueError, reason):
+                            saved._check_transfer_current()
+                self.assertEqual(calls, [reader] * observed)
+
     def test_incremental_saved_pending_yields_outside_reader_and_keeps_the_original_loan(self):
         from tempfile import TemporaryDirectory
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
