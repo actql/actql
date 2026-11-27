@@ -656,15 +656,82 @@ async def _async_model_result(version: str, phase: str, receipt: Path, fixture: 
                                 rows_sha256, delivery, original, audit, check_verdict)
 
 
+async def _wait_for_original_model_loss(host, ref) -> None:
+    from actql_sdk._local_model_http import _ModelHttpTransportFailure
+
+    selected = host._find_original_run_reference(_model_case_wire(ref))
+    [work] = host._physical_work
+    if selected is None or work._owner is not selected.run:
+        raise AssertionError('Loss must come from the one original Model worker')
+    # Observe the original worker without a public status subscriber that
+    # could initiate a replacement state observation.
+    try:
+        await asyncio.wait_for(work.wait(), timeout=120)
+    except _ModelHttpTransportFailure as failure:
+        if failure.kind != 'incomplete':
+            raise
+    else:
+        raise AssertionError('Partial HTTP response completed the original Model worker')
+    if work.stopped is not True:
+        raise AssertionError('Original Model worker did not stop')
+
+
+def _check_original_model_loss(host, ref, original, lookup, submission):
+    if (ref != original['run'] or lookup['kind'] != 'ready'
+            or lookup['submissionRef'] != submission or lookup['admission']['ref'] != ref
+            or host._physical_work):
+        raise AssertionError('Cold reconciliation must read the original Run without starting work')
+
+
+def _finish_model_loss(host, audit, original, receipt, version, facade, submission, ref, state,
+                       check_verdict, case_sha256, rows_sha256):
+    if not host._core._closed or host._core._loans:
+        raise AssertionError('Original Model Host failed first close')
+    cold = original is not None
+    if not cold:
+        _record(receipt, version=version, facade=facade, submission=submission, run=ref,
+                details={'case_sha256': case_sha256, 'rows_sha256': rows_sha256})
+    # The retained private receipt owns the submission authenticator.
+    submission_cid = 'sha256:' + sha256(_model_case_wire(submission)).hexdigest()
+    return {'run': ref, 'submission_cid': submission_cid, 'state': state, 'first_close': True,
+            'check_verdict': check_verdict, 'worker_stopped_without_status': None if cold else True,
+            'cold_original_lookup': cold, **audit.observation()}
+
+
+def _sync_model_loss(version: str, phase: str, receipt: Path, fixture: Path) -> dict[str, Any]:
+    from actql import Client
+
+    facade = 'sync'
+    fixture, _, original, case_sha256, rows_sha256, program, audit = _model_case(
+        version, facade, phase, receipt, fixture, fields=_MODEL_LOSS_RECORD_FIELDS)
+    check_verdict = state = None
+    with Client.connect(mode='local', model_deployment=fixture / 'deployment') as client:
+        host = client._client._local_host
+        if original is None:
+            check_verdict = _verified_model_check(client.check(program, kind='program', scope='bound_input'))
+            submission = client.new_submission()
+            audit.begin_run()
+            run = client.start(program, submission_ref=submission)
+            ref = _plain(run.ref)
+            client._call(_wait_for_original_model_loss, host, ref)
+        else:
+            submission = original['submission']
+            lookup = _plain(client.lookup_submission(submission))
+            run = client.attach(original['run'])
+            ref = _plain(run.ref)
+            state = _plain(run.status())
+            _check_original_model_loss(host, ref, original, lookup, submission)
+    return _finish_model_loss(host, audit, original, receipt, version, facade, submission, ref,
+                              state, check_verdict, case_sha256, rows_sha256)
+
+
 async def _async_model_loss(version: str, phase: str, receipt: Path, fixture: Path) -> dict[str, Any]:
+    from actql import AsyncClient
+
     facade = 'async'
     fixture, _, original, case_sha256, rows_sha256, program, audit = _model_case(
         version, facade, phase, receipt, fixture, fields=_MODEL_LOSS_RECORD_FIELDS)
-    from actql import AsyncClient
-    from actql_sdk._local_model_http import _ModelHttpTransportFailure
-    check_verdict = None
-    state = None
-    worker_stopped = None
+    check_verdict = state = None
     async with await AsyncClient.connect(mode='local', model_deployment=fixture / 'deployment') as client:
         host = client._local_host
         if original is None:
@@ -673,43 +740,16 @@ async def _async_model_loss(version: str, phase: str, receipt: Path, fixture: Pa
             audit.begin_run()
             run = await client.start(program, submission_ref=submission)
             ref = _plain(run.ref)
-            selected = host._find_original_run_reference(_model_case_wire(ref))
-            [work] = host._physical_work
-            if selected is None or work._owner is not selected.run:
-                raise AssertionError('Loss must come from the one original Model worker')
-            # Observe the actual worker without installing a public status
-            # subscriber or triggering a replacement state observation.
-            try:
-                await asyncio.wait_for(work.wait(), timeout=120)
-            except _ModelHttpTransportFailure as error:
-                if error.kind != 'incomplete':
-                    raise
-            else:
-                raise AssertionError('Partial HTTP response completed the original Model worker')
-            worker_stopped = work.stopped
-            if worker_stopped is not True:
-                raise AssertionError('Original Model worker did not stop')
+            await _wait_for_original_model_loss(host, ref)
         else:
             submission = original['submission']
             lookup = _plain(await client.lookup_submission(submission))
             run = await client.attach(original['run'])
             ref = _plain(run.ref)
             state = _plain(await run.status())
-            if (ref != original['run'] or lookup['kind'] != 'ready'
-                    or lookup['submissionRef'] != submission or lookup['admission']['ref'] != ref
-                    or host._physical_work):
-                raise AssertionError('Cold reconciliation must read the original Run without starting work')
-    if not host._core._closed:
-        raise AssertionError('Original Model Host failed first close')
-    egress = audit.observation()
-    if original is None:
-        _record(receipt, version=version, facade=facade, submission=submission, run=ref,
-                details={'case_sha256': case_sha256, 'rows_sha256': rows_sha256})
-    # The retained private receipt owns the submission authenticator.
-    submission_cid = 'sha256:' + sha256(_model_case_wire(submission)).hexdigest()
-    return {'run': ref, 'submission_cid': submission_cid, 'state': state, 'first_close': True,
-            'check_verdict': check_verdict, 'worker_stopped_without_status': worker_stopped,
-            'cold_original_lookup': original is not None, **egress}
+            _check_original_model_loss(host, ref, original, lookup, submission)
+    return _finish_model_loss(host, audit, original, receipt, version, facade, submission, ref,
+                              state, check_verdict, case_sha256, rows_sha256)
 
 
 def _verified_model_check(checked) -> str:
@@ -802,7 +842,7 @@ def installed(version: str, mode: str, *, facade: str | None = None,
             or facade not in ('sync', 'async') or phase not in ('initial', 'resume')
             or receipt is None):
         raise AssertionError('Local consumer requires an explicit facade/phase/private receipt')
-    if model_case != (model_fixture is not None) or (case == 'portable-model-loss' and facade != 'async'):
+    if model_case != (model_fixture is not None):
         raise AssertionError('Portable Model requires its exact selected fixture')
     if case == 'named-results':
         if named_results_fixture is None:
@@ -818,7 +858,8 @@ def installed(version: str, mode: str, *, facade: str | None = None,
         raise AssertionError('Installed product/runtime cohort differs')
     if model_case:
         if case == 'portable-model-loss':
-            observed = asyncio.run(_async_model_loss(version, phase, receipt, model_fixture))
+            observed = (_sync_model_loss(version, phase, receipt, model_fixture) if facade == 'sync'
+                        else asyncio.run(_async_model_loss(version, phase, receipt, model_fixture)))
         elif facade == 'sync':
             observed = _sync_model_result(version, phase, receipt, model_fixture)
         else:

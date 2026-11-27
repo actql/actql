@@ -133,8 +133,8 @@ def require_model_child(record, facade, phase, version, rows_sha256, previous):
 
 
 def _accept_response_loss(run, consumer, destination, version, env, fixture_root, pids,
-                          context, fixture, profile, image_sha256, reply, pem):
-    work = fixture_root / 'response-loss'
+                          context, fixture, profile, image_sha256, reply, pem, *, facade):
+    work = fixture_root / ('response-loss' if facade == 'async' else 'response-loss-sync')
     secret = secrets.token_urlsafe(24).encode('ascii')
     task = fixture['task_binding']['contract_cid']
     provider = fixture['deployment']['provider.json']['provider_id']
@@ -145,14 +145,14 @@ def _accept_response_loss(run, consumer, destination, version, env, fixture_root
         case = build_protected_case(work, fixture, profile, endpoint, image_sha256, secret, pem)
 
         def child(phase):
-            result = json.loads(run(f'async-model-loss-{phase}',
+            result = json.loads(run(f'{facade}-model-loss-{phase}',
                 [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                  destination / 'python-product-installed.py', '--version', version, '--mode', 'local',
-                 '--case', 'portable-model-loss', '--facade', 'async', '--phase', phase,
+                 '--case', 'portable-model-loss', '--facade', facade, '--phase', phase,
                  '--receipt', record, '--model-fixture', work],
                 cwd=work / 'project', env=env, timeout=180))
             cold = phase == 'resume'
-            expected = {'mode': 'local', 'case': 'portable-model-loss', 'version': version, 'facade': 'async',
+            expected = {'mode': 'local', 'case': 'portable-model-loss', 'version': version, 'facade': facade,
                         'phase': phase, 'first_close': True, 'cold_original_lookup': cold,
                         'worker_stopped_without_status': None if cold else True,
                         'check_verdict': None if cold else 'verified',
@@ -275,8 +275,12 @@ def accept_installed_portable_model(run, consumer: Path, destination: Path, vers
             results.append({'facade': facade, 'phases': records,
                             'warm_peer': asdict(warm_peer), 'cold_peer_unchanged': True,
                             'model_holdings': warm_holdings, 'cold_model_holdings_unchanged': True})
+    losses = {
+        facade: _accept_response_loss(run, consumer, destination, version, env, fixture_root, pids,
+            context, loss_fixture, profile, image_sha256, wire(loss_fixture['reply']), pem, facade=facade)
+        for facade in ('async', 'sync')
+    }
     return {'fixture_sha256': sha256(fixture_wire).hexdigest(), 'image_sha256': image_sha256,
             'peer_response_sha256': sha256(reply).hexdigest(), 'facades': results,
             **({'source_backed': True} if source else {}),
-            'response_loss': _accept_response_loss(run, consumer, destination, version, env, fixture_root, pids,
-                context, loss_fixture, profile, image_sha256, wire(loss_fixture['reply']), pem)}
+            'response_loss': losses['async'], 'sync_response_loss': losses['sync']}

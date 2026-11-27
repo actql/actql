@@ -3465,9 +3465,16 @@ jobs:
           test "$(uname -s)" = "$EXPECTED_SYSTEM"
           test "$(uname -m)" = "$EXPECTED_ARCHITECTURE"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Prepare the original Portable Model Crypto for this wheel platform
+        run: |
+          python3 -B scripts/prepare-python-model-crypto.py \
+            --source "$GITHUB_SHA" --destination "$RUNNER_TEMP/python-model-crypto"
       - name: Build normal wheels and accept fresh installed Python consumers
         id: python-normal-cohort
-        run: python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"
+        run: |
+          python3 -B scripts/ci-python-wheels.py --source "$GITHUB_SHA" \
+            --destination "$RUNNER_TEMP/python-wheel-acceptance" \
+            --model-crypto-preparation "$RUNNER_TEMP/python-model-crypto/component"
       - name: Select the minimum supported Python version
         id: python-minimum
         if: ${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' }}

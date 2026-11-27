@@ -294,7 +294,7 @@ class InstalledPortableModelHarness(unittest.TestCase):
             db.close()
 
     def observed_run(self, root: Path, child_fault=None, *, source=False):
-        pids = iter((101, 102, 103, 104, 105, 106))
+        pids = iter(range(101, 109))
         seen = []
         saved_loss_state = {}
         consumer = root / 'consumer/bin/python'
@@ -367,9 +367,9 @@ class InstalledPortableModelHarness(unittest.TestCase):
             if loss:
                 submission = {'nonce': 'response-loss-test'}
                 if not cold:
-                    saved_loss_state.update(self.model_store_fixture(
-                        store, ref, profile['task']['contract_cid'], submission=submission, fault=child_fault))
-                state = dict(saved_loss_state) if cold else None
+                    saved_loss_state[facade] = self.model_store_fixture(
+                        store, ref, profile['task']['contract_cid'], submission=submission, fault=child_fault)
+                state = dict(saved_loss_state[facade]) if cold else None
                 if cold and child_fault == 'loss-reprojected':
                     state['revision'] = 1
                 return json.dumps({'mode': 'local', 'version': self.version, 'case': 'portable-model-loss',
@@ -441,7 +441,7 @@ class InstalledPortableModelHarness(unittest.TestCase):
         with tempfile.TemporaryDirectory() as scratch:
             result, seen = self.observed_run(Path(scratch), source=True)
             self.assertTrue(result['source_backed'])
-            self.assertEqual(len(seen), 6)  # Two warm/cold facades and the separate loss case.
+            self.assertEqual(len(seen), 8)  # Warm/cold success and loss on both facades.
             for lane in result['facades']:
                 self.assertEqual([phase['python_source_opens'] for phase in lane['phases']], [1, 0])
                 self.assertEqual(lane['warm_peer']['posts'], 1)
@@ -494,13 +494,17 @@ else:
             result, seen = self.observed_run(Path(scratch))
             self.assertEqual([values[:2] for values in seen], [
                 ('sync', 'initial'), ('sync', 'resume'), ('async', 'initial'), ('async', 'resume'),
-                ('async', 'initial'), ('async', 'resume')])
-            loss = result['response_loss']
-            self.assertEqual((loss['warm_peer']['posts'], loss['warm_peer']['partial_responses']), (1, 1))
-            self.assertTrue(loss['cold_peer_unchanged'])
-            self.assertTrue(loss['cold_original_unchanged'])
-            self.assertEqual(loss['original_before_cold']['journal_charge']['objects'], 1)
-            self.assertTrue(all('submission' not in phase for phase in loss['phases']))
+                ('async', 'initial'), ('async', 'resume'), ('sync', 'initial'), ('sync', 'resume')])
+            for key, name in (('response_loss', 'async'), ('sync_response_loss', 'sync')):
+                loss = result[key]
+                self.assertEqual((loss['warm_peer']['posts'], loss['warm_peer']['partial_responses']), (1, 1))
+                self.assertTrue(loss['cold_peer_unchanged'])
+                self.assertTrue(loss['cold_original_unchanged'])
+                self.assertEqual(loss['original_before_cold']['journal_charge']['objects'], 1)
+                self.assertEqual([phase['facade'] for phase in loss['phases']], [name, name])
+                self.assertTrue(all('submission' not in phase for phase in loss['phases']))
+            self.assertNotEqual(result['response_loss']['phases'][0]['run'],
+                                result['sync_response_loss']['phases'][0]['run'])
             for facade in result['facades']:
                 self.assertTrue(facade['cold_peer_unchanged'])
                 self.assertEqual(facade['warm_peer']['posts'], 1)
