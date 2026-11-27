@@ -15,10 +15,16 @@ const inside = (root, path) => {
   return suffix !== '..' && !suffix.startsWith('..' + sep) && !isAbsolute(suffix);
 };
 
-export async function verifyExternalRestTarballs(manifest, manifestPath) {
+const ordinaryRestPackages = Object.freeze([
+  '@actql/client-wire', '@actql/local-node', '@actql/node', '@actql/run-host-core', '@actql/sdk',
+]);
+export const externalInstalledPackages = Object.freeze([
+  '@actql/client-wire', '@actql/local-node', '@actql/sdk', '@fixture/external-effect', '@fixture/external-read',
+]);
+
+export async function verifyExternalRestTarballs(manifest, manifestPath, packageNames = ordinaryRestPackages) {
   assert(isAbsolute(manifestPath));
-  assert.deepEqual(manifest.packages.map(pkg => pkg.name).sort(),
-    ['@actql/client-wire', '@actql/local-node', '@actql/node', '@actql/run-host-core', '@actql/sdk']);
+  assert.deepEqual(manifest.packages.map(pkg => pkg.name).sort(), packageNames);
   const observations = [];
   for (const pkg of manifest.packages) {
     assert.equal(pkg.file, pkg.file.split('/').at(-1));
@@ -35,7 +41,7 @@ export async function verifyExternalRestTarballs(manifest, manifestPath) {
 
 // Consume the supplier's original offer, never mint a replacement manifest.
 // The returned inventory is checked DATA for the existing payload verifier.
-export async function prepareExternalRestCohort({manifestPath, manifestSha256, sourceSha, sourceTree}) {
+export async function prepareExternalRestCohort({manifestPath, manifestSha256, sourceSha, sourceTree}, {external = false} = {}) {
   assert(isAbsolute(manifestPath));
   for (const value of [sourceSha, sourceTree]) assert.match(value, /^[a-f0-9]{40}$/u);
   assert.match(manifestSha256, /^[a-f0-9]{64}$/u);
@@ -49,6 +55,8 @@ export async function prepareExternalRestCohort({manifestPath, manifestSha256, s
   };
   const selected = await metadata(manifestPath, manifestSha256);
   const offered = selected.value, originalBindings = [selected.binding];
+  if (external) assert(offered.kind === 'actql-external-installed-cohort/0.1' && Array.isArray(offered.packages),
+    'Select the original composed external installer cohort');
   let manifest, artifactManifestPath = manifestPath;
   if (Array.isArray(offered.packages)) {
     assert.equal(offered.sourceSha, sourceSha);assert.equal(offered.sourceTree, sourceTree);
@@ -73,14 +81,14 @@ export async function prepareExternalRestCohort({manifestPath, manifestSha256, s
     manifest = {sourceSha, sourceTree, packages};
     artifactManifestPath = offered.manifest;originalBindings.push(producer.binding);
   }
-  const offeredTarballs = await verifyExternalRestTarballs(manifest, artifactManifestPath);
+  const packageNames = external ? externalInstalledPackages : ordinaryRestPackages;
+  const offeredTarballs = await verifyExternalRestTarballs(manifest, artifactManifestPath, packageNames);
   const scratch = await mkdtemp(join(await realpath(tmpdir()), 'actql-rest-cohort-inventory-'));
   try {
     const packages = [];
     let hostPackageVersion;
     for (const pkg of manifest.packages) {
-      const directory = await unpack(join(dirname(artifactManifestPath), pkg.file),
-        join(scratch, pkg.name.slice('@actql/'.length)));
+      const directory = await unpack(join(dirname(artifactManifestPath), pkg.file), join(scratch, pkg.name));
       const metadata = JSON.parse(await readFile(join(directory, 'package.json'), 'utf8'));
       assert.equal(metadata.name, pkg.name);
       if (pkg.name === '@actql/local-node') hostPackageVersion = metadata.version;
@@ -91,7 +99,7 @@ export async function prepareExternalRestCohort({manifestPath, manifestSha256, s
     }
     // Recheck the same archives after inventory construction; no source file,
     // private installation, package lifecycle or product export was executed.
-    await verifyExternalRestTarballs(manifest, artifactManifestPath);
+    await verifyExternalRestTarballs(manifest, artifactManifestPath, packageNames);
     return {manifest: {...manifest, packages}, artifactManifestPath, originalBindings, offeredTarballs, hostPackageVersion};
   } finally {
     await rm(scratch, {recursive: true, force: true});

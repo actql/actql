@@ -44,7 +44,7 @@ function writeDefinition(profile) {
 
 function sourcesOf(profile) {
   return Object.freeze((profile.write === 'update' ? ['note'] : ['key', 'note']).map(field =>
-    Object.freeze({target: field, field, null_behavior: 'reject'})));
+    Object.freeze({target: field, field, null_behavior: profile.write === 'update' ? 'write_null' : 'reject'})));
 }
 
 async function declarationOf(moon, profile) {
@@ -170,7 +170,8 @@ function standardCreateImplementation(providerMoon, specification) {
 
 const updateRecovery = 'external-event-update';
 const updateBounds = Object.freeze({maxRequestBytes: 512, maxResponseBytes: 512, maxTargetBytes: 80});
-const eventNote = value => typeof value === 'string' && value.length <= 64 && value.isWellFormed();
+const eventNote = value => value === null ||
+  typeof value === 'string' && value.length <= 64 && value.isWellFormed();
 const eventPath = id => '/events/' + id;
 
 function standardUpdateImplementation(specification) {

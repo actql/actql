@@ -21,24 +21,27 @@ assert.equal(typeof createDefinition, 'function');
 const observation = process.env.ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR === connectorId
   ? workflowWorkObservation({trackOriginal: true}) : undefined;
 let originalRef: RunReference | undefined;
-const runPhase = ({programs, selection, load, save, ...selected}: ConnectorPhaseOptions<Parameters<typeof createDefinition>[1]>) =>
-  runRecordUpdateApprovalPhase({...selected,
-  replyLossExpectation,
-  createDefinition: selected.definition === undefined ? () => createDefinition(programs!, selection!) : undefined,
-  async load(name) {
-    const value = await load(name);
-    if (name === 'captured') originalRef = (value as {ref: RunReference}).ref;
-    return value;
-  },
-  async save(name, value) {
-    if (name === 'submitted') originalRef = value.ref as RunReference;
-    await save(name, value);
-  },
-  observeClose: observation === undefined && replyLossExpectation === undefined && selected.decision !== 'rejected' ? undefined
-    : value => writeFile(`${prefix}.${phase}.close-${value.stage}.json`,
-      JSON.stringify({...value, ...(observation === undefined ? {}
-        : {workObservation: observation.forOriginal(originalRef!)})}) + '\n', {mode: 0o600, flag: 'wx'}),
-});
+let approvedWrites: number | undefined;
+const runPhase = ({programs, selection, load, save, ...selected}: ConnectorPhaseOptions<Parameters<typeof createDefinition>[1]>) => {
+  approvedWrites = selected.definition?.collection?.expectedWrites;
+  return runRecordUpdateApprovalPhase({...selected,
+    replyLossExpectation,
+    createDefinition: selected.definition === undefined ? () => createDefinition(programs!, selection!) : undefined,
+    async load(name) {
+      const value = await load(name);
+      if (name === 'captured') originalRef = (value as {ref: RunReference}).ref;
+      return value;
+    },
+    async save(name, value) {
+      if (name === 'submitted') originalRef = value.ref as RunReference;
+      await save(name, value);
+    },
+    observeClose: observation === undefined && replyLossExpectation === undefined && selected.decision !== 'rejected' ? undefined
+      : value => writeFile(`${prefix}.${phase}.close-${value.stage}.json`,
+        JSON.stringify({...value, ...(observation === undefined ? {}
+          : {workObservation: observation.forOriginal(originalRef!)})}) + '\n', {mode: 0o600, flag: 'wx'}),
+  });
+};
 let outcome: Record<string, unknown> | undefined;
 await runRecordApprovalCommand({argv: [phase, configuration, prefix],
   retainProgramInputs: process.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS === '1',
@@ -53,7 +56,7 @@ await runRecordApprovalCommand({argv: [phase, configuration, prefix],
 assert.equal(outcome!.publicClientClose, 'returned');
 const work = observation?.forOriginal(originalRef!);
 if (work !== undefined) {
-  assertRecordWorkflowWork(work, {phase,
+  assertRecordWorkflowWork(work, {phase, approvedWrites,
     variant: process.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT || undefined} as WorkSelection);
 }
 const roots = credential === undefined ? [state] : [state, credential];

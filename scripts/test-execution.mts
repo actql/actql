@@ -47,28 +47,6 @@ export function nodeTestArguments(args: readonly string[]) {
     ...args.filter(arg => arg !== '--test')];
 }
 
-// The approved Rust component and its syntax reader use locked library targets. Keep
-// metadata-only, doctest, ignored-only and partial selections out of this gate.
-export function cargoTestArguments(args: readonly string[]): string[] {
-  if (!Array.isArray(args) || args.some(value => typeof value !== 'string'))
-    throw new Error('Invalid Cargo test arguments');
-  const delimiter = args.indexOf('--'), selected = new Set();
-  if (delimiter < 0 || args.length !== delimiter + 2 || args.at(-1) !== '--nocapture')
-    throw new Error('Cargo gate requires unfiltered --lib execution with -- --nocapture');
-  for (let index = 0; index < delimiter; index++) {
-    const option = args[index];
-    if (selected.has(option)) throw new Error('Duplicate Cargo selection');
-    selected.add(option);
-    if (option === '--manifest-path') {
-      if (!['packages/rust/Cargo.toml', 'packages/rust/tools/source-inventory/Cargo.toml']
-        .includes(args[++index])) throw new Error('Unknown Cargo manifest');
-    } else if (!['--locked', '--lib'].includes(option)) throw new Error('Unsupported Cargo selection');
-  }
-  if (!['--locked', '--lib', '--manifest-path'].every(option => selected.has(option)))
-    throw new Error('Cargo gate requires the locked original library manifest');
-  return ['test', ...args];
-}
-
 export function parseTestExecution(kind: string, output: string): ParsedExecution {
   const groups: Counts[] = [];
   let success = true;
@@ -108,25 +86,6 @@ export function parseTestExecution(kind: string, output: string): ParsedExecutio
       groups.push({tests, passed, failed, cancelled: null, skipped: null, todo: null});
     }
     if (groups.length === 0) throw new Error('Missing MoonBit test summary');
-  } else if (kind === 'cargo') {
-    const lines = output.split(/\r?\n/u);
-    const summaries = lines.filter(line => line.startsWith('test result:'));
-    const running = lines.filter(line => /^running [0-9]+ tests?$/u.test(line));
-    if (summaries.length !== 1 || running.length !== 1) throw new Error('Missing or ambiguous Rust test execution');
-    const match = /^test result: (ok|FAILED)\. ([0-9]+) passed; ([0-9]+) failed; ([0-9]+) ignored; ([0-9]+) measured; ([0-9]+) filtered out;(?: finished in .+)?$/u.exec(summaries[0]);
-    if (!match) throw new Error('Malformed Rust test summary');
-    const [passed, failed, ignored, measured, filtered] = match.slice(2).map(Number);
-    const tests = Number(running[0].split(' ')[1]);
-    if (![tests, passed, failed, ignored, measured, filtered].every(Number.isSafeInteger) ||
-        tests !== passed + failed + ignored + measured || ignored || measured || filtered)
-      throw new Error('Incomplete or inconsistent Rust library execution');
-    const cases = lines.map(line => /^test (\S+)(?: - should panic)? \.\.\. (ok|FAILED|ignored)(?:, .*)?$/u.exec(line)).filter(Boolean) as RegExpExecArray[];
-    if (cases.length !== tests || new Set(cases.map(value => value[1])).size !== tests ||
-        cases.filter(value => value[2] === 'ok').length !== passed ||
-        cases.filter(value => value[2] === 'FAILED').length !== failed)
-      throw new Error('Rust selected cases do not match execution totals');
-    success = match[1] === 'ok' && failed === 0;
-    groups.push({tests, passed, failed, cancelled: null, skipped: ignored, todo: null});
   } else {
     throw new Error(`Unknown test kind: ${kind}`);
   }
@@ -173,9 +132,9 @@ export function assertTestExecution(kind: string, command: string, args: readonl
 }
 
 export function runFocusedTests(kind: string, args: readonly string[], options: FocusedOptions = {}) {
-  const command = kind === 'node' ? process.execPath : kind === 'cargo' ? 'cargo' : 'moon';
-  const selected = kind === 'node' ? nodeTestArguments(args)
-    : kind === 'cargo' ? cargoTestArguments(args) : ['test', ...args];
+  if (kind !== 'node' && kind !== 'moon') throw new Error(`Unknown test kind: ${kind}`);
+  const command = kind === 'node' ? process.execPath : 'moon';
+  const selected = kind === 'node' ? nodeTestArguments(args) : ['test', ...args];
   const {evidenceScratch = join(options.cwd ?? process.cwd(), '_build', 'focused-evidence'), expectedTests,
     requireAllPassed = false, ...spawnOptions} = options;
   if (expectedTests !== undefined && (!Number.isSafeInteger(expectedTests) || expectedTests < 1)) {

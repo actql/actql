@@ -130,10 +130,11 @@ export async function runInstalledRecordApprovalFixture(t: Pick<TestContext, 'di
   const authoredFixture = authored?.fixture;
   let fixture = input as FixtureOptions & OriginalFixture;
   if (authoredFixture !== undefined) {
+    assert(authored !== undefined && !('effects' in authored.review), 'Select a single-record provider seed');
     assert.equal(typeof (input as AuthoredFixtureInput).createInstallation,
       'function', 'Select an original provider fixture adapter');
     assert(input.selection === undefined && input.provider === undefined, 'Select one original provider seed');
-    const kind = authored!.review.kind ?? 'update';
+    const kind = authored.review.kind ?? 'update';
     fixture = {...input, ...(input as AuthoredFixtureInput).createInstallation(authoredFixture.seed, kind)};
     assert.equal((fixture.write as {kind?: unknown} | undefined)?.kind ?? 'update', kind,
       'The provider admits the original authored effect kind');

@@ -105,6 +105,7 @@ async function definition(connector: Connector): Promise<AuthoredCase> {
     {update: files[0], read: files[1]}, selection);
 }
 function publicDouble(value: AuthoredCase) {
+  assert(!('effects' in value.review));
   const events: string[] = [], saved = new Map(), ref: DoubleRef = {authorityScopeCid: cid('a'), original: 'effect'};
   const summary = {reviewProjectionCid: cid('b'), requiredArtifact: {cid: cid('c')},
     requirements: [{original: 'claim'}], checkpointCid: cid('d')};
@@ -166,6 +167,87 @@ function publicDouble(value: AuthoredCase) {
 async function phase(which: string, value: AuthoredCase, f: ReturnType<typeof publicDouble>, changes: object = {}) {
   return (runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({phase: which, definition: value, ...f, ...changes});
 }
+
+test('fixture Programs omit empty declaration maps and preserve supplied values across formats', async () => {
+  const value = await definition('kintone');
+  value.effect = {...value.effect, document: '{"parameters":{}}', format: 'json', parameterDeclarations: {}};
+  value.read = {...value.read, document: 'parameters: {}', format: 'yaml', parameterDeclarations: {}};
+  const sdk = publicDouble(value);
+  const start = sdk.client.startSource.bind(sdk.client);
+  const formats: string[] = [];
+  sdk.client.startSource = (document, options) => {
+    const program = document === value.effect.document ? value.effect : value.read;
+    formats.push(program.format);
+    assert.equal(options.format, program.format);
+    assert.equal(Object.hasOwn(options, 'parameterDeclarations'), false);
+    assert.deepEqual(options.parameters, program.parameters);
+    return start(document, options);
+  };
+  await phase('capture', value, sdk);
+  assert.deepEqual(formats, ['json', 'yaml']);
+  value.read.format = 'aql';
+  value.read.document = 'SELECT 1 AS marker;';
+  await phase('capture', value, sdk, {save() {}});
+  assert.deepEqual(formats, ['json', 'yaml', 'json', 'aql']);
+  value.effect.parameterDeclarations = {unexpected: {type: 'string'}};
+  await assert.rejects(phase('capture', value, sdk), /declare parameters inside the Program/u);
+  assert.deepEqual(formats, ['json', 'yaml', 'json', 'aql']);
+  assert.equal(sdk.events.filter(event => event === 'close').length, 3);
+});
+
+test('authored Review keeps ordered Effect members and complete nullable row evidence through the original workflow', async t => {
+  const single = await definition('kintone');
+  const target = 'connector://kintone/inquiries';
+  const first = {identity: '9007199254740993', before: {Subject: 'Before', Note: null}, changes: {Subject: 'After'}};
+  const second = {identity: '9007199254740994', before: {Subject: 'Replace'}, changes: {Subject: 'Replaced'}};
+  const absent = {identity: 'third-key', before: null, changes: {Subject: 'Inserted'}};
+  const authored = {...single, review: {effects: [
+    {effectId: 'edit', kind: 'update', target, rows: [first, second]},
+    {effectId: 'replace', kind: 'upsert', target, rows: [absent]},
+  ]}};
+  const root = await mkdtemp(join(tmpdir(), 'actql-approval-review-members-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const fixture = join(root, 'case.json');
+  await writeFile(fixture, JSON.stringify(authored));
+  const value = await readAuthoredCase(fixture);
+  assert.deepEqual(value.review, authored.review);
+
+  function instrument(rows?: readonly object[]) {
+    const f = publicDouble(single);
+    const projectRow = (effect_id: string, row: typeof first | typeof second | typeof absent, mark: string) => ({
+      effect_id, target_row_identity: row.identity, preview_strength: 'full_diff', row_preview_cid: cid(mark),
+      target_guard: row.before === null ? {state: 'not_applicable'} : {state: 'version', version_cid: cid('f')},
+      before: row.before === null ? {state: 'absent'} : {state: 'present', value: row.before},
+      intended_changes: {state: 'present', value: row.changes}, after: {state: 'present', value: row.changes},
+    });
+    const originalRows = [projectRow('edit', first, '1'), projectRow('edit', second, '2'), projectRow('replace', absent, '3')];
+    const body = {...f.body, displayed_scope: {effects: [
+      {effect_id: 'edit', kind: 'update', target, count: 2}, {effect_id: 'replace', kind: 'upsert', target, count: 1},
+    ]}, displayed_rows: rows ?? originalRows};
+    f.client.reviewCheckpoint = async () => {
+      f.events.push('review');
+      return {bytes: Buffer.from(JSON.stringify(body))};
+    };
+    return {f, originalRows};
+  }
+  const {f, originalRows} = instrument();
+  for (const step of ['capture', 'approve', 'recover']) await phase(step, value, f);
+  assert.equal(f.events.filter(event => event === 'approve').length, 1);
+  assert.equal(f.events.filter(event => event === 'close').length, 3);
+  for (const rows of [
+    [originalRows[1], originalRows[0], originalRows[2]],
+    [{...originalRows[0], before: {state: 'present', value: {Subject: 'Before'}}}, ...originalRows.slice(1)],
+    [originalRows[0], originalRows[1], {...originalRows[2], effect_id: 'edit'}],
+  ]) {
+    const {f: foreign} = instrument(rows);
+    await assert.rejects(phase('capture', value, foreign), {code: 'ERR_ASSERTION'});
+    assert(!foreign.saved.has('captured'));
+    assert.deepEqual(foreign.events.filter(event => event === 'approve' || event === 'close'), ['close']);
+  }
+  authored.review.effects[1].effectId = 'edit';
+  await writeFile(fixture, JSON.stringify(authored));
+  await assert.rejects(readAuthoredCase(fixture), {message: 'InvalidRecordApprovalAuthoredCase'});
+});
 
 test('record rejection resolves the same signed Checkpoint and cold lookup only reads cancelled state', async () => {
   const value = await definition('kintone'), f = publicDouble(value), decision = 'rejected';
@@ -261,6 +343,7 @@ test('shared command reopens the same externally authored Program, parameters an
   value.effect.parameters.next_name = 'Selected alternate value';
   value.effect.expectedRows[0].next_name = 'Selected alternate value';
   value.read.afterRows[0].Subject = 'Selected alternate value';
+  assert(!('effects' in value.review));
   value.review.changes!.Subject = 'Selected alternate value';
   const control = {id: 'alternate-control', name: 'Retain this control'};
   const schema = {sourceRef: 'connector://kintone/inquiries#records',
@@ -1176,6 +1259,7 @@ test('kintone approval provider keeps string identity and original revision for 
 test('authored kintone DELETE distinguishes absent target from unchanged control and rejects stale revision', async () => {
   const path = fileURLToPath(new URL('./fixtures/kintone-approval/delete.case.json', import.meta.url));
   const declared = await readAuthoredCase(path);
+  assert(!('effects' in declared.review));
   const {provider, write} = kintoneApprovalInstallation(declared.fixture!.seed, declared.review.kind);
   assert.deepEqual(write, {resource: 'inquiries', kind: 'delete'});
   const start = provider.snapshot();

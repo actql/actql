@@ -1700,7 +1700,7 @@
     {
       "module": "scripts/connector.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "54b3678440cd577a66af09c1774a4ddfab75f647ab15d673964cf4b687c0ed53",
+      "sha256": "aa7df359856fbd7c8bb021a4348a7d7cba88bc9be57e3dc6c741b3cb44f0f3ae",
       "exports": [
         "connectorCommand",
         "connectorConformancePlan"
@@ -2165,29 +2165,30 @@
     {
       "module": "scripts/connector-conformance-input.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0e16548439993718dbfadde2df9a30f9903c713eaab4d83646b7ca5b75929ac1",
+      "sha256": "0514b270e3077930953fd86f8c4f45728d01863aeb7ffc117834d3349c5c40f2",
       "exports": [
+        "readConnectorConformanceInput",
         "readRestConformanceInput"
       ],
       "operations": [
         {
-          "name": "readRestConformanceInput",
+          "name": "readConnectorConformanceInput",
           "parameters": [
             "path"
           ],
           "async": false
         },
         {
-          "name": "readRestConformanceInput/readRestConformanceInput",
+          "name": "readConnectorConformanceInput/closed/closed/closed",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "readRestConformanceInput/readRestConformanceInput#2",
+          "name": "readRestConformanceInput",
           "parameters": [
-            "key"
+            "path"
           ],
           "async": false
         }
@@ -2198,11 +2199,12 @@
         {
           "operations": [
             "<module>",
-            "readRestConformanceInput",
-            "readRestConformanceInput/readRestConformanceInput",
-            "readRestConformanceInput/readRestConformanceInput#2"
+            "readConnectorConformanceInput",
+            "readConnectorConformanceInput/closed/closed/closed",
+            "readRestConformanceInput"
           ],
           "exports": [
+            "readConnectorConformanceInput",
             "readRestConformanceInput"
           ],
           "attributes": {
@@ -2215,13 +2217,13 @@
             "inputsOutputs": [
               {
                 "path": "scripts/connector-conformance-input.mts",
-                "anchor": "const fields ="
+                "anchor": "const cohort ="
               }
             ],
             "identity": [
               {
                 "path": "scripts/connector-conformance-input.mts",
-                "anchor": "gitIdentity(selected.sourceSha)"
+                "anchor": "gitIdentity(value.sourceSha)"
               }
             ],
             "ownership": [
@@ -2245,19 +2247,35 @@
             "resources": [
               {
                 "path": "scripts/connector-conformance-input.mts",
-                "anchor": "Object.keys(selected).length === fields.length"
+                "anchor": "Object.keys(value).length === cohort.length + fields.length"
               }
             ],
             "extension": [
               {
                 "path": "scripts/connector-conformance-input.mts",
-                "anchor": "if (selected?.mode === 'author')"
+                "anchor": "value.kind === 'actql-external-installed-normal/0.1'"
+              },
+              {
+                "path": "scripts/connector-conformance-input.mts",
+                "anchor": "value.kind === 'actql-record-approval-normal/0.1'"
+              },
+              {
+                "path": "scripts/connector-conformance-input.mts",
+                "anchor": "const author = value.mode === 'author'"
               }
             ],
             "verification": [
               {
                 "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "author conformance refuses implicit runtime"
+              },
+              {
+                "path": "scripts/connector-authoring.cli.test.mts",
+                "anchor": "the packed author toolkit runs outside the checkout"
+              },
+              {
+                "path": "scripts/connector-authoring.cli.test.mts",
+                "anchor": "author conformance selects the original Record approval child in checkout and installed toolkit"
               }
             ]
           }
@@ -2611,7 +2629,7 @@
     {
       "module": "scripts/local-checks-guard.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7cf573deaf851c3cca2d68feb1f791659bf8818f4bf1639ee61ccc93d7edf312",
+      "sha256": "cae3ea6044b551dfe01bfeb2f99cd446da532b2f39cdba5a87eed87e7d04b5d9",
       "exports": [
         "acquireLocalLocks",
         "availableVerificationMemory",
