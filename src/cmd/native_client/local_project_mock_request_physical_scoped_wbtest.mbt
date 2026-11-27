@@ -3973,7 +3973,36 @@ test "Native leading DELETE compiles with the exact selected File and Model orig
   ).unwrap()
   let sources = project.prepare_effect_sources(prepared, direct)
   assert_eq(models.length(), 1)
-  assert_eq(sources.length(), 1)
+  assert_eq(sources.length(), 2)
+  let selected : Array[(String, String)] = []
+  for index, source in sources {
+    let subject = @run_host.client_direct_acquisition_occurrence_subject(
+      direct, index,
+    ).unwrap()
+    let declaration = @sourceviews.declaration(subject.source)
+    assert_eq(
+      source._retained_coordinates,
+      @run_host.client_direct_acquisition_occurrence_at(direct, index).unwrap(),
+    )
+    assert_eq(
+      source._retained_source._retained_connection,
+      declaration.connector,
+    )
+    assert_true(
+      project.sources.any(original => {
+        physical_equal(original, source._retained_source) &&
+        original._retained_declaration.views.any(view => {
+          view.resource == declaration.resource
+        })
+      }),
+    )
+    selected.push((declaration.connector, declaration.resource))
+  }
+  assert_true(selected.contains(("salesforce", "Account")))
+  assert_true(selected.contains(("snowflake", "usage_30d")))
+  assert_true(
+    sources[0]._retained_coordinates != sources[1]._retained_coordinates,
+  )
   let graphs = models.map(model => model.graph)
   let first = fn(graphs, sources) raise ClientStop {
     local_effect_first_compilation(

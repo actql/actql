@@ -463,7 +463,7 @@ test "explicit operator File Effect selection uses cold write declarations witho
       ("run", ["run", "file.aql"]),
       ("approve", ["approve", "original-checkpoint"]),
       ("reject", ["reject", "original-checkpoint"]),
-      ("status", ["status", "--run", "original-run"]),
+      ("status", ["status", "--run-id", "original-run"]),
     ] {
     let args = [
       "--mode", "local", "--config", "actql.config.json", "--config-root", "/operator",
