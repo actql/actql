@@ -27,7 +27,7 @@ type CheckFailure = Parameters<typeof presentCheckFailure>[0] & {input: CheckFai
 type ResolvedLocation =
   (Extract<WireCheckLocation, {kind: 'text'}> & {input: TextInput; text: string}) |
   (Extract<WireCheckLocation, {kind: 'structured'}> & {input: StructuredInput; text?: never});
-interface DocumentRecord {ticket: bigint; input?: TextInput; request?: TextRequest}
+interface DocumentRecord {ticket: bigint; input: TextInput | undefined; request: TextRequest | undefined}
 type Mutable<T> = {-readonly [K in keyof T]: T[K]};
 
 
@@ -226,7 +226,7 @@ export function resolveCheckLocation(outcome: CheckOutcome, location: WireCheckL
   }
   const bytes = utf8.encode((original as TextInput).text);
   const boundary = (at: number) => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
-    (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
+    (at === bytes.length || ((bytes[at] ?? 0) & 0xc0) !== 0x80);
   if (!boundary((location as Extract<WireCheckLocation, {kind: 'text'}>).start_byte) || !boundary((location as Extract<WireCheckLocation, {kind: 'text'}>).end_byte) ||
       (location as Extract<WireCheckLocation, {kind: 'text'}>).start_byte > (location as Extract<WireCheckLocation, {kind: 'text'}>).end_byte) return undefined;
   return Object.freeze({...location as Extract<WireCheckLocation, {kind: 'text'}>, input: original as TextInput,
@@ -320,7 +320,7 @@ export function createCheckDocumentSession(client: Pick<Client, 'check'>,
       }).sort((a, b) => a.start_byte - b.start_byte || a.end_byte - b.end_byte);
       const bytes = utf8.encode(record.input.text);
       const boundary = (at: number) => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
-        (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
+        (at === bytes.length || ((bytes[at] ?? 0) & 0xc0) !== 0x80);
       for (let i = 0; i < edits.length; i++) {
         const edit = edits[i], previous = edits[i - 1];
         if (!boundary(edit.start_byte) || !boundary(edit.end_byte) ||
@@ -382,10 +382,15 @@ export function createCheckDocumentSession(client: Pick<Client, 'check'>,
       let outcome: CheckOutcome, selected: Mutable<CheckFormatOptions>;
       try {
         outcome = observation?.outcome;
-        selected = {format: options?.format, maxBytes: options?.maxBytes,
-          currentInputs: options?.currentInputs, positionEncoding};
+        const format = options?.format, maxBytes = options?.maxBytes, currentInputs = options?.currentInputs;
+        selected = {positionEncoding,
+          ...(format === undefined ? {} : {format}), ...(maxBytes === undefined ? {} : {maxBytes}),
+          ...(currentInputs === undefined ? {} : {currentInputs})};
       } catch { return undefined; }
-      try { selected.locale = options?.locale; } catch { selected.locale = 'en'; }
+      try {
+        const locale = options?.locale;
+        if (locale !== undefined) selected.locale = locale;
+      } catch { selected.locale = 'en'; }
       // Read application options before deciding whether editor positions are current.
       const record = currentRecord(observation);
       if (!record) selected.currentInputs = [];

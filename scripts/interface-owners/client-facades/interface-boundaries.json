@@ -4423,7 +4423,7 @@
     {
       "module": "packages/sdk/check-presentation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6395d6f3803059266974c0a26955b65988ea99a7ff8e002bfe06ec55fead1240",
+      "sha256": "503e60875439030dea6d49be42b64f3283a9e559ed086aed9d1fed2326cc5121",
       "exports": [
         "explainCheckOutcome",
         "explainCheckReason",
@@ -5604,7 +5604,7 @@
     {
       "module": "packages/sdk/connection-string.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "31ba725fd2dc338d7726ee2f167223a8b9bc442ffc20dcd9cb90dac0ab63bc4a",
+      "sha256": "b1e5eb5f68e317893ec39d2211fe2e95d1fba1eaad849b264e57c90b367965e2",
       "exports": [
         "connectionStringCredential",
         "isLoopbackEndpointHostname",
@@ -8707,7 +8707,7 @@
     {
       "module": "packages/sdk/internal/check-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d7abac744553ae86ccf05c4f8fb5083046a9dbb45f09865a31bd508b26b8b92",
+      "sha256": "cf04fa6a69b66f0c178889356c2fd9a7af3d8c4927cabce0d47029bf58a2380a",
       "exports": [
         "bindCheckObservation",
         "createCheckDocumentSession",
@@ -9681,7 +9681,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5e348e6945218285e875ce8a19de44d13c96505e46593a013a23a345f22cad57",
+      "sha256": "97b40d4c68bcbc2e6e905623e2211bdb7b9ea91f612ebb37dc47c42f261e6ec3",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -13247,7 +13247,7 @@
     {
       "module": "packages/sdk/internal/private-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "115c3f6c27de3bb282cdca37f5482bccca3cd6f3a2521523f87ff27f3c2fcabc",
+      "sha256": "d37d21905eee24ca46b2c15daaefbfb7d802741c4eb5a6b6716d1be8653013cb",
       "exports": [
         "captureSourcePreparation",
         "freezeInput",
@@ -13376,13 +13376,6 @@
             "receipt",
             "originalBody",
             "publicationReceipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureSourcePreparation/methods/methods",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -13568,8 +13561,7 @@
             "captureSourcePreparation/init:captureSourceSnapshot/init:captureSourceSnapshot/init:captureSourceSnapshot",
             "captureSourcePreparation/init:finishSourceProducer/init:finishSourceProducer",
             "captureSourcePreparation/init:intentCid/init:intentCid",
-            "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid",
-            "captureSourcePreparation/methods/methods"
+            "captureSourcePreparation/init:intentCid/init:intentCid/init:intentCid"
           ],
           "exports": [
             "captureSourcePreparation",
@@ -14602,7 +14594,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cce2f56f0118e307d91f3bc18b86eecda920b34551ffef53350519feb1ceb95a",
+      "sha256": "e136e79754ddccfaece775631c94252083033bd6cc0d35ebc09fd020e9f3176c",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -15517,7 +15509,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d0ca74fa77ca4d0cf94040d75701fc42ef3f1283830f27efed1ea810f44f3e3f",
+      "sha256": "a30bb0bc1b460a43d8f9df069f08e44b23f527a0596284c49d006d37eec14db5",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -16317,7 +16309,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "2d7e2070e5f6376f6380970b000f4b0e77556610348d9998284c07e008589ee7",
+      "sha256": "205533401ecae07527ac5b7ecd5ab31832cfb8f079548ed6c3682cd022a118e9",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -16928,7 +16920,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5ea0c0212bee9b94763fb1e5b76bbd3807fa8883b2a541adf9eca191fcf035fd",
+      "sha256": "206d1073a7d0bcb9154df0d6e22b49d6a6f9f6c26bd23629507a34c01b6d498c",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -17232,20 +17224,6 @@
           "async": false
         },
         {
-          "name": "recoveryData/recoveryData/recoveryData",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "recoveryData/recoveryData/recoveryData#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "submissionNotSent/submissionNotSent",
           "parameters": [
             "context",
@@ -17407,8 +17385,6 @@
             "getSubmissionCheckObservation",
             "getSubmissionInput",
             "getSubmissionOutcome",
-            "recoveryData/recoveryData/recoveryData",
-            "recoveryData/recoveryData/recoveryData#2",
             "submissionNotSent/submissionNotSent",
             "submissionUnknown/submissionUnknown",
             "createSubmissionOperations/createSubmissionOperations#9"
@@ -18133,7 +18109,7 @@
     {
       "module": "packages/sdk/internal/transport.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "d40521d52565917d611d0401a8a1e8ce0d0a9aabe61cf430b859e229dcf72796",
+      "sha256": "cd8886e12e9d6d057bd3b62e7b9a8aa59665e5979c08c224caaf36b276579c0d",
       "exports": [
         "RuntimeHostPort",
         "createTransport",
@@ -18168,7 +18144,7 @@
             "isClosed: () => boolean",
             "directLoopback?: DirectLoopback"
           ],
-          "result": "{\n    exchange: (operation: ClientHostOperation, body?: Record<string, unknown>, signal?: AbortSignal, submitContext?: object, cancellationContext?: CancellationContext, sourceProducer?: SourceProducer) => Promise<unknown>;\n    responseValue: (response: unknown, maxWireBytes?: number) => Promise<unknown>;\n    sourcePreparation: Readonly<{\n        assertSourceSnapshotCurrent(receipt: unknown): void;\n        beforeResultRead(schemaOrOptions: unknown, options?: unknown): void;\n        assertResultReadCurrent(): void;\n        beforeSourceQuery: (format: unknown, text: unknown, parameters: unknown, options: unknown, originalConnection?: unknown) => unknown;\n        beforeSourceSnapshot: (kind: unknown, input: unknown, options: unknown, originalConnection?: unknown) => unknown;\n        captureSourceSnapshot: (receipt: unknown, value: unknown, snapshot: (value: unknown, observe?: NonNullable<Parameters<typeof import(\"@actql/client-wire\").snapshotClientRequest>[1]>) => unknown) => unknown;\n        bindSourceSnapshot: (receipt: unknown, originalFrozenBody: unknown) => unknown;\n        publishSourceSnapshot: (receipt: unknown, originalBody: unknown, publicationReceipt: unknown) => unknown;\n        bindSourceRequest: (receipt: unknown, originalBody: unknown, actualClonedRequest: unknown) => unknown;\n        intentCid: (receipt: unknown, originalBody: unknown) => string;\n        finishSourceProducer: (receipt: unknown, terminal: unknown) => unknown;\n    }> | undefined;\n    typedRows: boolean;\n    wasSubmissionDispatched: (context: object) => boolean;\n    wasCancellationDispatched: (context: CancellationContext) => boolean;\n}"
+          "result": "{\n    typedRows: boolean;\n    wasSubmissionDispatched: (context: object) => boolean;\n    wasCancellationDispatched: (context: CancellationContext) => boolean;\n    sourcePreparation?: Readonly<{\n        assertSourceSnapshotCurrent(receipt: unknown): void;\n        beforeResultRead(schemaOrOptions: unknown, options?: unknown): void;\n        assertResultReadCurrent(): void;\n        beforeSourceQuery: (format: unknown, text: unknown, parameters: unknown, options: unknown, originalConnection?: unknown) => unknown;\n        beforeSourceSnapshot: (kind: unknown, input: unknown, options: unknown, originalConnection?: unknown) => unknown;\n        captureSourceSnapshot: (receipt: unknown, value: unknown, snapshot: (value: unknown, observe?: NonNullable<Parameters<typeof import(\"@actql/client-wire\").snapshotClientRequest>[1]>) => unknown) => unknown;\n        bindSourceSnapshot: (receipt: unknown, originalFrozenBody: unknown) => unknown;\n        publishSourceSnapshot: (receipt: unknown, originalBody: unknown, publicationReceipt: unknown) => unknown;\n        bindSourceRequest: (receipt: unknown, originalBody: unknown, actualClonedRequest: unknown) => unknown;\n        intentCid: (receipt: unknown, originalBody: unknown) => string;\n        finishSourceProducer: (receipt: unknown, terminal: unknown) => unknown;\n    }> | undefined;\n    exchange: (operation: ClientHostOperation, body?: Record<string, unknown>, signal?: AbortSignal, submitContext?: object, cancellationContext?: CancellationContext, sourceProducer?: SourceProducer) => Promise<unknown>;\n    responseValue: (response: unknown, maxWireBytes?: number) => Promise<unknown>;\n}"
         },
         {
           "name": "createTransport/<call>",
@@ -18202,20 +18178,6 @@
         {
           "name": "createTransport/<call>#12",
           "parameters": [
-            "context: object"
-          ],
-          "result": "boolean"
-        },
-        {
-          "name": "createTransport/<call>#13",
-          "parameters": [
-            "context: CancellationContext"
-          ],
-          "result": "boolean"
-        },
-        {
-          "name": "createTransport/<call>#2",
-          "parameters": [
             "operation: ClientHostOperation",
             "body?: Record<string, unknown>",
             "signal?: AbortSignal",
@@ -18226,12 +18188,26 @@
           "result": "Promise<unknown>"
         },
         {
-          "name": "createTransport/<call>#3",
+          "name": "createTransport/<call>#13",
           "parameters": [
             "response: unknown",
             "maxWireBytes?: number"
           ],
           "result": "Promise<unknown>"
+        },
+        {
+          "name": "createTransport/<call>#2",
+          "parameters": [
+            "context: object"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "createTransport/<call>#3",
+          "parameters": [
+            "context: CancellationContext"
+          ],
+          "result": "boolean"
         },
         {
           "name": "createTransport/<call>#4",
@@ -18480,7 +18456,7 @@
     {
       "module": "packages/sdk/internal/transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5ef42a7640088b5b78e522bf86219cdc59633d85cf46d8594d4b9de69dbc0291",
+      "sha256": "0f3f5ef6eb74ddcec3b9e739e7c4f5b859d0c004a58601ef7dbfd6f1307f5add",
       "exports": [
         "createTransport",
         "loadLoopbackTransport"
@@ -19196,7 +19172,7 @@
     {
       "module": "packages/sdk/operation-formats.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "194c64120363fa58d561c21323d6655f817242890f5791b9b011d1618666580c",
+      "sha256": "f9f47a6accc90b53b302f59df7c23edfcae1af0eeda5160f8ea9547306ea42ae",
       "exports": [
         "formatOperationExplanation"
       ],
@@ -19348,7 +19324,7 @@
     {
       "module": "packages/sdk/operation-presentation.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "f9efc5d137dc19916a014f669fec2bb2dd88895c1da0cabffda3f50ad9df21cf",
+      "sha256": "947feafde96636eff3f81ab45d65aeef82dd7436e21047579ee774099531fa37",
       "exports": [
         "getOperationPresentationInfo",
         "localizeOperation",
@@ -19427,9 +19403,9 @@
           "parameters": [
             "ref: RunReference",
             "operation: RunObservationFailureExplanation[\"operation\"]",
-            "problem: Exclude<RunObservationFailureExplanation[\"problem\"], \"observation_unavailable\">"
+            "problem: RejectedRunObservation[\"problem\"]"
           ],
-          "result": "{\n    readonly kind: \"uninterpretable\" | \"protocol_failure\";\n    readonly problem: \"contract_mismatch\" | \"malformed_response\" | \"unknown_state\" | \"stale_observation\";\n    readonly operation: \"status\" | \"reconcile\" | \"wait\";\n    readonly summary: string;\n    readonly hint: \"Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.\";\n    readonly next: {\n        readonly operation: \"status\";\n        readonly ref: {\n            readonly namespaceId: string;\n            readonly authorityScopeCid: string;\n            readonly runDefinitionCid: string;\n        };\n    };\n}"
+          "result": "RejectedRunObservation"
         },
         {
           "name": "<call>#16",
@@ -19470,7 +19446,7 @@
             "answer: DeliveryAttemptLookup",
             "next: ReadFailureExplanation[\"next\"]"
           ],
-          "result": "{\n    readonly next: Readonly<{\n        operation: \"deliveryAttempt\";\n        ref: Readonly<RunReference>;\n        resultName: string;\n        attemptId: string;\n        lookupContext: Readonly<{\n            endpoint: string;\n            scopeRef: string;\n        }>;\n    }>;\n    readonly hostReleaseReceiptCid?: string | undefined;\n    readonly deliveredSha256?: string | undefined;\n    readonly cleanup?: \"unresolved\" | undefined;\n    readonly possibleUnconfirmedMaxBytes?: number | undefined;\n    readonly recordSequence?: number | undefined;\n    readonly hostConfirmedByteCount?: number | undefined;\n    readonly exposure?: \"exact\" | \"unknown_additional\" | undefined;\n    readonly observation: string;\n    readonly summary: string;\n    readonly hint: \"Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.\";\n}"
+          "result": "{\n    readonly next: Readonly<{\n        operation: \"deliveryAttempt\";\n        ref: Readonly<RunReference>;\n        resultName: string;\n        attemptId: string;\n        lookupContext: Readonly<{\n            endpoint: string;\n            scopeRef: string;\n        }>;\n    }>;\n    readonly hostReleaseReceiptCid?: string | undefined;\n    readonly deliveredSha256?: string | undefined;\n    readonly cleanup?: \"unresolved\" | undefined;\n    readonly possibleUnconfirmedMaxBytes?: number | undefined;\n    readonly recordSequence?: number | undefined;\n    readonly hostConfirmedByteCount?: number | undefined;\n    readonly exposure?: \"exact\" | \"unknown_additional\" | undefined;\n    readonly observation: \"lookup_unresolved\" | \"attempt_recorded\" | \"delivery_streaming\" | \"host_delivery_succeeded\" | \"delivery_failed\" | \"delivery_cancelled\";\n    readonly summary: string;\n    readonly hint: \"Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.\";\n}"
         },
         {
           "name": "<call>#5",
@@ -19683,7 +19659,7 @@
     {
       "module": "packages/sdk/operation-presentation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dba44833e67a0327071c3ec7a5857a6e16c904f1a5d465bd80069d87ebee1071",
+      "sha256": "79b5ffc405cb7f2c18168913630c219168df5a8d33ba02f1dc4062501d6d70c3",
       "exports": [
         "getOperationPresentationInfo",
         "localizeOperation",
@@ -20247,7 +20223,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "146972b638b9cc0eba85a4526003b5197bdf9151460f2a27cee40e1e89574743",
+      "sha256": "e20cf9be8243d871ba52ebb6c348556bdc098e8c5acabd14ef46db47c66498aa",
       "exports": [
         "sourceQuery"
       ],

@@ -26,14 +26,14 @@ import type {captureSourcePreparation} from './private-source-preparation.mjs';
 import type {createClientLifecycle} from './client-lifecycle.mjs';
 
 type SourcePreparation = NonNullable<ReturnType<typeof captureSourcePreparation>>;
-interface Producer {receipt: unknown; body?: CapturedBody}
+interface Producer {receipt: unknown; body: CapturedBody | undefined}
 type CallOptions = Partial<SubmissionOptions> & {format?: ClientSourceFormat; parameterDeclarations?: Record<string, unknown>};
 // These are unchecked snapshot fields until the original guards below run.
 interface CapturedBody {
   kind: 'program' | 'aql'; input: Record<string, unknown> & {format?: ClientSourceFormat}; parameters: unknown;
   submissionRef: SubmissionReference; attemptRef: WireOperationAttemptRef & {operation: 'submit'};
   requestName?: string; stopBefore?: 'commit'; readOnly?: true; executionProfile?: 'debug';
-  unresolvedHistory?: SubmissionOptions['unresolvedHistory'];
+  unresolvedHistory?: NonNullable<SubmissionOptions['unresolvedHistory']>;
 }
 type LookupInput = Parameters<typeof submissionLookupExplanation>[1];
 type SubmissionContext = Parameters<typeof projectSubmissionExplanation>[2];
@@ -175,10 +175,14 @@ const recoveryData = (value: unknown, keys: readonly string[]): Record<string, u
   if (value === null || typeof value !== 'object' || Array.isArray(value) ||
       ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return undefined;
   const fields = Object.getOwnPropertyDescriptors(value);
-  if (Reflect.ownKeys(fields).length !== keys.length ||
-      keys.some(key => !Object.hasOwn(fields, key) ||
-        !Object.hasOwn(fields[key], 'value'))) return undefined;
-  return Object.fromEntries(keys.map(key => [key, fields[key].value]));
+  if (Reflect.ownKeys(fields).length !== keys.length) return undefined;
+  const entries: [string, unknown][] = [];
+  for (const key of keys) {
+    const field = Object.hasOwn(fields, key) ? fields[key] : undefined;
+    if (field === undefined || !Object.hasOwn(field, 'value')) return undefined;
+    entries.push([key, field.value]);
+  }
+  return Object.fromEntries(entries);
 };
 
 const requestRecoveryTarget = (value: unknown) => {
@@ -486,17 +490,16 @@ export function createSubmissionOperations(selected: SelectedConnection, confirm
     // Preserve omission at the actual before-copy boundary. This SDK-owned
     // default belongs after the selected original admission, not before it.
     if (options === undefined) options = {};
-    if (typeof text !== 'string' || !text ||
-        !clientSourceFormats.includes(options.format as ClientSourceFormat)) {
+    const format = typeof text === 'string' && text ? options.format : undefined;
+    if (format === undefined || !clientSourceFormats.includes(format)) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
     }
-    if (options.parameterDeclarations !== undefined &&
-        !['aql', 'aql-text', 'sql'].includes(options.format as string)) {
+    const parameterDeclarations = options.parameterDeclarations;
+    if (parameterDeclarations !== undefined && !['aql', 'aql-text', 'sql'].includes(format)) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
     }
-    return submit('aql', {text, format: options.format,
-      ...(options.parameterDeclarations === undefined ? {} :
-        {parameterDeclarations: options.parameterDeclarations})}, options, sourceProducer);
+    return submit('aql', {text, format,
+      ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})}, options, sourceProducer);
   };
   const startSource: Client['startSource'] = (text, options) => withSourceProducer('aql', text, options,
     producer => submitSource(text, options, producer));
