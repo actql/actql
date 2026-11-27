@@ -150,7 +150,7 @@ export function createTransport(selected: Selected, port: RuntimeHostPort | unde
           ...(traceparent === undefined ? {} : {traceparent}),
           'content-type': 'application/json'},
         body: payload,
-        signal,
+        ...(signal === undefined ? {} : {signal}),
         redirect: 'error',
       });
     } catch (cause) {
@@ -185,7 +185,8 @@ export function createTransport(selected: Selected, port: RuntimeHostPort | unde
       throw cause;
     }
   };
-  return {exchange, responseValue, sourcePreparation, typedRows: port !== undefined,
+  return {exchange, responseValue,
+    ...(sourcePreparation === undefined ? {} : {sourcePreparation}), typedRows: port !== undefined,
     wasSubmissionDispatched: (context: object) => dispatchedSubmissions.has(context),
     wasCancellationDispatched: (context: CancellationContext) => dispatchedCancellations.has(context)};
 }

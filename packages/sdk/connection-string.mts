@@ -30,6 +30,7 @@ export function parseConnectionString(input: unknown): ConnectionDescription {
   const match = /^actql:\/\/([^/?#]+)\/([^/?#]+)(?:\?([^#]*))?$/iu.exec(input);
   if (match === null) invalid();
   const [, authority, encodedWorkspace, query] = match;
+  if (authority === undefined || encodedWorkspace === undefined) invalid();
   // One explicit opt-in. Unknown, repeated, encoded and empty query fields
   // cannot silently select a different transport.
   if (query !== undefined && query !== 'transport=http') invalid();
@@ -62,8 +63,10 @@ export function parseConnectionString(input: unknown): ConnectionDescription {
         url.search || url.hash || !url.hostname) invalid();
     if (protocol === 'http:') {
       if (url.port === '0') invalid();
-      const hostname = target.startsWith('[')
-        ? target.slice(0, target.indexOf(']') + 1) : target.split(':')[0];
+      const portSeparator = target.indexOf(':');
+      const hostnameEnd = target.startsWith('[')
+        ? target.indexOf(']') + 1 : portSeparator === -1 ? target.length : portSeparator;
+      const hostname = target.slice(0, hostnameEnd);
       if (hostname.toLowerCase() === 'localhost') {
         // Pin localhost before Fetch. Hosts files, DNS or family fallback
         // cannot redirect an unencrypted bearer credential off loopback.

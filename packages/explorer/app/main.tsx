@@ -87,20 +87,22 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
     const {meaning} = step.explanation;
     const inputNames = inputs?.map(input=>input.resource).join(', ');
     const inputDetail = inputNames ? `${words.input} · ${inputNames}` : undefined;
+    const inputLabel = inputDetail === undefined ? {} : {inputs: inputDetail};
     if (meaning.kind === 'join') {
       const key = meaning.keys.find(({left, right})=>!left.startsWith('aql_') && !right.startsWith('aql_'));
       const name = words.join;
       labels.set(step.stepId, {kind: words.combine, title: key ?
         `${name} · ${key.left} = ${key.right}` :
-        meaning.keys.length ? words.joinOnCheckedKeys : name, inputs: inputDetail});
+        meaning.keys.length ? words.joinOnCheckedKeys : name, ...inputLabel});
     } else if (models?.length) {
       labels.set(step.stepId, {kind: words.model, title: words.ask(models.join(', ')),
-        inputs: inputDetail});
+        ...inputLabel});
     } else if (inputs?.length && inputDetail) {
       // A linked declaration names the input port; it does not make this
       // logical occurrence an actual Source attempt or another Graph node.
       const systems = new Set(inputs.map(input=>input.connector));
-      labels.set(step.stepId, {kind: systems.size === 1 ? inputs[0].connector : words.inputs,
+      const [connector] = systems;
+      labels.set(step.stepId, {kind: systems.size === 1 && connector !== undefined ? connector : words.inputs,
         title: inputDetail, sourceInput: true});
     } else if (outputs?.length) {
       labels.set(step.stepId, {kind: words.result, title: `${words.return} ${outputs.join(', ')}`});
@@ -116,8 +118,8 @@ function graphStepLabels(story: ExplanationStoryModel | undefined, context: Stor
     const reads = context.filter(({origin}) => origin.kind === 'source');
     const source = storyProjections(story, reads, stageResultLinks);
     for (const [index, {step}] of source) {
-      const {origin} = reads[index];
-      if (origin.kind !== 'source') continue;
+      const origin = reads[index]?.origin;
+      if (origin?.kind !== 'source') continue;
       const {resource, connector} = origin.source_view;
       labels.set(step.stepId, {kind: connector, title: words.readResource(resource), sourceInput: true});
     }
@@ -137,7 +139,7 @@ function stepState(stepId: string, saved: boolean, boundary?: {stepId: string; s
 }
 
 function StoryCard({ordinal, label, title, detail, system, state, ja, open, selected, onToggle, children}: {
-  ordinal: number; label: string; title: string; detail?: string; system?: string; state?: StepState;
+  ordinal: number; label: string; title: string; detail?: string | undefined; system?: string | undefined; state?: StepState | undefined;
   ja: boolean; open: boolean; selected?: boolean; onToggle(): void; children: ReactNode;
 }) {
   return <li className="story-row" data-state={state}>
@@ -170,8 +172,8 @@ function planNodeTitle(node: PlanNode, locale: 'en' | 'ja') {
 }
 
 function PlanSteps({map, boundary, selection, select, graph, locale, pause, readSample, saved}: {
-  map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;
-  select(id: string): void; graph: boolean; locale: 'en' | 'ja'; pause?: StoryNextPause; readSample?: SampleRead; saved: boolean;
+  map: PlanReadModel; boundary?: {stepId: string; state: StepState} | undefined; selection?: string | undefined;
+  select(id: string): void; graph: boolean; locale: 'en' | 'ja'; pause?: StoryNextPause | undefined; readSample?: SampleRead | undefined; saved: boolean;
 }) {
   const [collapsed, setCollapsed] = useState<string>();
   const steps = useMemo(() => new Map(map.nodes.map(node => [node.id,
@@ -210,7 +212,8 @@ function PlanSteps({map, boundary, selection, select, graph, locale, pause, read
 }
 
 function StepOrigin({step, label, select, folded = false, state, ja}: {
-  step: Step; label?: string; select?(): void; folded?: boolean; state?: StepState; ja: boolean;
+  step: Step; label?: string | undefined; select?(): void; folded?: boolean;
+  state?: StepState | undefined; ja: boolean;
 }) {
   const meaning = step.explanation.meaning;
   const words = explorerCopy(ja);
@@ -315,7 +318,7 @@ function nextSampleProducer(steps: ReadonlyMap<string, SampleStep>, input: Step[
 function NextInputs({step, plan, steps, pause, readSample, locale}: {
   locale: 'en' | 'ja';
   step: SampleStep; plan: SamplePlan; steps: ReadonlyMap<string, SampleStep>;
-  pause: StoryNextPause; readSample?: SampleRead;
+  pause: StoryNextPause; readSample?: SampleRead | undefined;
 }) {
   const words = explorerCopy(locale);
   const inputs = useMemo(()=>step.ports.filter(port=>port.role === 'input')
@@ -367,7 +370,7 @@ function NextInputs({step, plan, steps, pause, readSample, locale}: {
 function StepData({step, plan, expectedColumns, saved, readSample, locale}: {
   locale: 'en' | 'ja';
   step: SampleStep; plan: SamplePlan; expectedColumns?(port: Step['ports'][number]): readonly string[] | undefined;
-  saved: boolean; readSample?: SampleRead;
+  saved: boolean; readSample?: SampleRead | undefined;
 }) {
   const words = explorerCopy(locale);
   const ports = storySamplePorts(step);
@@ -430,15 +433,17 @@ function storyProjections(story: ExplanationStoryModel, sources: StoryContext,
         !meaning.fields.length || !meaning.fields.every(({input, output}) => input === output)) return;
     const inputs = step.ports.filter(port => port.role === 'input');
     const outputs = step.ports.filter(port => port.role === 'output');
-    if (inputs.length === 1 && outputs.length === 1 && inputs[0].carrier === 'relation' &&
-        outputs[0].carrier === 'relation') return {step, columns: meaning.fields.map(field => field.output),
-      input: inputs[0], output: outputs[0]};
+    const [input] = inputs, [output] = outputs;
+    if (inputs.length === 1 && outputs.length === 1 && input?.carrier === 'relation' &&
+        output?.carrier === 'relation') return {step, columns: meaning.fields.map(field => field.output), input, output};
     return undefined;
   };
   for (const [index, {origin}] of sources.entries()) {
     if (!imported || origin.kind !== 'source' || origin.link_state !== 'linked' ||
         origin.consuming_ports.length !== 1) continue;
-    const link = origin.consuming_ports[0], selection = kept(steps.get(link.step_id));
+    const [link] = origin.consuming_ports;
+    if (link === undefined) continue;
+    const selection = kept(steps.get(link.step_id));
     const locator = selection?.input.source;
     if (!imported.has(link.port_id) && selection?.input.port_id === link.port_id && locator?.kind === 'stage_input' &&
         locator.stage_ordinal === origin.stage_input.stage_ordinal &&
@@ -526,10 +531,10 @@ function storyGroupLabel(group: StoryGroup, ja: boolean): string {
 
 function StorySteps({story, groups, sourceColumns, model, saved, boundary, selectedStep, selectStep, graph, labels, pause, readSample}: {
   story: ExplanationStoryModel; groups: readonly StoryGroup[]; sourceColumns: ReadonlyMap<number, KeptColumns>;
-  model?: PlanReadModel;
-  saved: boolean; boundary?: {stepId: string; state: StepState}; selectedStep?: string;
+  model?: PlanReadModel | undefined;
+  saved: boolean; boundary?: {stepId: string; state: StepState} | undefined; selectedStep?: string | undefined;
   selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;
-  pause?: StoryNextPause; readSample?: SampleRead;
+  pause?: StoryNextPause | undefined; readSample?: SampleRead | undefined;
 }) {
   const [opened, setOpened] = useState<Record<string, boolean>>({});
   const originalSteps = useMemo(() => new Map(story.occurrences.map(step => [step.stepId, step])), [story]);
@@ -609,7 +614,7 @@ function StorySteps({story, groups, sourceColumns, model, saved, boundary, selec
             const originalLabel = labels.get(member.stepId)?.title;
             return <StepOrigin key={member.stepId} step={member} label={originalLabel} folded={folded} ja={ja}
               state={member.stepId === boundary?.stepId ? boundary.state : undefined}
-              select={group.members.length > 1 ? () => selectStep(member.stepId) : undefined}/>;
+              {...(group.members.length > 1 ? {select: () => selectStep(member.stepId)} : {})}/>;
           })}
           {selectedGroup && model && <PlanAdvanced model={model} ja={ja}/>}
         </StoryCard>;
@@ -682,7 +687,7 @@ function App() {
   const [resumes, saveResumes] = useState<ReadonlyMap<string, ResumeAttempt>>(new Map());
   const preparingResume = useRef(false);
   const [start, showStart] = useState<{ref: WireSubmissionRef;
-    state: keyof ExplorerCopy['startStatus']; executionProfile?: 'debug'}>();
+    state: keyof ExplorerCopy['startStatus']; executionProfile?: 'debug' | undefined}>();
   const starting = useRef(false);
   const [cancellationEnabled, enableCancellation] = useState(false);
   const [stops, showStops] = useState<ReadonlyMap<string, StopAttempt>>(new Map());
@@ -1035,8 +1040,9 @@ function App() {
     const groups = storyCardGroups(story, context, source, map?.stageResultLinks);
     const graphGroups = groups.map(card => {
       const origin = card.item?.origin;
-      return {id: card.primary?.stepId ?? card.id, members: card.members.map(step => step.stepId),
-        representative: card.primary?.stepId,
+      const representative = card.primary?.stepId;
+      return {id: representative ?? card.id, members: card.members.map(step => step.stepId),
+        ...(representative === undefined ? {} : {representative}),
         ...(origin?.kind === 'source' && origin.link_state === 'linked' ? {source: {
           stageOrdinal: origin.stage_input.stage_ordinal, inputOrdinal: origin.stage_input.input_port_ordinal,
           inputs: origin.consuming_ports.map(({step_id, port_id}) => ({stepId: step_id, portId: port_id})),
@@ -1347,7 +1353,9 @@ function App() {
           </details>}
         </div>}
         {graph && map && <PlanExplorer model={map} initialView="flow" scopeKey={scopeKey}
-          workspace={{stepId: selection, select: setSelection, groups: presentation?.graphGroups, locale,
+          workspace={{select: setSelection, locale,
+            ...(selection === undefined ? {} : {stepId: selection}),
+            ...(presentation === undefined ? {} : {groups: presentation.graphGroups}),
             label: id => {
               const group = presentation?.groups.find(card => (card.primary?.stepId ?? card.id) === id);
               const effect = group?.item?.origin.kind === 'effect_set' ? declaredWrite(group.item.origin) : undefined;
@@ -1355,15 +1363,20 @@ function App() {
                 kind: words.declaredWrite,
                 title: effect.target && effect.update ? words.updateTarget(effect.target)
                   : effect.target ?? words.declaredChanges,
-                effectDeclaration: {fields: effect.fields?.join(words.listJoin),
+                effectDeclaration: {
+                  ...(effect.fields === undefined ? {} : {fields: effect.fields.join(words.listJoin)}),
                   missingProducer: words.producerLinkNotProjected},
               };
+              const state = stepStateLabel(group && story
+                ? group.members.some(member => member.stepId === boundary?.stepId)
+                  ? boundary?.state : selectedRef ? undefined : 'Planned'
+                : stepState(id, !!selectedRef, boundary), ja);
+              const status = state === undefined ? {} : {state};
               return group && story ? {
-                state: stepStateLabel(group.members.some(member => member.stepId === boundary?.stepId)
-                  ? boundary?.state : selectedRef ? undefined : 'Planned', ja),
+                ...status,
                 kind: storyGroupLabel(group, ja), title: storyGroupTitle(group, graphLabels, ja),
                 sourceInput: group.kind === 'source',
-              } : {state: stepStateLabel(stepState(id, !!selectedRef, boundary), ja), ...graphLabels.get(id)};
+              } : {...status, ...graphLabels.get(id)};
             }}}/>}
         {planOnly && <PlanSteps key={stepScope} map={planOnly} boundary={boundary} selection={selection}
           select={setSelection} graph={graph} locale={locale} pause={nextPause} readSample={sample} saved={!!selectedRef}/>}

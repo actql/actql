@@ -2,12 +2,13 @@
 // prepack and cannot qualify a normal package, runtime or outside-checkout use.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import ts from 'typescript';
+import {prepareExplorerXYFlowTypes} from './prepare-explorer-xyflow-types.mjs';
 
 test('SDK npm file selection keeps executable emit and declarations without maintained TS sources', async t => {
   const cache = await mkdtemp(join(tmpdir(), 'actql-ts-pack-selection-'));
@@ -56,6 +57,8 @@ test('required client typecheck includes every tracked SDK and Wire type fixture
   assert.deepEqual(config.errors, []);
   assert.equal(config.options.strict, true);
   assert.equal(config.options.noEmit, true);
+  assert.equal(config.options.noUncheckedIndexedAccess, true);
+  assert.equal(config.options.exactOptionalPropertyTypes, true);
   const tracked = spawnSync('git', ['ls-files', '-z', '--', 'packages/sdk', 'packages/client-wire'], {
     cwd: root, encoding: 'utf8', timeout: 5_000,
   });
@@ -77,14 +80,15 @@ test('required Explorer typechecks use separate Node and browser compiler graphs
       'packages/explorer-ui/plan-explorer.tsx', 'packages/explorer-ui/run-inspector.tsx',
       'packages/explorer-ui/flow-layout-worker.mts', 'packages/explorer-ui/flow-model.mts',
       'packages/explorer-ui/read-model.typecheck.mts', 'packages/explorer-ui/run-observation.typecheck.mts',
-      'packages/explorer-ui/checkpoint-review.typecheck.mts',
+      'packages/explorer-ui/checkpoint-review.typecheck.mts', 'packages/explorer-ui/xyflow-node.typecheck.mts',
     ]},
     {file: 'packages/explorer/app/tsconfig.json', browser: true, entries: [
       'packages/explorer/app/main.tsx', 'packages/explorer/app/story-card-groups.mts',
     ]},
   ];
   const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as {scripts: Record<string, unknown>};
-  assert.equal(manifest.scripts['check:explorer-types'], projects.map(({file}) => `tsc --project ${file}`).join(' && '));
+  assert.equal(manifest.scripts['check:explorer-types'],
+    ['node scripts/prepare-explorer-xyflow-types.mjs', ...projects.map(({file}) => `tsc --project ${file}`)].join(' && '));
   for (const {file, browser, entries} of projects) {
     const config = ts.getParsedCommandLineOfConfigFile(join(root, file), {}, {
       ...ts.sys,
@@ -96,6 +100,8 @@ test('required Explorer typechecks use separate Node and browser compiler graphs
     assert.deepEqual(config.errors, []);
     const {options, fileNames} = config;
     assert.equal(options.skipLibCheck, false, file);
+    assert.equal(options.noUncheckedIndexedAccess, true, file);
+    assert.equal(options.exactOptionalPropertyTypes, true, file);
     for (const option of ['strict', 'noEmit', 'isolatedModules', 'erasableSyntaxOnly', 'noImplicitOverride',
       'noImplicitReturns', 'noFallthroughCasesInSwitch'] as const) {
       assert.equal(options[option], true, `${file} must enable ${option}`);
@@ -106,4 +112,48 @@ test('required Explorer typechecks use separate Node and browser compiler graphs
     assert.equal(graph.has(resolve(root, 'packages/sdk/loopback-http.mts')), !browser, file);
     assert.equal([...graph].some(path => /(?:^|[/\\])@types[/\\]node[/\\]/u.test(path)), !browser, file);
   }
+});
+
+test('Explorer XYFlow preparation changes only the pinned declaration members', async t => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const temporary = await mkdtemp(join(tmpdir(), 'actql-xyflow-exact-types-'));
+  t.after(() => rm(temporary, {recursive: true}));
+  const installation = 'node_modules/@xyflow/system';
+  const lockPath = join(temporary, 'package-lock.json');
+  const lock = await readFile(join(root, 'package-lock.json'), 'utf8');
+  const manifestPath = join(installation, 'package.json');
+  const manifest = await readFile(join(root, manifestPath), 'utf8');
+  const esm = join(installation, 'dist/esm/types/nodes.d.ts');
+  const umd = join(installation, 'dist/umd/types/nodes.d.ts');
+  const raw = "= Omit<NodeType, 'measured'> & {";
+  const fixed = "= Omit<NodeType, 'measured'> & Omit<NodeBase, 'measured'> & {";
+  const original = (await readFile(join(root, esm), 'utf8')).replace(fixed, raw);
+  assert.notEqual(original.replace(raw, fixed), original);
+  for (const member of [esm, umd]) {
+    await mkdir(dirname(join(temporary, member)), {recursive: true});
+    await writeFile(join(temporary, member), original);
+  }
+  await writeFile(join(temporary, manifestPath), manifest);
+  await writeFile(lockPath, lock.replaceAll('0.0.83', '0.0.84'));
+  assert.throws(() => prepareExplorerXYFlowTypes(temporary), /Unexpected XYFlow system dependency lock/u);
+  await writeFile(lockPath, lock.replace(/sha512-a\/\/eDjez3/u, 'sha512-x//edjez3'));
+  assert.throws(() => prepareExplorerXYFlowTypes(temporary), /Unexpected XYFlow system dependency lock/u);
+  await writeFile(lockPath, lock);
+  await writeFile(join(temporary, manifestPath), manifest.replace('0.0.83', '0.0.82'));
+  assert.throws(() => prepareExplorerXYFlowTypes(temporary), /Unexpected installed XYFlow system package/u);
+  await writeFile(join(temporary, manifestPath), manifest);
+  await writeFile(join(temporary, umd), original + '\n');
+  assert.throws(() => prepareExplorerXYFlowTypes(temporary), /Unexpected XYFlow declaration bytes/u);
+  assert.equal(await readFile(join(temporary, esm), 'utf8'), original);
+  await writeFile(join(temporary, umd), original);
+  const runtime = join(temporary, installation, 'dist/esm/index.js');
+  await writeFile(runtime, 'export {};\n');
+  prepareExplorerXYFlowTypes(temporary);
+  prepareExplorerXYFlowTypes(temporary);
+  for (const member of [esm, umd]) {
+    assert.equal(await readFile(join(temporary, member), 'utf8'), original.replace(raw, fixed));
+  }
+  assert.equal(await readFile(runtime, 'utf8'), 'export {};\n');
+  assert.equal(await readFile(join(temporary, manifestPath), 'utf8'), manifest);
+  assert.equal(await readFile(lockPath, 'utf8'), lock);
 });

@@ -2,6 +2,8 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "paths": {
       "@actql/sdk": ["./packages/sdk/index.mts"],
       "@actql/sdk/host-port": ["./packages/sdk/host-port.mts"]

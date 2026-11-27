@@ -203,11 +203,13 @@ export function createExecutionFactory(selected: SelectedConnection & {redactCre
       }
     };
 
+    const {typedRows, sourcePreparation} = transport;
     const result = createResultFactory({ref, limits: confirmed.limits,
       lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
-      redactErrors: selected.redactCredentialErrors === true, typedRows: transport.typedRows,
-      beforeResultRead: transport.sourcePreparation?.beforeResultRead,
-      assertResultReadCurrent: transport.sourcePreparation?.assertResultReadCurrent},
+      redactErrors: selected.redactCredentialErrors === true,
+      ...(typedRows === undefined ? {} : {typedRows}),
+      beforeResultRead: sourcePreparation?.beforeResultRead,
+      assertResultReadCurrent: sourcePreparation?.assertResultReadCurrent},
     {runRequest, responseValue}, lifecycle, () => handle);
     async function admitControlOperationReply(response: unknown, operationRef: WireControlOperationRef,
       input: ControlReadLimits, signal?: AbortSignal) {
