@@ -18082,7 +18082,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               },
               {
@@ -18257,7 +18257,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               },
               {
@@ -18481,7 +18481,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               },
               {
@@ -18638,7 +18638,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               },
               {
@@ -18980,7 +18980,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               }
             ]
@@ -19197,7 +19197,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               }
             ]
@@ -19590,7 +19590,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               }
             ]

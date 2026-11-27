@@ -9431,7 +9431,7 @@
                 "anchor": "valid signatures for another original Summary refuse"
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
@@ -21934,7 +21934,7 @@
                 "anchor": "valid signatures for another original Summary refuse"
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
