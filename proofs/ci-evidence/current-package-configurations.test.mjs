@@ -384,10 +384,21 @@ test('current Local JS review binds task authorization, retained Request imports
   assert.equal(retainedRequest, historical.replace(utf8 + debug, debug).replace(json, utf8 + json + string),
     'The retained Request stage changes only the two ordinary imports');
   const local = taskAuthorityReview.configurations.find(config => config.path === path);
+  const authority = gitTree(root, taskAuthorityReview.head).read(path).toString();
+  assert.equal(hash(authority), local.sha256);
   assert.equal(local.addedImport, '  "actql/actql/execution_authorization" @authorization,\n');
-  assert.equal(body.split(local.addedImport).length, 2);
-  assert.equal(body.replace(local.addedImport, ''), retainedRequest,
+  assert.equal(authority.split(local.addedImport).length, 2);
+  assert.equal(authority.replace(local.addedImport, ''), retainedRequest,
     'Task authority adds one import and preserves every option and target selector');
+  execFileSync('git', ['merge-base', '--is-ancestor', entry.revision, 'HEAD'], {cwd: root});
+  const terminalReview = gitTree(root, entry.revision);
+  const terminalFixture = 'terminal_serialization_sql_parity_js_wbtest.mbt';
+  const terminalSelector = `    "${terminalFixture}": [ "js" ],\n`;
+  assert.equal(body.split(terminalSelector).length, 2);
+  assert.equal(body.replace(terminalSelector, ''), authority,
+    'Terminal SQL parity adds only its JS selector');
+  assert.equal(body, terminalReview.read(path).toString());
+  assert.equal(currentPackageConfigurationReviewFor(request(path, local.sha256)), null);
   assert.equal(hash(retainedRequest), local.previous.sha256);
   assert.equal(currentPackageConfigurationReviewFor(request(path, local.previous.sha256)), null);
   assert.deepEqual(packageImports(body).imports,
@@ -401,15 +412,18 @@ test('current Local JS review binds task authorization, retained Request imports
   assert(selected.paths.includes(intake));
   assert.equal(currentTree.entries.get(intake)?.mode, '100644');
   assert.deepEqual(currentTree.read(intake), intakeTree.read(intake));
-  for (const selector of review.addedSelectors) {
-    const source = 'src/client_local_host/' + selector.file;
+  const terminalPath = 'src/client_local_host/' + terminalFixture;
+  assert.deepEqual(currentTree.read(terminalPath), terminalReview.read(terminalPath));
+  const fixtures = [...review.addedSelectors.map(selector => selector.file), terminalFixture];
+  for (const fixture of fixtures) {
+    const source = 'src/client_local_host/' + fixture;
     assert(selected.paths.includes(source));
     assert.equal(currentTree.entries.get(source)?.kind, 'blob');
     assert.equal(currentTree.entries.get(source)?.mode, '100644');
   }
   for (const changed of [
-    ...review.addedSelectors.flatMap(selector => {
-      const original = `    "${selector.file}": [ "js" ],\n`;
+    ...fixtures.flatMap(fixture => {
+      const original = `    "${fixture}": [ "js" ],\n`;
       return [body.replace(original, ''), body.replace(original, original.replace('"js"', '"native"'))];
     }),
     body + '\noptions(pre_build: "unreviewed-hook")\n',
@@ -442,9 +456,12 @@ test('task authority preserves reviewed old manifests and admits only the exact 
   const original = gitTree(root, review.previousRevision);
   assert.deepEqual(review.configurations.map(config => config.path), taskAuthorityPaths);
   for (const config of review.configurations) {
-    assert.equal(currentPackageConfigurations[config.path].revision, review.head);
+    const selected = config.fixture ? currentTree : gitTree(root, review.head);
+    if (config.fixture) {
+      assert.equal(currentPackageConfigurations[config.path].revision, review.head);
+    }
     for (const [snapshot, expected, path] of [[original, config.previous, config.path],
-      [currentTree, config, config.path]]) {
+      [selected, config, config.path]]) {
       assert.equal(snapshot.entries.get(path)?.mode, expected.mode);
       assert.equal(snapshot.read(path).length, expected.bytes);
       assert.equal(hash(snapshot.read(path)), expected.sha256);
