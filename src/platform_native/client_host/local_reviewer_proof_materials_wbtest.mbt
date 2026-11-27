@@ -120,8 +120,10 @@ test "Reviewer proof snapshot preserves cancellation revision and uncertain Effe
     artifact.checkpoint.run_definition_cid().unwrap(),
     artifact.checkpoint_cid,
   ).unwrap()
-  // Existing journal mutation only, preserving the original artifact and no
-  // signature/admission/dispatch. This does not pretend cancellation settled.
+  let before_cancel = host.journal.retained(request).unwrap().unwrap()
+  host.journal.accept_fixture_cancellation(before_cancel)
+  // Independently stage the uncertain Effect metadata on the same Run.
+  // The accepted cancellation is already retained with its original receipt.
   host.journal
   .transaction(() => {
     let record = host.journal.retained(request).unwrap().unwrap()
@@ -129,7 +131,6 @@ test "Reviewer proof snapshot preserves cancellation revision and uncertain Effe
     let changed : NativeClientRunRecord = {
       ..record,
       revision: record.revision + 1L,
-      cancellation_requested: true,
       checkpoint: Some({
         ..checkpoint,
         unknown_effects: ["unresolved-write"],
@@ -158,7 +159,7 @@ test "Reviewer proof snapshot preserves cancellation revision and uncertain Effe
     artifact.checkpoint_cid,
   ).unwrap()
   assert_eq(changed.artifact, original.artifact)
-  assert_eq(changed.revision, original.revision + 1L)
+  assert_eq(changed.revision, original.revision + 2L)
   assert_true(changed.cancellation_requested)
   assert_eq(changed.reported_unknown_effect_count, 1)
   assert_false(changed.settlement_only)

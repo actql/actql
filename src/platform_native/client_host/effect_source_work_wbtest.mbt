@@ -52,15 +52,10 @@ test "Native live original materials do not reset cancelled or claimed Effect wo
         @publication.publication_contract_identity(definition),
         true,
         false,
-        record.cancellation_requested,
+        record.cancellation_requested(),
       ).unwrap()
       assert_true(action == @host.AcceptCancellation)
-      journal
-      .transaction(() => {
-        let record = journal.retained(request).unwrap().unwrap()
-        journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
-      })
-      .unwrap()
+      journal.accept_fixture_cancellation(record)
     } else {
       claim_native_client_effect_work_start(
         journal,
@@ -191,7 +186,7 @@ test "Native original Effect work claim rechecks authority at each durable bound
     }
     assert_eq(record.dispatch_reserved, denied_at >= 3)
     assert_eq(record.physical_start_claimed, denied_at >= 4)
-    assert_false(record.cancellation_requested)
+    assert_false(record.cancellation_requested())
     database.close_checked().unwrap()
   }
 }
@@ -211,20 +206,10 @@ test "Native original Effect claim refuses cancellation accepted by final callba
     () => {
       calls += 1
       if calls == 4 {
-        journal
-        .transaction(() => {
-          let record = journal.retained(request).unwrap().unwrap()
-          let action = @host.prepare_client_run_cancellation(
-            record.definition,
-            @publication.publication_contract_identity(definition),
-            true,
-            false,
-            record.cancellation_requested,
-          ).unwrap()
-          accepted = action == @host.AcceptCancellation
-          journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
-        })
-        .unwrap()
+        journal.accept_fixture_cancellation(
+          journal.retained(request).unwrap().unwrap(),
+        )
+        accepted = true
       }
       true
     },
@@ -235,7 +220,7 @@ test "Native original Effect claim refuses cancellation accepted by final callba
     fail("original accepted Effect Run missing")
   }
   // Accepted cancellation is not a terminal cancellation or physical cleanup.
-  assert_true(record.cancellation_requested)
+  assert_true(record.cancellation_requested())
   assert_true(record.physical_start_claimed)
   assert_false(journal.claim_physical_start(request, true).unwrap())
   database.close_checked().unwrap()

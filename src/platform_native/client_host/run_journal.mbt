@@ -105,7 +105,7 @@ struct NativeClientRunRecord {
   definition : @publication.PublicationContract
   dispatch_reserved : Bool
   physical_start_claimed : Bool
-  cancellation_requested : Bool
+  cancellation_head : @host.ClientAcceptedCancellationHead?
   publication_binding : String?
   publication_policy_originals : String?
   effect_material_originals : String?
@@ -137,6 +137,11 @@ pub fn native_client_run_record_revision(
   record : NativeClientRunRecord,
 ) -> Int64 {
   record.revision
+}
+
+///|
+fn NativeClientRunRecord::cancellation_requested(self : Self) -> Bool {
+  self.cancellation_head is Some(_)
 }
 
 ///|
@@ -181,7 +186,7 @@ fn run_record_body(
       definition: record.definition,
       dispatch_reserved: record.dispatch_reserved,
       physical_start_claimed: record.physical_start_claimed,
-      cancellation_requested: record.cancellation_requested,
+      cancellation_head: record.cancellation_head,
       publication_binding: record.publication_binding,
       publication_policy_originals: record.publication_policy_originals,
       effect_material_originals: record.effect_material_originals,
@@ -204,6 +209,7 @@ fn run_record_body(
 fn read_run_record(
   row : @sqlite.NativeJournalValue,
   companion_read? : (@sqlite.Database, NativeClientJournalReadAccess?)? = None,
+  legacy? : NativeLegacyCancellationRead? = None,
   before_construction? : ((@host.ClientRunJournalConstruction) -> Result[
     Unit,
     @host.ClientJournalDecodingIssue,
@@ -217,6 +223,7 @@ fn read_run_record(
     row,
     ValidatePublication,
     companion_read~,
+    legacy~,
     before_construction~,
     before_metadata_construction~,
   )
@@ -247,6 +254,7 @@ fn read_run_record_in_mode(
   identity? : (@host.ClientRequestIdentity, @publication.PublicationContract)? = None,
   observation? : NativeClientStoredRunObservation? = None,
   companion_read? : (@sqlite.Database, NativeClientJournalReadAccess?)? = None,
+  legacy? : NativeLegacyCancellationRead? = None,
   before_construction? : ((@host.ClientRunJournalConstruction) -> Result[
     Unit,
     @host.ClientJournalDecodingIssue,
@@ -267,12 +275,30 @@ fn read_run_record_in_mode(
     local_run_policy_originals,
     run_observation_originals,
     checkpoint_companion,
+    legacy_cancellation,
   ) = match decoded {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
   let request = decoded.request
   let definition = decoded.definition
+  let cancellation_head = if legacy_cancellation is Some(true) {
+    guard companion_read is Some((database, reads)) else {
+      return Err(CustodyLost)
+    }
+    let original = match (legacy, journal) {
+      (Some(value), _) if physical_equal(value.database, database) => value
+      (None, Some(value)) if physical_equal(value.database, database) =>
+        native_legacy_cancellation_read(database, value.max_records, reads)
+      _ => return Err(CustodyLost)
+    }
+    match original.select(request, definition, row.revision) {
+      Ok(head) => Some(head)
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    decoded.cancellation_head
+  }
   let physical_start_claimed = decoded.physical_start_claimed
   if local_run_policy_originals is Some(wire) &&
     @host.validate_client_local_run_policy_original_run(
@@ -362,7 +388,7 @@ fn read_run_record_in_mode(
     definition,
     dispatch_reserved: decoded.dispatch_reserved,
     physical_start_claimed,
-    cancellation_requested: decoded.cancellation_requested,
+    cancellation_head,
     publication_binding: decoded.publication_binding,
     publication_policy_originals: decoded.publication_policy_originals,
     effect_material_originals: decoded.effect_material_originals,
@@ -507,6 +533,7 @@ fn run_journal_custody(
     NativeClientRunJournalIssue,
   ])? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
+  let legacy = native_legacy_cancellation_read(database, max_records, reads)
   let mut expected_entries = 0L
   let inventory = @host.inspect_client_run_journal_inventory(
     max_records,
@@ -519,6 +546,7 @@ fn run_journal_custody(
         read_run_record(
           { body: row.body, revision: row.revision, },
           companion_read=Some((database, reads)),
+          legacy=Some(legacy),
           before_construction=run_decode_construction(database, reads),
           before_metadata_construction=run_metadata_construction(
             database, reads,
@@ -547,10 +575,16 @@ fn run_journal_custody(
         request: record.request,
         definition: record.definition,
         checkpoint: record.checkpoint.map(value => value.effect_ledger),
+        cancellation_head: record.cancellation_head,
         task_materials_cid: record.task_materials_cid,
       })
     },
-    () => cancellation_custody(database, max_records, reads~).map(_ => ()),
+    () => {
+      cancellation_custody(database, max_records, reads~, legacy=Some(legacy)).map(_ => {
+          ()
+        },
+      )
+    },
     CustodyLost,
   )
   match inventory {
@@ -1191,7 +1225,7 @@ fn NativeClientRunJournal::bind_run_locked(
     definition,
     dispatch_reserved: false,
     physical_start_claimed: false,
-    cancellation_requested: false,
+    cancellation_head: None,
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,
@@ -1310,10 +1344,14 @@ fn NativeClientRunJournal::save_with_operations(
   self : NativeClientRunJournal,
   record : NativeClientRunRecord,
   operations? : NativeClientJournalOperationAccess? = None,
+  accepted_cancellation? : @host.ClientCancellationJournalAppend[
+    NativeClientRunRecord,
+  ]? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
   match self.read_run_before_save(record, reads) {
-    Ok(before) => self.save_observed_run(record, before, operations)
+    Ok(before) =>
+      self.save_observed_run(record, before, operations, accepted_cancellation~)
     Err(issue) => Err(issue)
   }
 }
@@ -1355,13 +1393,31 @@ fn NativeClientRunJournal::save_observed_run(
   record : NativeClientRunRecord,
   before : NativeClientRunRecord,
   operations : NativeClientJournalOperationAccess?,
+  accepted_cancellation? : @host.ClientCancellationJournalAppend[
+    NativeClientRunRecord,
+  ]? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   native_timing_count(20)
   if !self.transaction_active ||
     record.revision != before.revision ||
+    record.cancellation_head != before.cancellation_head ||
     !(@host.client_request_identity_relation(record.request, before.request)
     is SameRequest) {
     return Err(CustodyLost)
+  }
+  let record = match accepted_cancellation {
+    None => record
+    Some(plan) => {
+      // Only the existing cancellation Writer supplies a plan issued for this
+      // exact Run in the current transaction. Its receipt remains atomic with
+      // this CAS, including when SQLite cannot acknowledge COMMIT.
+      guard before.cancellation_head is None &&
+        physical_equal(@host.client_cancellation_append_original(plan), record) &&
+        @host.client_cancellation_append_accepted_head(plan) is Some(head) else {
+        return Err(CustodyLost)
+      }
+      { ..record, cancellation_head: Some(head), }
+    }
   }
   let reads = operations.map(value => value.reads)
   if record.task_materials_cid != before.task_materials_cid {
@@ -1573,7 +1629,7 @@ fn NativeClientRunJournal::claim_physical_start_with_operations(
           record.dispatch_reserved,
           !record.physical_start_claimed,
           current_authorization,
-          cancellation_requested=record.cancellation_requested,
+          cancellation_requested=record.cancellation_requested(),
         ) {
         Ok(value) => value
         Err(issue) => return Err(Start(issue))

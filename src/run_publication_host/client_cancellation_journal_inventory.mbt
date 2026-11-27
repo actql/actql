@@ -59,17 +59,11 @@ pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
 }
 
 ///|
-fn[E] inspect_client_cancellation_journal_inventory_original(
+fn[E] read_client_cancellation_journal_issuance(
   max_records : Int,
   scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
-  validate_run : (
-    ClientJournalPhysicalRow,
-    (ClientRequestIdentity, @publication.PublicationContract)?,
-  ) -> Result[ClientCancellationRunJournalInspection, E],
   custody_lost : E,
-  fund_row : ((Int64) -> Result[Unit, E])?,
-  run_coverage : (Int, Int64, Int)?,
 ) -> Result[(Int, Int64), E] {
   let marker = match read("client_cancel_custody", "issued") {
     Ok(Some(value)) if value.key == "issued" => value
@@ -89,6 +83,29 @@ fn[E] inspect_client_cancellation_journal_inventory_original(
   let count = match client_journal_issuance_count(marker.body, max_records) {
     Ok(value) if marker.revision == value.to_int64() => value
     _ => return Err(custody_lost)
+  }
+  Ok((count, marker.revision))
+}
+
+///|
+fn[E] inspect_client_cancellation_journal_inventory_original(
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (
+    ClientJournalPhysicalRow,
+    (ClientRequestIdentity, @publication.PublicationContract)?,
+  ) -> Result[ClientCancellationRunJournalInspection, E],
+  custody_lost : E,
+  fund_row : ((Int64) -> Result[Unit, E])?,
+  run_coverage : (Int, Int64, Int)?,
+) -> Result[(Int, Int64), E] {
+  let (count, revision) = match
+    read_client_cancellation_journal_issuance(
+      max_records, scan, read, custody_lost,
+    ) {
+    Ok(issued) => issued
+    Err(issue) => return Err(issue)
   }
   let mut cursor = ""
   let mut observed = 0
@@ -197,7 +214,7 @@ fn[E] inspect_client_cancellation_journal_inventory_original(
       covered_heads != accepted {
       return Err(custody_lost)
     }
-    return Ok((count, marker.revision))
+    return Ok((count, revision))
   }
   let mut run_cursor = ""
   let mut runs = 0
@@ -230,5 +247,5 @@ fn[E] inspect_client_cancellation_journal_inventory_original(
   if runs != run_count || heads != accepted {
     return Err(custody_lost)
   }
-  Ok((count, marker.revision))
+  Ok((count, revision))
 }

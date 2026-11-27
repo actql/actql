@@ -69,13 +69,15 @@ fn client_run_journal_row_body_from_wires(
   run_observation_originals? : String? = None,
   comparison_bytes? : Int? = None,
   checkpoint_companion? : Bool = false,
+  legacy_cancellation? : Bool? = None,
   measure_construction? : Bool = false,
   before_construction? : ((Int, Int, Int) -> Result[
     Unit,
     ClientJournalEncodingIssue,
   ])? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
-  if checkpoint_companion && record.checkpoint is None {
+  if (checkpoint_companion && record.checkpoint is None) ||
+    (legacy_cancellation is Some(_) && record.cancellation_head is Some(_)) {
     return Err(Encoding)
   }
   if local_run_policy_originals is Some(wire) &&
@@ -96,7 +98,11 @@ fn client_run_journal_row_body_from_wires(
     .length()
     .to_int64() +
     version.length().to_int64() +
-    (if record.cancellation_head is Some(_) {
+    (if legacy_cancellation is Some(_) {
+      // Bound the canonical old field by its longer Bool spelling.
+      "\"cancellation_requested\":false".length().to_int64() -
+      "\"cancellation_head\":null".length().to_int64()
+    } else if record.cancellation_head is Some(_) {
       // The nominal head contains a lowercase 64-byte key and an admitted
       // positive Int revision. Their strings do not expand under escaping.
       "{\"observed_revision\":\"\",\"record_key\":\"\"}".length().to_int64() +
@@ -168,6 +174,7 @@ fn client_run_journal_row_body_from_wires(
           definition,
           local_run_policy_originals,
           run_observation_originals,
+          legacy_cancellation,
           version,
           maximum,
           0L,
@@ -204,6 +211,7 @@ fn client_run_journal_row_body_from_wires(
         definition,
         local_run_policy_originals,
         run_observation_originals,
+        legacy_cancellation,
         version,
         maximum,
         construction_base,
@@ -238,6 +246,7 @@ fn write_original_client_run_journal_row(
   definition : String,
   local_run_policy_originals : String?,
   run_observation_originals : String?,
+  legacy_cancellation : Bool?,
   version : String,
   maximum : Int,
   construction_base : Int64,
@@ -249,16 +258,21 @@ fn write_original_client_run_journal_row(
   let batch_units = 65L * 256L
   let mut observed_field_bytes = 0
   @encode.begin_object(writer)
-  @encode.key(writer, "cancellation_head")
-  match record.cancellation_head {
-    None => @encode.null_value(writer)
-    Some(head) => {
-      @encode.begin_object(writer)
-      @encode.key(writer, "observed_revision")
-      @encode.string_value(writer, head.observed_revision.to_string())
-      @encode.key(writer, "record_key")
-      @encode.string_value(writer, head.record_key)
-      @encode.end_object(writer)
+  if legacy_cancellation is Some(requested) {
+    @encode.key(writer, "cancellation_requested")
+    @encode.bool_value(writer, requested)
+  } else {
+    @encode.key(writer, "cancellation_head")
+    match record.cancellation_head {
+      None => @encode.null_value(writer)
+      Some(head) => {
+        @encode.begin_object(writer)
+        @encode.key(writer, "observed_revision")
+        @encode.string_value(writer, head.observed_revision.to_string())
+        @encode.key(writer, "record_key")
+        @encode.string_value(writer, head.record_key)
+        @encode.end_object(writer)
+      }
     }
   }
   @encode.key(writer, "checkpoint")

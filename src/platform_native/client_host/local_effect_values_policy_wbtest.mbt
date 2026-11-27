@@ -283,7 +283,7 @@ test "Effect Values policy commits with its original packet once and reopens und
   assert_false(
     row.dispatch_reserved ||
     row.physical_start_claimed ||
-    row.cancellation_requested,
+    row.cancellation_requested(),
   )
   assert_eq(first.run_admission.unwrap().revision, row.revision)
   // Lost response reconciliation uses the saved original before considering a

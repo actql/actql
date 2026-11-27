@@ -183,18 +183,22 @@ pub fn decode_native_client_run_journal_row_with_checkpoint_companion(
     ClientJournalDecodingIssue,
   ])? = None,
 ) -> Result[
-  (ClientRunJournalEncoding, String?, String?, Bool),
+  (ClientRunJournalEncoding, String?, String?, Bool, Bool?),
   ClientJournalDecodingIssue,
 ] {
   let companion = Ref(false)
+  let legacy_cancellation = Ref(None)
   decode_client_run_journal_row_originals(
     body,
     true,
     true,
     retained_identity~,
     checkpoint_companion=Some(companion),
+    legacy_cancellation=Some(legacy_cancellation),
     before_construction~,
-  ).map(value => (value.0, value.1, value.2, companion.val))
+  ).map(value => {
+    (value.0, value.1, value.2, companion.val, legacy_cancellation.val)
+  })
 }
 
 ///|
@@ -268,6 +272,7 @@ fn decode_client_run_journal_row_originals(
   retained_identity? : (ClientRequestIdentity, @publication.PublicationContract)? = None,
   require_retained_identity? : Bool = false,
   checkpoint_companion? : Ref[Bool]? = None,
+  legacy_cancellation? : Ref[Bool?]? = None,
   before_construction? : ((ClientRunJournalConstruction) -> Result[
     Unit,
     ClientJournalDecodingIssue,
@@ -284,6 +289,9 @@ fn decode_client_run_journal_row_originals(
     "cancellation_head", "checkpoint", "publication_binding", "publication_policy_originals",
     "effect_material_originals", "task_materials_cid",
   ]
+  if legacy_cancellation is Some(_) {
+    keys.push("cancellation_requested")
+  }
   if allow_local_policy {
     keys.push("local_run_policy_originals")
   }
@@ -372,17 +380,29 @@ fn decode_client_run_journal_row_originals(
   guard text("request") is Some(request_wire) &&
     text("run_definition") is Some(definition_wire) &&
     flag("dispatch_reserved") is Some(dispatch_reserved) &&
-    flag("physical_start_claimed") is Some(physical_start_claimed) &&
-    @decode.lookup(object, "cancellation_head") is Some(head) else {
+    flag("physical_start_claimed") is Some(physical_start_claimed) else {
     return Err(CustodyLost)
   }
-  let cancellation_head = if @decode.is_null(head) {
-    None
-  } else {
-    match decode_client_accepted_cancellation_head(head) {
-      Some(value) => Some(value)
-      None => return Err(CustodyLost)
+  let (cancellation_head, legacy_request) = match
+    (
+      @decode.lookup(object, "cancellation_head"),
+      @decode.lookup(object, "cancellation_requested"),
+      legacy_cancellation,
+    ) {
+    (Some(head), None, _) if @decode.is_null(head) => (None, None)
+    (Some(head), None, _) => {
+      guard decode_client_accepted_cancellation_head(head) is Some(original) else {
+        return Err(CustodyLost)
+      }
+      (Some(original), None)
     }
+    (None, Some(requested), Some(_)) => {
+      guard @decode.boolean(requested) is Ok(value) else {
+        return Err(CustodyLost)
+      }
+      (None, Some(value))
+    }
+    _ => return Err(CustodyLost)
   }
   if physical_start_claimed && !dispatch_reserved {
     return Err(CustodyLost)
@@ -487,6 +507,7 @@ fn decode_client_run_journal_row_originals(
       local_run_policy_originals~,
       run_observation_originals~,
       checkpoint_companion=has_checkpoint_companion,
+      legacy_cancellation=legacy_request,
       comparison_bytes=if observed { Some(row_bytes) } else { None },
       // Canonical emission is covered by this same observed decode lifetime;
       // its resource callback has already run before any reconstruction.
@@ -513,6 +534,9 @@ fn decode_client_run_journal_row_originals(
       }
       if checkpoint_companion is Some(format) {
         format.val = has_checkpoint_companion
+      }
+      if legacy_cancellation is Some(format) {
+        format.val = legacy_request
       }
       Ok((record, local_run_policy_originals, run_observation_originals))
     }

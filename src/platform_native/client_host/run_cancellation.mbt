@@ -45,6 +45,71 @@ fn read_cancellation(
 }
 
 ///|
+priv struct NativeLegacyCancellationRead {
+  database : @sqlite.Database
+  max_records : Int
+  reads : NativeClientJournalReadAccess?
+  mut heads : @host.ClientLegacyCancellationHeads?
+}
+
+///|
+fn native_legacy_cancellation_read(
+  database : @sqlite.Database,
+  max_records : Int,
+  reads : NativeClientJournalReadAccess?,
+) -> NativeLegacyCancellationRead {
+  { database, max_records, reads, heads: None, }
+}
+
+///|
+fn NativeLegacyCancellationRead::select(
+  self : Self,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  revision : Int64,
+) -> Result[@host.ClientAcceptedCancellationHead, NativeClientRunJournalIssue] {
+  if client_journal_transaction_fenced(self.database, self.reads) {
+    return Err(Fenced)
+  }
+  let heads = match self.heads {
+    Some(original) => original
+    None => {
+      let fund = run_metadata_construction(self.database, self.reads).unwrap_or((
+          _,
+          _,
+          _,
+        ) => Ok(()),
+      )
+      let original = match
+        @host.read_client_legacy_cancellation_heads(
+          self.max_records,
+          (table, cursor) => {
+            client_journal_scan(self.database, table, cursor, reads=self.reads)
+          },
+          (table, key) => {
+            client_journal_read(self.database, table, key, reads=self.reads)
+          },
+          fund,
+          CustodyLost,
+          CapacityExceeded,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      self.heads = Some(original)
+      original
+    }
+  }
+  if client_journal_transaction_fenced(self.database, self.reads) {
+    return Err(Fenced)
+  }
+  match heads.select(request, definition, revision) {
+    Some(value) => Ok(value)
+    None => Err(CustodyLost)
+  }
+}
+
+///|
 /// Retained issuance witness detects missing operations independently of Run
 /// flags. Missing feature custody cannot be initialized or interpreted as an
 /// empty cancellation history by any public operation.
@@ -52,8 +117,12 @@ fn cancellation_custody(
   database : @sqlite.Database,
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
+  legacy? : NativeLegacyCancellationRead? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
-  @host.inspect_client_cancellation_journal_inventory(
+  let legacy = legacy.unwrap_or(
+    native_legacy_cancellation_read(database, max_records, reads),
+  )
+  @host.inspect_client_cancellation_journal_inventory_with_run_identity(
     max_records,
     (table, cursor) => {
       match scan_client_journal_value(database, table, cursor, reads) {
@@ -74,12 +143,15 @@ fn cancellation_custody(
         Err(issue) => Err(Physical(issue))
       }
     },
-    row => {
+    (row, identity) => {
       // The original nested/current metadata validators and their funded
       // constructors stay with this same Native Journal, before projection.
       match
-        read_run_record(
+        read_run_record_in_mode(
           { body: row.body, revision: row.revision, },
+          ValidatePublication,
+          identity~,
+          legacy=Some(legacy),
           companion_read=Some((database, reads)),
           before_construction=run_decode_construction(database, reads),
           before_metadata_construction=run_metadata_construction(
@@ -90,7 +162,7 @@ fn cancellation_custody(
           Ok({
             request: run.request,
             definition: run.definition,
-            cancellation_requested: run.cancellation_requested,
+            cancellation_head: run.cancellation_head,
           })
         Err(_) => Err(CustodyLost)
       }
@@ -176,7 +248,7 @@ fn cancellation_run_operation_facts(
     request: run.request,
     definition: run.definition,
     revision: run.revision,
-    cancellation_requested: run.cancellation_requested,
+    cancellation_requested: run.cancellation_requested(),
     publication_binding: run.publication_binding,
   }
 }
@@ -290,8 +362,9 @@ fn NativeClientRunJournal::cancel_operation_with_operations(
           if record.action == @host.AcceptCancellation {
             let saved = match
               self.save_with_operations(
-                { ..run, cancellation_requested: true, },
+                run,
                 operations~,
+                accepted_cancellation=Some(plan),
               ) {
               Ok(value) => value
               Err(issue) => return Err(issue)

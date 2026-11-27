@@ -154,7 +154,7 @@ fn NativeClientRunJournal::claim_effect_resume_with_operations(
           lease_ms,
           checkpoint.binding,
           binding,
-          checkpoint.settlement_only || record.cancellation_requested,
+          checkpoint.settlement_only || record.cancellation_requested(),
         ) {
         Ok(action) => action
         Err(issue) => return Err(Checkpoint(Resume(issue)))
@@ -233,7 +233,7 @@ fn NativeClientRunJournal::effect_resume_fence_locked(
     return Ok(Stale)
   }
   Ok(
-    if checkpoint.settlement_only || record.cancellation_requested {
+    if checkpoint.settlement_only || record.cancellation_requested() {
       SettlementOnly
     } else {
       Current

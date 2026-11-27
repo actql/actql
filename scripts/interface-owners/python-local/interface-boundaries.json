@@ -1,6 +1,6 @@
 {
   "source": "a84580b5a0b383c6cc066d32ee5a9da64313239b",
-  "syntaxProjectionSha256": "d29f1b95a635433923ff6c545df93e764376e6836fc066fb742d3500e0a1be2e",
+  "syntaxProjectionSha256": "f86c27711d468cfcd7944d31a35ac726a213c64a6b8f3e0f6a65a2e49e214c56",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -102908,7 +102908,9 @@
             "installed_publication_binding",
             "native_client_cancellation_action",
             "native_client_cancellation_revision",
-            "read_cancellation"
+            "read_cancellation",
+            "native_legacy_cancellation_read",
+            "NativeLegacyCancellationRead::select"
           ],
           "exports": [],
           "attributes": {
@@ -103011,7 +103013,7 @@
           }
         }
       ],
-      "sha256": "fe0c0d8df472e9e53cd0e0d88ba4719664d513ce159ad145b312462dd75083d2",
+      "sha256": "b329415fc55d28997f7386dd87e56c602212a48dcf2f93bdbc51df0640afa9f3",
       "exports": [],
       "operations": [
         {
@@ -103069,12 +103071,20 @@
         {
           "name": "read_cancellation",
           "declaration": "read_cancellation ( row : @ sqlite . NativeJournalValue , ) - > Result [ NativeClientCancellationRecord , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "native_legacy_cancellation_read",
+          "declaration": "native_legacy_cancellation_read ( database : @ sqlite . Database , max_records : Int , reads : NativeClientJournalReadAccess ? , ) - > NativeLegacyCancellationRead"
+        },
+        {
+          "name": "NativeLegacyCancellationRead::select",
+          "declaration": "NativeLegacyCancellationRead : : select ( self : Self , request : @ host . ClientRequestIdentity , definition : @ publication . PublicationContract , revision : Int64 , ) - > Result [ @ host . ClientAcceptedCancellationHead , NativeClientRunJournalIssue ]"
         }
       ]
     },
     {
       "module": "src/platform_native/client_host/submission.mbt",
-      "sha256": "70b7345cf4c8c05f4c981328768b077d579ba25526034084fa726c6f21376e3c",
+      "sha256": "842c1dd124059ca72ce9c038bda15b67c36ad1a95c5d443e595f99b9ce617054",
       "exports": [],
       "operations": [
         {
@@ -103874,6 +103884,152 @@
       ]
     },
     {
+      "module": "src/run_publication_host/client_cancellation_journal_head.mbt",
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "D / existing original Run, journal observation, Local task and physical custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[E]observe_client_accepted_cancellation_head",
+            "[E]observe_client_accepted_cancellation_original",
+            "[E]read_client_cancellation_row_with_witness",
+            "[E]read_client_legacy_cancellation_heads",
+            "ClientLegacyCancellationHeads::select",
+            "decode_client_accepted_cancellation_head"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_head.mbt",
+                "anchor": "///|"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Original cancellation and unpublished state observations"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_operation_wbtest.mbt",
+                "anchor": "test \"shared cancellation append preserves original Run and exact independent three rows\""
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "c687dc947d798b00bdbd13cef84dfa75048b1610199325fd7b745bb2ddf72abe",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[E]observe_client_accepted_cancellation_head",
+          "declaration": "[ E ] observe_client_accepted_cancellation_head ( head : ClientAcceptedCancellationHead , namespace_id : String , run : ClientCancellationRunOperationFacts , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ ClientCancellationJournalEncoding , E ]"
+        },
+        {
+          "name": "[E]observe_client_accepted_cancellation_original",
+          "declaration": "[ E ] observe_client_accepted_cancellation_original ( head : ClientAcceptedCancellationHead , namespace_id : String , request : ClientRequestIdentity , definition : @ publication . PublicationContract , revision : Int64 , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ ClientCancellationJournalEncoding , E ]"
+        },
+        {
+          "name": "[E]read_client_cancellation_row_with_witness",
+          "declaration": "[ E ] read_client_cancellation_row_with_witness ( row : ClientJournalPhysicalRow , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ ClientCancellationJournalEncoding , E ]"
+        },
+        {
+          "name": "[E]read_client_legacy_cancellation_heads",
+          "declaration": "[ E ] read_client_legacy_cancellation_heads ( max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , fund : ( Int64 , Int64 , Int64 ) - > Result [ Unit , E ] , custody_lost : E , capacity_exceeded : E , ) - > Result [ ClientLegacyCancellationHeads , E ]"
+        },
+        {
+          "name": "ClientLegacyCancellationHeads::select",
+          "declaration": "ClientLegacyCancellationHeads : : select ( self : Self , request : ClientRequestIdentity , definition : @ publication . PublicationContract , revision : Int64 , ) - > ClientAcceptedCancellationHead ?"
+        },
+        {
+          "name": "decode_client_accepted_cancellation_head",
+          "declaration": "decode_client_accepted_cancellation_head ( cursor : @ decode . Cursor , ) - > ClientAcceptedCancellationHead ?"
+        }
+      ]
+    },
+    {
       "module": "src/run_publication_host/client_cancellation_journal_inventory.mbt",
       "role": "common-semantics",
       "responsibilityFacet": "primary",
@@ -103883,7 +104039,8 @@
           "operations": [
             "<module>",
             "[E]inspect_client_cancellation_journal_inventory",
-            "[E]inspect_client_cancellation_journal_inventory_with_run_identity"
+            "[E]inspect_client_cancellation_journal_inventory_with_run_identity",
+            "[E]read_client_cancellation_journal_issuance"
           ],
           "exports": [],
           "attributes": {
@@ -103986,7 +104143,7 @@
           }
         }
       ],
-      "sha256": "55697cba9391a5f90dbbcedc27e67d1502b0d54f90b08f4923456121ea0b5f63",
+      "sha256": "846a3bf7defd4d3464b912ddf15ff42e38d247269b87537299eb14fe3927c401",
       "exports": [],
       "operations": [
         {
@@ -103995,7 +104152,11 @@
         },
         {
           "name": "[E]inspect_client_cancellation_journal_inventory_with_run_identity",
-          "declaration": "[ E ] inspect_client_cancellation_journal_inventory_with_run_identity ( max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow , ClientRequestIdentity , @ publication . PublicationContract , ) - > Result [ ClientCancellationRunJournalInspection , E ] , custody_lost : E , fund_row ? : ( ( Int64 ) - > Result [ Unit , E ] ) ?"
+          "declaration": "[ E ] inspect_client_cancellation_journal_inventory_with_run_identity ( max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , validate_run : ( ClientJournalPhysicalRow , ( ClientRequestIdentity , @ publication . PublicationContract ) ? , ) - > Result [ ClientCancellationRunJournalInspection , E ] , custody_lost : E , fund_row ? : ( ( Int64 ) - > Result [ Unit , E ] ) ?"
+        },
+        {
+          "name": "[E]read_client_cancellation_journal_issuance",
+          "declaration": "[ E ] read_client_cancellation_journal_issuance ( max_records : Int , scan : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , read : ( String , String ) - > Result [ ClientJournalPhysicalRow ? , E ] , custody_lost : E , ) - > Result [ ( Int , Int64 ) , E ]"
         }
       ]
     },
@@ -105098,7 +105259,7 @@
     },
     {
       "module": "src/run_publication_host/client_journal_row_decoding.mbt",
-      "sha256": "8d7251f705784b685ddf0849e87c9b58ac143130df02a81cae56ad38d9400d73",
+      "sha256": "0e1c3f6228cff35cb936f624642c37a267ab82fb944ba437e636409be622e19e",
       "exports": [],
       "operations": [
         {
@@ -105269,7 +105430,7 @@
     },
     {
       "module": "src/run_publication_host/client_journal_row_encoding.mbt",
-      "sha256": "d52eee5c35b9ae27eb182102d684ae10b28db41599cacaa82577d8d807eda6c1",
+      "sha256": "e507f7f99dc9de042b5ad3ac31eb519fcbdfc2cecdc8a01995d05b31423729ae",
       "exports": [],
       "operations": [
         {
@@ -105290,7 +105451,7 @@
         },
         {
           "name": "write_original_client_run_journal_row",
-          "declaration": "write_original_client_run_journal_row ( writer : @ encode . Writer , record : ClientRunJournalEncoding , request : String , definition : String , local_run_policy_originals : String ? , run_observation_originals : String ? , version : String , maximum : Int , construction_base : Int64 , before_construction : ( ( Int , Int , Int ) - > Result [ Unit , ClientJournalEncodingIssue , ] ) ? , ) - > Result [ Int , ClientJournalEncodingIssue ] raise @ encode . EncodeFailure"
+          "declaration": "write_original_client_run_journal_row ( writer : @ encode . Writer , record : ClientRunJournalEncoding , request : String , definition : String , local_run_policy_originals : String ? , run_observation_originals : String ? , legacy_cancellation : Bool ? , version : String , maximum : Int , construction_base : Int64 , before_construction : ( ( Int , Int , Int ) - > Result [ Unit , ClientJournalEncodingIssue , ] ) ? , ) - > Result [ Int , ClientJournalEncodingIssue ] raise @ encode . EncodeFailure"
         }
       ],
       "role": "common-semantics",

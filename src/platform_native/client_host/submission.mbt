@@ -97,7 +97,7 @@ struct NativeClientSubmittedIntentRecord {
   preparation_problem : (String, String)?
   // Same immutable state already restored by the selected Common snapshot,
   // bound to its authenticated Run definition. No availability or permission.
-  restored_state_original : (String, @host.ClientRunStateOriginal)?
+  restored_state_original : @host.ClientRetainedRunStateOriginal?
 }
 
 ///|
@@ -450,6 +450,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
         request: record.request,
         definition: record.definition,
         checkpoint: record.checkpoint.map(value => value.effect_ledger),
+        cancellation_head: record.cancellation_head,
         task_materials_cid: record.task_materials_cid,
       })
     },
@@ -470,7 +471,9 @@ fn NativeClientRunJournal::retained_submission_with_run(
         run_state_original: decoded.run_state_original,
         run_state_observation: decoded.run_state_observation,
         preparation_problem: decoded.preparation_problem,
-        restored_state_original: native_saved_submission_state(snapshot),
+        restored_state_original: @host.client_saved_submission_retained_state_original(
+          snapshot,
+        ),
       }
       (original, selected_run.val)
     })
@@ -589,14 +592,10 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
       row => self.inspect_submitted_intent_row(row, reads~),
       row => {
         let record = match
-          read_run_record(
+          self.admit_retained_record(
+            row.key,
             { body: row.body, revision: row.revision, },
-            companion_read=Some((self.database, reads)),
-            before_construction=run_decode_construction(self.database, reads),
-            before_metadata_construction=run_metadata_construction(
-              self.database,
-              reads,
-            ),
+            reads~,
           ) {
           Ok(value) => value
           Err(_) => return Err(CustodyLost)
@@ -605,6 +604,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
           request: record.request,
           definition: record.definition,
           checkpoint: record.checkpoint.map(value => value.effect_ledger),
+          cancellation_head: record.cancellation_head,
           task_materials_cid: record.task_materials_cid,
         })
       },
@@ -644,7 +644,9 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         run_state_original: original.run_state_original,
         run_state_observation: original.run_state_observation,
         preparation_problem: original.preparation_problem,
-        restored_state_original: native_saved_submission_state(snapshot),
+        restored_state_original: @host.client_saved_submission_retained_state_original(
+          snapshot,
+        ),
       })
     }
     Ok(@host.Append(plan)) => plan

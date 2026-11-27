@@ -534,3 +534,37 @@ test "changed pure Run row original never hides cancellation or malformed fields
     is Err(_),
   )
 }
+
+///|
+test "Native legacy cancellation rows keep the exact canonical wire marker" {
+  for (flag, requested) in [("false", false), ("true", true)] {
+    let original = journal_decoding_wire.replace(
+      old="\"cancellation_head\":null",
+      new="\"cancellation_requested\":" + flag,
+    )
+    let (_, _, _, companion, legacy) = decode_native_client_run_journal_row_with_checkpoint_companion(
+      @utf8.encode(original),
+      None,
+    ).unwrap()
+    assert_false(companion)
+    assert_eq(legacy, Some(requested))
+    assert_true(decode_client_run_journal_row(@utf8.encode(original)) is Err(_))
+  }
+  for
+    malformed in [
+      "\"cancellation_requested\":true,\"cancellation_head\":null", "\"cancellation_requested\":true,\"cancellation_requested\":true",
+      "\"cancellation_requested\":\"true\"", "\"cancellation_requested\": true",
+    ] {
+    let wire = journal_decoding_wire.replace(
+      old="\"cancellation_head\":null",
+      new=malformed,
+    )
+    assert_true(
+      decode_native_client_run_journal_row_with_checkpoint_companion(
+        @utf8.encode(wire),
+        None,
+      )
+      is Err(_),
+    )
+  }
+}
