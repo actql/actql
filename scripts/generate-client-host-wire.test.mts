@@ -5,14 +5,52 @@ import {mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test} from 'node:test';
-import {buildClientHostWire, nativeProgramSchema} from './generate-client-host-wire.mjs';
+import {buildClientHostWire as compileClientHostWire, nativeProgramSchema as compileNativeProgramSchema} from './generate-client-host-wire.mjs';
 
-const registry = JSON.parse(await readFile(new URL(
+
+// The registered JSON is a writable test fixture. In the negative cases the
+// affected keys can be missing or malformed before they reach the generator.
+type FixtureSchema = {
+  $id?: string; $defs?: Record<string, FixtureSchema>; $ref?: string;
+  description?: string; title?: string; type?: string; const?: unknown; enum: unknown[];
+  allOf: FixtureSchema[]; oneOf: FixtureSchema[]; if?: FixtureSchema; not?: FixtureSchema;
+  properties: Record<string, FixtureSchema>; additionalProperties: boolean | FixtureSchema;
+  required: string[]; minimum?: number; minLength?: number; maxLength?: number;
+  maxItems?: number; pattern?: string;
+};
+type ProjectedRegistry = {
+  schemas: Record<string, FixtureSchema>;
+  operations: Record<string, string[]>;
+  request_optional_fields?: Record<string, Record<string, Partial<FixtureSchema>> | never[]> | null;
+  check_report_rules?: string[];
+  response_rules: Record<string, {requireRequested: Record<string, string>; matchConnection: string[]}>;
+  request_response_rules?: {run_wait?: WaitFixture; held: HeldFixture; extra?: object};
+};
+type HeldFixture = {matchRequest: string | string[]; schemas: string[]; extra?: boolean};
+type WaitFixture = {stableStatuses: string[]; revisionField: string};
+type ProjectedProtocol = {
+  artifact_schemas: Record<string, FixtureSchema>;
+  artifact_schema_cids: Record<string, string>;
+  schemas: Record<string, FixtureSchema>;
+};
+type FormatterCall = {input: string; pid: number};
+
+const buildClientHostWire = (registry: ProjectedRegistry, protocol: ProjectedProtocol) =>
+  compileClientHostWire(registry as unknown as Parameters<typeof compileClientHostWire>[0],
+    protocol as unknown as Parameters<typeof compileClientHostWire>[1]);
+const nativeProgramSchema = (protocol: ProjectedProtocol) =>
+  compileNativeProgramSchema(protocol as unknown as Parameters<typeof compileNativeProgramSchema>[0]);
+
+function programSchema(protocol: ProjectedProtocol): FixtureSchema {
+  return protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+}
+
+const registry: ProjectedRegistry = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-client-host.json', import.meta.url), 'utf8'));
-const protocol = JSON.parse(await readFile(new URL(
+const protocol: ProjectedProtocol = JSON.parse(await readFile(new URL(
   '../spec/contracts/actql-protocol-schemas.json', import.meta.url), 'utf8'));
 
-function withNativeFormatter(body, check) {
+function withNativeFormatter(body: string, check: (calls: () => FormatterCall[]) => void) {
   const directory = mkdtempSync(join(tmpdir(), 'actql-wire-format-test-'));
   const originalHome = process.env.MOON_HOME, originalTemp = process.env.TMPDIR;
   mkdirSync(join(directory, 'bin'));
@@ -31,7 +69,7 @@ function withNativeFormatter(body, check) {
   process.env.MOON_HOME = directory;
   process.env.TMPDIR = directory;
   try {
-    check(() => readFileSync(report, 'utf8').trim().split('\n').map(JSON.parse));
+    check(() => readFileSync(report, 'utf8').trim().split('\n').map(line => JSON.parse(line)));
     assert.deepEqual(readdirSync(directory).sort(), ['bin', 'calls.jsonl']);
   } finally {
     if (originalHome === undefined) delete process.env.MOON_HOME;
@@ -58,6 +96,7 @@ test('Native wire formatter receives complete source through regular-file stdin'
 test('Native wire formatter prepares its configured missing temp parent without fallback', () => {
   withNativeFormatter(`process.stdout.write(input);\n`, calls => {
     const originalTemp = process.env.TMPDIR;
+    assert(originalTemp);
     const parent = join(originalTemp, 'not-created', 'parent');
     process.env.TMPDIR = parent;
     try {
@@ -73,7 +112,7 @@ test('Native wire formatter prepares its configured missing temp parent without 
       writeFileSync(invalid, 'retained original');
       process.env.TMPDIR = invalid;
       assert.throws(() => buildClientHostWire(registry, protocol), error =>
-        ['EEXIST', 'ENOTDIR'].includes(error.code));
+        error instanceof Error && 'code' in error && (error.code === 'EEXIST' || error.code === 'ENOTDIR'));
       assert.equal(readFileSync(invalid, 'utf8'), 'retained original');
       assert.equal(calls().length, 2);
     } finally {
@@ -86,7 +125,8 @@ test('Native wire formatter prepares its configured missing temp parent without 
 test('Native wire formatter failure is not replaced by unformatted output', () => {
   withNativeFormatter(`process.stderr.write('selected formatter failure'); process.exit(23);\n`, calls => {
     assert.throws(() => buildClientHostWire(registry, protocol), error =>
-      error.status === 23 && error.stderr.includes('selected formatter failure'));
+      error instanceof Error && 'status' in error && error.status === 23 && 'stderr' in error &&
+      String(error.stderr).includes('selected formatter failure'));
     assert.equal(calls().length, 1);
   });
 });
@@ -94,7 +134,8 @@ test('Native wire formatter failure is not replaced by unformatted output', () =
 test('Native wire formatter retains its existing deadline and cleans failed input', {timeout: 15000}, () => {
   withNativeFormatter(`setInterval(() => {}, 1000);\n`, calls => {
     assert.throws(() => buildClientHostWire(registry, protocol), error =>
-      error.code === 'ETIMEDOUT' && error.signal === 'SIGTERM');
+      error instanceof Error && 'code' in error && error.code === 'ETIMEDOUT' &&
+      'signal' in error && error.signal === 'SIGTERM');
     const [call] = calls();
     assert.throws(() => process.kill(call.pid, 0), {code: 'ESRCH'});
     assert.equal(calls().length, 1);
@@ -111,17 +152,19 @@ test('Native schema discovery preserves the full registered Program schema', asy
   const segments = literal.split(' +\n  ');
   assert.ok(segments.length > 1);
   assert.ok(segments.every(segment => segment.length < 32768));
-  const actual = JSON.parse(segments.map(segment => JSON.parse(segment)).join(''));
-  const original = protocol.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  const actual: FixtureSchema = JSON.parse(segments.map(segment => JSON.parse(segment)).join(''));
+  const original = programSchema(protocol);
   assert.deepEqual(actual, original);
   assert.equal(actual.$id, 'https://smooth.dev/schemas/actql/0.1.json');
   assert.ok(actual.$defs && actual.properties && actual.allOf);
   assert.deepEqual(actual, protocol.artifact_schemas.plan_document
     .properties.plan.properties.execution_material.properties.program);
-  const effects = actual.properties.effects.additionalProperties.oneOf;
-  const update = effects.find(member => member.required.includes('update')).properties.update;
-  const removal = effects.find(member => member.required.includes('delete')).properties.delete;
-  const upsert = effects.find(member => member.required.includes('upsert')).properties.upsert;
+  const effectDefinitions = actual.properties.effects.additionalProperties;
+  assert(typeof effectDefinitions === 'object');
+  const effects = effectDefinitions.oneOf;
+  const update = effects.find(member => member.required.includes('update'))!.properties.update;
+  const removal = effects.find(member => member.required.includes('delete'))!.properties.delete;
+  const upsert = effects.find(member => member.required.includes('upsert'))!.properties.upsert;
   const tuple = {type: 'array', minItems: 2, items: {
     type: 'object', additionalProperties: false,
     required: ['target_field', 'result_field'], properties: {
@@ -132,7 +175,7 @@ test('Native schema discovery preserves the full registered Program schema', asy
   for (const body of [update, removal]) {
     assert.equal(body.additionalProperties, false);
     assert.deepEqual(body.properties.match_tuple, tuple);
-    assert.deepEqual(body.allOf.find(rule => rule.oneOf).oneOf.map(rule => rule.required),
+    assert.deepEqual(body.allOf.find(rule => rule.oneOf)!.oneOf.map(rule => rule.required),
       [['id'], ['ids'], ['match'], ['external_id'], ['where'], ['match_tuple']]);
     assert.deepEqual(body.allOf.find(rule => rule.if?.required?.includes('match_tuple')),
       {if: {required: ['match_tuple']}, then: {required: ['from']}});
@@ -140,13 +183,13 @@ test('Native schema discovery preserves the full registered Program schema', asy
   assert.equal(upsert.additionalProperties, false);
   assert.deepEqual(upsert.properties.key_tuple, tuple);
   assert.deepEqual(upsert.required, ['from', 'set']);
-  assert.deepEqual(upsert.allOf.find(rule => rule.oneOf).oneOf,
+  assert.deepEqual(upsert.allOf.find(rule => rule.oneOf)!.oneOf,
     [{required: ['key']}, {required: ['key_tuple']}]);
 });
 
 test('Native schema segments preserve Unicode and escaped annotation bytes', () => {
   const changed = structuredClone(protocol);
-  const original = changed.artifact_schemas.executable_plan.properties.execution_material.properties.program;
+  const original = programSchema(changed);
   original.description = ('🧪漢字\\\"\n').repeat(3000);
   const output = nativeProgramSchema(changed);
   const literal = output.slice(output.indexOf('-> String {\n  ') + '-> String {\n  '.length, -3);
@@ -163,7 +206,7 @@ test('Native schema discovery tracks annotations without changing wire guards', 
   assert.deepEqual(buildClientHostWire(registry, changed), buildClientHostWire(registry, protocol));
   for (const program of [undefined, null, [], false, 'not-a-schema']) {
     const missing = structuredClone(protocol);
-    missing.artifact_schemas.executable_plan.properties.execution_material.properties.program = program;
+    missing.artifact_schemas.executable_plan.properties.execution_material.properties.program = program as unknown as FixtureSchema;
     assert.throws(() => nativeProgramSchema(missing), /MissingProgramSchema/);
   }
   const oversized = structuredClone(protocol);
@@ -193,15 +236,15 @@ test('optional request fields are closed projections of the registered operation
   assert.equal(validClientBody('status', {connection: body.connection, stopBefore: 'commit'}), false);
   const output = buildClientHostWire(registry, protocol);
   const changed = structuredClone(registry);
-  changed.request_optional_fields.submit.stopBefore.const = 'independent-mutated-stop';
+  (changed.request_optional_fields!.submit as Record<string, Partial<FixtureSchema>>).stopBefore.const = 'independent-mutated-stop';
   assert.notEqual(buildClientHostWire(changed, protocol).module, output.module);
   for (const mutate of [
     value => {delete value.request_optional_fields;},
     value => {value.request_optional_fields = null;},
-    value => {value.request_optional_fields.unknown = {stopBefore: {const: 'commit'}};},
-    value => {value.request_optional_fields.submit.parameters = {const: null};},
-    value => {value.request_optional_fields.submit = [];},
-  ]) {
+    value => {value.request_optional_fields!.unknown = {stopBefore: {const: 'commit'}};},
+    value => {(value.request_optional_fields!.submit as Record<string, Partial<FixtureSchema>>).parameters = {const: null};},
+    value => {value.request_optional_fields!.submit = [];},
+  ] satisfies ((value: ProjectedRegistry) => void)[]) {
     const bad = structuredClone(registry); mutate(bad);
     assert.throws(() => buildClientHostWire(bad, protocol), /InvalidClientHostOptionalFields/);
   }
@@ -239,14 +282,14 @@ test('SDK answer grammar projects existing Resolution and Evidence without chang
   const result = buildClientHostWire(registry, changed);
   assert.notEqual(result.checkpointAnswers, original.checkpointAnswers);
   assert.notEqual(result.checkpointAnswerTypes, original.checkpointAnswerTypes);
-  for (const key of ['module', 'types', 'native', 'nativeTests', 'runWait']) {
+  for (const key of ['module', 'types', 'native', 'nativeTests', 'runWait'] as const) {
     assert.equal(result[key], original[key], key);
   }
   const guard = await import('data:text/javascript;base64,' + Buffer.from(original.checkpointAnswers).toString('base64'));
   assert.equal(guard.validAnswerResolution({}), false);
-  const evidence = JSON.parse(await readFile(new URL(
+  const evidence: {cases: {kind: string; artifact: Record<string, unknown>}[]} = JSON.parse(await readFile(new URL(
     '../portability/corpus/checkpoint-resolution-signatures.json', import.meta.url), 'utf8'));
-  const resolution = evidence.cases.find(value => value.kind === 'checkpoint_resolution').artifact;
+  const resolution = evidence.cases.find(value => value.kind === 'checkpoint_resolution')!.artifact;
   assert.equal(guard.validAnswerResolution(resolution), true);
   assert.equal(guard.validAnswerResolution({...resolution, extra: true}), false);
   assert.equal(guard.validAnswerResolution({...resolution, prepare_attempt_id: 'foreign'}), false);
@@ -263,7 +306,7 @@ test('Native observation-only guards remain tested without adding a CLI operatio
 });
 
 test('Native string predicates discard only payloads without text constraints', () => {
-  const probeRule = output => {
+  const probeRule = (output: ReturnType<typeof buildClientHostWire>) => {
     const name = /fields\.get\("generator_probe"\) is Some\(item\) \{\s+if !(wire_rule_\d+)\(item\)/u
       .exec(output.nativeTests)?.[1];
     assert.ok(name, 'the selected property must invoke its generated predicate');
@@ -271,13 +314,13 @@ test('Native string predicates discard only payloads without text constraints', 
       .split('\n///|')[0];
   };
   const changed = structuredClone(registry);
-  changed.schemas.owner_ref.properties.generator_probe = {type: 'string'};
+  changed.schemas.owner_ref.properties.generator_probe = {type: 'string'} as FixtureSchema;
   const bare = buildClientHostWire(changed, protocol);
   assert.equal(probeRule(bare),
     '\n  guard value is String(_) else { return false }\n  true\n}\n');
   changed.schemas.owner_ref.properties.generator_probe = {
     type: 'string', minLength: 137, maxLength: 139,
-  };
+  } as FixtureSchema;
   const bounded = buildClientHostWire(changed, protocol);
   assert.equal(probeRule(bounded),
     '\n  guard value is String(text) else { return false }\n' +
@@ -289,7 +332,7 @@ test('Native string predicates discard only payloads without text constraints', 
   // string-kind guard does not need to retain the payload a second time.
   changed.schemas.owner_ref.properties.generator_probe = {
     type: 'string', const: 'independent-probe',
-  };
+  } as FixtureSchema;
   const literal = buildClientHostWire(changed, protocol);
   assert.match(probeRule(literal), /text == "independent-probe"/u);
   assert.match(probeRule(literal), /guard value is String\(_\)/u);
@@ -311,14 +354,14 @@ test('Native cancellation shapes retain each registered operation boundary', () 
 
 test('received check report rules are complete for both generated consumers', () => {
   const output = buildClientHostWire(registry, protocol);
-  assert.match(output.module, /export const validCheckOutcomeContract/);
+  assert.match(output.module, /export function validCheckOutcomeContract/);
   assert.match(output.native, /if !wire_check_report_contract\(value\)/);
   for (const change of [
     value => {delete value.check_report_rules;},
-    value => {value.check_report_rules.pop();},
-    value => {value.check_report_rules.push('future_rule');},
-    value => {value.check_report_rules[1] = value.check_report_rules[0];},
-  ]) {
+    value => {value.check_report_rules!.pop();},
+    value => {value.check_report_rules!.push('future_rule');},
+    value => {value.check_report_rules![1] = value.check_report_rules![0];},
+  ] satisfies ((value: ProjectedRegistry) => void)[]) {
     const changed = structuredClone(registry); change(changed);
     assert.throws(() => buildClientHostWire(changed, protocol), /InvalidClientCheckReportRules/);
   }
@@ -355,7 +398,7 @@ test('generated check validator rejects contradictory evidence and partial verif
     const report = {context_ref: 'ctx:fixture', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 1}], scope: {kind: 'bound_input'},
       verdict: 'verified', reasons: [], coverage: {limits: [], unresolved: []},
       runnable: {verdict:'no', reasons:[{code:'analysis_budget_exhausted'}]}};
-    const outcome = report => ({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome_schema_cid: protocol.artifact_schema_cids.check_outcome,
+    const outcome = (report: unknown) => ({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome_schema_cid: protocol.artifact_schema_cids.check_outcome,
       outcome: 'completed', report});
     assert.equal(valid(outcome(report)), true);
     for (const changed of [
@@ -373,7 +416,7 @@ test('generated check validator rejects contradictory evidence and partial verif
       reasons: [{code: 'future_violation'}]})), true);
     assert.equal(valid(outcome({...report, verdict: 'undetermined',
       coverage: {limits: [{code: 'future_limit'}], unresolved: []}})), true);
-    const calendar = (requirement) => outcome({...report, verdict: 'undetermined',
+    const calendar = (requirement: unknown) => outcome({...report, verdict: 'undetermined',
       requirements: [requirement],
       coverage: {limits: [{code: 'checking_context_missing'}], unresolved: []},
       runnable: {verdict: 'no', reasons: [{code: 'calendar_profile_required'}]}});
@@ -402,7 +445,7 @@ test('typed public facts are closed and locations bind declared input revisions'
     pointer: '/minimum'};
   const reason = {code: 'supplied_value_type_mismatch', location,
     facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}};
-  const outcome = reason => ({version: 'actql-check-outcome/0.1',
+  const outcome = (reason: unknown) => ({version: 'actql-check-outcome/0.1',
     reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
       context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
       runnable: {verdict:'no', reasons:[{code:'analysis_budget_exhausted'}]},
@@ -422,7 +465,7 @@ test('typed public facts are closed and locations bind declared input revisions'
     pointer: '/minimum/default'};
   const defaultReason = {...reason, code: 'parameter_default_type_mismatch',
     location: defaultLocation};
-  const defaultOutcome = value => {
+  const defaultOutcome = (value: unknown) => {
     const answer = outcome(value);
     answer.report.inputs.push({document_id: 'parameter_declarations', kind: 'structured',
       revision, byte_length: 58});
@@ -532,13 +575,13 @@ test('authoritative structural and behavioral mutations reach both consumers', a
 test('Native projection refuses unsupported rules instead of silently dropping them', () => {
   for (const mutate of [
     value => { value.schemas.profile.properties.scopeRef.pattern = '^future$'; },
-    value => { value.schemas.profile.allOf = [{additionalProperties:false}]; },
+    value => { value.schemas.profile.allOf = [{additionalProperties:false} as FixtureSchema]; },
     value => { value.schemas.profile.properties.mode.const = 'remote'; },
-    value => { value.schemas.profile.properties.scopeRef.allOf = [{maxLength:255}]; },
-    value => { value.schemas.admission.properties.revision.allOf = [{minimum:2}]; },
-    value => { value.schemas.profile.properties.scopeRef.not = {const:'forbidden'}; value.schemas.profile.properties.scopeRef.$ref = '#/$defs/value_contract'; },
+    value => { value.schemas.profile.properties.scopeRef.allOf = [{maxLength:255} as FixtureSchema]; },
+    value => { value.schemas.admission.properties.revision.allOf = [{minimum:2} as FixtureSchema]; },
+    value => { value.schemas.profile.properties.scopeRef.not = {const:'forbidden'} as FixtureSchema; value.schemas.profile.properties.scopeRef.$ref = '#/$defs/value_contract'; },
     value => { value.response_rules.profile.matchConnection.push('unknownField'); },
-  ]) {
+  ] satisfies ((value: ProjectedRegistry) => void)[]) {
     const changed = structuredClone(registry); mutate(changed);
     assert.throws(() => buildClientHostWire(changed, protocol), /UnsupportedNativeWire|InvalidClientHostResponseRule/);
   }
@@ -552,8 +595,8 @@ test('request reply schema and relation changes reach both generated consumers',
     value => { value.schemas.lookup_not_found.properties.kind.const = 'absent'; },
     value => { value.schemas.held.properties.prepareAttemptId.maxLength = 255; },
     value => { value.schemas.held.allOf[0].oneOf[2].required.push('checkpoint'); },
-    value => { value.request_response_rules.held.matchRequest = 'prepareAttemptId'; },
-  ]) {
+    value => { value.request_response_rules!.held.matchRequest = 'prepareAttemptId'; },
+  ] satisfies ((value: ProjectedRegistry) => void)[]) {
     const changed = structuredClone(registry); mutate(changed);
     const output = buildClientHostWire(changed, protocol);
     assert.notEqual(output.module, original.module, 'JS freshness detects changed authority');
@@ -570,7 +613,7 @@ test('request reply schema and relation changes reach both generated consumers',
   assert.equal(generated.validRequestLookupContract(unknown, 'fixed-request'), false);
   assert.equal(generated.validHeldContract(ended, 'fixed-request'), false);
   const binding = structuredClone(registry);
-  binding.request_response_rules.held.matchRequest = 'prepareAttemptId';
+  binding.request_response_rules!.held.matchRequest = 'prepareAttemptId';
   const rebound = buildClientHostWire(binding, protocol);
   const relation = await import(`data:text/javascript;base64,${Buffer.from(rebound.module).toString('base64')}`);
   assert.equal(relation.validHeldContract(ended, 'fixed-request'), false);
@@ -580,19 +623,19 @@ test('request reply schema and relation changes reach both generated consumers',
 test('request response derivation fails closed on ambiguous or unsupported bindings', () => {
   for (const mutate of [
     value => { delete value.request_response_rules; },
-    value => { value.request_response_rules.extra = {}; },
-    value => { value.request_response_rules.held.extra = true; },
-    value => { value.request_response_rules.held.schemas = []; },
-    value => { value.request_response_rules.held.schemas = ['held', 'held']; },
-    value => { value.request_response_rules.held.schemas = ['future']; },
-    value => { value.request_response_rules.held.schemas = ['lookup_unknown']; },
-    value => { value.request_response_rules.held.matchRequest = 'missing'; },
-    value => { value.request_response_rules.held.matchRequest = ['requestId']; },
+    value => { value.request_response_rules!.extra = {}; },
+    value => { value.request_response_rules!.held.extra = true; },
+    value => { value.request_response_rules!.held.schemas = []; },
+    value => { value.request_response_rules!.held.schemas = ['held', 'held']; },
+    value => { value.request_response_rules!.held.schemas = ['future']; },
+    value => { value.request_response_rules!.held.schemas = ['lookup_unknown']; },
+    value => { value.request_response_rules!.held.matchRequest = 'missing'; },
+    value => { value.request_response_rules!.held.matchRequest = ['requestId']; },
     value => { value.schemas.held.required = value.schemas.held.required.filter(key => key !== 'requestId'); },
     value => { value.schemas.lookup_found.properties.requestId.maxLength = 255; },
     value => { value.schemas.held.properties.requestId.type = 'integer'; },
     value => { value.schemas.held.additionalProperties = true; },
-  ]) {
+  ] satisfies ((value: ProjectedRegistry) => void)[]) {
     const changed = structuredClone(registry); mutate(changed);
     assert.throws(() => buildClientHostWire(changed, protocol), /InvalidClientHostRequestResponseRule/);
   }
@@ -622,16 +665,16 @@ test('Requirement fact identities require a coherent checked-contract and catalo
   const {machineCid} = await import('./actql-spec-family.mjs');
   const changed = structuredClone(protocol);
   changed.schemas.canonical_value_contract.title += '-independent-fixture';
-  assert.throws(() => applyCheckOutcomeSchema(changed), /StaleCheckReasonParameterContractSchema/);
+  assert.throws(() => applyCheckOutcomeSchema(changed as unknown as Parameters<typeof applyCheckOutcomeSchema>[0]), /StaleCheckReasonParameterContractSchema/);
   // The owned catalog is the reason-schema source. An intentional schema
   // change must update that explicit reference too; generation cannot hide it.
   const catalog = readCheckReasonCatalog();
   const pin = machineCid(changed.schemas.canonical_value_contract);
   for (const facts of catalog.reason_schema.properties.facts.oneOf) {
-    if (facts.properties.admission) facts.properties.admission.properties.contract_schema_cid.const = pin;
+    if (facts.properties.admission) Object.assign(facts.properties.admission.properties.contract_schema_cid, {const: pin});
   }
-  changed.artifact_schemas.check_reason = checkReasonSchemaFromCatalog(catalog, pin);
-  changed.artifact_schemas.check_outcome = checkOutcomeSchema(changed.artifact_schemas.check_reason);
+  changed.artifact_schemas.check_reason = checkReasonSchemaFromCatalog(catalog, pin) as unknown as FixtureSchema;
+  changed.artifact_schemas.check_outcome = checkOutcomeSchema(changed.artifact_schemas.check_reason as unknown as Parameters<typeof checkOutcomeSchema>[0]) as unknown as FixtureSchema;
   for (const name of ['check_reason', 'check_outcome']) {
     changed.artifact_schema_cids[name] = machineCid(changed.artifact_schemas[name]);
     assert.notEqual(changed.artifact_schema_cids[name], protocol.artifact_schema_cids[name]);
@@ -647,7 +690,9 @@ test('Run observation vocabulary derives from the registered state schema', asyn
   assert.ok(Object.isFrozen(wire.runStateProtocol.statuses));
   const future = structuredClone(protocol);
   future.artifact_schemas.run_state.properties.status.enum.push('future_state');
-  assert.match(buildClientHostWire(registry, future).module, /"cancelled","future_state"/);
+  const generated = buildClientHostWire(registry, future);
+  const changedWire = await import('data:text/javascript;base64,' + Buffer.from(generated.module).toString('base64'));
+  assert.deepEqual(changedWire.runStateProtocol.statuses, [...expected, 'future_state']);
   future.artifact_schemas.run_state.properties.status.enum.push('future_state');
   assert.throws(() => buildClientHostWire(registry, future), /InvalidRunStateDiscriminants/);
 });
@@ -655,18 +700,18 @@ test('Run observation vocabulary derives from the registered state schema', asyn
 test('wait correlation and Common projection follow the same registered rule', async () => {
   const original = buildClientHostWire(registry, protocol);
   const changed = structuredClone(registry);
-  changed.request_response_rules.run_wait.stableStatuses.pop();
+  changed.request_response_rules!.run_wait!.stableStatuses.pop();
   const projected = buildClientHostWire(changed, protocol);
   assert.notEqual(projected.runWait, original.runWait);
   assert.notEqual(projected.module, original.module);
   assert.equal(projected.native, original.native,
     'the remote CLI does not issue the physical wait observation');
   for (const mutate of [
-    value => { delete value.request_response_rules.run_wait; },
-    value => { value.request_response_rules.run_wait.stableStatuses.push('future'); },
-    value => { value.request_response_rules.run_wait.stableStatuses.push('failed'); },
-    value => { value.request_response_rules.run_wait.revisionField = 'control'; },
-  ]) {
+    value => { delete value.request_response_rules!.run_wait; },
+    value => { value.request_response_rules!.run_wait!.stableStatuses.push('future'); },
+    value => { value.request_response_rules!.run_wait!.stableStatuses.push('failed'); },
+    value => { value.request_response_rules!.run_wait!.revisionField = 'control'; },
+  ] satisfies ((value: ProjectedRegistry) => void)[]) {
     const invalid = structuredClone(registry); mutate(invalid);
     assert.throws(() => buildClientHostWire(invalid, protocol), /InvalidClientHostRequestResponseRule/);
   }
@@ -686,7 +731,9 @@ test('text Program envelopes have no independent 65536 UTF-16 ceiling', async ()
         kind: 'aql', input, parameters: null}), true);
       assert.equal(validClientBody('check', {connection, scope: 'template_only',
         kind: 'text', input}), true);
-      assert.equal(snapshotClientRequest({input}).input.text, text);
+      const snapshot = snapshotClientRequest({input});
+      assert(snapshot && typeof snapshot === 'object' && 'input' in snapshot);
+      assert.deepEqual(snapshot.input, input);
     }
   }
   for (const text of ['', 'a\0b']) {

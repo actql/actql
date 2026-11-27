@@ -90,11 +90,13 @@ test('Text enum retains empty and repeated vectors in every current registered t
 });
 
 test('actual generated structural type validator keeps enum shape without claiming value membership',async()=>{
-  const {project,structuralValidatorSource}=await import('./generate-client-publication-wire.mjs');
+  const {project}=await import('./generate-client-publication-wire.mjs');
   const schema=project(protocol.schemas.canonical_value_contract.$defs.value_contract);
-  const source='const schemas={value_contract:'+JSON.stringify(schema)+'};\n'+
-    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.value_contract);';
-  const generated: Generated=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const {compileWireTemplate}=await import('./wire-template-compiler.mjs');
+  const {module}=compileWireTemplate('interactive-control-wire',
+    'const schemas: Readonly<Record<string, WireSchema>> = {value_contract:'+JSON.stringify(schema)+'};', '',
+    [{name:'check',type:'unknown',schema:'value_contract'}]);
+  const generated: Generated=await import('data:text/javascript;base64,'+Buffer.from(module).toString('base64'));
   for(const enumeration of [[],['low','medium','high'],['high','low','high']]){
     const original={type:'string',nullable:false,enum:enumeration};
     assert.equal(generated.check(original),true);
@@ -166,11 +168,13 @@ test('signed64 has one closed distinct initial contract without Decimal or Numbe
 });
 
 test('generated structural type validation preserves signed64 schema without claiming value admission',async()=>{
-  const {project,structuralValidatorSource}=await import('./generate-client-publication-wire.mjs');
+  const {project}=await import('./generate-client-publication-wire.mjs');
   const schema=project(protocol.schemas.canonical_value_contract.$defs.value_contract);
-  const source='const schemas={value_contract:'+JSON.stringify(schema)+'};\n'+
-    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.value_contract);';
-  const generated: Generated=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const {compileWireTemplate}=await import('./wire-template-compiler.mjs');
+  const {module}=compileWireTemplate('interactive-control-wire',
+    'const schemas: Readonly<Record<string, WireSchema>> = {value_contract:'+JSON.stringify(schema)+'};', '',
+    [{name:'check',type:'unknown',schema:'value_contract'}]);
+  const generated: Generated=await import('data:text/javascript;base64,'+Buffer.from(module).toString('base64'));
   for(const nullable of [false,true]){
     const contract={type:'int64',nullable};assert.equal(generated.check(contract),true);
     assert.equal(generated.check({type:'array',nullable:false,items:contract}),true);

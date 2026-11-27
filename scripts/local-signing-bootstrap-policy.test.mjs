@@ -2,14 +2,15 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {project, structuralValidatorSource} from './generate-client-publication-wire.mjs';
+import {project} from './generate-client-publication-wire.mjs';
+import {structuralWireValidator} from './templates/structural-wire-validator.mjs';
 import {localProductDefaultAssets, nativeLocalDefaultSigningPolicy} from './native-cli-default-assets.mjs';
 
 const read = path => JSON.parse(readFileSync(new URL('../' + path, import.meta.url)));
 const vectors = read('spec/contracts/fixtures/local-signing-bootstrap-policy-vectors.json');
 const schema = read('spec/contracts/actql-local-signing-bootstrap-policy.schema.json');
 const shape = project(schema);
-const valid = new Function(structuralValidatorSource({extended:true}) + '\nreturn valid;')();
+const valid = structuralWireValidator({extended: true});
 const digest = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
 
 test('default signing pinned original has independent exact policy bytes and no issuer permission', () => {

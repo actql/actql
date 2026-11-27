@@ -4,13 +4,13 @@ import {generateCheckReasonCatalog} from './generate-check-reason-catalog.mjs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join, resolve} from 'node:path';
-import {project, structuralValidatorSource, typeOf} from
+import {project, typeOf} from
   './generate-client-publication-wire.mjs';
 
-import {nativeClientWire, formatMoonBit, responseRules, jsResponseRules,
-  requestResponseRules, jsRequestResponseRules} from './generate-native-client-wire.mjs';
-import {checkReportRules, jsCheckReportRules} from './client-check-report-rules.mjs';
+import {nativeClientWire, formatMoonBit, responseRules, requestResponseRules} from './generate-native-client-wire.mjs';
+import {checkReportRules} from './client-check-report-rules.mjs';
 import {checkpointAnswerContract, commonCheckpointProfileSource} from './checkpoint-answer-wire.mjs';
+import {compileWireTemplate} from './wire-template-compiler.mjs';
 import {compileCheckpointAnswer} from './checkpoint-answer-compiler.mjs';
 
 type Schema = ReturnType<typeof project>;
@@ -172,68 +172,36 @@ export function buildClientHostWire(registry: Registry, protocol: Protocol) {
     schemas[name] = project(nullLiterals(resolveControlSchema(
       interactive.schemas[name], interactive)));
   }
-  const module = `// Generated from the registered Client–Host machine contract.\n` +
-    `// Run: node scripts/generate-client-host-wire.mjs --write\n` +
-    `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +
-    `const operationKeys = ${JSON.stringify(registry.operations, null, 2)};\n\n` +
-    `const optionalRequestFields = ${JSON.stringify(optionalSchemas, null, 2)};\n\n` +
-    `export const checkReasonSchemaCid = ${JSON.stringify(protocol.artifact_schema_cids.check_reason)};\n` +
-    `export const checkOutcomeSchemaCid = ${JSON.stringify(protocol.artifact_schema_cids.check_outcome)};\n` +
-    `export const checkOutcomeProtocol = Object.freeze({version: ${JSON.stringify(checkVersion)}, ` +
-    `reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, ` +
-    `outcomes: Object.freeze(${JSON.stringify(checkVariants)})});\n` +
-    `export const runStateProtocol = Object.freeze({version: ${JSON.stringify(runVersion)}, ` +
-    `statuses: Object.freeze(${JSON.stringify(runStatuses)})});\n` +
-    structuralValidatorSource() +
-    `export const clientHostOperations = Object.freeze(` +
-    `Object.keys(operationKeys));\n` +
-    `export const clientHostRequestKeys = (operation, body = {}) => ` +
-    `(Object.hasOwn(operationKeys, operation) ? [...operationKeys[operation], ` +
-    `...Object.keys(optionalRequestFields[operation] ?? {}).filter(key => ` +
-    `body !== null && typeof body === 'object' && Object.hasOwn(body, key))] : undefined);\n` +
-    `export const validClientRequestOptionalFields = (operation, body) => ` +
-    `Object.entries(optionalRequestFields[operation] ?? {}).every(([key, schema]) => ` +
-    `!Object.hasOwn(body, key) || valid(body[key], schema));\n` +
-    names.map((name, index) =>
-      `export const valid${exports[index]}Shape = value => ` +
-      `valid(value, schemas.${name});\n`).join('') +
-    `export const validRunStateShape = value => ` +
-    `valid(value, schemas.run_state);\n` +
-    `export const validCheckOutcomeShape = value => ` +
-    `valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;\n`;
   const requestRules = requestResponseRules(registry, schemas);
   const {native, nativeTests, nativeCheckOutcome} = nativeClientWire(schemas, rules, requestRules, {reason: protocol.artifact_schema_cids.check_reason,
     outcome: protocol.artifact_schema_cids.check_outcome}, reportRules);
-  const types = `// Generated from the registered Client–Host machine contract.\n` +
-    `export declare const checkOutcomeProtocol: Readonly<{version: ${JSON.stringify(checkVersion)}; ` +
-    `reasonSchemaCid: string; outcomeSchemaCid: string; ` +
-    `outcomes: readonly (${checkVariants.map(value => JSON.stringify(value)).join(' | ')})[]}>;\n` +
-    `export declare const runStateProtocol: Readonly<{version: ${JSON.stringify(runVersion)}; ` +
-    `statuses: readonly (${runStatuses.map(value => JSON.stringify(value)).join(' | ')})[]}>;\n` +
-    `export type ClientHostOperation = ${operations.map(([name]) =>
-      JSON.stringify(name)).join(' | ')};\n` +
-    `export declare const checkReasonSchemaCid: string;\n` +
-    `export declare const checkOutcomeSchemaCid: string;\n` +
-    `export declare const clientHostOperations: readonly ClientHostOperation[];\n` +
-    `export declare function clientHostRequestKeys(operation: unknown, body?: unknown): string[] | undefined;\n` +
-    `export declare function validClientRequestOptionalFields(operation: unknown, body: unknown): boolean;\n` +
+  const header = '// Generated from the registered Client–Host machine contract.\n' +
+    '// Run: node scripts/generate-client-host-wire.mjs --write\n';
+  const bindings =
+    `const schemas: Readonly<Record<string, WireSchema>> = ${JSON.stringify(schemas, null, 2)};\n` +
+    `const operationKeys: Readonly<Record<string, readonly string[]>> = ${JSON.stringify(registry.operations, null, 2)};\n` +
+    `const optionalRequestFields: Readonly<Record<string, Readonly<Record<string, WireSchema>>>> = ${JSON.stringify(optionalSchemas, null, 2)};\n` +
+    `const responseRules = ${JSON.stringify(rules, null, 2)};\n` +
+    `const requestRules = ${JSON.stringify(requestRules, null, 2)};\n` +
+    `const reportRules = ${JSON.stringify(reportRules)} as const;\n` +
+    `export const checkReasonSchemaCid: string = ${JSON.stringify(protocol.artifact_schema_cids.check_reason)};\n` +
+    `export const checkOutcomeSchemaCid: string = ${JSON.stringify(protocol.artifact_schema_cids.check_outcome)};\n` +
+    `export const checkOutcomeProtocol = Object.freeze({version: ${JSON.stringify(checkVersion)} as const, ` +
+    `reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, ` +
+    `outcomes: Object.freeze<(${checkVariants.map(value => JSON.stringify(value)).join(' | ')})[]>(${JSON.stringify(checkVariants)})});\n` +
+    `export const runStateProtocol = Object.freeze({version: ${JSON.stringify(runVersion)} as const, ` +
+    `statuses: Object.freeze<(${runStatuses.map(value => JSON.stringify(value)).join(' | ')})[]>(${JSON.stringify(runStatuses)})});\n` +
+    `export type ClientHostOperation = ${operations.map(([name]) => JSON.stringify(name)).join(' | ')};\n` +
     `export type WireValueContractShape = ${typeOf(schemas.value_contract)};\n` +
-    names.map((name, index) =>
-      `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n` +
-      `export declare function valid${exports[index]}Shape(value: unknown): value is Wire${exports[index]}Shape;\n`
-    ).join('\n') +
-    `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
+    names.map((name, index) => `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n`).join('') +
+    `export type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
     `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties!.location))};\n` +
-    `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties!.fixes.items))};\n` +
-    `export declare function validRunStateShape(value: unknown): value is WireRunStateShape;\n` +
-    `export declare function validCheckOutcomeShape(value: unknown): value is WireCheckOutcomeShape;\n` +
-    `export declare function validProfileContract(value: unknown, selected: WireConnectionShape): value is WireProfileShape;\n` +
-    `export declare function validAdmissionContract(value: unknown, selected: WireConnectionShape): value is WireAdmissionShape;\n` +
-    `export declare function validRunWaitContract(value: unknown, since: number | null): value is WireRunStateShape;\n` +
-    `export declare function validHeldContract(value: unknown, expected: string): value is WireHeldShape;\n` +
-    `export declare function validRequestLookupContract(value: unknown, expected: string): value is WireLookupFoundShape | WireLookupNotFoundShape | WireLookupUnknownShape | WireHeldShape;\n` +
-    `export declare function validCheckOutcomeContract(value: unknown): value is WireCheckOutcomeShape;\n`;
+    `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties!.fixes.items))};\n`;
+  const {module, types} = compileWireTemplate('client-host-wire', bindings, header,
+    names.map((schema, index) => ({
+      name: `valid${exports[index]}Shape`, type: `Wire${exports[index]}Shape`, schema,
+    })));
   // SDK action correspondence uses the existing artifact contracts, not a
   // second handwritten Resolution/Evidence grammar. This is structural DATA
   // admission only; the actual Host still owns authentication and authority.
@@ -242,21 +210,16 @@ export function buildClientHostWire(registry: Registry, protocol: Protocol) {
     evidence: project(protocol.artifact_schemas.verified_checkpoint_resolution.properties!.approval_evidence,
       {extended: true}),
   };
-  const checkpointAnswers = '// Generated by scripts/generate-client-host-wire.mjs.\n' +
-    '// Existing Checkpoint artifact shapes only; not a signature, grant or current authority.\n' +
-    `const schemas = ${JSON.stringify(answerSchemas, null, 2)};\n` +
-    structuralValidatorSource({extended: true, compositeConstants: true}) +
-    'export const validAnswerResolution = value => valid(value, schemas.resolution);\n' +
-    'export const validAnswerEvidence = value => valid(value, schemas.evidence);\n';
-  const checkpointAnswerTypes = '// Generated by scripts/generate-client-host-wire.mjs; do not edit.\n' +
-    '// Existing artifact DATA shapes; no signature, grant or current authority.\n' +
-    // Resolution variants constrain combinations of the same fields. Keep a
-    // conservative structural type; the unchanged validator owns those
-    // oneOf/allOf refusals, proof representation and identity checks.
+  const artifactHeader = '// Generated by scripts/generate-client-host-wire.mjs; do not edit.\n' +
+    '// Existing Checkpoint artifact DATA shapes.\n';
+  // The resolution type is the structural shape. The validator checks the
+  // allowed combinations and proof representation.
+  const artifactBindings =
+    `const schemas: Readonly<Record<string, WireSchema>> = ${JSON.stringify(answerSchemas, null, 2)};\n` +
     `export type AnswerResolution = ${typeOf({...answerSchemas.resolution, oneOf: undefined})};\n` +
-    `export type AnswerEvidence = ${typeOf(answerSchemas.evidence)};\n` +
-    'export declare function validAnswerResolution(value: unknown): value is AnswerResolution;\n' +
-    'export declare function validAnswerEvidence(value: unknown): value is AnswerEvidence;\n';
+    `export type AnswerEvidence = ${typeOf(answerSchemas.evidence)};\n`;
+  const {module: checkpointAnswers, types: checkpointAnswerTypes} =
+    compileWireTemplate('checkpoint-answer-artifacts', artifactBindings, artifactHeader);
   const wait = requestRules.run_wait;
   const runWait = '// Generated from the existing Client–Host Run wait correlation rule.\n' +
     '// Run: node scripts/generate-client-host-wire.mjs --write\n\n' +
@@ -267,8 +230,7 @@ export function buildClientHostWire(registry: Registry, protocol: Protocol) {
   return {runWait, checkpointAnswers, checkpointAnswerTypes,
     checkpointConstructionTypes: compiledAnswer.declarations,
     checkpointConstruction: compiledAnswer.module,
-    checkpointProfile: commonCheckpointProfileSource(answerConstruction), module: module + jsResponseRules(rules) +
-    jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native, nativeTests, nativeCheckOutcome};
+    checkpointProfile: commonCheckpointProfileSource(answerConstruction), module, types, native, nativeTests, nativeCheckOutcome};
 }
 
 async function main() {
