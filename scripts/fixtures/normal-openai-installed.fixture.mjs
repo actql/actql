@@ -176,7 +176,7 @@ const work = workflowWorkObservation({createObservation: createHostObservationCo
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
   [...(capabilities ? ['capabilities'] : []),
-    ...(directHttp ? ['directHttp', 'directResponseLoss', 'directPartialRaw'] : []), ...(externalDuplicate ? ['externalDuplicate'] : []), 'httpStatus',
+    ...(directHttp ? ['directHttp', 'directPartialRaw', 'directResponseLoss'] : []), ...(externalDuplicate ? ['externalDuplicate'] : []), 'httpStatus',
     ...(interruption === undefined ? [] : ['interruption']),
     ...(selection.provider === undefined ? [] : ['provider']),
     ...(selectedSafetyFinish === undefined ? [] : ['safetyFinish']),
