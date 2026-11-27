@@ -140,7 +140,9 @@ export const currentPackageConfigurations = Object.freeze({
   // See docs/reviews/2026-11-25-session-explorer-task-authority-review.json.
   'src/client_local_host/moon.pkg': Object.freeze({digest: '89060694cfab16f512d11e282958f1bd663dcd152ab20c7b519de0739c16b2b3', rule: 'literal-target-selectors-with-bound-source-membership', revision: '207548ec659716c0e8bb181a63e014fd024a0153'}),
   'src/physical_strategy_host/moon.pkg': Object.freeze({digest: 'ae3a826d73c8fe1b62f16bd442324dc88719309bd469e9a92b80d6e87051ab2c', rule: 'literal-target-selectors-with-bound-source-membership', revision: '207548ec659716c0e8bb181a63e014fd024a0153'}),
-  'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
+  // The five literal carrier imports move into the in-tree installed family
+  // package. The foreign-library target, kind and test options remain exact.
+  'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'c36e4e9dd64f86612a3822ecae1875627354168e19f01faa4c534a9083e813a7', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: 'deee7321b2361c4a34b4c6024ea3c22958734e4f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.
   // See docs/reviews/2026-11-18-session-timestamp-pattern-import-review.json.
   // The next successor imports the in-tree regex pattern and replacement
