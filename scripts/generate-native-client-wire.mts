@@ -297,10 +297,6 @@ export function responseRules(registry: ResponseInput): ResponseRules {
   return rules;
 }
 
-export function jsResponseRules(rules: ResponseRules) {
-  return Object.entries(rules).map(([name,rule]) => `export const valid${name === 'profile' ? 'Profile' : 'Admission'}Contract = (value, selected) =>\n  validConnectionShape(selected) && valid${name === 'profile' ? 'Profile' : 'Admission'}Shape(value)${rule.matchConnection.map(field => ` &&\n  value.${field} === selected.${field}`).join('')}${Object.entries(rule.requireRequested).map(([field,value]) => ` &&\n  !(selected.${field} === ${JSON.stringify(value)} && value.${field} !== ${JSON.stringify(value)})`).join('')};\n`).join('');
-}
-
 // The requested identity uses the same field contract as the reply. Every
 // correlated variant must require that field with an identical definition;
 // uncorrelated closed variants still validate the caller's expected identity.
@@ -341,25 +337,4 @@ export function requestResponseRules(registry: Readonly<{request_response_rules?
         JSON.stringify(canonical(field)))) invalid();
     return [name, {...rule, expectedSchema: correlated[0]}];
   })) as RequestRules;
-}
-
-export function jsRequestResponseRules(schemas: Schemas, rules: RequestRules) {
-  return (Object.entries(rules) as RequestRuleEntry[]).map(([name, rule]) => {
-    if (name === 'run_wait') {
-      return `export const validRunWaitContract = (value, since) =>\n` +
-        `  valid(value, schemas.${rule.schema}) &&\n` +
-        `  (since === null || valid(since, schemas.${rule.schema}.properties.${rule.revisionField})) &&\n` +
-        `  ${JSON.stringify(rule.stableStatuses)}.includes(value.status) &&\n` +
-        `  (since === null || value.${rule.revisionField} > since);\n`;
-    }
-    const exportName = name === 'held' ? 'Held' : 'RequestLookup';
-    const alternatives = rule.schemas.map(schema => {
-      const shape = `valid(value, schemas.${schema})`;
-      return Object.hasOwn(schemas[schema].properties!, rule.matchRequest)
-        ? `(${shape} && value.${rule.matchRequest} === expected)` : shape;
-    });
-    return `export const valid${exportName}Contract = (value, expected) =>\n` +
-      `  valid(expected, schemas.${rule.expectedSchema}.properties.${rule.matchRequest}) &&\n` +
-      `  (${alternatives.join(' ||\n   ')});\n`;
-  }).join('');
 }
