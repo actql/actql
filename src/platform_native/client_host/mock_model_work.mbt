@@ -28,6 +28,7 @@ struct NativeClientMockModelWork {
   mut entry_recorded : Bool
   mut entry_not_recorded : Bool
   mut entry_issue : NativeLocalAdoptionIssue?
+  mut settlement_raw_funding : @publication.BoundModelRawResponse?
   mut settlement : NativeMockModelSettlement?
   mut effect_review : NativeMockEffectReview?
   mut publication_capacity : @model.OriginalModelPublicationCapacity?
@@ -155,6 +156,7 @@ fn prepare_native_client_model_work(
     entry_recorded: false,
     entry_not_recorded: false,
     entry_issue: None,
+    settlement_raw_funding: None,
     settlement: None,
     effect_review: None,
     publication_capacity: None,
@@ -1076,6 +1078,7 @@ pub fn NativeClientMockModelWork::close(
       return Err(ForeignOriginal)
     }
     self.closing = true
+    self.settlement_raw_funding = None
     self.account = None
     self.observation_time = None
     match self.close_effect_review() {
@@ -1218,7 +1221,7 @@ pub fn native_client_mock_model_work_construction() -> @execution.PreparationRep
   {
     // Include the selected provider arm and explicit pre-entry refusal bit.
     record_headers: 13L,
-    reference_slots: 57L,
+    reference_slots: 58L,
     scalar_words: 20L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,

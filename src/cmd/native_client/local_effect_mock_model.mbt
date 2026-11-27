@@ -268,6 +268,9 @@ fn LocalCommandBusinessPreparation::settle_original_model_step(
   installation : LocalRunInstallation,
   model_max_work : Int,
 ) -> Unit raise ClientStop {
+  self.original.require_model_step(
+    work.fund_settlement_export_in_original_read(),
+  )
   self.original.with_business_request(self.capture, () => {
     self.original.require_model_step(
       work.prepare_settlement_export(

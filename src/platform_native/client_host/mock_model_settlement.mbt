@@ -41,6 +41,52 @@ priv struct NativeMockModelSettlement {
 }
 
 ///|
+/// Fund the dependent success evidence vector while the original Journal Read
+/// is current. The Compute constructor must present the same accepted Raw.
+pub fn NativeClientMockModelWork::fund_settlement_export_in_original_read(
+  self : Self,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  if !(self.provider_role is PortableHttp(http) && http.output_used) {
+    return Ok(())
+  }
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.settlement_raw_funding is None &&
+    self.settlement is None &&
+    self.entry_recorded &&
+    self.active is Some(active) &&
+    @infer.call_settlement(active) is Some(original) else {
+    return Err(ForeignOriginal)
+  }
+  guard @model.model_call_settlement_success_raw(original) is Some(raw) else {
+    return Ok(())
+  }
+  let (_, _, _, header, pointer) = @bootstrap.native_managed_value_layout()
+  guard header > 0L &&
+    pointer > 0L &&
+    @execution.checked_preparation_add_product(header, 9L, pointer)
+    is Some(bytes) else {
+    return Err(Original(ConfigurationLimit))
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  self.capture
+  .fund_model_http_material_in_original_read(bytes, bytes)
+  .map_err(issue => Transport(issue))
+  .bind(_ => {
+    guard @model.model_call_settlement_success_raw(original) is Some(current) &&
+      physical_equal(current, raw) else {
+      return Err(ForeignOriginal)
+    }
+    self.settlement_raw_funding = Some(raw)
+    Ok(())
+  })
+}
+
+///|
 /// Retain this original settlement before opening its canonical exporter.
 /// The caller supplies the already selected finite export limits and funds
 /// all evidence/export/Store/failed-child overlap on the SAME parent before
@@ -112,23 +158,23 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
     let retain_success_raw = result == "ok" &&
       self.provider_role is PortableHttp(http) &&
       http.output_used
-    let originals = [attempt, accounting, outcome, authority, capture]
-    let leaves = if retain_success_raw {
-      // The new descriptor is borrowed from the same completed exchange.
-      // Cover the full survivor vector, including optional Attachment and
-      // Bundle, before appending it. The Store later prices each actual body.
-      let (_, _, _, header, pointer) = @bootstrap.native_managed_value_layout()
-      guard header > 0L &&
-        pointer > 0L &&
-        @execution.checked_preparation_add_product(header, 9L, pointer)
-        is Some(bytes) else {
-        return Err(Original(ConfigurationLimit))
+    let success_raw = if retain_success_raw {
+      guard self.settlement_raw_funding is Some(funded) &&
+        @model.model_call_settlement_success_raw(original) is Some(raw) &&
+        physical_equal(funded, raw) else {
+        return Err(ForeignOriginal)
       }
-      mock_model_require(
-        self.capture
-        .fund_model_http_material_in_original_read(bytes, bytes)
-        .map_err(issue => Transport(issue)),
-      )
+      Some(raw)
+    } else {
+      if self.settlement_raw_funding is Some(_) {
+        return Err(ForeignOriginal)
+      }
+      None
+    }
+    let originals = [attempt, accounting, outcome, authority, capture]
+    let leaves = if success_raw is Some(_) {
+      // The new descriptor is borrowed from the same completed exchange.
+      // The original Read has funded this vector. Store prices each body.
       let selected = Array(capacity=9)
       for original in originals {
         selected.push(original)
@@ -148,10 +194,7 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
         ),
       )
       leaves.push(observation)
-      if retain_success_raw {
-        guard @model.model_call_settlement_success_raw(original) is Some(raw) else {
-          return Err(ForeignOriginal)
-        }
+      if success_raw is Some(raw) {
         mock_model_require(
           @publication.verify_model_attempt_success_raw(
             attempt_evidence, scope, observation, raw,
@@ -210,6 +253,7 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
       journal_recorded: false,
     }
     self.settlement = Some(saved)
+    self.settlement_raw_funding = None
     let exporter = mock_model_require(
       @model.start_model_call_settlement_export(original, limits).map_err(issue => {
         NativeClientMockModelIssue::Capture(issue)
