@@ -2836,7 +2836,9 @@ jobs:
           path: ${{ runner.temp }}/native-cli-linux-local
           merge-multiple: true
       - name: Require actual fresh installed source-free Local execution
-        run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+        run: >-
+          node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+          --require-model-terminal --require-dependent-model
       - name: Retain independent installed Local acceptance receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
