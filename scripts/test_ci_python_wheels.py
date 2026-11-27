@@ -1062,6 +1062,51 @@ class RepeatedHostAcceptanceTests(unittest.TestCase):
         self.assertEqual(calls, ['installed-ordinary-repeated-warm'])
 
 
+class OrderedPythonCompatibilityTests(unittest.TestCase):
+    interpreter = Path('/ordinary/consumer/bin/python')
+
+    def records(self):
+        def command(pid):
+            return {'command': str(self.interpreter), 'pid': pid, 'code': 0, 'closeObservationAcknowledged': True}
+        return [{'phase': 'ordered', 'command': command(41)}, {'phase': 'saved', 'command': command(42)},
+                {'phase': 'accepted', 'platform': 'linux-x64', 'runs': 13, 'orderedPid': 41, 'savedPid': 42}]
+
+    def select(self, records):
+        calls = []
+        def run(name, args, **options):
+            calls.append((name, args, options))
+            return ('\n'.join(json.dumps(row) for row in records) + '\n').encode()
+        with tempfile.TemporaryDirectory() as tmp, patch.object(ci.shutil, 'which', return_value='/normal/node'):
+            root = Path(tmp)
+            home = {'PATH': '/ordinary/consumer/bin'}
+            accepted = ci.accept_installed_ordered_python(run, self.interpreter, root, 'linux-x64', home)
+            work = root / 'ordinary-python-ordered'
+            self.assertEqual(calls, [('installed-ordinary-python-ordered', [
+                '/normal/node', SCRIPTS / 'ordinary-python-ordered-parity.mjs', self.interpreter, work, 'linux-x64',
+            ], {'cwd': work, 'env': home, 'timeout': 900})])
+        return accepted
+
+    def test_uses_the_same_installed_interpreter_and_both_first_closes(self):
+        records = self.records()
+        self.assertEqual(self.select(records), records[-1])
+
+    def test_unrun_or_foreign_ordered_delivery_cannot_pass(self):
+        records = self.records()
+        with self.assertRaisesRegex(ValueError, 'Incomplete'):
+            self.select(records[1:])
+        for field, change in [('command', '/usr/bin/python3'), ('pid', 41),
+                              ('closeObservationAcknowledged', False), ('code', 1)]:
+            records = self.records()
+            records[1]['command'][field] = change
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'Foreign'):
+                self.select(records)
+        for field, change in [('platform', 'darwin-arm64'), ('runs', 10), ('savedPid', 41)]:
+            records = self.records()
+            records[-1][field] = change
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'Foreign'):
+                self.select(records)
+
+
 class OrchestrationTests(unittest.TestCase):
     def test_transient_release_rejection_retries_same_pinned_get(self):
         error = ci.urllib.error.HTTPError(ci.DUCKDB_URL, 504, 'gateway', {}, None)

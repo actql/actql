@@ -332,6 +332,34 @@ def accept_installed_repeated_host(run, consumer: Path, destination: Path, env: 
             'original_first_closes_returned': True}
 
 
+def accept_installed_ordered_python(run, consumer: Path, destination: Path,
+                                    target_platform: str, env: dict[str, str]) -> dict:
+    """Execute the original thirteen inputs and separate Saved with the existing installed interpreter."""
+    node = shutil.which('node')
+    if node is None or not Path(node).is_absolute():
+        raise ValueError('Missing selected Node controller for original Python compatibility')
+    work = destination / 'ordinary-python-ordered'
+    work.mkdir(mode=0o700)
+    raw = run('installed-ordinary-python-ordered', [
+        node, ROOT / 'scripts/ordinary-python-ordered-parity.mjs', consumer, work, target_platform,
+    ], cwd=work, env=env, timeout=900)
+    records = [json.loads(line) for line in raw.splitlines()]
+    if (len(records) != 3 or any(type(item) is not dict for item in records)
+            or [item.get('phase') for item in records] != ['ordered', 'saved', 'accepted']):
+        raise ValueError('Incomplete original Python compatibility evidence')
+    ordered, saved, accepted = records
+    children = [item.get('command') for item in (ordered, saved)]
+    pids = [accepted.get('orderedPid'), accepted.get('savedPid')]
+    if (accepted.get('platform') != target_platform or accepted.get('runs') != 13
+            or any(type(pid) is not int or pid <= 0 for pid in pids) or pids[0] == pids[1]
+            or any(type(child) is not dict or child.get('command') != str(consumer)
+                   or child.get('pid') != pid or child.get('code') != 0
+                   or child.get('closeObservationAcknowledged') is not True
+                   for child, pid in zip(children, pids, strict=True))):
+        raise ValueError('Foreign original Python compatibility evidence')
+    return accepted
+
+
 def accept_installed_fuel(run, consumer: Path, destination: Path,
                           source: str, cohort, env: dict[str, str]) -> None:
     """One changed-default regression and one deliberate fail-closed operation.
@@ -804,6 +832,7 @@ def run_acceptance(destination: Path, *, model_crypto_preparation: Path | None =
     csv_projects = accept_installed_csv_projects(run, consumer, destination, cohort_directory, source, env)
     accept_installed_named_results(run, consumer, destination, version, env)
     repeated_host = accept_installed_repeated_host(run, consumer, destination, env)
+    ordered_python = accept_installed_ordered_python(run, consumer, destination, target_platform, env)
     accept_installed_fuel(run, consumer, destination, source, cohort, env)
     saved_read = accept_installed_saved(run, consumer, destination, source, cohort, env)
     portable_model = None
@@ -822,6 +851,7 @@ def run_acceptance(destination: Path, *, model_crypto_preparation: Path | None =
         'separate_process_saved': True, 'typed_refusal_and_health': True,
         'context_close': True, 'installed_active_cancellation': True,
         'ordinary_repeated_host': repeated_host, 'installed_saved_read': saved_read,
+        'ordinary_ordered_python': ordered_python,
         'cancelled_saved_recovery': True, 'first_cancel_case_close': True,
         'physical_release_observed': False,
         'published': False, 'steps': steps}, indent=2) + '\n')
