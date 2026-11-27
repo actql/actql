@@ -11,7 +11,6 @@ import {
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/numeric_reduction",
-  "actql/actql/physical_resources",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_evidence",
   "actql/actql/relation_results",
@@ -251,7 +250,7 @@ pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecu
 
 pub fn bind_generated_sequence_query_time(GeneratedSequence, @run_publication.QueryEvaluationTime, Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
-pub fn bind_generated_workspace_growth(GeneratedSequence, SequenceExecutionLimits, Int64, (Int64) -> Result[Unit, WorkspaceGrowthIssue], meter_retained_outputs? : Bool, reserve_retained? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])?, prepaid_operation_slots? : Int?, output_workspace? : @physical_resources.StartedTaskWorkspace?) -> Result[GeneratedSequence, SequenceRunIssue]
+pub fn bind_generated_workspace_growth(GeneratedSequence, SequenceExecutionLimits, Int64, (Int64) -> Result[Unit, WorkspaceGrowthIssue], meter_retained_outputs? : Bool, reserve_retained? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])?, prepaid_operation_slots? : Int?, track_output_origin? : Bool) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
 
@@ -893,6 +892,8 @@ pub fn generated_join_output_ceiling(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_output_workspace_matches(GeneratedSequence, @lowering_relation.BoundPrepared, @pipeline_typing.Target, metered? : Bool) -> Bool
 
+pub fn generated_output_workspace_original(GeneratedSequence) -> OutputWorkspaceOriginal?
+
 pub fn generated_prepared_sequence(GeneratedSequence) -> @lowering_relation.PreparedSequence
 
 pub fn generated_retained_at(GeneratedSequence, Int) -> String?
@@ -945,7 +946,7 @@ pub fn infer_completed_producer_input(@lowering_relation.BoundPrepared, Int, Pro
 
 pub fn infer_completion_matches_rows(CompletionPreparation, PreparedInferRows) -> Bool
 
-pub fn infer_outcome_task_workspace(InferOutcomePort) -> @physical_resources.StartedTaskWorkspace?
+pub fn infer_outcome_workspace_original(InferOutcomePort) -> OutputWorkspaceOriginal?
 
 pub fn infer_rows_preparation_logical_usage(InferRowsPreparation) -> (Int64, Int64, Int64)
 
@@ -1560,6 +1561,8 @@ pub fn row_wire_order_work(RowWireOrder) -> Int
 pub fn row_wire_usage(RowWireIdentity) -> (Int, Int, Int)
 
 pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFailureStage
+
+pub fn same_output_workspace_original(OutputWorkspaceOriginal, OutputWorkspaceOriginal) -> Bool
 
 pub fn select_generated_sequence_prefix(GeneratedSequence, Int) -> GeneratedSequence?
 
@@ -2763,6 +2766,8 @@ pub(all) enum OutputStreamIssue {
   Wire(RowWireIssue)
   Closed
 }
+
+type OutputWorkspaceOriginal
 
 type PredicateExpressionExecution
 

@@ -11,6 +11,7 @@ struct ClientWholeModelOutcomeRecorder {
 pub fn complete_original_whole_model_outcome(
   value : ClientWholeModelOutcomeRecorder,
   port : @execution.InferOutcomePort,
+  task_workspace? : @strategy.TaskOutputWorkspace? = None,
 ) -> @execution.CompletedOutput? {
   let scope = value.scope
   let selected = scope.plan.occurrence
@@ -19,6 +20,18 @@ pub fn complete_original_whole_model_outcome(
   defer (if scope.custody is CompletingWholeOutcome {
     scope.custody = ArmedWholeOutcome
   })
+  let output_workspace = match
+    (@execution.infer_outcome_workspace_original(port), task_workspace) {
+    (None, None) => None
+    (Some(original), Some(workspace)) => {
+      guard @strategy.task_output_workspace_resource(workspace, original)
+        is Some(resource) else {
+        return None
+      }
+      Some(resource)
+    }
+    _ => return None
+  }
   guard @execution.complete_bound_infer_outcome_port(port, value.binding)
     is Ok(output) &&
     @execution.completed_output_matches_port(
@@ -29,7 +42,7 @@ pub fn complete_original_whole_model_outcome(
     client_infer_call_scope_matches(scope, scope.owner, scope.input) &&
     @resources.funded_read_consumer_handed_off_origin(
       value.consumer.consumer,
-      output_workspace=@execution.infer_outcome_task_workspace(port),
+      output_workspace~,
     )
     is Some(origin) &&
     physical_equal(origin.plan, scope.plan) &&

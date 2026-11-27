@@ -348,7 +348,7 @@ pub fn composed_local_provider_with_workspace(
       )
     _ => None
   }
-  let provider = @local.managed_provider_with_inputs(
+  let provider = @local.managed_provider_with_task_workspace(
     sequence => {
       composed_local_sequence_matches(occurrence, sequence, boundary_only)
     },
@@ -359,7 +359,7 @@ pub fn composed_local_provider_with_workspace(
         None
       }
     },
-    (sequence, inputs, max_rows, max_value_bytes, _) => {
+    (sequence, inputs, max_rows, max_value_bytes, _, task_workspace) => {
       if !composed_local_sequence_matches(occurrence, sequence, boundary_only) ||
         max_rows < limits.output_rows ||
         max_value_bytes < 0 ||
@@ -416,6 +416,7 @@ pub fn composed_local_provider_with_workspace(
         original_step~,
         output_workspace=if portable_vm { Some(sequence) } else { None },
         fund_original_phases=metered_output_start is Some(_),
+        task_workspace~,
       ).map_err(project_issue)
     },
   )

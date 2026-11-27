@@ -2063,7 +2063,7 @@ pub fn complete_client_serialization_generation(ClientCompiledRun, @run_publicat
 
 pub fn complete_client_serialization_output(ClientSerializationInput, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@execution_relation.CompletedOutput, ClientSerializationOutputIssue]
 
-pub fn complete_original_whole_model_outcome(ClientWholeModelOutcomeRecorder, @execution_relation.InferOutcomePort) -> @execution_relation.CompletedOutput?
+pub fn complete_original_whole_model_outcome(ClientWholeModelOutcomeRecorder, @execution_relation.InferOutcomePort, task_workspace? : @physical_strategy_host.TaskOutputWorkspace?) -> @execution_relation.CompletedOutput?
 
 pub fn confirm_client_effect_first_start_step(ClientEffectFirstStartStep, ClientJournalPhysicalRow) -> Bool
 

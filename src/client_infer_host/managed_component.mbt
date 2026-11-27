@@ -15,6 +15,7 @@ pub fn local_component(
   )? = None,
   output_workspace? : @relation.GeneratedSequence? = None,
   fund_original_phases? : Bool = false,
+  task_workspace? : @strategy.TaskOutputWorkspace? = None,
 ) -> Result[@local.ManagedProviderExecution, Issue] {
   if active.reclaimed ||
     active.cancelled ||
@@ -35,6 +36,13 @@ pub fn local_component(
     ) {
     return Err(InvalidAdvance)
   }
+  if task_workspace is Some(workspace) {
+    guard output_workspace is Some(sequence) &&
+      @relation.generated_output_workspace_original(sequence) is Some(original) &&
+      @strategy.task_output_workspace_resource(workspace, original) is Some(_) else {
+      return Err(InvalidAdvance)
+    }
+  }
   if fund_original_phases &&
     !(output_workspace is Some(_) &&
     active.identity_body is Some(_) &&
@@ -45,7 +53,7 @@ pub fn local_component(
     return Err(InvalidAdvance)
   }
   active.local_component_binding = if output_workspace is Some(sequence) {
-    WithLocalOutputWorkspace(sequence, fund_original_phases)
+    WithLocalOutputWorkspace(sequence, fund_original_phases, task_workspace)
   } else if host_await_io {
     WithHostIo
   } else {
@@ -97,7 +105,7 @@ pub fn local_component(
           // Only the installed Host that owns the physical wake can wait.
           AwaitIo(_) =>
             if active.local_component_binding
-              is (WithHostIo | WithLocalOutputWorkspace(_, _)) {
+              is (WithHostIo | WithLocalOutputWorkspace(_, _, _)) {
               Ok(@local.managed_provider_await_io(delta, delta))
             } else {
               Err(project_issue(InvalidAdvance))
@@ -152,7 +160,7 @@ fn completed_original_component_scratch_retained(active : Execution) -> Bool {
   guard !(active.local_component_binding is Unbound) && active.output_uses > 0 else {
     return false
   }
-  if !(active.local_component_binding is WithLocalOutputWorkspace(_, _)) {
+  if !(active.local_component_binding is WithLocalOutputWorkspace(_, _, _)) {
     return original_infer_publication_owner_current(active)
   }
   execution_stopped(active) &&

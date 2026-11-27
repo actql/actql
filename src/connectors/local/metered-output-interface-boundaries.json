@@ -278,7 +278,7 @@
     {
       "module": "src/connectors/local/module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "185c892c17bd9772509a901f43494612facc0ad182aacca701cf175c04cb30f8",
+      "sha256": "4fdbda6d11c16721c05755941b1fde2f2483cc6aef2e5f768edce6e3da6dbfa4",
       "role": "connector-semantics",
       "owner": "Existing installed Local module, exact default bounded constructors and injected provider selection",
       "referenceQualification": "Original selected constructor and same-Task resource correspondence; no normal distribution or physical acceptance",
@@ -319,6 +319,10 @@
         {
           "name": "local_managed_provider_for",
           "declaration": "local_managed_provider_for ( family : Array [ ManagedProvider ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , sequence : @ execution . GeneratedSequence , ) - > ManagedProvider ?"
+        },
+        {
+          "name": "local_metered_model_supplied_unique_capacity",
+          "declaration": "local_metered_model_supplied_unique_capacity ( prefix : @ execution . GeneratedSequence , read : @ execution . SuppliedRelationRead , limits : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "local_module_borrowed_text_singleton_group",
@@ -409,6 +413,10 @@
           "declaration": "local_module_managed_sequence_supported ( installed : LocalComputeModule , slot : Int , ) - > Bool"
         },
         {
+          "name": "local_module_managed_start_capacity",
+          "declaration": "local_module_managed_start_capacity ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , ) - > ( @ execution . ExecutionCapacity , Int ) ?"
+        },
+        {
           "name": "local_module_materializing_start_capacity",
           "declaration": "local_module_materializing_start_capacity ( installed : LocalComputeModule , slot : Int , ) - > ( @ execution . ExecutionCapacity , Bool ? ) ?"
         },
@@ -419,6 +427,10 @@
         {
           "name": "local_module_measurement_limits",
           "declaration": "local_module_measurement_limits ( installed : LocalComputeModule , ) - > @ execution . FixedInputGuardMeasureLimits"
+        },
+        {
+          "name": "local_module_metered_model_start_capacity",
+          "declaration": "local_module_metered_model_start_capacity ( installed : LocalComputeModule , slot : Int , sequence : @ execution . GeneratedSequence , supplied ? : @ execution . SuppliedRelationRead ?"
         },
         {
           "name": "local_module_metered_output_start_capacity",
@@ -463,6 +475,10 @@
         {
           "name": "prepare_local_module_compute",
           "declaration": "prepare_local_module_compute ( installed : LocalComputeModule , slot : Int , request : @ connector . FixedComputeRequest , join_output_ceiling : ( Int , Int64 ) ? , join_output_ceilings ? : Array [ ( Int , Int64 ) ]"
+        },
+        {
+          "name": "selected_metered_join_chain_prefix",
+          "declaration": "selected_metered_join_chain_prefix ( sequence : @ execution . GeneratedSequence , ) - > Int ?"
         }
       ],
       "contracts": [
@@ -475,8 +491,11 @@
             "local_bounded_binary_relation_step",
             "local_bounded_relation_check",
             "local_bounded_relation_provider",
+            "local_default_join_borrows_input",
             "local_default_managed_provider",
             "local_managed_provider_for",
+            "local_metered_model_supplied_unique_capacity",
+            "local_module_borrowed_text_singleton_group",
             "local_module_bounded_append_obligation",
             "local_module_bounded_cross_join_obligation",
             "local_module_bounded_family_relation_obligation",
@@ -493,27 +512,28 @@
             "local_module_capacity",
             "local_module_capacity_for_sequence",
             "local_module_container_inventory",
+            "local_module_default_output_start_capacity",
             "local_module_execution_limits",
             "local_module_managed_capacity",
             "local_module_managed_provider",
             "local_module_managed_sequence_supported",
+            "local_module_managed_start_capacity",
+            "local_module_materializing_start_capacity",
             "local_module_max_work",
             "local_module_measurement_limits",
+            "local_module_metered_model_start_capacity",
             "local_module_metered_output_start_capacity",
             "local_module_original_occurrence",
+            "local_module_provider_field_inventory",
             "local_module_relation_obligation_segment",
+            "local_module_selected_sequence",
             "local_module_sequence_contains_carrier_step",
             "local_module_sequence_has_carrier_input",
             "local_module_sequence_outputs_carrier",
             "local_sequence_contains_exact_step",
             "prepare_local_compute_module",
             "prepare_local_module_compute",
-            "local_module_default_output_start_capacity",
-            "local_module_materializing_start_capacity",
-            "local_module_provider_field_inventory",
-            "local_module_selected_sequence",
-            "local_default_join_borrows_input",
-            "local_module_borrowed_text_singleton_group"
+            "selected_metered_join_chain_prefix"
           ],
           "exports": [],
           "attributes": {
@@ -529,6 +549,10 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_model_start_capacity("
               }
             ],
             "inputsOutputs": [
@@ -547,6 +571,10 @@
               {
                 "path": "src/connectors/local/module.mbt",
                 "anchor": "pub fn local_module_materializing_start_capacity("
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_model_start_capacity("
               }
             ],
             "identity": [
@@ -561,6 +589,10 @@
               {
                 "path": "src/connectors/local/metered_output_start_wbtest.mbt",
                 "anchor": "test \"singleton SnapshotMap"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_model_start_capacity("
               }
             ],
             "ownership": [
@@ -687,6 +719,10 @@
               {
                 "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
                 "anchor": "paused Debug borrows the full original Relation from its completed Driver"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "pub fn local_module_metered_model_start_capacity("
               }
             ]
           }

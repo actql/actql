@@ -5,6 +5,7 @@ struct ModelOutputPreparation {
   execution : ModelExecution
   materialization : @relation.AdmittedOutputPreparation
   port : @relation.InferOutcomePort
+  task_workspace : @strategy.TaskOutputWorkspace?
   mut completed : @relation.CompletedOutput?
   mut reclaimed : Bool
 }
@@ -57,6 +58,7 @@ pub fn start_model_output_preparation(
   max_step_work : Int,
   max_workspace_slots : Int,
   working? : @relation.GeneratedSequence? = None,
+  task_workspace? : @strategy.TaskOutputWorkspace? = None,
 ) -> Result[ModelOutputPreparation, ModelExecutionIssue] {
   let state = execution.state
   if check_model_original_resources_mutable(state) is Err(issue) {
@@ -129,7 +131,14 @@ pub fn start_model_output_preparation(
     }
   }
   state.output_uses += 1
-  Ok({ execution, materialization, port, completed: None, reclaimed: false, })
+  Ok({
+    execution,
+    materialization,
+    port,
+    task_workspace,
+    completed: None,
+    reclaimed: false,
+  })
 }
 
 ///|
@@ -168,6 +177,7 @@ pub fn complete_model_output(
       @publication_host.complete_original_whole_model_outcome(
         original,
         value.port,
+        task_workspace=value.task_workspace,
       )
     None => @relation.complete_infer_outcome_port(value.port).to_option()
   }

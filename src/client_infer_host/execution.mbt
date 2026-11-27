@@ -70,7 +70,11 @@ enum LocalComponentBinding {
   Unbound
   Synchronous
   WithHostIo
-  WithLocalOutputWorkspace(@relation.GeneratedSequence, Bool)
+  WithLocalOutputWorkspace(
+    @relation.GeneratedSequence,
+    Bool,
+    @strategy.TaskOutputWorkspace?
+  )
 }
 
 ///|
@@ -1097,7 +1101,8 @@ fn begin_model(active : Execution) -> Poll {
           active.call_scope is Some(scope) else {
           return fail(active, InvalidAdvance)
         }
-        if active.local_component_binding is WithLocalOutputWorkspace(_, true) {
+        if active.local_component_binding
+          is WithLocalOutputWorkspace(_, true, _) {
           guard active.model_send_mask is None &&
             @model.original_fresh_model_start_construction_capacity()
             is Some(required) else {
@@ -1260,7 +1265,7 @@ fn begin_model(active : Execution) -> Poll {
 ///|
 fn advance_child(active : Execution, quantum : Int) -> Poll {
   let fund_original_identity = active.local_component_binding
-    is WithLocalOutputWorkspace(_, true)
+    is WithLocalOutputWorkspace(_, true, _)
   match active.phase {
     Input =>
       match @input.advance_client_infer_input(active.input, quantum) {
@@ -1520,7 +1525,11 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               active.limits.output_work,
               active.limits.output_workspace,
               working=match active.local_component_binding {
-                WithLocalOutputWorkspace(sequence, _) => Some(sequence)
+                WithLocalOutputWorkspace(sequence, _, _) => Some(sequence)
+                _ => None
+              },
+              task_workspace=match active.local_component_binding {
+                WithLocalOutputWorkspace(_, _, workspace) => workspace
                 _ => None
               },
             ) {
@@ -2131,7 +2140,7 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       // read owner retains this stopped ticket until its own physical cleanup
       // settles the read and severs both nominal back-references.
       active.original_preparation = None
-      if active.local_component_binding is WithLocalOutputWorkspace(_, _) {
+      if active.local_component_binding is WithLocalOutputWorkspace(_, _, _) {
         active.local_component_binding = WithHostIo
       }
       active.reclaimed = true

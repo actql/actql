@@ -9,6 +9,7 @@ import {
   "actql/actql/decode_shape",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
+  "actql/actql/physical_strategy_host",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/sha256",
@@ -502,7 +503,7 @@ pub fn start_model_http_chat_request_projection(AdmittedStructuredModelProvider,
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
-pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int, working? : @execution_relation.GeneratedSequence?) -> Result[ModelOutputPreparation, ModelExecutionIssue]
+pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int, working? : @execution_relation.GeneratedSequence?, task_workspace? : @physical_strategy_host.TaskOutputWorkspace?) -> Result[ModelOutputPreparation, ModelExecutionIssue]
 
 pub fn start_native_decision_projection(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[NativeDecisionProjection, NativeDecisionProjectionIssue]
 

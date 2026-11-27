@@ -8,7 +8,7 @@ priv struct WorkspaceGrowth {
   live_ceiling : Int64
   reserve : (Int64) -> Result[Unit, WorkspaceGrowthIssue]
   reserve_retained : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])?
-  output_workspace : @resources.StartedTaskWorkspace?
+  output_origin : OutputWorkspaceOriginal?
   mut slots : Int
   mut logical : Int64
   mut text : Int64
@@ -173,7 +173,7 @@ pub fn bind_generated_workspace_growth(
   meter_retained_outputs? : Bool = false,
   reserve_retained? : ((Int64, Int64) -> Result[Unit, WorkspaceGrowthIssue])? = None,
   prepaid_operation_slots? : Int? = None,
-  output_workspace? : @resources.StartedTaskWorkspace? = None,
+  track_output_origin? : Bool = false,
 ) -> Result[GeneratedSequence, SequenceRunIssue] {
   let initial_slots = prepaid_operation_slots.unwrap_or(
     limits.rows.operation_entries,
@@ -216,7 +216,11 @@ pub fn bind_generated_workspace_growth(
       live_ceiling,
       reserve,
       reserve_retained,
-      output_workspace,
+      output_origin: if track_output_origin {
+        Some({ token: Ref(()), })
+      } else {
+        None
+      },
       slots: 0,
       logical: 0L,
       text: 0L,
@@ -406,4 +410,26 @@ fn fund_output_retention(budget : ValueBudget, nodes : Int, text : Int) -> Bool 
   budget.retention_funded = required
   budget.row_scratch_peak = peak
   true
+}
+
+///|
+/// Identity of the exact metered output attachment. No resource handle or
+/// callback is retained by this witness.
+struct OutputWorkspaceOriginal {
+  token : Ref[Unit]
+}
+
+///|
+pub fn generated_output_workspace_original(
+  sequence : GeneratedSequence,
+) -> OutputWorkspaceOriginal? {
+  sequence.working.bind(growth => growth.output_origin)
+}
+
+///|
+pub fn same_output_workspace_original(
+  left : OutputWorkspaceOriginal,
+  right : OutputWorkspaceOriginal,
+) -> Bool {
+  physical_equal(left.token, right.token)
 }

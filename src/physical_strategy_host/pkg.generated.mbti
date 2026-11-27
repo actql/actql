@@ -78,6 +78,8 @@ pub fn bind_checked_effect_run_dag(@physical_strategy.CheckedEffectComputationDA
 
 pub fn bind_operational_profile_template(String, PolicyRequest) -> Result[String, SearchIssue]
 
+pub fn bind_task_execution_output_workspace(CapturedDAG, TaskExecution, @execution_relation.GeneratedSequence, @execution_relation.SequenceExecutionLimits, (Int64) -> Result[Unit, @execution_relation.WorkspaceGrowthIssue], ((Int64, Int64) -> Result[Unit, @execution_relation.WorkspaceGrowthIssue])?) -> Result[(@execution_relation.GeneratedSequence, TaskOutputWorkspace), @execution_relation.SequenceRunIssue]
+
 pub fn borrow_captured_any_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedAnyResultBorrow, RunIssue]
 
 pub fn borrow_captured_carrier_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, @execution_relation.CarrierManagedCompletedOutput, Int) -> Result[CapturedResidentResultBorrow, RunIssue]
@@ -1166,8 +1168,6 @@ pub fn task_execution_numeric_reduction_member_cid(CapturedDAG, TaskExecution, I
 
 pub fn task_execution_numeric_reduction_slot_cid(CapturedDAG, TaskExecution, Int) -> String?
 
-pub fn task_execution_output_workspace(CapturedDAG, TaskExecution) -> @physical_resources.StartedTaskWorkspace?
-
 pub fn task_execution_registration_key(CapturedDAG, TaskExecution) -> String?
 
 pub fn task_numeric_observation_family(@physical_strategy.TaskNumericObservation) -> @physical_strategy.NumericObservationFamily
@@ -1185,6 +1185,8 @@ pub fn task_numeric_observation_slot_cid(@physical_strategy.TaskNumericObservati
 pub fn task_numeric_observation_step(@physical_strategy.TaskNumericObservation) -> Int
 
 pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistration, TaskOffer) -> Bool
+
+pub fn task_output_workspace_resource(TaskOutputWorkspace, @execution_relation.OutputWorkspaceOriginal) -> @physical_resources.StartedTaskWorkspace?
 
 pub fn validate_strategy_policy_request(StrategyChoiceSet, PolicyRequest, Int64) -> Result[Unit, SearchIssue]
 
@@ -1804,6 +1806,8 @@ type TaskExecution
 type TaskNumericExecution
 
 type TaskOffer
+
+type TaskOutputWorkspace
 
 type TaskRetainedAllocation
 

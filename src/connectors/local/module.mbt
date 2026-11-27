@@ -449,17 +449,36 @@ pub fn local_module_metered_model_start_capacity(
       return None
     }
   }
-  if supplied is Some(read) &&
+  let selected = if supplied is Some(read) &&
     local_metered_model_supplied_unique_capacity(
       prefix, read, input_limits, measurement,
     )
     is Some(measured) &&
     measured.retained_bytes <= start.retained_bytes &&
     measured.execution_bytes <= start.execution_bytes {
-    return Some(measured)
+    measured
+  } else {
+    start
   }
-  Some(start)
+  let custody = metered_model_output_workspace_bytes
+  guard @execution.execution_capacity(custody, custody) is Some(held) else {
+    return None
+  }
+  @execution.add_execution_capacity(selected, held)
 }
+
+///|
+// The started workspace was already held. Charge the new marker and Ref,
+// the Host pair, its provider/start carriers, and live phase references under
+// the existing representation policy before the Task is started.
+let metered_model_output_workspace_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 6L,
+    reference_slots: 12L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
 
 ///|
 // UNIQUE forwards every checked value in its only supplied input. The row

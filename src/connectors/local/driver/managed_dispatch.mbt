@@ -2173,36 +2173,41 @@ pub fn[T] start_local_managed_dispatch(
             if !live.val || disposed.val {
               return Err(Configuration(InputUnavailable))
             }
-            let constrained = match
-              @execution.bind_generated_workspace_growth(
-                constrained,
-                setup.execution,
-                @resources.ledger_admission_limits(
-                  @strategy.captured_dag_ledger(setup.run),
-                ).execution_bytes,
-                reserve_working,
-                meter_retained_outputs=!(setup.output_funding is Prepaid),
-                prepaid_operation_slots=match setup.output_funding {
-                  MeteredRows(slots) => Some(slots)
-                  Prepaid | MeteredModel => None
-                },
-                reserve_retained=if setup.metered_retention {
-                  Some(reserve_capacity)
-                } else {
-                  None
-                },
-                output_workspace=if setup.output_funding is MeteredModel {
-                  @strategy.task_execution_output_workspace(
-                    setup.run,
-                    execution,
-                  )
-                } else {
-                  None
-                },
-              ) {
-              Ok(value) => {
+            let retained = if setup.metered_retention {
+              Some(reserve_capacity)
+            } else {
+              None
+            }
+            let attached = match setup.output_funding {
+              MeteredModel =>
+                @strategy.bind_task_execution_output_workspace(
+                  setup.run,
+                  execution,
+                  constrained,
+                  setup.execution,
+                  reserve_working,
+                  retained,
+                ).map(pair => (pair.0, Some(pair.1)))
+              Prepaid | MeteredRows(_) =>
+                @execution.bind_generated_workspace_growth(
+                  constrained,
+                  setup.execution,
+                  @resources.ledger_admission_limits(
+                    @strategy.captured_dag_ledger(setup.run),
+                  ).execution_bytes,
+                  reserve_working,
+                  meter_retained_outputs=!(setup.output_funding is Prepaid),
+                  prepaid_operation_slots=match setup.output_funding {
+                    MeteredRows(slots) => Some(slots)
+                    Prepaid | MeteredModel => None
+                  },
+                  reserve_retained=retained,
+                ).map(sequence => (sequence, None))
+            }
+            let (constrained, task_workspace) = match attached {
+              Ok((value, original)) => {
                 working_sequence.val = Some(value)
-                value
+                (value, original)
               }
               Err(issue) => return Err(Configuration(Execution(issue)))
             }
@@ -2226,6 +2231,7 @@ pub fn[T] start_local_managed_dispatch(
                 @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
                 setup.execution,
                 numeric~,
+                task_workspace~,
               ) {
               Ok(value) => value
               Err(issue) => {
