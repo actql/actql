@@ -1,0 +1,11 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/connectors/local",
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/local_sga_provider",
+  "actql/actql/local_tea_provider",
+  "actql/actql/local_veca_provider",
+  "actql/actql/managed_graph_storage" @graph_storage,
+  "actql/actql/managed_record_storage" @record_storage,
+}

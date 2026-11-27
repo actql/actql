@@ -425,11 +425,7 @@ if (existsSync(join(sourceRoot, bridgePackage,
     }
   }
   if (selectedFamilies) {
-    dependencies.set('actql/actql/local_sga_provider', 'local_sga_provider');
-    dependencies.set('actql/actql/managed_graph_storage', 'graph_storage');
-    dependencies.set('actql/actql/local_tea_provider', 'local_tea_provider');
-    dependencies.set('actql/actql/local_veca_provider', 'local_veca_provider');
-    dependencies.set('actql/actql/managed_record_storage', 'record_storage');
+    dependencies.set('actql/actql/client_local_host/installed_families', 'installed_families');
   }
 }
 if (hasLocalCarrierBridge) {

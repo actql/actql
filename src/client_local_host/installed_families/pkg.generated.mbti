@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_local_host/installed_families"
+
+import {
+  "actql/actql/connectors/local",
+  "actql/actql/execution_relation",
+}
+
+// Values
+pub fn graph_providers(Array[@execution_relation.GeneratedSequence], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Array[@local.ManagedProvider]?
+
+pub fn has_graph() -> Bool
+
+pub fn provider_count() -> Int
+
+pub fn providers(@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
