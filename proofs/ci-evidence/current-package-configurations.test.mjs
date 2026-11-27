@@ -604,30 +604,23 @@ test('current regex imports bind both literal aliases and complete pattern and r
       'sql_replacement_test.mbt', 'vectors.generated_test.mbt',
     ]},
   };
-  execFileSync('git', ['merge-base', '--is-ancestor', entry.revision, 'HEAD'], {cwd: root});
+  assert.equal(entry.revision, shaRevision);
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
   execFileSync('git', ['merge-base', '--is-ancestor', shaRevision, 'HEAD'], {cwd: root});
   const body = reviewed.read(path).toString();
   assert.equal(hash(body), 'ed50ecf39857c24b0f7f166c038131cd92ff32be335497c10bc63d50770fd7eb');
   assert.equal(reviewed.entries.get(path)?.mode, '100644');
-  const shaBody = shaReview.read(path).toString();
-  assert.equal(hash(shaBody), '556eb9342ece6dc65924befcc7a96dad9983bc8f2d4b5c6fe9705577dafd6f34');
-  assert.equal(shaReview.entries.get(path)?.mode, '100644');
-  const successor = gitTree(root, entry.revision).read(path).toString();
-  const resources = '  "actql/actql/physical_resources" @resources,\n';
+  const successor = shaReview.read(path).toString();
   assert.equal(hash(successor), entry.digest);
-  assert.equal(Buffer.byteLength(successor), 2209);
   assert.equal(currentTree.read(path).toString(), successor);
-  assert.equal(successor.split(resources).length, 2);
-  assert.equal(successor.replace(resources, ''), shaBody);
-  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(shaBody))), null);
+  assert.equal(shaReview.entries.get(path)?.mode, '100644');
   const shaImport = '  "actql/actql/sha256" @sha,\n';
   const encoder = '  "actql/actql/encode_core" @encode,\n';
   const slack = '  "actql/actql/connectors/slack/catalog" @slack,\n';
-  assert.equal(shaBody.split(shaImport).length, 2);
-  assert.equal(shaBody.split(encoder + shaImport).length, 2);
-  assert.equal(shaBody.split(slack).length, 2);
-  assert.equal(shaBody.replace(encoder + shaImport, encoder).replace(slack, slack + shaImport), body);
+  assert.equal(successor.split(shaImport).length, 2);
+  assert.equal(successor.split(encoder + shaImport).length, 2);
+  assert.equal(successor.split(slack).length, 2);
+  assert.equal(successor.replace(encoder + shaImport, encoder).replace(slack, slack + shaImport), body);
 
   for (const directory of [relation, lowering]) {
     const manifest = directory + '/moon.pkg';
@@ -648,10 +641,24 @@ test('current regex imports bind both literal aliases and complete pattern and r
   assert.equal(packageImports(loweringManifest).unknown, null);
   assert.equal(currentPackageConfigurations[lowering + '/moon.pkg'], undefined);
 
+  const superseded = gitTree(root, 'bbd440aaa040412885d3b3974c9eec09597af733').read(path);
+  const oldResources = '  "actql/actql/physical_resources" @resources,\n';
+  assert.equal(hash(superseded), '5f1b7d591ed14fb1bf8c887f856c79d10dbc266ae484f6f4aa396db6537283b2');
+  assert.equal(superseded.toString().split(oldResources).length, 2);
+  assert.equal(superseded.toString().replace(oldResources, ''), successor);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(superseded))), null);
   const selected = packageSourceInputs({tree: currentTree, packages: [relation, lowering], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert(selected.directories.some(row => row.path === 'src/sha256/*'));
-  assert(selected.paths.includes('src/physical_resources/moon.pkg'));
+  assert(!packageImports(successor).imports.includes('actql/actql/physical_resources'));
+  const oldTree = {...currentTree, read(member) {
+    return member === path ? Buffer.from(superseded) : currentTree.read(member);
+  }};
+  const refused = packageSourceInputs({tree: oldTree, packages: [relation, lowering], target: 'js'});
+  assert(refused.unresolved.includes('Unreviewed package configuration: ' + path));
+  const refusedMutation = mutationSourceInputs(oldTree);
+  assert(refusedMutation.unresolved.includes('Unreviewed package configuration: ' + path));
+  assert(refusedMutation.directories.some(row => row.path === 'src/**'));
   const mutation = mutationSourceInputs(currentTree);
   assert.deepEqual(mutation.unresolved, []);
   assert(!mutation.directories.some(row => row.path === 'src/**'));
@@ -674,8 +681,7 @@ test('current regex imports bind both literal aliases and complete pattern and r
       }
     }
   }
-  for (const changed of [prior.read(path).toString(), body, shaBody, successor.replace('@regex', '@unreviewed'),
-    successor.replace(resources, resources.replace('@resources', '@foreign')),
+  for (const changed of [prior.read(path).toString(), body, successor.replace('@regex', '@unreviewed'),
     successor.replace('regex_replacement', 'unreviewed_replacement'),
     successor.replace('[ "not", "js" ]', '[ "native" ]'),
     successor + '\noptions(pre_build: "unreviewed-hook")\n']) {
