@@ -136,9 +136,15 @@ pub fn captured_completed_unit_result_at(CapturedCompletedUnitResults, Int) -> C
 
 pub fn captured_completed_unit_result_count(CapturedCompletedUnitResults) -> Int
 
+pub fn captured_completed_unit_result_export_matches_output(CapturedCompletedUnitResultHandoff, CapturedDAG, Int, Int, @execution_relation.CompletedOutput) -> Bool
+
 pub fn captured_completed_unit_result_export_original(CapturedCompletedUnitResultHandoff, CapturedCompletedUnitResults, Int) -> (@relation_results.ResultPort, @execution_relation.CompletedRelationExportReceipt)?
 
+pub fn captured_completed_unit_result_input_matches(CapturedCompletedUnitResultHandoff, Int, @execution_relation.ProducerRead) -> Bool
+
 pub fn captured_completed_unit_result_input_original(CapturedCompletedUnitResultHandoff) -> @execution_relation.CompletedOutput?
+
+pub fn captured_completed_unit_result_input_retained(CapturedCompletedUnitResultHandoff, Int, @execution_relation.ProducerRead) -> Bool
 
 pub fn captured_completed_unit_results_match(CapturedCompletedUnitResults, CapturedDAG, Int) -> Bool
 
@@ -980,7 +986,7 @@ pub fn resident_table_storage(ResidentTable) -> @execution_relation.ProducerStor
 
 pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Result[TaskOffer, SearchIssue]
 
-pub fn retain_captured_completed_unit_result_input(CapturedCompletedUnitResultHandoff, Int, Int, Int) -> Result[Unit, RunIssue]
+pub fn retain_captured_completed_unit_result_input(CapturedCompletedUnitResultHandoff, Int, Int, Int) -> Result[(Int, @execution_relation.ProducerRead), RunIssue]
 
 pub fn retain_captured_effect_command_key_validation(CapturedEffectCommandKeyValidation) -> Result[Unit, CapturedEffectCommandKeyIssue]
 

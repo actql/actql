@@ -427,6 +427,13 @@ pub fn check_model_invocation_attempt(
   // These are historical authority originals, never a current send permit.
   // An ordinary Account allow has no answering authority or approval claims;
   // a delegated Host permit must retain its exact approved invocation claim.
+  check_model_attempt_authority_basis(authority)
+}
+
+///|
+fn check_model_attempt_authority_basis(
+  authority : RunEvidenceValue,
+) -> Result[Unit, RunEvidenceValueIssue] {
   let claims = model_scope_strings(authority.value, "satisfied_claims").unwrap()
   let answering = contract_string_from_value(
     authority.value,

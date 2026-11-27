@@ -102,12 +102,27 @@ pub fn LocalPreparationRawCustody::reserve(Self) -> Result[Unit, NativePublicati
 pub fn LocalPreparationRawCustody::reserved_bytes(Self) -> Int64
 pub fn LocalPreparationRawCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
 
+type ModelEnteredRawReadExtent
+pub fn ModelEnteredRawReadExtent::verify_original(Self, @signature.Library, Bytes) -> Result[Unit, NativePublicationStoreIssue]
+
 type ModelEvidenceCustody
 pub fn ModelEvidenceCustody::confirm(Self) -> Result[@run_publication.RunEvidenceValue, NativePublicationStoreIssue]
 pub fn ModelEvidenceCustody::persist(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn ModelEvidenceCustody::reconcile_original_store_return(Self) -> Result[Bool, NativePublicationStoreIssue]
 pub fn ModelEvidenceCustody::reserved_bytes(Self) -> Int64
 pub fn ModelEvidenceCustody::retry_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
+
+type ModelSettlementReadExtent
+pub fn ModelSettlementReadExtent::read_original_wire(Self, @signature.Library, Bytes) -> Result[String, NativePublicationStoreIssue]
+
+pub(all) enum ModelSettlementReadRole {
+  Accounting
+  Outcome
+  Capture
+  RawDescriptor
+  Invocation
+  CaptureBundle(Int)
+}
 
 pub(all) struct NativeCommittedResult {
   public_index_entry : @run_publication.PublicationContract
@@ -309,7 +324,9 @@ pub fn Store::issue_public_index_entry_in_original_read(Self, @run_publication.P
 pub fn Store::lookup_raw_custody_construction_inventory(Self, Int, @run_publication.PublicationContract) -> @execution_relation.PreparationRepresentationUnits?
 pub fn Store::lookup_result_delivery(Self, @run_publication.DeliveryAttemptLookupScope) -> Result[NativeResultDeliveryLookup?, NativePublicationStoreIssue]
 pub fn Store::matches_original_operation(Self, @sqlite.NativeStoreOperationOriginal) -> Bool
+pub fn Store::model_entered_raw_read_construction(Self, @run_publication.BoundModelRawResponse) -> Result[(ModelEnteredRawReadExtent, PrivateEvidenceCustodyConstruction), NativePublicationStoreIssue]
 pub fn Store::model_raw_evidence_custody_construction(Self, @run_publication.BoundModelRawResponse) -> PrivateEvidenceCustodyConstruction?
+pub fn Store::model_settlement_restore_construction(Self, @run_publication.PublicationContract, String, String, String, ModelSettlementReadRole, String) -> Result[(ModelSettlementReadExtent, PrivateEvidenceCustodyConstruction), NativePublicationStoreIssue]
 pub fn Store::observe_allocation(Self, (String) -> Unit) -> Unit
 pub fn Store::observe_publication_payload_facts(Self, Array[@run_publication.PublicationContract], Array[String], Int, Int, Int) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::observe_trusted_clock(Self, String, String) -> Result[String, NativePublicationStoreIssue]
@@ -325,7 +342,7 @@ pub fn Store::prepare_effect_source_custody(Self, @run_publication.PublicationCo
 pub fn Store::prepare_generated_content_custody(Self, @run_publication.GeneratedContentReference, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @http_client.Client, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_lookup_raw_custody(Self, @run_publication.PublicationContract, String) -> Result[CapturedContentCustody, NativePublicationStoreIssue]
-pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
+pub fn Store::prepare_model_evidence_custody(Self, @run_publication.PublicationContract, String, String, String, @run_publication.RunEvidenceValue, @signature.Library, Bytes, raw_descriptor? : @run_publication.BoundModelRawResponse?) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_model_raw_evidence_custody(Self, @run_publication.BoundModelRawResponse, Bytes, @signature.Library, Bytes, retain? : (ModelEvidenceCustody) -> Unit) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue]
 pub fn Store::prepare_run_observation_construction(Self, @sqlite.NativeStoreOperationOriginal, Int64, Int64, Int64) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::prepare_run_observation_constructor_scaffold(Self, @sqlite.NativeStoreOperationOriginal) -> Result[Unit, NativePublicationStoreIssue]

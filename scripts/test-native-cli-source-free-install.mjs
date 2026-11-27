@@ -1,6 +1,6 @@
 // Actual fixed-cohort global installation and source-free Local execution.
-// Mock bindings, live Connectors, approval and public-registry publication are
-// separate acceptance subjects. No repository runtime or Node Host is loaded.
+// Controlled Model and File approval cases use the same installed Native
+// artifact. The consumer loads no repository runtime or Node Host.
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
@@ -29,7 +29,7 @@ import {captureNativeMockCommand, nativeLauncherEnvelope} from './native-cli-moc
 import {checkTerminalMockRows, terminalMockScenario} from '../adapters/host-node/fixtures/mock-project-terminal-public.mjs';
 import {observeNativeResourceOperatorShape} from './native-source-free-resource-shape.mjs';
 import {observeNativeUnionRows, observeNativeUnionRowPolicy} from './native-cli-union-rows.mjs';
-import {observeInstalledNativeModel} from './native-cli-model-scenario.mjs';
+import {nativeModelTerminalCases, observeInstalledNativeModel} from './native-cli-model-scenario.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 
@@ -1132,7 +1132,7 @@ export function nativeInstalledIngressSelection() {
   expectedTests: 16 + nativeInstalledSourceQueries.length};
 }
 
-async function observeInstalledSourceFree(input, observationPath) {
+async function observeInstalledSourceFree(input, observationPath, {requireModelTerminal, requireDependentModel}) {
   const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
   const source = checkoutState(repository);
   assert(source.clean && source.revision === manifest.sourceSha, 'Exact clean fixed source required');
@@ -1322,13 +1322,36 @@ async function observeInstalledSourceFree(input, observationPath) {
       const installedModel = {
         binary, modelImage, environment,
         runtimeSha256: artifact.localRuntime.sha256, assets: numericAssets, records,
-        prepareProject: project => prepareNativeNumericOperator({project, assets: numericAssets,
-          libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true}),
+        prepareProject: (project, additionalResultNames = []) => prepareNativeNumericOperator({project, assets: numericAssets,
+          libraries: numericLibraries, runtimeWire, maxRows: 16, includeSqlResult: true, additionalResultNames}),
       };
-      const standalone = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model')});
+      const standalone = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model'),
+        referenceControl: requireModelTerminal});
       const joined = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model-joined'),
         joinedFile: true});
-      return {...standalone, joined};
+      const named = await observeInstalledNativeModel({...installedModel, root: join(root, 'controlled-model-named-results'),
+        joinedFile: true, includeReview: true, prepareProject: project => installedModel.prepareProject(project, ['review'])});
+      const fileEffect = await observeInstalledNativeModel({...installedModel,
+        root: join(root, 'controlled-file-model-effect'), fileModelEffect: true,
+        prepareProject: project => prepareNativeNumericOperator({project, assets: numericAssets,
+          libraries: numericLibraries, runtimeWire, maxRows: 100}),
+      });
+      const terminal = [];
+      if (requireModelTerminal) {
+        for (const scenario of nativeModelTerminalCases) {
+          terminal.push(await observeInstalledNativeModel({...installedModel,
+            root: join(root, `controlled-model-terminal-${scenario.status}`), terminal: scenario}));
+        }
+      }
+      const dependent = [];
+      if (requireDependentModel) {
+        for (const mode of ['completed', 'rate-limited', 'lost-reply']) {
+          dependent.push(await observeInstalledNativeModel({...installedModel,
+            root: join(root, `controlled-dependency-${mode}`), dependent: mode}));
+        }
+      }
+      return {...standalone, joined, named, fileEffect, ...(requireModelTerminal ? {terminal} : {}),
+        ...(requireDependentModel ? {dependent} : {})};
     });
     const journalExhaustion = await phase('journal-exhaustion', async () => observeNativeJournalExhaustion({project: join(root, 'journal-exhaustion'),
       cli, assets: numericAssets, libraries: numericLibraries, environment: env, runtimeWire}));
@@ -1345,7 +1368,10 @@ async function observeInstalledSourceFree(input, observationPath) {
       controlledModel, terminalContent, namedResults, journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
-      unverified: ['Mock or live Connector bindings', 'Model failure matrix and live service', 'Effect approval', 'other platforms']};
+      unverified: ['Mock or live Connector bindings',
+        requireModelTerminal ? 'Model Outcomes and live service' : 'Model failure matrix and live service',
+        requireDependentModel ? 'Other Model transport loss cases' : 'Model transport loss',
+        'Effect approval', 'other platforms']};
   } catch (error) {
     failure = error;
     if (diagnoseFailure && /LocalSubmissionAcceptanceUnknown/u.test(error.message)) {
@@ -1422,7 +1448,8 @@ export async function runCleanupConditionedConsumer({command, args, observationP
   return receipt;
 }
 
-export async function acceptInstalledSourceFree(input) {
+export async function acceptInstalledSourceFree(input,
+  {requireModelTerminal = false, requireDependentModel = false} = {}) {
   const directory = resolve(input), manifest = await verifyNativeCliRelease(directory);
   const source = checkoutState(repository);
   assert(source.clean && source.revision === manifest.sourceSha, 'Exact clean fixed source required');
@@ -1434,7 +1461,9 @@ export async function acceptInstalledSourceFree(input) {
   const observationPath = join(directory, `source-free-observed-${stamp}.json`);
   const receiptPath = join(directory, `source-free-install-${stamp}.json`);
   await runCleanupConditionedConsumer({command: process.execPath,
-    args: [fileURLToPath(import.meta.url), '--consumer', directory, observationPath],
+    args: [fileURLToPath(import.meta.url), '--consumer', directory, observationPath,
+      ...(requireModelTerminal ? ['--require-model-terminal'] : []),
+      ...(requireDependentModel ? ['--require-dependent-model'] : [])],
     // This encloses the expanded serial functional suite, including its
     // installation and ingress controls. Individual commands retain 180s.
     // It does not change the separate Native approval performance criteria.
@@ -1447,12 +1476,20 @@ export async function acceptInstalledSourceFree(input) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [first, ...rest] = process.argv.slice(2);
+  const arguments_ = process.argv.slice(2);
+  const selected = {requireModelTerminal: false, requireDependentModel: false};
+  while (['--require-model-terminal', '--require-dependent-model'].includes(arguments_.at(-1))) {
+    const name = arguments_.pop() === '--require-model-terminal' ? 'requireModelTerminal' : 'requireDependentModel';
+    assert.equal(selected[name], false, 'Repeated installed Model qualification flag');
+    selected[name] = true;
+  }
+  const [first, ...rest] = arguments_;
   if (first === '--consumer') {
     assert(rest.length === 2 && isAbsolute(rest[1]), 'Explicit private consumer observation path required');
-    await observeInstalledSourceFree(rest[0], rest[1]);
+    await observeInstalledSourceFree(rest[0], rest[1], selected);
   } else {
-    assert(first && rest.length === 0, 'usage: test-native-cli-source-free-install.mjs <fixed-CLI-RC>');
-    await acceptInstalledSourceFree(first);
+    assert(first && rest.length === 0,
+      'usage: test-native-cli-source-free-install.mjs <fixed-CLI-RC> [--require-model-terminal] [--require-dependent-model]');
+    await acceptInstalledSourceFree(first, selected);
   }
 }

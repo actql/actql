@@ -37,7 +37,27 @@ pub fn NativeClientMockModelWork::closed_http_unknown_observed(
 }
 
 ///|
-fn NativeLocalJournalCapture::prepare_http_unknown_state_construction(
+/// Confirm retirement of the original acknowledged strict failure. The
+/// terminal writer must also recheck the retained Run/Store and typed proof.
+pub fn NativeClientMockModelWork::closed_http_failure_observed(
+  self : Self,
+) -> Bool {
+  !self.closing &&
+  !self.closed &&
+  !self.advancing &&
+  self.entry_recorded &&
+  self.provider_role is PortableHttp(_) &&
+  self.active is Some(active) &&
+  @infer.execution_stopped(active) &&
+  self.settlement is Some(saved) &&
+  saved.store_phase == ModelStoreAcknowledged &&
+  saved.store_complete &&
+  saved.journal_recorded &&
+  @model.model_call_settlement_strict_failure_retired(saved.original)
+}
+
+///|
+fn NativeLocalJournalCapture::prepare_http_terminal_state_construction(
   self : Self,
   max_wire : Int,
   max_nodes : Int,
@@ -79,18 +99,20 @@ fn NativeLocalJournalCapture::prepare_http_unknown_state_construction(
 }
 
 ///|
-/// Save a Core-observed, unpublished portable HTTP outcome on the original
-/// Submission. The confirmed Client retirement says nothing about enclosing
-/// Run cleanup. A Work with no such observation has no state to write.
-pub fn NativeClientMockModelWork::retain_http_unknown_in_original_read(
+/// Save the original unpublished portable HTTP observation. A reported
+/// failure needs both the original settlement ACK and physical retirement.
+/// Unknown keeps the entered-call evidence without a settlement.
+pub fn NativeClientMockModelWork::retain_http_terminal_in_original_read(
   self : Self,
   publisher : NativeLocalPublisherBinding,
   reference : NativeClientSubmissionReference,
   connection : String,
   observed_at : String,
   now : Double,
-) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if !self.closed_http_unknown_observed() {
+) -> Result[@publication.BoundModelHttpFailure?, NativeLocalAdoptionIssue] {
+  let strict_failure = self.closed_http_failure_observed()
+  if !(self.compiled.compilation is @host.Tasks(_)) ||
+    (!strict_failure && !self.closed_http_unknown_observed()) {
     return Err(Journal(ForeignRun))
   }
   guard publisher.authority.capture is Some(capture) &&
@@ -106,7 +128,7 @@ pub fn NativeClientMockModelWork::retain_http_unknown_in_original_read(
   let max_nodes = 8192
   let max_depth = 64
   capture
-  .prepare_http_unknown_state_construction(max_wire, max_nodes, max_depth)
+  .prepare_http_terminal_state_construction(max_wire, max_nodes, max_depth)
   .bind(_ => {
     capture.with_current_adoption_material_in_original_read((
       host,
@@ -129,7 +151,11 @@ pub fn NativeClientMockModelWork::retain_http_unknown_in_original_read(
       let journal = host.journal
       let current_read = () => {
         authority.current_for(journal, self.request) &&
-        self.closed_http_unknown_observed()
+        (if strict_failure {
+          self.closed_http_failure_observed()
+        } else {
+          self.closed_http_unknown_observed()
+        })
       }
       match
         journal.lookup_submitted_intent_with_operations(
@@ -192,23 +218,58 @@ pub fn NativeClientMockModelWork::retain_http_unknown_in_original_read(
             Ok(_) => ()
             Err(issue) => return Err(issue)
           }
-          let run_id = match
-            @publication.run_definition_run_id(run.definition) {
-            Ok(value) => value
-            Err(_) => return Err(CustodyLost)
+          let proof = if strict_failure {
+            match self.bind_stopped_http_failure(publisher.store, run) {
+              Ok(value) => Some(value)
+              Err(issue) => return Err(issue)
+            }
+          } else {
+            None
           }
-          let wire = match
-            @publication.issue_effect_free_unpublished_run_state_wire(
-              run_id,
-              observed_at,
-              @host.client_compiled_run_result_names(self.compiled),
-              run.dispatch_reserved,
-              false,
-              max_wire,
-              max_nodes,
-              max_depth,
-              execution_unknown=true,
-            ) {
+          let model_unknown = if strict_failure {
+            None
+          } else {
+            match
+              self.read_closed_dependent_model_entry_locked(
+                http,
+                journal,
+                operations.reads,
+              ) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+          }
+          let names = @host.client_compiled_run_result_names(self.compiled)
+          let candidate = match proof {
+            Some(value) =>
+              @publication.issue_bound_model_http_failed_run_state_wire(
+                run.definition,
+                value,
+                observed_at,
+                names,
+                max_wire,
+                max_nodes,
+                max_depth,
+              )
+            None => {
+              guard @publication.run_definition_run_id(run.definition)
+                is Ok(run_id) else {
+                return Err(CustodyLost)
+              }
+              @publication.issue_effect_free_unpublished_run_state_wire(
+                run_id,
+                observed_at,
+                names,
+                run.dispatch_reserved,
+                false,
+                max_wire,
+                max_nodes,
+                max_depth,
+                execution_unknown=true,
+              )
+            }
+          }
+          let wire = match candidate {
             Ok(value) => value
             Err(_) => return Err(CustodyLost)
           }
@@ -220,8 +281,10 @@ pub fn NativeClientMockModelWork::retain_http_unknown_in_original_read(
               None,
               current,
               operations=Some(operations),
+              model_failure=proof,
+              model_unknown~,
             ) {
-            Ok(_) if current() => Ok(())
+            Ok(_) if current() => Ok(proof)
             Ok(_) => Err(AuthorizationDenied)
             Err(issue) => Err(issue)
           }
@@ -231,4 +294,82 @@ pub fn NativeClientMockModelWork::retain_http_unknown_in_original_read(
       .map_err(issue => Journal(issue))
     })
   })
+}
+
+///|
+// The same Run transaction selects the exact gen0 Entry from the stopped
+// transport's confirmed persistence. No B Raw or settlement is expected.
+fn NativeClientMockModelWork::read_closed_dependent_model_entry_locked(
+  self : Self,
+  http : NativeClientModelHttpWork,
+  journal : NativeClientRunJournal,
+  reads : NativeClientJournalReadAccess,
+) -> Result[(String, String)?, NativeClientRunJournalIssue] {
+  guard http.installation.run_policy.egress is NativeEgressPending(_) else {
+    return Ok(None)
+  }
+  guard self.closed_http_unknown_observed() &&
+    http.dependencies is Some(staged) &&
+    staged.entered is Some(original) &&
+    self.entry is Some(entry) &&
+    physical_equal(entry, original.entry) &&
+    self.scope is Some(scope) &&
+    physical_equal(scope, original.scope) &&
+    self.model_entry_dependency(@publication.model_invocation_scope_cid(scope))
+    is Ok(Some(_)) &&
+    original.extent > 0L &&
+    original.extent <= self.capture.max_snapshot_bytes else {
+    return Err(CustodyLost)
+  }
+  journal
+  .read_dependent_model_entry_locked(
+    original.attempt_cid,
+    original.entry_digest,
+    original.extent,
+    reads,
+  )
+  .bind(body => {
+    if body.length().to_int64() != original.extent {
+      return Err(CustodyLost)
+    }
+    Ok(Some((original.attempt_cid, original.entry_digest)))
+  })
+}
+
+///|
+// The original evidence stayed retained across Store/Journal ACK and actual
+// physical stop. The same current transaction verifies its Store binding.
+fn NativeClientMockModelWork::bind_stopped_http_failure(
+  self : Self,
+  store : @publication_store.Store,
+  run : NativeClientRunRecord,
+) -> Result[@publication.BoundModelHttpFailure, NativeClientRunJournalIssue] {
+  guard self.closed_http_failure_observed() &&
+    self.settlement is Some(saved) &&
+    saved.store is Some(original_store) &&
+    physical_equal(store, original_store) &&
+    saved.leaves.get(5) is Some(raw) else {
+    return Err(CustodyLost)
+  }
+  let (authority, _, _) = match store.custody_location() {
+    Ok(value) => value
+    Err(issue) => return Err(PublicationObservation(issue))
+  }
+  let slot = match
+    @publication.bind_model_slot_capture(saved.call, saved.leaves[4]) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  @publication.bind_retained_model_http_failure(
+    run.definition,
+    saved.scope_cid,
+    authority,
+    (saved.attempt_cid, @publication.run_evidence_value_identity(raw)),
+    slot,
+    saved.leaves[0],
+    saved.leaves[1],
+    saved.leaves[2],
+    saved.leaves[3],
+    raw,
+  ).map_err(_ => CustodyLost)
 }

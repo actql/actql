@@ -61146,7 +61146,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4708b95e42f80ff3f2d7293d66df9bb7a54c314cba560e60c1a4e0286b5643c1",
+      "sha256": "27a3bef835b92e61b9f19c1ffdaba50e4ad7773b133db923cd92c5f0a3194413",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -104583,6 +104583,10 @@
           "declaration": "handoff_client_model_read_consumer_input_capacity ( value : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , scope : ClientInferCallScope , rows : @ execution . PreparedInferRows , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( @ resources . Ledger , @ resources . CapacityReservation ) , ClientModelInputCapacityIssue , ]"
         },
         {
+          "name": "handoff_original_provider_input_capacity",
+          "declaration": "handoff_original_provider_input_capacity ( value : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , scope : ClientInferCallScope , rows : @ execution . PreparedInferRows , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( @ resources . Ledger , @ resources . CapacityReservation , ( ClientWholeModelOutcomeRecorder , @ execution . InferOutcomeIssuer ) ? , ) , ClientModelInputCapacityIssue , ]"
+        },
+        {
           "name": "settle_client_model_read_consumer",
           "declaration": "settle_client_model_read_consumer ( value : ClientModelReadConsumer , physical_cleanup_complete : Bool , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
         },
@@ -104599,6 +104603,7 @@
             "client_model_read_consumer_model_limits",
             "enter_client_model_read_consumer",
             "handoff_client_model_read_consumer_input_capacity",
+            "handoff_original_provider_input_capacity",
             "settle_client_model_read_consumer",
             "stop_client_model_read_consumer"
           ],
@@ -104748,7 +104753,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "98a96dad89c884ec47f581387709fcbccb69cb34712ffd6f2d5d6494f3069103"
+      "sha256": "4e897e66e1ab154c9edc4d4ab825ffefdb36a8adda26447bc5315750ea0a2370"
     },
     {
       "module": "src/client_local_host/original_composed_keyed_prefix.mbt",
@@ -110902,7 +110907,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "be24d811750aaefb1f1d4e8ea04f3c5557a36b4164c6911fbc0f4b8d5d604667",
+      "sha256": "a7272126c7b80c950464b945cadec6adeab7301217f1dd201e5db1ecd55fb8c2",
       "exports": [],
       "operations": [
         {
@@ -111003,7 +111008,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_diagnostic.mbt",
-      "sha256": "db79899a8be65499b0ba74d663e5481cae165252412bd6f1007a8c7de393a44b",
+      "sha256": "f7d8100c0fed3e56ad3d08c027fd3aeae9ad821fb6f89ec1ea8e0c66972685d3",
       "exports": [],
       "operations": [
         {
@@ -112410,7 +112415,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "4882465f532adc3a8f2f45b91700984f8ec07ccaed44fe5cce299f648f1b9fd9",
+      "sha256": "943420fbf16d4986d6f50925725fa1ef4e79882508aaf6589a402eead8b3eb83",
       "exports": [],
       "operations": [
         {
@@ -112431,7 +112436,7 @@
         },
         {
           "name": "LocalCommandBusinessPreparation::compile_effect_first",
-          "declaration": "LocalCommandBusinessPreparation : : compile_effect_first ( self : LocalCommandBusinessPreparation , scope : String , configuration_cid : String , namespace_id : String , request_id : String , now : String , until : String , request : @ run_host . ClientRequestIdentity , current_time : ( ) - > String , ) - > LocalEffectFirstCompilation raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : compile_effect_first ( self : LocalCommandBusinessPreparation , scope : String , configuration_cid : String , namespace_id : String , request_id : String , now : String , until : String , request : @ run_host . ClientRequestIdentity , current_time : ( ) - > String , http_installations : Array [ LocalModelHttpInstallationSettings ] ? , ) - > LocalEffectFirstCompilation raise ClientStop"
         },
         {
           "name": "LocalCommandBusinessPreparation::request_compilation",
@@ -119576,7 +119581,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "9fa22be19e7ff8f54a3166b9f246c993757e4c1384a9767cbf545f7f3c994d0a",
+      "sha256": "1389f385ece495392ad2a19bf1fc3e4a588ade911bf1699634ece08b7d85072c",
       "exports": [],
       "operations": [
         {
@@ -119706,7 +119711,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "a789bbe4b24da1afe34230815fe41a0b33178637afb1faab859bf2bb6deeebd8",
+      "sha256": "64918d281a9427495a156deed2420d9ab9b7849fc8c54575328ed5bfe96f58eb",
       "exports": [],
       "operations": [
         {
@@ -120135,7 +120140,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "0e11d602f30e29186ce4ac23736a89cffb14dacf37a5515d58f5dd543eed6d91",
+      "sha256": "7ed9de5920b07ec30abe863b1105bbba3c8b6caeac631121a5e6729204ccb589",
       "exports": [],
       "operations": [
         {

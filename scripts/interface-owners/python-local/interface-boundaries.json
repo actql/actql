@@ -82541,7 +82541,7 @@
     },
     {
       "module": "src/cmd/native_client/local_adoption.mbt",
-      "sha256": "fcf53244ea2be64c31a9bcb41224a4793fe1400a8a9d85fddced9097b15b3701",
+      "sha256": "39190f357b4d6a8dcbbc09425289847c58d3d8e7fa9fdc4de4f588a4376c3d4e",
       "exports": [],
       "operations": [
         {
@@ -83082,7 +83082,7 @@
     },
     {
       "module": "src/platform_native/client_host/submission.mbt",
-      "sha256": "5641a79e6e1719c7a4879e5151b6bfec7b522d88593020c14c9a147a96f6ec8f",
+      "sha256": "64929c4f4e0d2a7d66f4a845d556920451908869a64cdd64dc650f97da1677b5",
       "exports": [],
       "operations": [
         {
@@ -83321,7 +83321,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_run.mbt",
-      "sha256": "b360c9d95dd6b105656683242e18d04e720e27e6ca499cb39e372cd181bbc24a",
+      "sha256": "1affcd388c240357f128ff5422d2d9110dd101497cc345fb77eda4830083028e",
       "exports": [],
       "operations": [
         {
@@ -87312,7 +87312,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "47ae344e3e2e210f4c2a422f5cab94e78424e01773e834bd4d764eaf2a92b020",
+      "sha256": "3813db0207bcc837d67621aa746fa8fd89af069df8a7618ae128b863aaa9448f",
       "exports": [],
       "operations": [
         {
@@ -91644,7 +91644,7 @@
           }
         }
       ],
-      "sha256": "a71df02f683496d61757994170a87bb0b93b7993b90766a98c3026212a8bfbdc",
+      "sha256": "2133e18dea28d9d16e43f96f199f303da5fdb2e62cfa6b43367aaf944b0250c6",
       "exports": [],
       "operations": [
         {
@@ -91790,7 +91790,7 @@
           }
         }
       ],
-      "sha256": "99fd63181f8012dca99588fc655f0eaaa6d5baca154bbd3a73fdb984e45c624a",
+      "sha256": "5df6e217769672e2559273b49a5012e4fdd6d194de3456488f9d75fa5a30dcf1",
       "exports": [],
       "operations": [
         {
@@ -92120,7 +92120,7 @@
           }
         }
       ],
-      "sha256": "12f82d9c842ea0a01a2ec581e4c78a4ca00f483fa2db52f4f1551dc3cb48823a",
+      "sha256": "7ef5e1225272374a84474ec3500db77092997ba2129b883e1f4059a377ad4dbc",
       "exports": [],
       "operations": [
         {
@@ -92137,7 +92137,7 @@
         },
         {
           "name": "validate_original_unpublished_run_state",
-          "declaration": "validate_original_unpublished_run_state ( definition : PublicationContract , wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ RunOutcomeStatus , PublicationContractIssue ]"
+          "declaration": "validate_original_unpublished_run_state ( definition : PublicationContract , wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , model_failure ? : ( String , BoundModelHttpFailure ) ?"
         }
       ]
     },
@@ -92703,14 +92703,18 @@
         {
           "operations": [
             "<module>",
+            "ClientRetainedRunStateOriginal::matches",
+            "ClientRetainedRunStateOriginal::requires_model_proof",
+            "ClientRetainedRunStateOriginal::resolve",
             "ClientRunStateOriginal::original_manifest",
             "ClientRunStateOriginal::state_wire",
             "ClientRunStateOriginal::wire",
+            "admit_client_retained_run_state_original",
+            "decode_client_run_state_original_body",
             "encode_client_run_state_original",
             "prepare_client_run_state_original",
             "prepare_client_unpublished_run_state_original",
             "restore_client_run_state_original",
-            "restore_client_run_state_original_body",
             "validate_client_historical_run_state_original"
           ],
           "exports": [],
@@ -92814,9 +92818,25 @@
           }
         }
       ],
-      "sha256": "e2ed42842c03dbe5d0c3b94f1535b073c001ea7bb804487a25b0709fb4e6232a",
+      "sha256": "f3d3ce7de19f4be028f4fec17d48c9e233c1739f1c4af1c0be12f4f4d9118bf1",
       "exports": [],
       "operations": [
+        {
+          "name": "admit_client_retained_run_state_original",
+          "declaration": "admit_client_retained_run_state_original ( definition : @ publication . PublicationContract , wire : String , revision : Int64 , key : String , ) - > Result [ ClientRetainedRunStateOriginal , ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "ClientRetainedRunStateOriginal::matches",
+          "declaration": "ClientRetainedRunStateOriginal : : matches ( self : Self , definition : @ publication . PublicationContract , wire : String , revision : Int64 , key : String , ) - > Bool"
+        },
+        {
+          "name": "ClientRetainedRunStateOriginal::requires_model_proof",
+          "declaration": "ClientRetainedRunStateOriginal : : requires_model_proof ( self : Self , ) - > Bool"
+        },
+        {
+          "name": "ClientRetainedRunStateOriginal::resolve",
+          "declaration": "ClientRetainedRunStateOriginal : : resolve ( self : Self , resolve_model_failure ? : ( ( String , String ) - > @ publication . BoundModelHttpFailure ? ) ?"
+        },
         {
           "name": "ClientRunStateOriginal::original_manifest",
           "declaration": "ClientRunStateOriginal : : original_manifest ( self : ClientRunStateOriginal , ) - > @ publication . PublicationContract ?"
@@ -92830,8 +92850,12 @@
           "declaration": "ClientRunStateOriginal : : wire ( self : ClientRunStateOriginal ) - > String"
         },
         {
+          "name": "decode_client_run_state_original_body",
+          "declaration": "decode_client_run_state_original_body ( definition : @ publication . PublicationContract , wire : String , historical : Bool , ) - > Result [ ClientRetainedRunStateOriginal , ClientJournalDecodingIssue ]"
+        },
+        {
           "name": "encode_client_run_state_original",
-          "declaration": "encode_client_run_state_original ( definition : @ publication . PublicationContract , manifest : @ publication . PublicationContract ? , state_wire : String , status : @ publication . RunOutcomeStatus , ) - > Result [ ClientRunStateOriginal , ClientJournalDecodingIssue ]"
+          "declaration": "encode_client_run_state_original ( definition : @ publication . PublicationContract , manifest : @ publication . PublicationContract ? , state_wire : String , status : @ publication . RunOutcomeStatus , locator ? : ClientRunStateModelLocator ?"
         },
         {
           "name": "prepare_client_run_state_original",
@@ -92839,15 +92863,11 @@
         },
         {
           "name": "prepare_client_unpublished_run_state_original",
-          "declaration": "prepare_client_unpublished_run_state_original ( definition : @ publication . PublicationContract , state_wire : String , ) - > Result [ ClientRunStateOriginal , ClientJournalDecodingIssue ]"
+          "declaration": "prepare_client_unpublished_run_state_original ( definition : @ publication . PublicationContract , state_wire : String , model_failure ? : @ publication . BoundModelHttpFailure ?"
         },
         {
           "name": "restore_client_run_state_original",
-          "declaration": "restore_client_run_state_original ( definition : @ publication . PublicationContract , wire : String , ) - > Result [ ClientRunStateOriginal , ClientJournalDecodingIssue ]"
-        },
-        {
-          "name": "restore_client_run_state_original_body",
-          "declaration": "restore_client_run_state_original_body ( definition : @ publication . PublicationContract , wire : String , historical : Bool , ) - > Result [ ClientRunStateOriginal , ClientJournalDecodingIssue ]"
+          "declaration": "restore_client_run_state_original ( definition : @ publication . PublicationContract , wire : String , resolve_model_failure ? : ( ( String , String ) - > @ publication . BoundModelHttpFailure ? ) ?"
         },
         {
           "name": "validate_client_historical_run_state_original",
@@ -92973,7 +92993,7 @@
           }
         }
       ],
-      "sha256": "41cea24b4e775296ab1944fd2f9fc15438d528dffe72f007469e657c8f6c129f",
+      "sha256": "0af6160305c64594c663d1fbd9584f2e8c827faf106ff8ad9d5fb266fe59a9c4",
       "exports": [],
       "operations": [
         {
@@ -94418,7 +94438,7 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "6fd50bd5095ca94cc74acac6c4aed370706f7c2db5778fd4102bd5ba2278d823",
+      "sha256": "3f9339b314af9278501d7b89179e11981e28a1a92a99742cbeede56271da7cb9",
       "exports": [],
       "operations": [
         {
@@ -94458,6 +94478,10 @@
           "declaration": "client_saved_submission_record ( value : ClientSavedSubmissionSnapshot , ) - > ClientSubmittedJournalEncoding"
         },
         {
+          "name": "client_saved_submission_retained_state_original",
+          "declaration": "client_saved_submission_retained_state_original ( value : ClientSavedSubmissionSnapshot , ) - > ClientRetainedRunStateOriginal ?"
+        },
+        {
           "name": "client_saved_submission_revision",
           "declaration": "client_saved_submission_revision ( value : ClientSavedSubmissionSnapshot , ) - > Int64"
         },
@@ -94468,10 +94492,6 @@
         {
           "name": "client_saved_submission_run_row",
           "declaration": "client_saved_submission_run_row ( value : ClientSavedSubmissionSnapshot , ) - > ClientJournalPhysicalRow ?"
-        },
-        {
-          "name": "client_saved_submission_state_original",
-          "declaration": "client_saved_submission_state_original ( value : ClientSavedSubmissionSnapshot , ) - > ClientRunStateOriginal ?"
         },
         {
           "name": "client_saved_submission_task_materials_original",
@@ -94495,7 +94515,7 @@
             "client_saved_submission_revision",
             "client_saved_submission_row",
             "client_saved_submission_run_row",
-            "client_saved_submission_state_original",
+            "client_saved_submission_retained_state_original",
             "client_saved_submission_task_materials_original"
           ],
           "exports": [],

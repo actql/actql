@@ -141,6 +141,8 @@ pub fn bind_generated_content_observation(RunEvidenceValue, String, String, Stri
 
 pub fn bind_interactive_relation_sample_selection(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, Int, Int, Int) -> Result[InteractiveRelationSampleSelection?, RunEvidenceValueIssue]
 
+pub fn bind_model_http_failure(BoundModelAttemptEvidence, BoundModelInvocationScope, Int, String, String, BoundModelRawResponse) -> Result[BoundModelHttpFailure, RunEvidenceValueIssue]
+
 pub fn bind_model_invocation_saved_call(BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
 
 pub fn bind_model_invocation_scope(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, Array[RunEvidenceValue], ModelInvocationBoundary) -> Result[BoundModelInvocationScope, RunEvidenceValueIssue]
@@ -156,6 +158,8 @@ pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[Bou
 pub fn bind_prepared_captured_effect_run(PublicationContract, CapturedEffectDependencyInventory) -> Result[PreparedCapturedEffectRun, CapturedEffectDependencyIssue]
 
 pub fn bind_query_evaluation_time(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[QueryEvaluationTime, RunProgramBindingIssue]
+
+pub fn bind_retained_model_http_failure(PublicationContract, String, String, (String, String), BoundModelSlotCapture, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelHttpFailure, RunEvidenceValueIssue]
 
 pub fn bound_content_generation_availability(BoundContentGeneration) -> String?
 
@@ -324,6 +328,8 @@ pub fn check_model_replayed_observation(RunEvidenceValue, RunEvidenceValue) -> R
 pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_original_stored_run_receipt_references(PublicationContract, PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, DeliveryIssuanceIssue]
+
+pub fn check_retained_model_call_entry_scope(PublicationContract, String, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_run_publication_program_binding(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[Unit, RunProgramBindingIssue]
 
@@ -647,6 +653,8 @@ pub fn issue_admitted_effect_failed_run_state_wire(EffectSetApplyReceiptEvidence
 
 pub fn issue_admitted_effect_reconciliation_run_state_wire(EffectSetApplyReceiptEvidence, String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
+pub fn issue_bound_model_http_failed_run_state_wire(PublicationContract, BoundModelHttpFailure, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
+
 pub fn issue_captured_content_reference(CapturedContentReference, @value_admission.ReferenceIssuer, @value_admission.ReferenceLimits) -> Result[@value_admission.CheckedValue, GeneratedContentReferenceIssue]
 
 pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], CapturedEffectDependencyLimits, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
@@ -773,6 +781,8 @@ pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[Strin
 
 pub fn local_model_observation_matches_input(CapturedEffectDependencyBody, String, Int, RunEvidenceValue) -> Bool
 
+pub fn local_model_observation_matches_outcome(CapturedEffectDependencyBody, String, String) -> Bool
+
 pub fn local_result_metadata_construction_geometry(String, String, String, String, String, Array[String], String, String, String, String, String, Int, Int, Int, Int) -> Result[Array[@encode_core.EncodingConstructionGeometry], ResultEvidenceIssuanceIssue]
 
 pub fn local_sdk_result_read_selection_accepts_name(LocalSDKResultReadSelection, String) -> Bool
@@ -816,6 +826,10 @@ pub fn model_capture_record_response(ModelCaptureRecordRead) -> @canonical_json.
 pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
 
 pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
+
+pub fn model_http_failure_diagnostic(BoundModelHttpFailure) -> (String, String)
+
+pub fn model_http_failure_evidence_identity(BoundModelHttpFailure) -> (String, String)
 
 pub fn model_input_artifact_relation_identities(RunEvidenceValue) -> (String, String)?
 
@@ -1375,7 +1389,7 @@ pub fn validate_original_interactive_run_evidence(PublicationContract, RunEviden
 
 pub fn validate_original_succeeded_run_state(PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
 
-pub fn validate_original_unpublished_run_state(PublicationContract, String, Int, Int, Int) -> Result[RunOutcomeStatus, PublicationContractIssue]
+pub fn validate_original_unpublished_run_state(PublicationContract, String, Int, Int, Int, model_failure? : (String, BoundModelHttpFailure)?) -> Result[RunOutcomeStatus, PublicationContractIssue]
 
 pub fn validate_prepared_effectful_computation_evidence_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PreparedCapturedEffectRun, EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, RunEvidenceChainIssue]
 
@@ -1401,6 +1415,8 @@ pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailabil
 
 pub fn verify_model_attempt_reported_raw(BoundModelAttemptEvidence, BoundModelInvocationScope, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
 
+pub fn verify_model_attempt_success_raw(BoundModelAttemptEvidence, BoundModelInvocationScope, RunEvidenceValue, BoundModelRawResponse) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn verify_model_slot_attachment_admission(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
@@ -1410,6 +1426,8 @@ pub fn verify_model_slot_capture_bundle(Array[BoundModelSlotCapture], ModelCaptu
 pub fn verify_model_slot_no_response_failure(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn verify_model_slot_success_observation(BoundModelSlotCapture, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn verify_retained_model_http_success(PublicationContract, String, String, BoundModelSlotCapture, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
 
 // Errors
 
@@ -1436,6 +1454,13 @@ pub struct BoundModelAttemptEvidence {
   accounting : RunEvidenceValue
   outcome : RunEvidenceValue
   authority : RunEvidenceValue
+}
+
+pub struct BoundModelHttpFailure {
+  run_definition_cid : String
+  attempt_cid : String
+  raw_cid : String
+  diagnostic : (String, String)
 }
 
 pub struct BoundModelInvocationScope {

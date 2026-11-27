@@ -279,7 +279,7 @@ fn advance_model_capture_replay(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   if outcome is NoResponseFailure(failure) {
-    return accept_failed_model_slot(state, failure)
+    return accept_failed_model_slot(state, failure, restored=true)
   }
   guard outcome is Success(index) &&
     prior.captures.get(index) is Some(saved) &&

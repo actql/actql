@@ -214,6 +214,7 @@ test "completed preconsumer Model scans original outcomes under its same publica
     bound.compiled,
     bound.definition,
     plan,
+    retain_body=false,
   ).unwrap()
   assert_true(
     preconsumer_model_unit_identity_start_capacity(
@@ -234,6 +235,7 @@ test "completed preconsumer Model scans original outcomes under its same publica
     bound.compiled,
     bound.definition,
     plan,
+    retain_body=false,
   ).unwrap()
   let mut done = false
   for _ in 0..<1000 {
@@ -262,6 +264,13 @@ test "completed preconsumer Model scans original outcomes under its same publica
   }
   assert_true(done)
   let receipt = @relation.finish_completed_relation_identity_scan(scan).unwrap()
+  assert_true(
+    @relation.completed_relation_identity_scan_body(scan, receipt) is None,
+  )
+  assert_true(@relation.completed_relation_export_is_unprojected(receipt))
+  assert_true(
+    @relation.completed_relation_export_retained_capacity(receipt) is Some(_),
+  )
   let writers = preconsumer_model_unit_observation_capacity(
     held,
     bound.compiled,
@@ -291,8 +300,7 @@ test "completed preconsumer Model scans original outcomes under its same publica
   )
   assert_eq(calls.val, 1)
   @relation.cancel_completed_relation_export_receipt(receipt)
-  // finish already closes the scan; cancellation still severs its retained
-  // body aliases, but its Bool reports no new phase transition.
+  // finish already closes the scan. This receipt-only path holds no body alias.
   assert_false(@relation.cancel_completed_relation_identity_scan(scan))
   assert_true(release_output(held))
   assert_true(

@@ -3,6 +3,7 @@ import {mixedDeleteUpdateMockProject, sameResourceMixedMockProject,
   threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 import {fileCreateMockProject} from '../adapters/host-node/fixtures/mock-file-create.fixture.mjs';
 import {orderedFileMockProjects} from '../adapters/host-node/fixtures/mock-ordered-file.fixture.mjs';
+import {nativeModelLeadingDeleteFiles} from './native-project-configuration-fixture.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -493,7 +494,7 @@ type SharedMockChange = Readonly<{kind: 'update' | 'delete'; resource: string; i
   | Readonly<{kind: 'create'; resource: string; id: Readonly<{content_cid: string; occurrence: number}>; after: unknown}>;
 type SharedMockFixture = Readonly<{files: Readonly<Record<string, string>>;
   before: string; after?: string; programFile: string; rows: readonly unknown[];
-  resultName?: string; assertCreatedFile?(bytes: string): void}>;
+  resultName?: string; model?: Readonly<{rows: number; answersFile: string}>; assertCreatedFile?(bytes: string): void}>;
 type SharedMockExpectation = Readonly<{
   effects: readonly Readonly<{
     kind: 'create' | 'update' | 'delete' | 'upsert';
@@ -580,6 +581,26 @@ export async function runNativeOrderedFileMockScenarios<Command extends CommandR
   return cases;
 }
 
+export function runNativeModelDeleteMockScenarios<Command extends CommandRecord>(
+  {root, run, launcherTimings = 'optional'}: SharedMockScenario<Command>) {
+  const files = nativeModelLeadingDeleteFiles();
+  const before = files['mock/data.json'];
+  // The independent byte oracle removes only the authored Account row.
+  const removed = `{
+          "id": "001Acme",
+          "name": "Acme Corp",
+          "description": "Evaluating a competitor; usage down since June.",
+          "Churn_Risk__c": "low",
+          "Risk_Reason__c": null
+        },`;
+  assert.equal(before.split(removed).length, 2);
+  const fixture = {files, programFile: 'churn-risk.aql', before, after: before.replace(removed, ''),
+    rows: [{id: '001Acme'}], model: {rows: 2, answersFile: 'mock/churn-risk.v1.answers.yaml'}};
+  const changes: readonly SharedMockChange[] = [{kind: 'delete', resource: 'Account', id: '001Acme'}];
+  return runNativeSharedFileDecisions({root, run, launcherTimings}, 'native-model-delete', fixture,
+    sharedMockExpectation(fixture, changes));
+}
+
 async function runNativeSharedFileMutation<Command extends CommandRecord>(
   {project, fixture, expected, decision, run, launcherTimings}: Omit<SharedMockScenario<Command>, 'root' | 'launcherTimings'> & {
     launcherTimings: LauncherTimings;
@@ -590,7 +611,7 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
   const writeOrdinals = expected.effects.flatMap(effect => effect.rows.map((_, index) => index));
   const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings,
     rows: writeOrdinals.length, requireFirstClose: launcherTimings === 'required',
-    work: {modelRows: 0, writeOrdinals}});
+    work: {modelRows: fixture.model?.rows ?? 0, writeOrdinals}});
   await mkdir(project, {mode: 0o700});
   for (const [name, body] of Object.entries(fixture.files)) {
     const path = join(project, name);
@@ -601,9 +622,10 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
   assert.equal(before.bytes, fixture.before);
   await invoke('adoption', projectInitialAdoptionArguments({configuration, stateDirectory}));
   const original = runState(await invoke('prepare', ['run', fixture.programFile,
-    '--format', 'aql-json', '--stop-before', 'commit', '--json']), 'waiting_checkpoint');
+    '--format', fixture.model === undefined ? 'aql-json' : 'aql', '--stop-before', 'commit', '--json']), 'waiting_checkpoint');
   const runId = original.run_id, checkpoint = checkpointId(original);
   await unlink(join(project, fixture.programFile));
+  if (fixture.model !== undefined) await unlink(join(project, fixture.model.answersFile));
   assert.deepEqual(await targetSnapshot(file), before, 'Preparation must retain all original target bytes');
   const pending = runState(await invoke('waiting-status', ['status', runId, '--json']), 'waiting_checkpoint', runId);
   assert.equal(checkpointId(pending), checkpoint);

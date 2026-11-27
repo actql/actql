@@ -53,6 +53,7 @@ fn local_saved_run_status(
   human_display? : ((String) -> String raise ClientStop)? = None,
   capture? : @local_host.NativeLocalJournalCapture? = None,
   original_reader? : ((String) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop)? = None,
+  read_model_terminal? : ((@local_host.NativeClientOriginalRunSelection, String) -> @local_host.NativeClientSavedRunState raise ClientStop)? = None,
 ) -> String raise ClientStop {
   let scope = local_host_result(
     match capture {
@@ -132,7 +133,9 @@ fn local_saved_run_status(
         Err(issue) => stop(local_saved_state_issue(issue))
       }
       let reference = local_original_run_reference(selected.definition(), scope)
-      ignore(local_require_same_run_reference(input_root, child, reference))
+      let verified = local_require_same_run_reference(
+        input_root, child, reference,
+      )
       let state = match
         local_host_result(
           original.lookup_submitted_run_state_for_original_in_original_read(
@@ -143,6 +146,8 @@ fn local_saved_run_status(
           ),
         ) {
         Ok(value) => value
+        Err(@local_host.ModelProofRequired) if read_model_terminal is Some(read) =>
+          read(selected, json_text(verified, "namespaceId").unwrap())
         Err(issue) => stop(local_saved_state_issue(issue))
       }
       (reference, selected.reference(), state)
@@ -230,6 +235,6 @@ fn local_saved_state_issue(
       "LocalRunStateLookupUnknown"
     Journal(@local_host.ForeignRun | @local_host.ChangedIntent) =>
       "LocalOriginalRunReferenceMismatch"
-    Journal(_) => "LocalOriginalRunStateCustodyUnavailable"
+    ModelProofRequired | Journal(_) => "LocalOriginalRunStateCustodyUnavailable"
   }
 }

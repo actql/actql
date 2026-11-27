@@ -648,6 +648,40 @@ pub fn issue_confirmed_cancelled_unpublished_run_state_wire(
 }
 
 ///|
+/// Use only with the original Host's dispatch, settlement and physical-stop
+/// observations. This wire issues no availability or current authority.
+pub fn issue_bound_model_http_failed_run_state_wire(
+  definition : PublicationContract,
+  failure : BoundModelHttpFailure,
+  updated_at : String,
+  declared_results : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, RunStateIssue] {
+  guard definition.name == "run_definition" &&
+    definition.identity == failure.run_definition_cid &&
+    contract_string(definition, "run_id") is Some(run_id) else {
+    return Err(InvalidRunId)
+  }
+  match validate_unpublished_run_identity(run_id, updated_at) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  issue_determined_unpublished_run_state_wire(
+    run_id,
+    updated_at,
+    declared_results,
+    Failed,
+    NoAction,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    model_failure=Some(failure),
+  )
+}
+
+///|
 fn issue_determined_unpublished_run_state_wire(
   run_id : String,
   updated_at : String,
@@ -657,6 +691,7 @@ fn issue_determined_unpublished_run_state_wire(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  model_failure? : BoundModelHttpFailure? = None,
 ) -> Result[String, RunStateIssue] {
   let names = declared_results.copy()
   names.sort_by(@canonical.compare_utf16)
@@ -720,12 +755,16 @@ fn issue_determined_unpublished_run_state_wire(
       },
     )
     if status is RunOutcomeStatus::Failed {
+      let (code, message) = match model_failure {
+        Some(original) => original.diagnostic
+        None => ("ACTQL_E_UNPUBLISHED_RUN", "Run ended before publication")
+      }
       @encode.key(writer, "terminal_error")
       @encode.begin_object(writer)
       @encode.key(writer, "code")
-      @encode.string_value(writer, "ACTQL_E_UNPUBLISHED_RUN")
+      @encode.string_value(writer, code)
       @encode.key(writer, "message")
-      @encode.string_value(writer, "Run ended before publication")
+      @encode.string_value(writer, message)
       @encode.end_object(writer)
     }
     @encode.key(writer, "updated_at")

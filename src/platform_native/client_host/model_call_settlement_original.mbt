@@ -161,9 +161,19 @@ pub fn NativeClientMockModelWork::commit_settlement_in_original_read(
         }
         // Both the expected original Entry and new metadata remain live until
         // Read returns. Fund their combined writer/parse/byte geometry first.
+        let dependency = match self.model_entry_dependency(saved.scope_cid) {
+          Ok(value) => value
+          Err(issue) => return Err(Journal(issue))
+        }
+        guard native_model_entry_dependency_geometry(dependency)
+          is Some((_, nodes, depth)) else {
+          return Err(Journal(CapacityExceeded))
+        }
         match
           self.capture.prepare_model_entry_construction(
             Some(entry.body.length()),
+            nodes~,
+            depth~,
             additional=Some((bound.to_int(), 48, 4)),
           ) {
           Ok(_) => ()
@@ -178,6 +188,7 @@ pub fn NativeClientMockModelWork::commit_settlement_in_original_read(
             saved.leaves[0],
             saved.leaves[3],
             entry.body.length(),
+            dependency~,
           ) {
           Ok(value) => value
           Err(issue) => return Err(Journal(issue))
@@ -209,6 +220,22 @@ pub fn NativeClientMockModelWork::commit_settlement_in_original_read(
               record.checkpoint is Some(_) ||
               record.publication_binding != Some(binding) {
               return Err(ForeignRun)
+            }
+            if dependency is Some(_) {
+              // The earlier reconstruction quoted this original body. Bind
+              // its exact generation and bytes inside the same transaction
+              // that records settlement, before changing the scope census.
+              match
+                read_native_saved_model_row(
+                  operations.reads,
+                  "client_model_call_originals",
+                  saved.attempt_cid,
+                  expected_entry.length().to_int64(),
+                ) {
+                Ok(current) if current == expected_entry => ()
+                Ok(_) => return Err(CustodyLost)
+                Err(issue) => return Err(issue)
+              }
             }
             let usage = match
               read_client_journal_capacity(
@@ -298,10 +325,17 @@ pub fn NativeClientMockModelWork::acknowledge_saved_settlement(
       }
       saved.exporter = None
     }
+    let retain = !self.closing &&
+      self.provider_role is PortableHttp(_) &&
+      @model.model_call_settlement_retains_strict_failure(saved.original)
     if !@model.acknowledge_model_call_settlement(saved.original) {
       return Err(ForeignOriginal)
     }
-    self.settlement = None
+    if retain {
+      saved.store_phase = ModelStoreAcknowledged
+    } else {
+      self.settlement = None
+    }
     Ok(())
   } catch {
     NativeMockModelStop(issue) => Err(issue)

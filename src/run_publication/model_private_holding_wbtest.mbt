@@ -115,7 +115,7 @@ test "scoped Model custody uses the canonical independent preimage" {
 }
 
 ///|
-test "raw Model custody has one original entered cell and no legacy address" {
+test "raw Model custody separates the original entered bytes and settled descriptor" {
   let definition : PublicationContract = {
     name: "run_definition",
     identity_field: "run_definition_cid",
@@ -163,7 +163,9 @@ test "raw Model custody has one original entered cell and no legacy address" {
     model_scoped_private_holding_cid(
       definition, store, scope, slot, attempt, 1, "settled", "model_raw_response",
     ),
-    None,
+    Some(
+      "sha256:93444b83b24c5a2d3181b1bc52f2495070635b87c5f214e354f3a28d43095779",
+    ),
   )
   assert_eq(
     model_scoped_private_holding_cid(

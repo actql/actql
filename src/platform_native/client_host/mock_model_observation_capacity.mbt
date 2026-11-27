@@ -4,7 +4,7 @@
 /// include their predicate/option/receiving and phase-quote controls together.
 /// Output/schema/writer maxima
 /// validate later constructors; they are not retained startup material.
-pub fn native_client_mock_model_observation_capacity(
+fn native_client_mock_model_observation_capacity(
   limits : @infer.Limits,
 ) -> @execution.ExecutionCapacity? {
   if limits.model.max_items < 0 || limits.model.max_items > 2147483645 {
@@ -191,26 +191,32 @@ fn NativeClientMockModelWork::local_observation_projection_capacity(
 }
 
 ///|
-/// Read the same original Work's immutable pre-execution byte demand. This
-/// neither opens the Model nor prepares another recipe or resource owner.
-pub fn NativeClientMockModelWork::observation_capacity(
+/// Fixed publication controls for a selected Effect Model. The surrounding
+/// Plan quotes these on its checked Request before a Work needs the Store.
+pub fn native_client_effect_model_publication_capacity(
+  limits : @infer.Limits,
+) -> @execution.ExecutionCapacity? {
+  native_client_mock_model_observation_capacity(limits).bind(
+    native_mock_publication_actual_capacity,
+  )
+}
+
+///|
+/// Verify the installed Work's exact originals independently of the quote.
+pub fn NativeClientMockModelWork::matches_unopened_plan(
   self : Self,
   request : @host.ClientRequestIdentity,
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   graph : @host.ClientInferPlanGraph,
-) -> @execution.ExecutionCapacity? {
-  if self.open_attempted ||
-    self.closing ||
-    self.closed ||
-    !physical_equal(self.request, request) ||
-    !physical_equal(self.compiled, compiled) ||
-    !physical_equal(self.definition, definition) ||
-    !physical_equal(self.graph, graph) {
-    None
-  } else {
-    // The immutable Request Plan must include the new None carrier before
-    // opening the Model. Keep the stored base payload-only for reserve.
-    native_mock_publication_actual_capacity(self._retained_observation_capacity)
-  }
+  limits : @infer.Limits,
+) -> Bool {
+  !self.open_attempted &&
+  !self.closing &&
+  !self.closed &&
+  physical_equal(self.request, request) &&
+  physical_equal(self.compiled, compiled) &&
+  physical_equal(self.definition, definition) &&
+  physical_equal(self.graph, graph) &&
+  physical_equal(self._retained_limits, limits)
 }

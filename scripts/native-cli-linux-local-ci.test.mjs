@@ -162,7 +162,16 @@ test('installed Local acceptance consumes the successful producer independently 
   assert(consumer);
   assert.equal(consumer.if, undefined);
   assert.equal(consumer['continue-on-error'], undefined);
-  assert.equal(consumer.run.split(' ').at(-1), '"$RUNNER_TEMP/native-cli-linux-local/release"');
+  const temp = '/tmp/with spaces';
+  const selected = spawnSync('bash', ['-eo', 'pipefail', '-c',
+    'node() { printf "%s\\n" "$@"; }\n' + consumer.run], {
+    encoding: 'utf8', timeout: 5000, env: {...process.env, RUNNER_TEMP: temp},
+  });
+  assert.equal(selected.status, 0, selected.stderr);
+  assert.deepEqual(selected.stdout.trimEnd().split('\n'), [
+    'scripts/test-native-cli-source-free-install.mjs',
+    temp + '/native-cli-linux-local/release', '--require-model-terminal', '--require-dependent-model',
+  ]);
   const download = installedJob.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
   assert.deepEqual(download.with, {
     'artifact-ids': '${{ needs.native-cli-linux-local.outputs.artifact-id }}',

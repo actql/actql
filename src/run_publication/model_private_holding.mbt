@@ -50,8 +50,9 @@ pub fn model_private_holding_cid(
 }
 
 ///|
-/// Per-call custody is distinct from legacy whole-occurrence holdings. The
-/// full scope, slot, attempt and phase prevent response/unknown collisions.
+/// Full scope, slot, attempt and phase identify each per-call holding.
+/// Model Raw uses the entered holding for provider bytes and the settled
+/// holding for the canonical descriptor alone.
 pub fn model_scoped_private_holding_cid(
   definition : PublicationContract,
   store_authority_cid : String,
@@ -68,7 +69,6 @@ pub fn model_scoped_private_holding_cid(
       valid_contract_cid,
     ) ||
     (phase != "entered" && phase != "settled") ||
-    (role == "model_raw_response" && phase != "entered") ||
     ![
       "model_capture_bundle", "model_slot_capture", "model_invocation_evidence",
       "model_call_attempt", "model_attempt_accounting", "model_attempt_outcome",

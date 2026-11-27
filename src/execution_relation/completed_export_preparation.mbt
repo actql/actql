@@ -218,7 +218,7 @@ fn complete_export_metadata(
       writer
     })
     Ok({
-      export_identity: Ref(()),
+      export_identity: Ref(rows.columns is None && rows.rows is None),
       source: Some(source),
       rows: { ..rows, names: value.names, },
       order: value.order.unwrap(),

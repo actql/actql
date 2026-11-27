@@ -69,18 +69,14 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
               return Err(CustodyLost)
             }
           Some((revision, key)) => {
-            let state = match
-              @host.restore_client_run_state_original(run.definition, wire) {
-              Ok(value) => value
-              Err(_) => return Err(CustodyLost)
-            }
-            let observation = match
-              native_saved_state_observation(run, state, revision) {
-              Ok(value) => value
-              Err(issue) => return Err(issue)
-            }
-            if key != Some(observation.key()) ||
-              observation.wire(revision).to_option() != Some(state.state_wire()) {
+            guard key is Some(key) &&
+              @host.admit_client_retained_run_state_original(
+                run.definition,
+                wire,
+                revision,
+                key,
+              )
+              is Ok(_) else {
               return Err(CustodyLost)
             }
           }

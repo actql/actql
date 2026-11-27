@@ -687,7 +687,39 @@ pub fn client_program_project_original_static_effect_check(
   let mut issue_visible = false
   for index in 0..<@syntax.effect_header_count(headers) {
     let header = @syntax.effect_header_at(headers, index).unwrap()
-    if @syntax.effect_header_kind(header) != "update" {
+    let kind = @syntax.effect_header_kind(header)
+    let delete_mapping = match result {
+      Ok(complete) if kind == "delete" => {
+        // Use the completed rule for this exact retained Effect header.
+        let rules = @effect_results.effect_static_candidate_mapping_rules(
+          @checked.effect_program_static_effects(complete),
+        )
+        @effect_results.effect_mapping_rule_at(rules, index).bind(rule => {
+          let shape = @effect_results.effect_mapping_rule_effect(rule)
+          let binding = @effect_results.effect_mapping_shape_effect(shape)
+          guard physical_equal(
+              @effect_results.effect_result_binding_header(binding),
+              header,
+            ) &&
+            @effect_results.effect_result_binding_result(binding) is Some(_) else {
+            return None
+          }
+          let (kind, selector, fields) = @environment.mapping_permission_rule(
+            @effect_results.effect_mapping_rule_selection(rule),
+          )
+          guard kind == "delete" && selector == "id" && fields.is_empty() else {
+            return None
+          }
+          Some(
+            @environment.mapping_shape_cid(
+              @effect_results.effect_mapping_shape_contract(shape),
+            ),
+          )
+        })
+      }
+      _ => None
+    }
+    if kind != "update" && delete_mapping is None {
       // This header retains its original Program stage, not a lowered Query
       // position. Only authored structured input may expose that effects node.
       findings.push(
@@ -717,9 +749,15 @@ pub fn client_program_project_original_static_effect_check(
             target,
             @syntax.effect_header_contract_ref(header),
             1000000,
+            effect_kind=kind,
             match_tuple=@decode.lookup(body, "match_tuple") is Some(_),
           ) {
-          Ok(_) => true
+          Ok(resolved) =>
+            delete_mapping
+            .map(expected => {
+              @query.resolved_update_target_identity(resolved).1 == expected
+            })
+            .unwrap_or(true)
           Err(WorkLimit) => {
             findings.push(Limit("analysis_budget_exhausted"))
             false

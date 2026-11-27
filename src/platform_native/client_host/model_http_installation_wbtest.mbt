@@ -69,6 +69,55 @@ test "Native Model HTTP policy requires bounded transport and explicit evidence 
   assert_eq(selected.transport.attempt_tokens, 500L)
   assert_eq(selected.retention, "retention.json")
   assert_eq(selected.data, "data.json")
+  assert_true(selected.output_policy is None)
+  let cid = "sha256:" + "a".repeat(64)
+  let declared = "{\"upstream_model_outputs\":{\"version\":\"actql-local-model-output-policy/0.1\",\"inputs\":[{\"classification\":\"internal\",\"input_index\":0,\"producer_stage\":1,\"producer_step\":2,\"producer_task_cid\":\"" +
+    cid +
+    "\",\"producer_binding_cid\":\"" +
+    cid +
+    "\",\"producer_profile_cid\":\"" +
+    cid +
+    "\",\"producer_schema_cid\":\"" +
+    cid +
+    "\",\"receiving_binding_cid\":\"" +
+    cid +
+    "\"}],\"receiving_task_cid\":\"" +
+    cid +
+    "\",\"receiving_profile_cid\":\"" +
+    cid +
+    "\"},"
+  fn parse_output_use(value : String) -> NativeModelOutputDeclaration? {
+    let parsed = native_model_http_run_policy_selection(
+      @utf8.encode(wire.replace(old="{", new=value)),
+      limits,
+    )
+    guard parsed.bind(value => value.output_policy) is Some(cursor) &&
+      @decode.closed_object(cursor, [
+        "inputs", "receiving_profile_cid", "receiving_task_cid", "version",
+      ])
+      is Ok(fields) else {
+      return None
+    }
+    @decode.lookup(fields, "inputs")
+    .bind(values => @decode.element_at(values, 0))
+    .bind(native_model_output_declaration)
+  }
+  let dependency = parse_output_use(declared).unwrap()
+  assert_eq((dependency.input, dependency.stage, dependency.step), (0, 1, 2))
+  assert_eq(dependency.classification, @environment.Internal)
+  assert_eq(dependency.receiving_binding, cid)
+  for
+    changed in [
+      declared.replace(old=cid, new="sha256:" + "A".repeat(64)),
+      declared.replace(old="\"internal\"", new="\"unknown\""),
+      declared.replace(old="\"input_index\":0", new="\"input_index\":-1"),
+      declared.replace(
+        old="\"input_index\":0",
+        new="\"input_index\":0,\"extra\":true",
+      ),
+    ] {
+    assert_true(parse_output_use(changed) is None)
+  }
   for
     (old, new) in [
       ("\"/etc/ssl/fixture.pem\"", "\"relative.pem\""),

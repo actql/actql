@@ -595,7 +595,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     stage=Some("journal-open"),
   )
   |> ignore
-  if (operation == "status" && !local_status_uses_reference_files(child)) ||
+  if operation == "status" ||
     operation == "cancel" ||
     operation == "approve" ||
     operation == "reject" ||
@@ -794,6 +794,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             original_reader=Some(id => {
               self.refresh_run_observation_state(
                 host, capture, configuration, runtime, id,
+              )
+            }),
+            read_model_terminal=Some((selected, namespace_id) => {
+              self.read_model_terminal_observation_state(
+                host, capture, configuration, runtime, selected, namespace_id,
               )
             }),
           )
@@ -1242,6 +1247,8 @@ fn local_file_open_failure_message(
     FileWorkSourceBinding => "LocalOriginalSourceWorkUnavailable:source-binding"
     WholeModelProducerExport(_) =>
       "LocalOriginalSourceWorkUnavailable:producer-export"
+    WholeModelOutcomeExport(_) =>
+      "LocalOriginalSourceWorkUnavailable:model-outcome-export"
     FileWorkControlQuote => "LocalOriginalSourceWorkUnavailable:control-quote"
     FileWorkEntry(_) => "LocalOriginalSourceWorkUnavailable:entry"
     FileWorkPreparedCapacity(_) =>

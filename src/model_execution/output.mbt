@@ -4,7 +4,7 @@
 struct ModelOutputPreparation {
   execution : ModelExecution
   materialization : @relation.AdmittedOutputPreparation
-  port : @relation.TrustedOutputPort[Unit]
+  port : @relation.InferOutcomePort
   mut completed : @relation.CompletedOutput?
   mut reclaimed : Bool
 }
@@ -95,14 +95,28 @@ pub fn start_model_output_preparation(
     Ok(value) => value
     Err(_) => return Err(OutputValue)
   }
-  let port = match
-    @relation.prepare_trusted_output_port(completion, target, 256, 65536, _ => {
-      if state.accepted && !state.reclaimed {
-        @relation.admitted_output_preparation_rows(materialization)
-      } else {
-        None
-      }
-    }) {
+  let issuer = state.original_startup.bind(startup => {
+    startup.shared_mock.bind(purpose => purpose.outcome.map(pair => pair.1))
+  })
+  let live = () => state.accepted && !state.reclaimed
+  let prepared = match issuer {
+    Some(value) =>
+      @relation.prepare_bound_infer_outcome_port(
+        value,
+        completion,
+        state.rows,
+        materialization,
+        live,
+      )
+    None =>
+      @relation.prepare_infer_outcome_port(
+        completion,
+        state.rows,
+        materialization,
+        live,
+      )
+  }
+  let port = match prepared {
     Ok(value) => value
     Err(_) => {
       @relation.cancel_admitted_output_preparation(materialization) |> ignore
@@ -143,12 +157,24 @@ pub fn complete_model_output(
   if check_model_original_resources_mutable(value.execution.state) is Err(issue) {
     return Err(issue)
   }
-  match @relation.complete_trusted_output(value.port, ()) {
-    Ok(output) => {
+  let state = value.execution.state
+  let recorder = state.original_startup.bind(startup => {
+    startup.shared_mock.bind(purpose => purpose.outcome)
+  })
+  let completed = match recorder {
+    Some((original, _)) =>
+      @publication_host.complete_original_whole_model_outcome(
+        original,
+        value.port,
+      )
+    None => @relation.complete_infer_outcome_port(value.port).to_option()
+  }
+  match completed {
+    Some(output) => {
       value.completed = Some(output)
       Ok(output)
     }
-    Err(_) => Err(OutputIdentity)
+    None => Err(OutputIdentity)
   }
 }
 

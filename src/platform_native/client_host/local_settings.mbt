@@ -22,7 +22,7 @@ priv struct NativeLocalConfigurationSelection {
   manifest : Bytes
   manifest_cid : String
   operator_host : NativeLocalOperatorHostOriginal?
-  model_provider : String?
+  model_providers : Array[String]?
 }
 
 ///|
@@ -41,9 +41,6 @@ fn local_adoption_configuration_count_supported(
         return false
       }
       for index, model in models {
-        if model.provider_id != models[0].provider_id {
-          return false
-        }
         for prior in 0..<index {
           if models[prior].files.setting == model.files.setting {
             return false
@@ -232,12 +229,12 @@ fn quote_model_configuration_inventory(
   let slots = count.to_int64()
   let models = bindings.to_int64()
   // Sorted names, the retained exact file vector and its manifest projection
-  // coexist. The two preloaded locators rejoin the same vector. CIDs and
-  // generation records are retained by this existing adoption receiver.
+  // coexist. Preloaded locators rejoin the same vector. The existing adoption
+  // receiver retains the bounded Provider vector, CIDs and generation records.
   let retained : @authorization.AccountConfigurationConstructionUnits = {
-    record_headers: 4L + 2L * slots,
-    reference_slots: 12L + 5L * slots,
-    scalar_words: 1L + 6L * slots,
+    record_headers: 6L + 2L * slots,
+    reference_slots: 14L + 5L * slots + models,
+    scalar_words: 3L + 6L * slots,
     owned_utf16_units: 71L * slots,
     owned_wire_bytes: 0L,
   }
@@ -487,7 +484,9 @@ fn select_native_local_configuration(
     manifest,
     manifest_cid,
     operator_host,
-    model_provider: model_configurations.map(models => models[0].provider_id),
+    model_providers: model_configurations.map(models => {
+      models.map(model => model.provider_id)
+    }),
   })
 }
 
@@ -509,11 +508,11 @@ fn NativeLocalConfigurationSelection::check_source(
         Err(issue) => return Err(issue)
       }
     }
-    if self.model_provider is Some(_) &&
+    if self.model_providers is Some(_) &&
       !source.verify_generation(file.name, file.generation) {
       return Err(SourceChanged)
     }
-    let maximum = if self.model_provider is Some(_) {
+    let maximum = if self.model_providers is Some(_) {
       file.generation.size
     } else {
       65536L

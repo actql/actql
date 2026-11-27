@@ -403,7 +403,10 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   assert_eq(saved_wire.replace(old="\"revision\":0,", new=""), observed.wire())
   assert_eq(saved.control_revision(), run_before.revision)
   let submitted_after = journal.retained_submission(reference).unwrap().unwrap()
-  let (_, retained_state) = submitted_after.restored_state_original.unwrap()
+  let retained_state = submitted_after.restored_state_original
+    .unwrap()
+    .resolve()
+    .unwrap()
   let reused = restore_native_saved_run_state(submitted_after, run_before)
     .unwrap()
     .unwrap()

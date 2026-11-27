@@ -80,13 +80,13 @@ fn local_runtime_original_assets(
 priv enum NativeLocalRuntimeModelProjection {
   PreserveModels
   RequireEmptyPackagedModels
-  SelectConfiguredModels(String)
+  SelectConfiguredModels(Array[String])
 }
 
 ///|
 // Checking data added by an explicitly adopted Model installation is separate
-// from the packaged runtime's default declarations. Only that Provider's
-// declarations may be added, and only to an empty packaged inventory.
+// from the packaged runtime's default declarations. An empty packaged
+// inventory allows declarations for the bounded selected Providers.
 // The original checking, Model admission and dispatch owners still validate
 // the complete selected declaration and its installed profile.
 fn local_runtime_model_environment_context(
@@ -105,12 +105,12 @@ fn local_runtime_model_environment_context(
       if @canonical.array_count(tasks) != 0 {
         return None
       }
-    SelectConfiguredModels(provider) =>
+    SelectConfiguredModels(providers) =>
       for index in 0..<@canonical.array_count(tasks) {
         guard @canonical.array_at(tasks, index) is Some(task) &&
           @canonical.object_field(task, "connector_id")
           is Some(@canonical.String(connector)) &&
-          connector == provider else {
+          providers.contains(connector) else {
           return None
         }
       }
@@ -267,13 +267,13 @@ fn fund_local_runtime_configured_environment(
 fn local_runtime_configured_model_environment_compatible(
   original : String,
   installed : String,
-  provider : String,
+  providers : Array[String],
 ) -> Bool {
   match
     (
       local_runtime_capacity_environment_context(
         original,
-        model=SelectConfiguredModels(provider),
+        model=SelectConfiguredModels(providers),
       ),
       local_runtime_capacity_environment_context(
         installed,
@@ -536,10 +536,10 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
     if original_assets.environment != assets.environment {
       let authored = original_assets.environment
       let installed = assets.environment
-      let compatible = match self.session.settings.model_provider {
+      let compatible = match self.session.settings.model_providers {
         None =>
           local_runtime_capacity_environment_compatible(authored, installed)
-        Some(provider) => {
+        Some(providers) => {
           guard operations is Some(original) &&
             fund_local_runtime_configured_environment(
               authored, installed, original,
@@ -547,7 +547,7 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
             return Err(CapacityExceeded)
           }
           local_runtime_configured_model_environment_compatible(
-            authored, installed, provider,
+            authored, installed, providers,
           )
         }
       }

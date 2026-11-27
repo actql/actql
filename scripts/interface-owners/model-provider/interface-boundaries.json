@@ -4165,7 +4165,7 @@
     },
     {
       "module": "src/model_execution/execution.mbt",
-      "sha256": "e45ad989ea7c415fb801a67ed8a9948c5a895b13cf9038a85b4314bf5ac2e4bb",
+      "sha256": "0c3bb8a114651b7c098203cd1aaf581c5aa4122f59817b757c8ff078f8daf7ed",
       "exports": [],
       "operations": [
         {
@@ -4613,7 +4613,7 @@
     },
     {
       "module": "src/model_execution/prepared_call_set.mbt",
-      "sha256": "aafd24cb2a8f438ebfb515da50ac7411bd100b7527838b45ff490b3e5d49f653",
+      "sha256": "bb1e8a3e0a92c6f3d3ed53be7ebde462d49b9e71f9bcefb0659a7d916d59f998",
       "exports": [],
       "operations": [
         {
@@ -4985,7 +4985,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "2d9aae3df8cb571e958b9c7eca4c1b47620a5b0719bc9319bbd9f43cb15dc11a",
+      "sha256": "9e6c7325002931d3236604d0d1ce91264d697b1b9077c92dc5b939d3f647a084",
       "exports": [],
       "operations": [
         {
@@ -5017,8 +5017,16 @@
           "declaration": "client_infer_call_scope_matches_rows ( value : ClientInferCallScope , rows : @ execution . PreparedInferRows , fixed_request_cid : String , ) - > Bool"
         },
         {
+          "name": "client_infer_call_scope_matches_whole_result_reader",
+          "declaration": "client_infer_call_scope_matches_whole_result_reader ( scope : ClientInferCallScope , reader : ClientInferWholeResultReaderOriginal , ) - > Bool"
+        },
+        {
           "name": "client_infer_call_scope_model_execution",
           "declaration": "client_infer_call_scope_model_execution ( original : ClientInferCallScope , ) - > @ environment . ModelExecutionContract"
+        },
+        {
+          "name": "client_infer_call_scope_saved_input",
+          "declaration": "client_infer_call_scope_saved_input ( value : ClientInferCallScope , ) - > ClientInferSavedCallScope ?"
         },
         {
           "name": "client_infer_call_scope_snapshot",
@@ -5115,7 +5123,9 @@
             "client_infer_call_scope_local_coordinate",
             "client_infer_call_scope_matches",
             "client_infer_call_scope_matches_rows",
+            "client_infer_call_scope_matches_whole_result_reader",
             "client_infer_call_scope_model_execution",
+            "client_infer_call_scope_saved_input",
             "client_infer_call_scope_snapshot",
             "client_infer_call_scope_source_observations",
             "client_infer_call_scope_unit_id",
@@ -5165,6 +5175,10 @@
               {
                 "path": "src/model_execution/mock_installation.mbt",
                 "anchor": "fn original_mock_scope_matches("
+              },
+              {
+                "path": "src/run_publication_host/client_infer_call_scope.mbt",
+                "anchor": "pub fn client_infer_call_scope_matches_whole_result_reader("
               }
             ],
             "ownership": [

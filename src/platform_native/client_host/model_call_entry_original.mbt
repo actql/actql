@@ -90,9 +90,14 @@ fn native_model_entry_body(
   attempt : @publication.RunEvidenceValue,
   authority : @publication.RunEvidenceValue,
   maximum : Int,
+  dependency? : NativeModelEntryDependency? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
+  guard native_model_entry_dependency_geometry(dependency)
+    is Some((_, nodes, depth)) else {
+    return Err(CapacityExceeded)
+  }
   try {
-    let writer = @encode.writer(maximum, 16, 2)
+    let writer = @encode.writer(maximum, nodes, depth)
     @encode.begin_object(writer)
     @encode.key(writer, "attempt")
     @encode.string_value(writer, @publication.run_evidence_value_json(attempt))
@@ -103,6 +108,10 @@ fn native_model_entry_body(
     )
     @encode.key(writer, "call")
     @encode.string_value(writer, @publication.run_evidence_value_json(call))
+    if dependency is Some(original) {
+      @encode.key(writer, "dependency")
+      emit_native_model_entry_dependency(writer, original)
+    }
     @encode.key(writer, "request_scope_cid")
     @encode.string_value(writer, @host.client_request_scope_cid(request))
     @encode.key(writer, "run_definition_cid")
@@ -113,7 +122,14 @@ fn native_model_entry_body(
     @encode.key(writer, "slot")
     @encode.number_value(writer, slot.to_double())
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-native-model-call-original/0.1")
+    @encode.string_value(
+      writer,
+      if dependency is Some(_) {
+        native_dependent_model_entry_version
+      } else {
+        native_plain_model_entry_version
+      },
+    )
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
@@ -124,17 +140,17 @@ fn native_model_entry_body(
 
 ///|
 // Select the durable prerequisites from the trusted installed Work. The
-// Portable uses the compiled Result policy and Store binding. Checked Sources
-// also require the exact admitted Whole tuple on this Work's original Execution.
-// The Mock Effect path retains its own material requirement.
+// Portable uses the compiled Result policy and Store binding. A Source-backed
+// Model must also carry the admitted Whole tuple on its original Execution.
+// The Mock Effect path retains its existing material requirement.
 fn NativeClientMockModelWork::matches_model_call_journal_run(
   self : Self,
   record : NativeClientRunRecord,
 ) -> Bool {
   if !record.dispatch_reserved ||
     !record.physical_start_claimed ||
-    @host.client_request_scope_cid(record.request) !=
-    @host.client_request_scope_cid(self.request) ||
+    @host.client_request_identity_relation(record.request, self.request) !=
+    @host.SameRequest ||
     @publication.publication_contract_identity(record.definition) !=
     @publication.publication_contract_identity(self.definition) {
     return false
@@ -142,21 +158,26 @@ fn NativeClientMockModelWork::matches_model_call_journal_run(
   match self.provider_role {
     Mock(_) => record.effect_material_originals is Some(_)
     PortableHttp(_) => {
-      guard record.effect_material_originals is None &&
-        record.checkpoint is None &&
+      guard record.checkpoint is None &&
         record.publication_policy_originals is Some(_) &&
-        record.publication_binding is Some(_) &&
-        self.compiled.compilation is @host.Tasks(compilation) &&
-        compilation.serialization is None &&
-        @host.client_compiled_run_has_original_definition(
-          self.compiled,
-          self.definition,
-        ) else {
+        record.publication_binding is Some(_) else {
         return false
       }
+      let effect = record.effect_material_originals is Some(_)
+      let compilation = match self.compiled.compilation {
+        @host.Tasks(original) if !effect &&
+          @host.client_compiled_run_has_original_definition(
+            self.compiled,
+            self.definition,
+          ) => original
+        @host.Effects(allowed) if effect => allowed.compilation.compiled
+        _ => return false
+      }
+      guard compilation.serialization is None else { return false }
       for plan in compilation.infers {
         if physical_equal(plan, self.graph) {
-          return if @host.prepared_client_has_checked_sources(compilation.owner) {
+          return if effect ||
+            @host.prepared_client_has_checked_sources(compilation.owner) {
             self.active is Some(active) &&
             @infer.original_whole_model_journal_matches(
               active,
@@ -195,20 +216,46 @@ fn NativeClientMockModelWork::persist_model_entry_original(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  capture.with_current_adoption_material_in_original_read((
-    host,
-    _material,
-    operations,
-  ) => {
-    guard @host.client_infer_dispatch_matches_run(
-        admission, compiled, definition,
-      ) &&
+  // The clock may reenter. Read the original Account and Run after it returns.
+  let dependency_at = if self.provider_role is PortableHttp(http) &&
+    http.installation.run_policy.egress is NativeEgressPending(_) {
+    Some((self.current_time)())
+  } else {
+    None
+  }
+  capture
+  .with_current_adoption_material_in_original_read((host, material, operations) => {
+    guard self.model_output_dependency_scope_current() &&
+      @host.client_infer_dispatch_matches_run(admission, compiled, definition) &&
       @model.model_call_entry_persistence_originals(entry, prepared, admission)
       is Some((count, slot, call, attempt, authority, model_scope)) &&
       count > 0 &&
       slot >= 0 &&
       slot < count else {
       return Err(Journal(ForeignRun))
+    }
+    let scope = @publication.model_invocation_scope_cid(model_scope)
+    let dependency = match self.model_entry_dependency(scope) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+    if dependency is Some(_) {
+      guard dependency_at is Some(at) else { return Err(Journal(ForeignRun)) }
+      let current = match
+        @host.client_local_adopted_current_account(material, host.database) {
+        Ok(value) => value
+        Err(issue) => return Err(local_current_material_issue(issue))
+      }
+      if self.closing ||
+        self.closed ||
+        !self.model_output_dependency_scope_current() ||
+        !self.model_output_dependency_issuers_current(current, at) {
+        return Err(Journal(ForeignRun))
+      }
+    }
+    guard native_model_entry_dependency_geometry(dependency)
+      is Some((extra, nodes, depth)) else {
+      return Err(Journal(CapacityExceeded))
     }
     // Exact fixed field spelling/punctuation and longest Int spelling. The
     // existing encoder bounds escaped UTF16 by six UTF8 bytes per code unit.
@@ -220,7 +267,7 @@ fn NativeClientMockModelWork::persist_model_entry_original(
       @publication.run_evidence_value_json(authority).length().to_int64() +
       @host.client_request_scope_cid(request).length().to_int64() +
       @publication.publication_contract_identity(definition).length().to_int64()
-    guard @execution.checked_preparation_add_product(fixed, units, 6L)
+    guard @execution.checked_preparation_add_product(fixed + extra, units, 6L)
       is Some(bound) &&
       bound > 0L &&
       bound < 2147483519L &&
@@ -243,6 +290,8 @@ fn NativeClientMockModelWork::persist_model_entry_original(
     match
       capture.prepare_model_entry_construction(
         Some(bound.to_int()),
+        nodes~,
+        depth~,
         additional=store_writer,
         additional_controls=store_controls,
       ) {
@@ -279,13 +328,35 @@ fn NativeClientMockModelWork::persist_model_entry_original(
         attempt,
         authority,
         bound.to_int(),
+        dependency~,
       ) {
       Ok(value) => value
       Err(issue) => return Err(Journal(issue))
     }
     let table = "client_model_call_originals"
-    let scope = @publication.model_invocation_scope_cid(model_scope)
     let key = @publication.run_evidence_value_identity(attempt)
+    let dependent_original = if dependency is Some(_) {
+      guard self.provider_role is PortableHttp(receiver) &&
+        receiver.dependencies is Some(staged) &&
+        staged.scope is Some((_, bound)) &&
+        physical_equal(bound, model_scope) else {
+        return Err(Journal(ForeignRun))
+      }
+      match fund_native_saved_model_selection(operations.reads) {
+        Ok(_) => ()
+        Err(issue) => return Err(Journal(issue))
+      }
+      let proof : NativeDependentModelEnteredOriginal = {
+        entry,
+        scope: model_scope,
+        attempt_cid: key,
+        entry_digest: "sha256:" + @sha.hex(body),
+        extent: body.length().to_int64(),
+      }
+      Some((staged, proof))
+    } else {
+      None
+    }
     host.journal
     .transaction_with_reads(
       () => {
@@ -295,7 +366,8 @@ fn NativeClientMockModelWork::persist_model_entry_original(
           Ok(None) => return Err(CustodyLost)
           Err(issue) => return Err(issue)
         }
-        if !self.matches_model_call_journal_run(record) ||
+        if !self.model_output_dependency_scope_current() ||
+          !self.matches_model_call_journal_run(record) ||
           (
             expected_store is Some(binding) &&
             record.publication_binding != Some(binding)
@@ -306,6 +378,12 @@ fn NativeClientMockModelWork::persist_model_entry_original(
             record.cancellation_requested
           ) {
           return Err(ForeignRun)
+        }
+        if dependency is Some(_) {
+          match host.journal.recheck_model_run_cut(request, operations.reads) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
         }
         // No historical equality/absence shortcut can issue a fresh ACK.
         match
@@ -367,11 +445,16 @@ fn NativeClientMockModelWork::persist_model_entry_original(
           body,
           Some(operations),
         )
-        .map(_ => ())
+        .map(_ => dependent_original)
         .map_err(issue => Physical(issue))
       },
       reads=Some(operations.reads),
     )
     .map_err(issue => Journal(issue))
+  })
+  .map(original => {
+    if original is Some((staged, proof)) {
+      staged.entered = Some(proof)
+    }
   })
 }

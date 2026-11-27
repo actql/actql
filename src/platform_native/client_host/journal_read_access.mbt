@@ -32,6 +32,10 @@ priv struct NativeClientJournalReadAccess {
     @sqlite.NativeJournalValue,
     @sqlite.NativeSqliteIssue,
   ]
+  read_bounded : (String, String, Int64) -> Result[
+    @sqlite.NativeJournalValue,
+    @sqlite.NativeSqliteIssue,
+  ]
   observe_scan_body_extent : (String, String) -> Result[
     (String, @sqlite.NativeJournalHeader),
     @sqlite.NativeSqliteIssue,

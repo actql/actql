@@ -887,25 +887,42 @@ fn LocalCommandBusinessPreparation::open_file_work(
           true
         }
       })
-      let model_results = business.model_run.bind(model => {
-        model.scopes
-        .get(0)
-        .map(scope => @local_host.NativeWholeModelResults::{
-          scope,
-          retention: run.retention,
-          retain: (task, results) => {
-            guard business.model_run is Some(original) &&
-              physical_equal(original, model) &&
-              model.whole_inputs is Some(inputs) &&
-              inputs.pending is None &&
-              !self.original.closing &&
-              !self.original.closed else {
-              return false
-            }
-            inputs.pending = Some((task, results))
-            true
-          },
-        })
+      let model_results = business.model_run.map(model => @local_host.NativeWholeModelResults::{
+        scope: index => model.scopes.get(index),
+        completed: index => {
+          guard business.model_run is Some(original) &&
+            physical_equal(original, model) &&
+            !self.original.closing &&
+            !self.original.closed else {
+            return None
+          }
+          model.completions.get(index).bind(value => value)
+        },
+        retention: run.retention,
+        retain: (task, results) => {
+          guard business.model_run is Some(original) &&
+            physical_equal(original, model) &&
+            model.whole_inputs is Some(inputs) &&
+            inputs.pending is None &&
+            !self.original.closing &&
+            !self.original.closed else {
+            return false
+          }
+          if !self.retain_model_output_dependencies(
+              business, model, task, results,
+            ) ||
+            !(business.model_run is Some(current) &&
+            physical_equal(current, model)) ||
+            !(model.whole_inputs is Some(current) &&
+            physical_equal(current, inputs)) ||
+            inputs.pending is Some(_) ||
+            self.original.closing ||
+            self.original.closed {
+            return false
+          }
+          inputs.pending = Some((task, results))
+          true
+        },
       })
       self.host.open_original_managed_relation_files_source_work(
         operation,

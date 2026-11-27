@@ -53,10 +53,9 @@ test('Native Model accounting refuses changed, duplicate, foreign and unconfirme
 const runDefinition = cid('original run');
 const storeAuthority = cid('original store');
 const rawByTask = new Map();
-const rawCustody = {definition: runDefinition, authority: storeAuthority,
-  policy: {policyCid: cid('effective data policy')}, observed: [first, second].map(item => ({
+const rawScopes = [first, second].map(item => ({
   ...item, scope: cid(item.task + ' scope'), rawHolding: cid(item.attempt + ' entered holding'),
-}))};
+}));
 
 function rawDescriptor(item) {
   const sent = {profile: cid(item.task + ' profile'), content: cid(item.task + ' exact provider response'),
@@ -71,7 +70,12 @@ function rawDescriptor(item) {
   };
 }
 
-const descriptors = rawCustody.observed.map(rawDescriptor);
+const descriptors = rawScopes.map(rawDescriptor);
+const rawCustody = {definition: runDefinition, authority: storeAuthority,
+  policy: {policyCid: cid('effective data policy')}, observed: rawScopes.map((scope, index) => ({
+    ...scope,
+    evidence: index === 0 ? [{role: 'model_raw_response', evidenceCid: cid(JSON.stringify(descriptors[index]))}] : [],
+  }))};
 function rawLine(body) {
   const evidence = Object.fromEntries(Object.entries({...body, self_cid: cid(JSON.stringify(body))})
     .sort(([a], [b]) => a.localeCompare(b)));
@@ -97,4 +101,12 @@ test('Native Raw receipt refuses re-sealed substituted bytes, wrong profile and 
     const split = splitNativeModelConfirmations(rawLine({...original, ...changed}) + rawLine(secondRaw), pid);
     assert.throws(() => requireNativeRawReceipts(split.raw, rawCustody, rawByTask), {code: 'ERR_ASSERTION'});
   }
+});
+
+test('Native Raw receipts refuse a different settled descriptor for the same original attempt', () => {
+  const split = splitNativeModelConfirmations(descriptors.map(rawLine).join(''), pid);
+  const [producer, sibling] = rawCustody.observed;
+  const foreign = {...producer, evidence: [{role: 'model_raw_response', evidenceCid: split.raw[1].identity}]};
+  assert.throws(() => requireNativeRawReceipts(split.raw, {...rawCustody, observed: [foreign, sibling]}, rawByTask),
+    {code: 'ERR_ASSERTION'});
 });

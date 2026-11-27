@@ -287,6 +287,19 @@ pub fn completed_segment_inputs_has_exact_pipeline_input(
 }
 
 ///|
+/// Check the original Reader retained for every actual use of this port.
+pub fn completed_segment_inputs_has_exact_pipeline_reader(
+  value : CompletedSegmentInputs,
+  receiver : @lower.BoundPrepared,
+  input_index : Int,
+  original : ProducerRead,
+) -> Bool {
+  completed_segment_inputs_has_pipeline_input(value, receiver, input_index, read => {
+    physical_equal(read, original)
+  })
+}
+
+///|
 fn completed_segment_inputs_has_pipeline_input(
   value : CompletedSegmentInputs,
   receiver : @lower.BoundPrepared,

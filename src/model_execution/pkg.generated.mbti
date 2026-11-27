@@ -14,6 +14,7 @@ import {
   "actql/actql/sha256",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -149,7 +150,15 @@ pub fn model_call_settlement(ModelExecution) -> ModelCallSettlement?
 
 pub fn model_call_settlement_export_limits(Int, Int) -> ModelCaptureExportLimits
 
+pub fn model_call_settlement_failure_raw(ModelCallSettlement) -> @run_publication.BoundModelRawResponse?
+
+pub fn model_call_settlement_retains_strict_failure(ModelCallSettlement) -> Bool
+
 pub fn model_call_settlement_slot(ModelCallSettlement) -> Int?
+
+pub fn model_call_settlement_strict_failure_retired(ModelCallSettlement) -> Bool
+
+pub fn model_call_settlement_success_raw(ModelCallSettlement) -> @run_publication.BoundModelRawResponse?
 
 pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
 
@@ -198,6 +207,8 @@ pub fn model_execution_unknown_calls(ModelExecution) -> Bool
 pub fn model_http_chat_installation_matches(AdmittedStructuredModelProvider, @check_environment.ModelResponseProfileInstallation) -> Bool
 
 pub fn model_http_original_credential_reference(AdmittedStructuredModelProvider, String) -> String?
+
+pub fn model_http_rejected_response_failure(Int) -> ModelProviderFailure
 
 pub fn model_mock_answer_at(ModelMockAnswers, @check_environment.PublicModelTaskDeclaration, Int) -> Result[(String, @value_admission.CheckedValue)?, ModelMockAnswerIssue]
 
@@ -472,6 +483,8 @@ pub fn verified_model_capture_call_count(VerifiedModelCapture) -> Int?
 pub fn verified_model_capture_outcome(VerifiedModelCapture, Int) -> String?
 
 pub fn verified_model_capture_owned_slot(VerifiedModelCapture, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
+
+pub fn verify_completed_model_capture_value(ModelExecution, Int, @run_publication.ModelCaptureRecordRead, (Int64) -> Bool, remaining_work? : @ref.Ref[Int]?) -> Result[Unit, ModelExecutionIssue]
 
 pub fn verify_model_execution_attempt_evidence(ModelExecution, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, ModelExecutionIssue]
 

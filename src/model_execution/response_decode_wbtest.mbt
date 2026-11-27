@@ -71,9 +71,15 @@ test "answer cursor exact independent null work and value boundaries" {
     )
   }
   assert_true(
-    advance_model_response_decode(bytes_short, output, limits)
-    is Err(OutputValue),
+    advance_model_response_decode(bytes_short, output, limits) is Err(WorkLimit),
   )
+  assert_true(bytes_short.phase is DecodeReclaimed)
+  assert_eq(bytes_short.remaining, 5)
+  assert_true(
+    advance_model_response_decode(bytes_short, output, limits)
+    is Err(OutputIdentity),
+  )
+  assert_eq(bytes_short.remaining, 5)
   let nodes_short = null_response_decode(9)
   let no_nodes : @admitted.Limits = { ..limits, max_nodes: 0, }
   for _ in 0..<8 {
@@ -83,9 +89,28 @@ test "answer cursor exact independent null work and value boundaries" {
   }
   assert_true(
     advance_model_response_decode(nodes_short, output, no_nodes)
-    is Err(OutputValue),
+    is Err(WorkLimit),
   )
   assert_true(nodes_short.phase is DecodeReclaimed)
+  assert_eq(nodes_short.remaining, 0)
+  assert_true(
+    advance_model_response_decode(nodes_short, output, no_nodes)
+    is Err(OutputIdentity),
+  )
+  let nonnullable = @contract.string_contract(nullable=false).unwrap()
+  let wrong_contract = null_response_decode(9)
+  for _ in 0..<8 {
+    assert_true(
+      advance_model_response_decode(wrong_contract, nonnullable, limits)
+      is Ok(None),
+    )
+  }
+  assert_true(
+    advance_model_response_decode(wrong_contract, nonnullable, limits)
+    is Err(Provider(SchemaInvalid)),
+  )
+  cancel_model_response_decode(wrong_contract)
+  assert_true(wrong_contract.phase is DecodeReclaimed)
 }
 
 ///|
