@@ -3,9 +3,14 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {localModuleGraphInputs} from './adapter-module-graph.mjs';
 import {authoringBinPath, authoringToolkitPath} from './connector-authoring-toolkit.mjs';
+import {packedRecordApprovalFixturePaths} from './record-approval-ci-input.mjs';
 
 const cli = 'scripts/connector.mjs';
 const referenceDefinition = 'scripts/fixtures/external-rest/connector.json';
+const recordInputs = [...new Set([
+  ...['salesforce', 'hubspot', 'kintone'].flatMap(mockConnector => packedRecordApprovalFixturePaths({mockConnector})),
+  ...['hubspot', 'kintone'].flatMap(approvalConnector => packedRecordApprovalFixturePaths({approvalConnector})),
+])];
 const entries = [
   cli,
   'scripts/local-checks-supervisor.mjs',
@@ -13,6 +18,10 @@ const entries = [
   'scripts/test-execution-reporter.mjs',
   'scripts/fixtures/external-rest/normal-case.test.mjs',
   'scripts/fixtures/external-rest/consumer.mjs',
+  'scripts/fixtures/record-approval/normal-case.test.mjs',
+  'scripts/fixtures/external-installed/normal-case.test.mjs',
+  'scripts/fixtures/external-installed/consumer.mjs',
+  ...recordInputs.filter(path => path.endsWith('.mjs')),
 ];
 
 export function buildConnectorAuthoring(root: string, packageRoot: string) {
@@ -26,10 +35,10 @@ export function buildConnectorAuthoring(root: string, packageRoot: string) {
     join(root, 'scripts/interface-owner-discovery.mjs'),
     join(root, 'scripts/interface-inventory.mjs'),
   ]});
-  const inputs = [...modules, referenceDefinition].sort();
+  const inputs = [...new Set([...modules, referenceDefinition, ...recordInputs])].sort();
   const destination = join(packageRoot, authoringToolkitPath);
   for (const path of inputs) {
-    if (path !== referenceDefinition && !/^scripts\/(?:[\w.-]+\/)*[\w.-]+\.mjs$/u.test(path) &&
+    if (path !== referenceDefinition && !recordInputs.includes(path) && !/^scripts\/(?:[\w.-]+\/)*[\w.-]+\.mjs$/u.test(path) &&
         !['adapters/host-common/http-exchange.mjs',
           'adapters/host-common/installed-connector-declaration.mjs'].includes(path)) {
       throw new Error(`UnexpectedConnectorAuthoringInput:${path}`);

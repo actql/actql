@@ -25,6 +25,21 @@ manifests through the existing generator. Its Node distribution preserves
 `@actql/local-node` as the common owner, so the external adapters' imports of
 `@actql/local-node/connector-installation` refer to that same Host package.
 
+The composed Host's normal prepack also stages the standard authoring toolkit
+from the same Core source. The packed harness compares the toolkit inventory in
+the archive and the installed package, then invokes the installed
+`actql-connector` launcher to scaffold a fixture outside the source tree.
+
+The installer then runs that same `actql-connector conformance` launcher with
+an `actql-external-installed-normal/0.1` descriptor. The descriptor selects
+`mode: "provider-bundle"` and the original `sourceSha`, `sourceTree`, absolute
+`manifestPath`, `manifestSha256`, `consumerRoot` and fresh `outputRoot`. The
+manifest inventories the composed Host, SDK, client wire and the two
+independent provider archives. The installed launcher verifies those archives
+and installed package bytes, selects the same Host's generated table and
+resolver, and hands them to the existing fixture consumer. A fresh install
+or rebuild is unnecessary when reusing the same verified artifacts.
+
 The installed loader supplies the original bound `construction` to each
 adapter. Both fixtures use it for accounted configuration reads, authored
 declaration/Mapping preparation, Site acquisition and final adapter creation.
@@ -116,6 +131,15 @@ The authored assertions cover:
 - A whole-Set approval checkpoint, one create send and successful recovery.
 - A reply lost after the mock provider accepted the create, retained unknown
   state across Host reopen, and zero recovery resends.
+- The declared UPDATE Mapping on five independent rows. Signed approval
+  permits one write per Run, including an explicit clear of the nullable
+  `note`. Signed rejection preserves its row. A response lost after one
+  accepted write leaves the same Run in `needs_reconciliation`. A competing
+  change after review leads to `EffectTargetVersionMismatch` for that Run
+  before a PUT is sent. Each case closes the original Client before another
+  PID reopens it. That PID
+  observes zero provider requests and resolves no credential. Each
+  successful case reads both named Results before checking Run status.
 - One failed credential-journal close retained by the standard Host cleanup
   owner, a concurrent retry of the same handle, and exactly one physical close.
 

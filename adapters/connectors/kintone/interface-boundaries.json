@@ -9604,7 +9604,7 @@
       "role": "physical-io",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "00d5b41eb154e4f9911890eeec4ee261b8ee44b93583254cf1ff55b4bc7bb31c",
+      "sha256": "d18974b21651c92fe5e6cc3860bea3b00b5d85bc90b5f03b8827345ad2f822b3",
       "exports": [
         "INSTALLED_KINTONE_EFFECT_VERSION",
         "checkInstalledKintoneEffectProfile",
@@ -9844,6 +9844,7 @@
         "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/effect-preparation-result.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-effect-plan.mjs",
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-alias-publication.mjs",
@@ -9976,13 +9977,13 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "3923a80884621fe4c4d91a78abe5040f2c4fa7679946534af118d0630353c49d",
+      "sha256": "fd44b787b2d5b637aeae8d9f06cfd601338ec38db52fca7833298a103d5d053a",
       "exports": [
-        "captureKintoneEffectPlanRecipeBuilder"
+        "captureKintoneEffectConstruction"
       ],
       "operations": [
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder",
+          "name": "captureKintoneEffectConstruction",
           "parameters": [
             "moon",
             "kind"
@@ -9990,14 +9991,14 @@
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/original/original",
+          "name": "captureKintoneEffectConstruction/original/original",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe",
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction",
           "parameters": [
             "mapping",
             "fields",
@@ -10012,7 +10013,7 @@
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/init:inputExtent/init:inputExtent",
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:recoveryInputExtent/init:recoveryInputExtent",
           "parameters": [
             "previewWire",
             "recovery",
@@ -10021,17 +10022,43 @@
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/physical/physical/init:responseExtent/init:responseExtent",
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:writes/init:writes",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:writes/init:writes/init:writes",
           "parameters": [
-            "bytes",
-            "body"
+            "write"
           ],
           "async": false
         },
         {
-          "name": "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/prepareKintoneEffectPlanRecipe",
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:writes/init:writes/init:writes/init:writes",
+          "parameters": [
+            "transfer"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/prepareKintoneEffectConstruction",
           "parameters": [
             "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/readOccurrence/readOccurrence/init:prepare/init:prepare",
+          "parameters": [
+            "transfer"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/readOccurrence/readOccurrence/init:prepare/init:prepare/init:responseExtent/init:responseExtent",
+          "parameters": [
+            "bytes",
+            "body"
           ],
           "async": false
         },
@@ -10040,6 +10067,11 @@
           "parameters": [
             "name"
           ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
           "async": false
         },
         {
@@ -10074,18 +10106,23 @@
         {
           "operations": [
             "<module>",
-            "captureKintoneEffectPlanRecipeBuilder",
-            "captureKintoneEffectPlanRecipeBuilder/original/original",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/init:inputExtent/init:inputExtent",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/physical/physical/init:responseExtent/init:responseExtent",
-            "captureKintoneEffectPlanRecipeBuilder/prepareKintoneEffectPlanRecipe/prepareKintoneEffectPlanRecipe",
+            "captureKintoneEffectConstruction",
+            "captureKintoneEffectConstruction/original/original",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:recoveryInputExtent/init:recoveryInputExtent",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:writes/init:writes",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:writes/init:writes/init:writes",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/init:writes/init:writes/init:writes/init:writes",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/prepareKintoneEffectConstruction",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/readOccurrence/readOccurrence/init:prepare/init:prepare",
+            "captureKintoneEffectConstruction/prepareKintoneEffectConstruction/readOccurrence/readOccurrence/init:prepare/init:prepare/init:responseExtent/init:responseExtent",
             "data/data/data",
+            "fail/fail",
             "method/method/method",
             "positive/positive"
           ],
           "exports": [
-            "captureKintoneEffectPlanRecipeBuilder"
+            "captureKintoneEffectConstruction"
           ],
           "attributes": {
             "responsibility": [

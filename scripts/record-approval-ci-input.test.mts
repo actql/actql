@@ -9,11 +9,25 @@ import {mkdtemp, mkdir, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
-import {admitRecordApprovalCIInput} from './record-approval-ci-input.mjs';
+import {admitRecordApprovalCIInput, packedRecordApprovalInvocation} from './record-approval-ci-input.mjs';
 
 const digest = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 const run = (command: string, args: readonly string[], cwd: string) => execFileSync(command, args,
   {cwd, encoding: 'utf8', timeout: 10000});
+
+test('packed ordered Mock rejection uses the original authored case and one installed child', () => {
+  const original = {application: '/installed', approvalConnector: 'salesforce', mockConnector: 'salesforce',
+    authoredCasePath: '/installed/authored-case.json', env: {ACTQL_TEST_PRESERVE_SCRATCH: '1'}};
+  const expected = packedRecordApprovalInvocation(original);
+  const rejected = packedRecordApprovalInvocation({...original, reject: true});
+  assert.deepEqual(rejected, {...expected, options: {...expected.options, env: {...expected.options.env,
+    ACTQL_RECORD_APPROVAL_DECISION: 'rejected'}}});
+  assert.equal(expected.options.expectedTests, 1);
+  assert.deepEqual(expected.files, ['scripts/fixtures/packed-record-approval-mock.mjs']);
+  assert.deepEqual(expected.options.env, {...original.env,
+    ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: 'salesforce', ACTQL_RECORD_APPROVAL_MOCK_VARIANT: '',
+    ACTQL_RECORD_APPROVAL_MOCK_CASE: original.authoredCasePath});
+});
 
 async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-approval-ci-input-'));
