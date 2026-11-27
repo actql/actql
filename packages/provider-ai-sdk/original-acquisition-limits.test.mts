@@ -11,7 +11,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 // This witnesses checks after Node acquisition, not a funded first allocator.
 // The controlled connector bypasses native delivery; its input backing still
 // exists at preparation and must be included in the same declared union.
-const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici') as typeof import('undici');
 const buildConnector = undici.buildConnector;
 let selectedSocket!: Duplex, connections = 0;

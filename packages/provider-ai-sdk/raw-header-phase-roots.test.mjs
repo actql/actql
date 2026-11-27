@@ -9,7 +9,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 // Observe actual original object identities, not their byte prices. The
 // delegating Client observes WeakRefs only; real close still uses Node's
 // original _destroy/error/callback. No Common/Store/Provider ACK is issued.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const OriginalClient = undici.Client;
 const observations = [];

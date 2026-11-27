@@ -8,7 +8,7 @@ import {channel} from 'node:diagnostics_channel';
 
 // Delegating observers only: the same pinned Client, BodyReadable and real
 // original _destroy drive closure. No fixture callback manufactures an ACK.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const OriginalClient = undici.Client;
 const bodies = [];
