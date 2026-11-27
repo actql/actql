@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {verifyIdentity} from '../check-canonical-json.mjs';
 
-// Two adopted File relations, two independently selected Model Tasks, one Result.
-export function nativeJoinedModelRun(firstTask, secondTask) {
+// Two adopted File relations and two independently selected Model Tasks.
+export function nativeJoinedModelRun(firstTask, secondTask, {includeReview = false} = {}) {
   const connection = 'files/native-fixture';
   const field = type => ({type, nullable: false});
   const views = [
@@ -74,8 +74,18 @@ export function nativeJoinedModelRun(firstTask, secondTask) {
     }], results: {rows: {from: 'joined',
       fields: ['id', 'first_outcome', 'first_value', 'second_outcome', 'second_value']}}},
   ], results: {answer: {from: {stage: 'combined', result: 'rows'}}}};
+  const additionalResults = {};
+  if (includeReview) {
+    program.id = 'native-file-two-model-named-results';
+    program.results.review = {from: {stage: 'first', result: 'rows'}};
+    additionalResults.review = [{
+      id: 'joined-1', outcome: 'ok',
+      value: {level: 'low', reason: 'independent first Model reply'},
+    }];
+  }
   return {connection, resources: views.map(({resource}) => resource), connections, catalog, payload, expectedInput,
-    answers, program, modelRawDataPolicy: joinedPolicy(), finalResultPolicy: joinedPolicy(), modelRawResponseViews, expectedRows: [{
+    answers, program, additionalResults, modelRawDataPolicy: joinedPolicy(), finalResultPolicy: joinedPolicy(),
+    modelRawResponseViews, expectedRows: [{
       id: 'joined-1',
       first_outcome: 'ok', first_value: {level: 'low', reason: 'independent first Model reply'},
       second_outcome: 'ok', second_value: {level: 'high', reason: 'independent second Model reply'},
@@ -104,19 +114,22 @@ function requireSealedContract(value, version, identity) {
   return cid;
 }
 
-export function requireNativeJoinedDelivery({report, runReceipt, payload, path, rows, policyCid, custody}) {
+export function requireNativeJoinedDelivery({report, runReceipt, payload, path, rows, policyCid, custody,
+  additionalResults = {}}) {
   assert.equal(report.version, 'actql-cli-run-response/0.1');
   assert.equal(report.run.run_id, custody.runId);
   assert.equal(report.run.status, 'succeeded');
   // The RunRead projection re-observes the stored Run after delivery. It
-  // has no fresh availability observation for answer. Prove this delivery
+  // has no fresh availability observation for the Results. Prove this delivery
   // separately using the original receipts and the actual bytes below.
   assert.equal(report.run.result_available, false);
   assert.equal(typeof report.run.updated_at, 'string');
-  assert.deepEqual(report.run.result_availability, {answer: {
+  const expectedResults = {answer: rows, ...additionalResults};
+  const names = Object.keys(expectedResults).sort();
+  assert.deepEqual(report.run.result_availability, Object.fromEntries(names.map(name => [name, {
     state: 'unknown', reason: 'verification_pending', observed_at: report.run.updated_at,
-  }});
-  assert.deepEqual(report.run.next_action, {kind: 'refresh_availability', results: ['answer']});
+  }])));
+  assert.deepEqual(report.run.next_action, {kind: 'refresh_availability', results: names});
   assert.equal(report.delivery_status, 'delivered');
   assert.equal(report.deliveries.length, 1);
   const [delivery] = report.deliveries;
@@ -130,13 +143,25 @@ export function requireNativeJoinedDelivery({report, runReceipt, payload, path, 
   assert.equal(manifest.run_definition_cid, custody.definition);
   assert.equal(manifest.invocation_cid, runReceipt.invocation_cid);
   assert.deepEqual(runReceipt.result_artifacts, manifest.results);
-  assert.deepEqual(Object.keys(manifest.results), ['answer']);
-  const artifact = manifest.results.answer;
-  const resultCid = requireSealedContract(artifact, 'actql-result-artifact/0.1', 'result_artifact_cid');
-  assert.equal(artifact.invocation_cid, manifest.invocation_cid);
-  assert.equal(artifact.effective_data_policy_cid, policyCid);
-  assert.equal(artifact.actual_row_count, rows.length);
-  assert.equal(artifact.actual_completeness, 'complete');
+  assert.deepEqual(Object.keys(manifest.results).sort(), names);
+  const resultCids = {};
+  for (const name of names) {
+    const artifact = manifest.results[name];
+    resultCids[name] = requireSealedContract(artifact, 'actql-result-artifact/0.1', 'result_artifact_cid');
+    assert.equal(artifact.invocation_cid, manifest.invocation_cid);
+    assert.equal(artifact.effective_data_policy_cid, policyCid);
+    assert.equal(artifact.actual_row_count, expectedResults[name].length);
+    assert.equal(artifact.actual_completeness, 'complete');
+  }
+  assert.equal(new Set(Object.values(resultCids)).size, names.length);
+  if (names.length > 1) {
+    for (const field of ['result_schema_cid', 'logical_result_cid']) {
+      const originals = names.map(name => manifest.results[name][field]);
+      for (const identity of originals) assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
+      assert.equal(new Set(originals).size, names.length);
+    }
+  }
+  const resultCid = resultCids.answer;
 
   const expectedModels = custody.observed.map(call => {
     const evidence = call.evidence.filter(value => value.role === 'model_invocation_evidence');

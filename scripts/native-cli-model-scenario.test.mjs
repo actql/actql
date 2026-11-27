@@ -45,6 +45,23 @@ test('Native joined Model fixture names two File sources and joins two distinct 
   assert.equal(row.first_value.reason, 'independent first Model reply');
 });
 
+test('Native File and Model named Results select two different checked producer ports', () => {
+  const firstTask = 'model-task:churn-risk.v1';
+  const secondTask = 'model-task:churn-risk-confirm.v1';
+  const one = nativeJoinedModelRun(firstTask, secondTask);
+  const named = nativeJoinedModelRun(firstTask, secondTask, {includeReview: true});
+  assert.deepEqual(named.program.stages, one.program.stages);
+  assert.deepEqual(named.expectedRows, one.expectedRows);
+  assert.deepEqual(named.program.results, {
+    answer: {from: {stage: 'combined', result: 'rows'}},
+    review: {from: {stage: 'first', result: 'rows'}},
+  });
+  assert.deepEqual(named.additionalResults, {review: [{
+    id: 'joined-1', outcome: 'ok', value: {level: 'low', reason: 'independent first Model reply'},
+  }]});
+  assert.deepEqual(one.additionalResults, {});
+});
+
 const attempt = (tag, digit, ordinal = 0) => ({tag, identity: 'sha256:' + digit.repeat(64), ordinal});
 
 test('Native Model observations preserve individual attempt order under interleaving', () => {
@@ -65,8 +82,9 @@ test('Native Model observations refuse a second send, a foreign row and an incom
   ], 2), {name: 'AssertionError'});
 });
 
-function deliveryFixture() {
-  const {expectedRows: rows, finalResultPolicy} = nativeJoinedModelRun('test-a', 'test-b');
+function deliveryFixture({includeReview = false, aliasesAnswer = false} = {}) {
+  const {expectedRows: rows, finalResultPolicy, additionalResults} =
+    nativeJoinedModelRun('test-a', 'test-b', {includeReview});
   const runId = identity('public run');
   const definition = identity('original definition');
   const invocation = identity('original invocation');
@@ -75,9 +93,20 @@ function deliveryFixture() {
   const payload = Buffer.from(rows.map(row => JSON.stringify(row) + '\n').join(''));
   const artifact = seal({version: 'actql-result-artifact/0.1', invocation_cid: invocation,
     actual_completeness: 'complete', actual_row_count: 1, effective_data_policy_cid: policyCid,
+    result_schema_cid: identity('joined Result schema'),
     logical_result_cid: identity('typed original row')}, 'result_artifact_cid');
+  const results = {answer: artifact};
+  if (includeReview) {
+    results.review = aliasesAnswer ? artifact : seal({
+      version: 'actql-result-artifact/0.1', invocation_cid: invocation,
+      actual_completeness: 'complete', actual_row_count: 1, effective_data_policy_cid: policyCid,
+      result_schema_cid: identity('first Model Result schema'),
+      logical_result_cid: identity('first Model typed original row'),
+    }, 'result_artifact_cid');
+  }
+  const names = Object.keys(results);
   const manifest = seal({version: 'actql-result-manifest/0.1', run_definition_cid: definition,
-    invocation_cid: invocation, results: {answer: artifact}}, 'result_manifest_cid');
+    invocation_cid: invocation, results}, 'result_manifest_cid');
   const sourceEvidence = [identity('accounts'), identity('usage')];
   const modelEvidence = [identity('first model'), identity('second model')];
   const runReceipt = seal({version: 'actql-run-receipt/0.1', invocation_cid: invocation,
@@ -94,13 +123,14 @@ function deliveryFixture() {
   const now = '2026-11-26T04:59:44.607Z';
   const report = {version: 'actql-cli-run-response/0.1', delivery_status: 'delivered',
     run: {run_id: runId, status: 'succeeded', updated_at: now, result_available: false,
-      next_action: {kind: 'refresh_availability', results: ['answer']},
-      result_availability: {answer: {state: 'unknown', reason: 'verification_pending', observed_at: now}}},
+      next_action: {kind: 'refresh_availability', results: names},
+      result_availability: Object.fromEntries(names.map(name =>
+        [name, {state: 'unknown', reason: 'verification_pending', observed_at: now}]))},
     deliveries: [{run_id: runId, status: 'delivered', receipt,
       request: {result: 'answer', result_cid: artifact.result_artifact_cid, format: 'jsonl', path}}]};
   const custody = {definition, runId, observed: modelEvidence.map(evidenceCid =>
     ({evidence: [{role: 'model_invocation_evidence', evidenceCid}]}))};
-  return {report, runReceipt, payload, path, rows, policyCid, custody};
+  return {report, runReceipt, payload, path, rows, policyCid, custody, additionalResults};
 }
 
 test('Native JOIN delivery verifies the typed file independently of the saved Run availability projection', () => {
@@ -109,6 +139,15 @@ test('Native JOIN delivery verifies the typed file independently of the saved Ru
   assert.equal(result.bytes, fixture.payload.length);
   assert.equal(result.sha256, hash(fixture.payload));
   assert.equal(result.runReceiptCid, fixture.runReceipt.receipt_identity_cid);
+});
+
+test('Native JOIN delivery requires the complete named inventory and refuses a reused Artifact', () => {
+  const fixture = deliveryFixture({includeReview: true});
+  assert.equal(requireNativeJoinedDelivery(fixture).manifestCid, fixture.runReceipt.result_manifest_cid);
+  assert.throws(() => requireNativeJoinedDelivery({...fixture, additionalResults: {}}),
+    {code: 'ERR_ASSERTION'});
+  assert.throws(() => requireNativeJoinedDelivery(deliveryFixture({includeReview: true, aliasesAnswer: true})),
+    {code: 'ERR_ASSERTION'});
 });
 
 test('Native JOIN delivery refuses unsupported availability or unconfirmed delivery', () => {
