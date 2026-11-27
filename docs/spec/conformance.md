@@ -309,6 +309,14 @@ provider-specific semantic escape hatch:
 The normative operation and law inventory for these flows is published by
 `ACTQL_MODULES`.
 
+The optional `actql-content/0.1` contract binds the bounded CSV and JSONL
+serialization workload and its existing Content evidence contracts. File
+application and ordinary Result delivery have their own conformance evidence.
+The Content profile is a separate entry in the existing module registry;
+the five-module AoA target retains its own identity.
+
+<!-- machine-import: ../../src/lowering_relation/registry-preimages.json#/optional_profiles/content sha256:96729f2717f6e17fd9a28eafcb7c6d8dc60d394217c761b7a4260868a630ee33 -->
+
 <a id="conformance-tests"></a>
 
 ### Conformance tests and reports

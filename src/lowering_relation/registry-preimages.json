@@ -540,4 +540,67 @@
       "contract_cid": "sha256:5062de1e2703fa8a6cab3297cb9b21e0a2809cfb095bc0971236fcef32fe04ae"
     }
   }
+,
+  "optional_profiles": {
+    "content": {
+      "id": "actql-content/0.1",
+      "description": "Deterministic bounded serialization of an ordered typed Relation into immutable Content and a typed reference Relation.",
+      "required": false,
+      "closure_workload": "checked total-order Relation -> bounded canonical CSV/JSONL capture -> immutable, policy-bound ContentRef relation -> typed Command admission",
+      "required_operations": [
+        "serialize"
+      ],
+      "required_semantics": [
+        "Closed authored and resolved CSV/JSONL options and defaults.",
+        "Exact ordered selected fields and total stable order via a checked witness or journaled candidate-key tie completion.",
+        "Canonical CSV/JSONL bytes, including BOM/line endings, null/absence, quoting, UTF-8 and empty input.",
+        "Resolved row and byte limits, with no partial Content or output on failure.",
+        "One typed reference row for every completed serialization, including empty input.",
+        "Immutable Invocation content issued by the original Content Store, binding original input artifact/order, derivation, policy and current generation/availability."
+      ],
+      "exclusions": [
+        "implicit upload",
+        "Connector Command or Effect apply",
+        "ordinary Result delivery",
+        "workspace retention or deletion"
+      ],
+      "evidence_contracts": {
+        "content_source": {
+          "path": "spec/contracts/actql-production-profile-schemas.json",
+          "pointer": "/schemas/content_source",
+          "cid": "sha256:18591195eb1c2484081052246944a32f9231dfe77b73decbdf61b558230e0e68"
+        },
+        "content_barrier": {
+          "path": "spec/contracts/actql-production-profile-schemas.json",
+          "pointer": "/schemas/content_barrier",
+          "cid": "sha256:4b7fea87dfbed0e1f11e9421cd077793cd3bccfc3e981617fa2a1547960acee5"
+        },
+        "content_evidence": {
+          "path": "spec/contracts/actql-production-profile-schemas.json",
+          "pointer": "/schemas/content_evidence",
+          "cid": "sha256:19cb6932ef23ba83de127214eb884249f127085ec48d1bbfa8945ec06e35d695"
+        },
+        "content_ref": {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/schemas/content_ref",
+          "cid": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d"
+        },
+        "content_availability_evidence": {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/schemas/content_availability_evidence",
+          "cid": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d"
+        },
+        "content_input_artifact": {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/artifact_schemas/content_input_artifact",
+          "cid": "sha256:ed5b46909842901d4b9836e77d1d1c77caf65ef09b0f57ae44dc2668526b6775"
+        },
+        "content_generation": {
+          "path": "spec/contracts/actql-protocol-schemas.json",
+          "pointer": "/artifact_schemas/content_generation",
+          "cid": "sha256:a8e96d9a2a9d9e721f69b30da117dc0cdeca4c864cb21747b5551a9853fe037c"
+        }
+      }
+    }
+  }
 }
