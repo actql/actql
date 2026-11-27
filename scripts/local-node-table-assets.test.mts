@@ -6,6 +6,7 @@ import {mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync,
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
+import {lockedClientTransport} from './prepare-packed-client-install-cache.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 test('Local package carries the finite optional Table worker and dependency pins', () => {
@@ -30,10 +31,11 @@ test('Local package carries the finite optional Table worker and dependency pins
   const requirements = readFileSync(join(destination, 'requirements.in'), 'utf8');
   assert.match(requirements, /^pyiceberg\[sql-sqlite\]==0\.10\.0$/mu);
   assert.match(requirements, /^pyarrow==21\.0\.0$/mu);
-  const dependencies = (JSON.parse(readFileSync(join(root, 'packages/local-node/package.json')) as unknown as string) as {
+  const manifest = JSON.parse(readFileSync(join(root, 'packages/local-node/package.json'), 'utf8')) as {
     dependencies: Readonly<Record<string, string>>;
-  }).dependencies;
-  assert.deepEqual(Object.keys(dependencies).sort(), ['@actql/client-wire', '@actql/sdk']);
+  };
+  assert.deepEqual(Object.keys(manifest.dependencies).sort(), ['@actql/client-wire', '@actql/sdk', 'undici']);
+  lockedClientTransport(manifest, JSON.parse(readFileSync(join(root, 'package-lock.json'), 'utf8')));
   const installed = readFileSync(join(root, 'packages/local-node/adapters/connectors/local/host/installed-local-table.mjs'), 'utf8');
   assert.match(installed, /from '@actql\/sdk\/host-port'/u);
   assert.doesNotMatch(installed, /packages\/sdk/u);

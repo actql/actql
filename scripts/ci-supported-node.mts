@@ -5,7 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {copyFile, mkdir, realpath, writeFile} from 'node:fs/promises';
 import {join, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {CLIENT_PACKAGES, checkoutState, packedClientPackage} from './packed-client-packages.mjs';
+import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
@@ -41,6 +41,7 @@ export async function acceptSupportedNode({profile, version, parent}: {profile: 
     assert.ifError(result.error); assert.equal(result.signal, null, result.stderr);
     assert.equal(result.status, 0, result.stdout + result.stderr); return result.stdout;
   };
+  if (process.env.ACTQL_TEST_NPM_CACHE) env.npm_config_cache = packedNpmCache(scratch.path);
   run('npm', ['install', '--engine-strict', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...originals.map(entry => entry.tar)], 120000);
   const audit = async () => {

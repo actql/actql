@@ -848,6 +848,8 @@ target/
 
 /scripts/packed-client-packages.mjs
 /scripts/packed-client-packages.d.mts
+/scripts/prepare-packed-client-install-cache.mjs
+/scripts/prepare-packed-client-install-cache.d.mts
 
 /scripts/package-release.mjs
 /scripts/package-release.d.mts

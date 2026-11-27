@@ -21,6 +21,7 @@ import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {runRestActualCommon} from './ci-rest-actual-common.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
+import {lockedClientTransport} from './prepare-packed-client-install-cache.mjs';
 import {packedRecordApprovalInvocation, stagePackedRecordApprovalFixtures} from './record-approval-ci-input.mjs';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate,
@@ -1434,7 +1435,15 @@ test('runner-private package/cache environment is set only after successful down
   assert.equal(setters.length, 1, 'Verified package inputs have one environment publisher');
   assert.equal(downloads.length, 1);
   const [step] = setters;
-  assert(action.runs.steps.indexOf(downloads[0]) < action.runs.steps.indexOf(step));
+  const prefetch = action.runs.steps.find(candidate =>
+    candidate.name === 'Prefetch the locked Local transport for offline installs');
+  assert(prefetch);
+  assert(action.runs.steps.indexOf(downloads[0]) < action.runs.steps.indexOf(prefetch));
+  assert(action.runs.steps.indexOf(prefetch) < action.runs.steps.indexOf(step));
+  assert.equal(prefetch.if, undefined);
+  assert.equal(prefetch['continue-on-error'], undefined);
+  assert.equal(prefetch.run,
+    'node --experimental-strip-types scripts/prepare-packed-client-install-cache.mts "$RUNNER_TEMP/actql-npm-cache"');
   assert.equal(step.if, undefined);
   assert.equal(step['continue-on-error'], undefined);
   assert.equal(step.env.PACKAGES_PATH, '${{ inputs.path }}');
@@ -1450,6 +1459,22 @@ test('runner-private package/cache environment is set only after successful down
       assert(!/\$\{\{[^}]*\brunner\./u.test(String(value)), 'runner context cannot be resolved before assigning a job runner');
     }
   }
+});
+
+test('ordinary Client prefetch admits only the same exactly locked Local transport', () => {
+  const local = JSON.parse(readFileSync(new URL('../packages/local-node/package.json', import.meta.url), 'utf8'));
+  const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
+  const version = local.dependencies.undici;
+  const original = lock.packages['node_modules/undici'];
+  assert.deepEqual(lockedClientTransport(local, lock),
+    {specifier: `undici@${version}`, file: `undici-${version}.tgz`, integrity: original.integrity});
+  assert.throws(() => lockedClientTransport({dependencies: {undici: `^${version}`}}, lock), /exact Local transport/u);
+  for (const [patch, issue] of [
+    [{version: '1.2.3'}, /exact Local transport/u],
+    [{resolved: 'https://foreign.invalid/undici.tgz'}, /canonical locked Undici tar URL/u],
+    [{integrity: 'sha256-foreign'}, /SHA-512 integrity/u],
+  ]) assert.throws(() => lockedClientTransport(local,
+    {packages: {'node_modules/undici': {...original, ...patch}}}), issue);
 });
 
 test('admission-only flags narrow the existing Source case without ordinary Effect or Model selection', () => {

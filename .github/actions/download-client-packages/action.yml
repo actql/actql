@@ -26,6 +26,9 @@ runs:
         artifact-ids: ${{ inputs.artifact-id }}
         path: ${{ inputs.path }}
         merge-multiple: true
+    - name: Prefetch the locked Local transport for offline installs
+      shell: bash
+      run: node --experimental-strip-types scripts/prepare-packed-client-install-cache.mts "$RUNNER_TEMP/actql-npm-cache"
     - name: Use verified Client inputs in subsequent acceptance steps
       shell: bash
       env:
