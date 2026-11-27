@@ -203,7 +203,7 @@ function narrowWorkspaceViewport(placed: LogicalNode[], focus: LogicalNode, edge
 // already admitted original model and has no Client, transport or control API.
 export function PlanExplorer({model, scopeKey, initialView = 'list', workspace}: PlanExplorerProps) {
   return <BoundPlanExplorer key={`${scopeKey}:${model.compiledPlanCid}:${model.logicalMapCid}`}
-    model={model} initialView={initialView} workspace={workspace}/>;
+    model={model} initialView={initialView} {...(workspace === undefined ? {} : {workspace})}/>;
 }
 export function OriginalPlanMetadata({model, workspace = false, locale = 'en'}: {
   model: PlanReadModel; workspace?: boolean; locale?: 'en' | 'ja';
@@ -284,16 +284,20 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
   } : select;
   const placed = useMemo(() => {
     if (currentLayout?.state !== 'ready') return [];
-    const positioned = flow.nodes.map((node, index) => {
+    const positioned = [];
+    for (const [index, node] of flow.nodes.entries()) {
+      const position = currentLayout.positions[index];
+      if (position?.id !== node.id) return [];
       const presentation = workspace?.label(node.id);
       const height = flowNodeHeight(node.data.original.ports.length);
-      return {...node, position: {x: currentLayout.positions[index].x, y: currentLayout.positions[index].y},
+      positioned.push({...node, position: {x: position.x, y: position.y},
         selected: node.id === selection,
-        data: {...node.data, presentation, locale},
-        width: flowNodeWidth, height: presentation?.effectDeclaration ? Math.max(112, height) : height};
-    });
+        data: {...node.data, ...(presentation === undefined ? {} : {presentation}), locale},
+        width: flowNodeWidth, height: presentation?.effectDeclaration ? Math.max(112, height) : height});
+    }
     return placeUnlinkedEffects(groupUnlinkedInputs(positioned, flow.edges), flow.edges);
   }, [currentLayout, flow, locale, selection, workspace]);
+  const layoutReady = currentLayout?.state === 'ready' && placed.length === flow.nodes.length;
   const original = model.nodes.find(node => node.id === selection);
   const focus = placed.find(node=>node.id === selection) ?? placed[0];
   const fitNodes = workspace ? initialViewportNodes(placed, focus, canvasWidth) : focus ? [focus] : [];
@@ -311,9 +315,10 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
       </nav>}
     </header>
     {mode === 'list' && <OriginalPlanMetadata model={model}/>}
-    {mode === 'flow' ? currentLayout?.state === 'ready' ? <div ref={canvas} className="actql-explorer-flow">
+    {mode === 'flow' ? layoutReady ? <div ref={canvas} className="actql-explorer-flow">
       {placed.some(node=>node.data.unlinkedInput) && <span className="actql-explorer-input-group">{words.declaredInputs}</span>}
-      {canvasWidth > 0 && <ReactFlow key={layoutKey} fitView={openingViewport === undefined} defaultViewport={openingViewport}
+      {canvasWidth > 0 && <ReactFlow key={layoutKey} fitView={openingViewport === undefined}
+        {...(openingViewport === undefined ? {} : {defaultViewport: openingViewport})}
         nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         fitViewOptions={{nodes: fitNodes, minZoom: 0.9, maxZoom: 1, padding: 0.12}}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
@@ -325,7 +330,7 @@ function BoundPlanExplorer({model, initialView, workspace}: Omit<PlanExplorerPro
         <Controls position="top-right" showInteractive={false} aria-label={words.graphZoom}/>
       </ReactFlow>}
     </div> : <p role="status" className="actql-explorer-unavailable">
-      {(flow.unavailable || currentLayout?.state === 'unavailable')
+      {(flow.unavailable || currentLayout?.state === 'unavailable' || currentLayout?.state === 'ready')
         ? workspace ? words.graphUnavailable
           : words.flowUnavailable
         : words.placingPorts}</p> : <table className="actql-explorer-table"><caption>{words.originalLogicalOccurrences}</caption>

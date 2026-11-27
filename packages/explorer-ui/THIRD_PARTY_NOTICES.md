@@ -13,3 +13,18 @@ build instructions and the linked Eclipse Layout Kernel sources. The exact
 npm package is [elkjs-0.12.0.tgz](https://registry.npmjs.org/elkjs/-/elkjs-0.12.0.tgz).
 ELK.js is bundled without source modifications. ActQL's separate Worker and
 position-only adapter are provided with this package's source.
+
+## XYFlow
+
+The Explorer build uses `@xyflow/react` 12.12.0 and `@xyflow/system` 0.0.83
+under the MIT License, Copyright (c) 2019–2025 webkid GmbH. Their license
+files are included in the
+[React npm archive](https://registry.npmjs.org/@xyflow/react/-/react-12.12.0.tgz)
+and [System npm archive](https://registry.npmjs.org/@xyflow/system/-/system-0.0.83.tgz).
+
+The required `npm run check:explorer-types` command prepares the local
+ESM and UMD copies of the System `nodes.d.ts` declaration for
+`exactOptionalPropertyTypes`. It checks the pinned package lock and original
+declaration digests, then makes `InternalNodeBase` retain the base node shape
+without widening the public `NodeBase` optional properties. The JavaScript
+and CSS are unchanged. See [the upstream declaration issue](https://github.com/xyflow/xyflow/issues/6038).

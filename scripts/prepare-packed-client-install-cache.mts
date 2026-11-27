@@ -26,25 +26,45 @@ export function lockedClientTransport(manifest: {
   return {specifier: `undici@${version}`, file, integrity: selected.integrity};
 }
 
-export async function preparePackedClientInstallCache(cache: string) {
-  assert(isAbsolute(cache), 'Expected an absolute runner-private npm cache directory');
+async function readLockedClientTransport() {
   const [manifest, lock] = await Promise.all([
     readFile(join(repository, 'packages/local-node/package.json'), 'utf8'),
     readFile(join(repository, 'package-lock.json'), 'utf8'),
   ]);
-  const transport = lockedClientTransport(JSON.parse(manifest), JSON.parse(lock));
+  return lockedClientTransport(JSON.parse(manifest), JSON.parse(lock));
+}
+
+function runCacheNpm(cache: string, cwd: string, args: string[]) {
+  execFileSync('npm', [...args, '--cache', cache, '--registry', registry, '--ignore-scripts',
+    '--no-audit', '--no-fund', '--loglevel=error'], {
+    cwd, timeout: 60_000, stdio: ['ignore', 'ignore', 'inherit'],
+  });
+}
+
+async function stageCachedTransport(cache: string, destination: string,
+  transport: ReturnType<typeof lockedClientTransport>) {
+  runCacheNpm(cache, destination, ['pack', transport.specifier, '--offline', '--pack-destination', destination]);
+  const bytes = await readFile(join(destination, transport.file));
+  assert.equal('sha512-' + createHash('sha512').update(bytes).digest('base64'), transport.integrity,
+    'Cached Undici does not match the root npm lock');
+  return {name: 'undici', version: transport.specifier.slice('undici@'.length),
+    file: transport.file, integrity: transport.integrity};
+}
+
+export async function stageLockedClientTransport(cache: string, destination: string) {
+  assert(isAbsolute(cache), 'Expected an absolute runner-private npm cache directory');
+  assert(isAbsolute(destination), 'Expected an absolute transport staging directory');
+  return stageCachedTransport(cache, destination, await readLockedClientTransport());
+}
+
+export async function preparePackedClientInstallCache(cache: string) {
+  assert(isAbsolute(cache), 'Expected an absolute runner-private npm cache directory');
+  const transport = await readLockedClientTransport();
   const verification = await mkdtemp(join(tmpdir(), 'actql-client-transport-'));
   try {
-    const npm = (args: string[]) => execFileSync('npm', [...args, '--cache', cache,
-      '--registry', registry, '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error'], {
-      cwd: verification, timeout: 60_000, stdio: ['ignore', 'ignore', 'inherit'],
-    });
     // A file-based install needs the registry package metadata as well as the tar bytes.
-    npm(['cache', 'add', transport.specifier, '--prefer-online', '--fetch-retries=1']);
-    npm(['pack', transport.specifier, '--offline', '--pack-destination', verification]);
-    const bytes = await readFile(join(verification, transport.file));
-    assert.equal('sha512-' + createHash('sha512').update(bytes).digest('base64'), transport.integrity,
-      'Cached Undici does not match the root npm lock');
+    runCacheNpm(cache, verification, ['cache', 'add', transport.specifier, '--prefer-online', '--fetch-retries=1']);
+    await stageCachedTransport(cache, verification, transport);
   } finally {
     await rm(verification, {recursive: true, force: true});
   }

@@ -277,22 +277,40 @@ test('installed acceptance preserves undefined and primitive command rejections 
   for (const primary of [undefined, null, false, 0, 'original primitive', new Error('original command')]) {
     for (const cleanupFailure of [false, true, 2]) {
       const cleanup = cleanupFailure === 2 ? undefined : new Error('registry cleanup'), reports = [];
-      let commands = 0, closed = 0, passed = 0;
+      let commands = 0, closed = 0, passed = 0, staged = 0, registryOpened = 0;
       const sourceState = {revision: 'a'.repeat(40), clean: true};
       const manifest = {sourceSha: sourceState.revision, artifacts: [{platform: 'linux-x64-gnu'}],
         cohort: {packageVersion: '0.0.2-rc.0'}};
+      const cache = '/same-run-transport-cache';
+      const transportDirectory = '/owned-scratch/registry-transport';
+      const transport = Object.freeze({name: 'undici', version: '7.30.0',
+        file: 'undici-7.30.0.tgz', integrity: 'fixture-verified-root-lock'});
       const ports = {
         assert, repository: '/owned-source', checkoutState: () => sourceState,
         requireNativeCliCiInputs: (environment, value) => requireNativeCliCiInputs(environment, value, 'linux', 'x64'),
-        process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/normal-source-packages'}},
+        process: {env: {ACTQL_PACKED_CLIENT_PACKAGES: '/normal-source-packages', ACTQL_TEST_NPM_CACHE: cache}},
         verifyNativeCliRelease: async () => manifest,
         createOwnedScratch: async () => ({path: '/owned-scratch', passed() {passed++;}}),
         tmpdir: () => '/owned-temp', join: (...parts) => parts.join('/'),
         releaseConsumerDestination: async () => '/owned-consumer', mkdir: async () => {},
+        stageLockedClientTransport: async (originalCache, directory) => {
+          assert.equal(originalCache, cache);
+          assert.equal(directory, transportDirectory);
+          assert.equal(registryOpened, 0);
+          staged++;
+          return transport;
+        },
         publicConsumerEnvironment: () => ({HOME: '/owned-home', TMPDIR: '/owned-tmp',
           npm_config_userconfig: '/owned-userconfig', npm_config_globalconfig: '/owned-globalconfig'}),
-        openReleaseTestRegistry: async () => ({url: 'https://fixture-registry/', requested: [],
-          async close() {closed++; if (cleanupFailure) throw cleanup;}}),
+        openReleaseTestRegistry: async cohorts => {
+          assert.equal(staged, 1);
+          assert.deepEqual(cohorts, [{directory: '/owned-release', manifest},
+            {directory: transportDirectory, manifest: {packages: [transport]}}]);
+          assert.equal(cohorts[1].manifest.packages[0], transport);
+          registryOpened++;
+          return {url: 'https://fixture-registry/', requested: [],
+            async close() {closed++; if (cleanupFailure) throw cleanup;}};
+        },
         writeFile: async (path, body) => {if (path.endsWith('installed-ci.json')) reports.push(JSON.parse(body));},
         runNativeInstallCommand: async () => {commands++; throw primary;},
       };
@@ -305,6 +323,7 @@ test('installed acceptance preserves undefined and primitive command rejections 
         assert.equal(outcome.reason.errors.length, 2);
         assert.equal(outcome.reason.errors[0], primary); assert.equal(outcome.reason.errors[1], cleanup);
       } else assert.equal(outcome.reason, primary);
+      assert.equal(staged, 1); assert.equal(registryOpened, 1);
       assert.equal(commands, 1); assert.equal(closed, 1); assert.equal(passed, 0);
       assert.deepEqual(reports.map(value => value.status), ['failed']);
     }
