@@ -21,6 +21,7 @@ import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {runRestActualCommon} from './ci-rest-actual-common.mjs';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
+import {packedRecordApprovalInvocation, stagePackedRecordApprovalFixtures} from './record-approval-ci-input.mjs';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate,
   publicFixtureEnvironment} from
@@ -1038,7 +1039,7 @@ test('source-only evaluation tests have one early bounded CI owner', () => {
   }
 });
 
-test('three-Source packed approval publishes three distinct bound input names', async () => {
+test('three-Source packed approval publishes three distinct bound input names', async t => {
   const {mockProjectFiles: original} = await import('./fixtures/hubspot-approval/mock-project.mjs');
   const {mockProjectFiles: threeSource} = await import('./fixtures/hubspot-approval/three-source-mock-project.mjs');
   const selection = {recordId: '9007199254740993', previousName: 'Before', nextName: 'After'};
@@ -1061,9 +1062,28 @@ test('three-Source packed approval publishes three distinct bound input names', 
   assert.deepEqual(selectedCatalog, originalCatalog);
   selectedFiles['mock/catalog.json'] = originalFiles['mock/catalog.json'];
   assert.deepEqual(selectedFiles, originalFiles);
-  const runner = readFileSync(new URL('./test-packed-hubspot-source.mjs', import.meta.url), 'utf8');
-  assert(runner.includes("threeSourceMock && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'"));
-  assert(runner.includes("? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'"));
+  assert(runs('client-packed').includes('node scripts/test-packed-hubspot-source.mjs --ci --mock-hubspot-three-source-approval'));
+  const application = mkdtempSync(join(tmpdir(), 'actql-packed-three-source-'));
+  t.after(() => rmSync(application, {recursive: true, force: true}));
+  const packedSelection = {application, approvalConnector: 'hubspot', mockConnector: 'hubspot', mockVariant: 'three-source'};
+  const staged = await stagePackedRecordApprovalFixtures({repository: root, ...packedSelection});
+  const fixture = 'scripts/fixtures/hubspot-approval/';
+  const substitutions = [
+    {destination: fixture + 'mock-project.mjs', source: fixture + 'three-source-mock-project.mjs'},
+    {destination: fixture + 'update.aql', source: fixture + 'three-source-update.aql'},
+  ];
+  assert.deepEqual(staged.inputs.filter(input => input.sourcePath !== undefined)
+    .map(({path, sourcePath}) => ({destination: path, source: sourcePath})), substitutions);
+  for (const {destination, source} of substitutions) {
+    const bytes = readFileSync(join(root, source));
+    assert.deepEqual(readFileSync(join(application, destination)), bytes);
+    assert.notDeepEqual(bytes, readFileSync(join(root, destination)));
+  }
+  const {files, options} = packedRecordApprovalInvocation({...packedSelection, env: {}});
+  assert.deepEqual(files, ['scripts/fixtures/packed-record-approval-mock.mjs']);
+  assert.equal(options.expectedTests, 1);
+  assert.equal(options.env.ACTQL_RECORD_APPROVAL_MOCK_VARIANT, 'three-source');
+  assert.equal(options.env.ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS, '1');
 });
 
 test('Client lanes cover local acceptance without positional command snapshots', () => {

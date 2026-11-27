@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ef0badc02eede622c2ec8561c01da14951fffc78daea0fd0ef5a3e9ae2d569cd",
+      "sha256": "99ff21a96ece8d91dd591daf77cccdb25a6b812c9e2e1b9a2021b70d831a2bc1",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -62,6 +62,7 @@
         "RowEffectRequestChild",
         "RowEffectRequestFacts",
         "RowEffectTargetObservation",
+        "RowEffectTextUpdateWrite",
         "RowEffectUpdateConstructionProvider",
         "RowEffectUpdateRequest",
         "RowEffectUpdateTransportBounds",
@@ -939,6 +940,7 @@
             "RowEffectWriteObservation",
             "RowEffectUpdateRequest",
             "RowEffectUpdateWrite",
+            "RowEffectTextUpdateWrite",
             "RowEffectUpdateConstructionProvider",
             "RowEffectUpdateTransportBounds"
           ],

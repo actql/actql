@@ -2,10 +2,11 @@
 // consumer. This neither packs a package nor manufactures release metadata.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdir, readFile} from 'node:fs/promises';
-import {isAbsolute, join, resolve} from 'node:path';
+import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
+import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {CLIENT_PACKAGES, checkoutState, packedClientPackage} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
+import type {AuthoredRecordApprovalCase} from './fixtures/record-approval/workflow.mjs';
 
 type Invocation = {
   application: string;
@@ -28,12 +29,74 @@ export function packedRecordApprovalInvocation({application, approvalConnector, 
   const childEnv = mockConnector ? {...env, ACTQL_RECORD_APPROVAL_MOCK_CONNECTOR: mockConnector,
     ACTQL_RECORD_APPROVAL_MOCK_VARIANT: mockVariant,
     ...(mockVariant ? {ACTQL_RECORD_APPROVAL_REMOVE_PROGRAMS: '1'} : {}),
-    ...(authoredCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: authoredCasePath})}
+    ...(authoredCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_MOCK_CASE: authoredCasePath}),
+    ...(reject ? {ACTQL_RECORD_APPROVAL_DECISION: 'rejected'} : {})}
     : {...env,
       ...(authoredCasePath === undefined ? {} : {ACTQL_RECORD_APPROVAL_HTTP_CASE: authoredCasePath}),
       ...(reject ? {ACTQL_RECORD_APPROVAL_DECISION: 'rejected'} : {})};
   return {files: [file], options: {cwd: application, expectedTests: approval ? 1 : 2,
     timeout: approval ? 110000 : 50000, killSignal: 'SIGTERM' as const, env: childEnv}};
+}
+
+type FixtureSelection = Pick<Invocation, 'approvalConnector' | 'mockConnector' | 'mockVariant'>;
+
+export function packedRecordApprovalFixturePaths({approvalConnector, mockConnector, mockVariant}: FixtureSelection) {
+  return mockConnector ? ['scripts/fixtures/packed-record-approval-mock.mjs',
+    ...['mock-project.mjs', 'run.mjs', 'workflow.mjs', 'update.aql', 'read.aql']
+      .map(name => `scripts/fixtures/${mockConnector}-approval/` + name),
+    ...(!mockVariant && ['hubspot', 'kintone'].includes(mockConnector)
+      ? [`scripts/fixtures/${mockConnector}-approval/case.json`] : []),
+    ...(mockVariant === 'binary-source' ? ['scripts/fixtures/hubspot-approval/binary-source-mock-project.mjs'] : []),
+    ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'mock-project.mjs',
+      'scoped-fds.fixture.mjs', 'installed-child.mjs'].map(name => 'scripts/fixtures/record-approval/' + name),
+    'adapters/host-node/fixtures/work-observation.fixture.mjs']
+    : approvalConnector !== undefined ? [`scripts/fixtures/packed-${approvalConnector}-approval.mjs`,
+    ...['provider.mjs', 'installed.fixture.mjs', 'update.aql', 'read.aql', 'case.json']
+      .map(name => `scripts/fixtures/${approvalConnector}-approval/` + name),
+    ...['command.mjs', 'workflow.mjs', 'cases.mjs', 'host-account.fixture.mjs', 'scoped-fds.fixture.mjs',
+      'installed.fixture.mjs', 'installed-child.mjs', 'provider-state.mjs']
+      .map(name => 'scripts/fixtures/record-approval/' + name),
+    'adapters/host-node/fixtures/work-observation.fixture.mjs',
+    ...(approvalConnector === 'kintone' ? ['adapters/connectors/kintone/test/kintone-update-form.fixture.mjs'] : []),
+    'adapters/site-node/https-exchange-fixture.mjs'] : ['scripts/fixtures/packed-hubspot-public.mjs',
+    'scripts/fixtures/packed-hubspot-public.fixture.mjs',
+    'scripts/fixtures/packed-hubspot-restart.mjs',
+    'adapters/site-node/https-exchange-fixture.mjs'];
+}
+
+// Stage the existing ordinary fixture as DATA beside the verified installation.
+export async function stagePackedRecordApprovalFixtures({repository, application, authoredCase,
+  approvalConnector, mockConnector, mockVariant}: FixtureSelection & {
+  repository: string; application: string; authoredCase?: AuthoredRecordApprovalCase;
+}) {
+  const inputs: {path: string; bytes: number; sha256: string}[] = [];
+  let stagedCasePath: string | undefined, stagedCaseBytes: Buffer | undefined;
+  if (authoredCase !== undefined) {
+    const path = 'authored-case.json';
+    stagedCasePath = join(application, path);
+    stagedCaseBytes = Buffer.from(JSON.stringify(authoredCase));
+    await writeFile(stagedCasePath, stagedCaseBytes, {mode: 0o600, flag: 'wx'});
+    inputs.push({path, bytes: stagedCaseBytes.byteLength, sha256: sha256(stagedCaseBytes)});
+  }
+  for (const path of packedRecordApprovalFixturePaths({approvalConnector, mockConnector, mockVariant})) {
+    // This is an independently authored consumer input, not a product overlay.
+    // Every approval/Result/Saved/close helper remains the same original file.
+    const sourcePath = mockVariant === 'three-source' && path === 'scripts/fixtures/hubspot-approval/mock-project.mjs'
+      ? 'scripts/fixtures/hubspot-approval/three-source-mock-project.mjs'
+      : mockVariant && path === 'scripts/fixtures/hubspot-approval/update.aql'
+        ? mockVariant === 'binary-source' ? 'scripts/fixtures/hubspot-approval/binary-source-update.aql'
+          : mockVariant === 'three-source' ? 'scripts/fixtures/hubspot-approval/three-source-update.aql'
+            : 'scripts/fixtures/hubspot-approval/whole-update.aql' : path;
+    const from = join(repository, sourcePath), to = join(application, path);
+    await mkdir(dirname(to), {recursive: true}); await copyFile(from, to);
+    const bytes = await readFile(from);
+    assert.deepEqual(await readFile(to), bytes, `Changed fixture: ${path}`);
+    inputs.push({path, ...(sourcePath === path ? {} : {sourcePath}), bytes: bytes.byteLength,
+      sha256: sha256(bytes)});
+  }
+  return {inputs, stagedCasePath, async verifyStagedCase() {
+    if (stagedCasePath !== undefined) assert.deepEqual(await readFile(stagedCasePath), stagedCaseBytes);
+  }};
 }
 
 export async function admitRecordApprovalCIInput({repository, destination}: {

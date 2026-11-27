@@ -21,6 +21,7 @@ import {readAuthoredCase, runRecordApprovalCommand} from './fixtures/record-appr
 import type {ConnectorPhaseOptions} from './fixtures/record-approval/command.mjs';
 import {hubspotApprovalProvider} from './fixtures/hubspot-approval/provider.mjs';
 import {kintoneApprovalProvider} from './fixtures/kintone-approval/provider.mjs';
+import {createRecordApprovalProviderState} from './fixtures/record-approval/provider-state.mjs';
 import {kintoneApprovalInstallation} from './fixtures/kintone-approval/installed.fixture.mjs';
 import {recordApprovalHostAccountConfiguration} from './fixtures/record-approval/host-account.fixture.mjs';
 import {observeRecordApprovalDescriptors, recordApprovalScopedPaths} from './fixtures/record-approval/scoped-fds.fixture.mjs';
@@ -60,7 +61,7 @@ type TestCommandPhase = Omit<ConnectorPhaseOptions<typeof selection>, 'client' |
   save: (name: string, value: Record<string, unknown>) => Promise<unknown>;
 };
 type ProviderFields = Partial<RecordApprovalSeed & typeof selection>;
-type HubSpotResult = {status: string; results: {id: string; properties: {name: string}}[]};
+type HubSpotResult = {status: string; results: {id: string; properties: {name: string; actql_request_id?: string}}[]};
 type HubSpotWrite = {inputs: {id: string; objectWriteTraceId: string;
   properties: {name: string | null; actql_request_id?: string}; extra?: string}[]};
 type KintoneRecord = Record<string, {value: unknown}>;
@@ -104,6 +105,7 @@ async function definition(connector: Connector): Promise<AuthoredCase> {
     {update: files[0], read: files[1]}, selection);
 }
 function publicDouble(value: AuthoredCase) {
+  assert(!('effects' in value.review));
   const events: string[] = [], saved = new Map(), ref: DoubleRef = {authorityScopeCid: cid('a'), original: 'effect'};
   const summary = {reviewProjectionCid: cid('b'), requiredArtifact: {cid: cid('c')},
     requirements: [{original: 'claim'}], checkpointCid: cid('d')};
@@ -165,6 +167,87 @@ function publicDouble(value: AuthoredCase) {
 async function phase(which: string, value: AuthoredCase, f: ReturnType<typeof publicDouble>, changes: object = {}) {
   return (runRecordUpdateApprovalPhase as unknown as TestPhaseRunner)({phase: which, definition: value, ...f, ...changes});
 }
+
+test('fixture Programs omit empty declaration maps and preserve supplied values across formats', async () => {
+  const value = await definition('kintone');
+  value.effect = {...value.effect, document: '{"parameters":{}}', format: 'json', parameterDeclarations: {}};
+  value.read = {...value.read, document: 'parameters: {}', format: 'yaml', parameterDeclarations: {}};
+  const sdk = publicDouble(value);
+  const start = sdk.client.startSource.bind(sdk.client);
+  const formats: string[] = [];
+  sdk.client.startSource = (document, options) => {
+    const program = document === value.effect.document ? value.effect : value.read;
+    formats.push(program.format);
+    assert.equal(options.format, program.format);
+    assert.equal(Object.hasOwn(options, 'parameterDeclarations'), false);
+    assert.deepEqual(options.parameters, program.parameters);
+    return start(document, options);
+  };
+  await phase('capture', value, sdk);
+  assert.deepEqual(formats, ['json', 'yaml']);
+  value.read.format = 'aql';
+  value.read.document = 'SELECT 1 AS marker;';
+  await phase('capture', value, sdk, {save() {}});
+  assert.deepEqual(formats, ['json', 'yaml', 'json', 'aql']);
+  value.effect.parameterDeclarations = {unexpected: {type: 'string'}};
+  await assert.rejects(phase('capture', value, sdk), /declare parameters inside the Program/u);
+  assert.deepEqual(formats, ['json', 'yaml', 'json', 'aql']);
+  assert.equal(sdk.events.filter(event => event === 'close').length, 3);
+});
+
+test('authored Review keeps ordered Effect members and complete nullable row evidence through the original workflow', async t => {
+  const single = await definition('kintone');
+  const target = 'connector://kintone/inquiries';
+  const first = {identity: '9007199254740993', before: {Subject: 'Before', Note: null}, changes: {Subject: 'After'}};
+  const second = {identity: '9007199254740994', before: {Subject: 'Replace'}, changes: {Subject: 'Replaced'}};
+  const absent = {identity: 'third-key', before: null, changes: {Subject: 'Inserted'}};
+  const authored = {...single, review: {effects: [
+    {effectId: 'edit', kind: 'update', target, rows: [first, second]},
+    {effectId: 'replace', kind: 'upsert', target, rows: [absent]},
+  ]}};
+  const root = await mkdtemp(join(tmpdir(), 'actql-approval-review-members-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const fixture = join(root, 'case.json');
+  await writeFile(fixture, JSON.stringify(authored));
+  const value = await readAuthoredCase(fixture);
+  assert.deepEqual(value.review, authored.review);
+
+  function instrument(rows?: readonly object[]) {
+    const f = publicDouble(single);
+    const projectRow = (effect_id: string, row: typeof first | typeof second | typeof absent, mark: string) => ({
+      effect_id, target_row_identity: row.identity, preview_strength: 'full_diff', row_preview_cid: cid(mark),
+      target_guard: row.before === null ? {state: 'not_applicable'} : {state: 'version', version_cid: cid('f')},
+      before: row.before === null ? {state: 'absent'} : {state: 'present', value: row.before},
+      intended_changes: {state: 'present', value: row.changes}, after: {state: 'present', value: row.changes},
+    });
+    const originalRows = [projectRow('edit', first, '1'), projectRow('edit', second, '2'), projectRow('replace', absent, '3')];
+    const body = {...f.body, displayed_scope: {effects: [
+      {effect_id: 'edit', kind: 'update', target, count: 2}, {effect_id: 'replace', kind: 'upsert', target, count: 1},
+    ]}, displayed_rows: rows ?? originalRows};
+    f.client.reviewCheckpoint = async () => {
+      f.events.push('review');
+      return {bytes: Buffer.from(JSON.stringify(body))};
+    };
+    return {f, originalRows};
+  }
+  const {f, originalRows} = instrument();
+  for (const step of ['capture', 'approve', 'recover']) await phase(step, value, f);
+  assert.equal(f.events.filter(event => event === 'approve').length, 1);
+  assert.equal(f.events.filter(event => event === 'close').length, 3);
+  for (const rows of [
+    [originalRows[1], originalRows[0], originalRows[2]],
+    [{...originalRows[0], before: {state: 'present', value: {Subject: 'Before'}}}, ...originalRows.slice(1)],
+    [originalRows[0], originalRows[1], {...originalRows[2], effect_id: 'edit'}],
+  ]) {
+    const {f: foreign} = instrument(rows);
+    await assert.rejects(phase('capture', value, foreign), {code: 'ERR_ASSERTION'});
+    assert(!foreign.saved.has('captured'));
+    assert.deepEqual(foreign.events.filter(event => event === 'approve' || event === 'close'), ['close']);
+  }
+  authored.review.effects[1].effectId = 'edit';
+  await writeFile(fixture, JSON.stringify(authored));
+  await assert.rejects(readAuthoredCase(fixture), {message: 'InvalidRecordApprovalAuthoredCase'});
+});
 
 test('record rejection resolves the same signed Checkpoint and cold lookup only reads cancelled state', async () => {
   const value = await definition('kintone'), f = publicDouble(value), decision = 'rejected';
@@ -260,6 +343,7 @@ test('shared command reopens the same externally authored Program, parameters an
   value.effect.parameters.next_name = 'Selected alternate value';
   value.effect.expectedRows[0].next_name = 'Selected alternate value';
   value.read.afterRows[0].Subject = 'Selected alternate value';
+  assert(!('effects' in value.review));
   value.review.changes!.Subject = 'Selected alternate value';
   const control = {id: 'alternate-control', name: 'Retain this control'};
   const schema = {sourceRef: 'connector://kintone/inquiries#records',
@@ -1035,6 +1119,77 @@ test('HubSpot approval provider requires a credential-bearing request before tar
   assert.equal((response.body as HubSpotResult).results[0].properties.name, selection.previousName);
 });
 
+test('the shared provider owns typed rows and a finite ordered mutation plan', () => {
+  type Row = {key: string; text?: string | null};
+  const a: Row = {key: 'a', text: null}, b: Row = {key: 'b'}, control: Row = {key: 'control', text: 'keep'};
+  const plan = {control, keyOf: (row: Readonly<Row>) => row.key,
+    writes: [{key: 'a', operation: 'update'}, {key: 'b', operation: 'delete'}, {key: 'c', operation: 'create'}]} as const;
+  assert.throws(() => createRecordApprovalProviderState<Row>({...plan, targets: [['a', b], ['b', b], ['c', null]]}),
+    /ForeignRecordApprovalFixtureRow/u);
+  const state = createRecordApprovalProviderState<Row>({...plan, targets: [['a', a], ['b', b], ['c', null]]});
+  const original = state.snapshot();
+  a.text = 'foreign'; b.text = 'foreign'; control.text = 'foreign';
+  assert.deepEqual(state.snapshot(), original);
+  assert.equal(state.target('a')?.text, null);
+  assert(!Object.hasOwn(state.target('b')!, 'text'));
+  assert.equal(state.target('c'), null);
+  assert.throws(() => state.apply('delete', 'b', null), /UnexpectedRecordApprovalFixtureWrite/u);
+  assert.throws(() => state.apply('update', 'a', null), /InvalidRecordApprovalFixtureSuccessor/u);
+  assert.throws(() => state.apply('update', 'a', {key: 'b', text: 'foreign'}), /ForeignRecordApprovalFixtureRow/u);
+  assert.deepEqual(state.snapshot(), original);
+  state.apply('update', 'a', {key: 'a', text: 'updated'});
+  assert.throws(() => state.apply('update', 'a', {key: 'a', text: 'repeat'}), /UnexpectedRecordApprovalFixtureWrite/u);
+  state.apply('delete', 'b', null);
+  state.apply('create', 'c', {key: 'c', text: null});
+  assert.deepEqual(state.snapshot(), {writes: 3, targets: [['a', {key: 'a', text: 'updated'}],
+    ['b', null], ['c', {key: 'c', text: null}]], control: {key: 'control', text: 'keep'}, requests: [], failures: []});
+  state.reset();
+  assert.deepEqual(state.snapshot(), original);
+});
+
+test('one HubSpot HTTPS fixture applies two marked updates to distinct original keys', {timeout: 15000}, async () => {
+  const first = '9007199254740993', second = '9007199254740995', control = '9007199254740997';
+  const provider = hubspotApprovalProvider({recordId: first, previousName: 'first', controlId: control},
+    {additionalTargets: [{id: second, name: 'second'}], writeOrder: [first, second]});
+  const tls = await openRecordApprovalExchange(undefined, {provider});
+  const request = (method: string, path: string, value?: unknown) => new Promise<{status: number; body: string}>((resolve, reject) => {
+    const bytes = value === undefined ? undefined : Buffer.from(JSON.stringify(value));
+    const call = requestHttps(new URL(path, tls.origin), {method, ca: tls.ca, agent: false,
+      headers: {authorization: 'Bearer fixture-credential', ...(bytes === undefined ? {} :
+        {'content-type': 'application/json', 'content-length': bytes.length})}}, response => {
+      response.setEncoding('utf8');
+      let body = '';
+      response.on('data', chunk => {body += chunk;});
+      response.once('end', () => resolve({status: response.statusCode!, body}));
+      response.once('error', reject);
+    });
+    call.setTimeout(5000, () => call.destroy(new Error('FixtureRequestTimeout')));
+    call.once('error', reject);
+    call.end(bytes);
+  });
+  const change = (id: string, name: string, marker: string) =>
+    request('POST', provider.writeRequest.pathname, {inputs: [{id, objectWriteTraceId: cid('a'),
+      properties: {name, actql_request_id: marker}}]});
+  const rows = async () => {
+    const response = await request('GET', '/crm/v3/objects/companies');
+    assert.equal(response.status, 200);
+    const {results} = JSON.parse(response.body) as HubSpotResult;
+    return results.map(({id, properties}) => [id, properties.name, properties.actql_request_id]);
+  };
+  try {
+    assert.deepEqual(await rows(), [[first, 'first', ''], [second, 'second', ''], [control, 'Untouched control', '']]);
+    assert.equal((await change(first, 'first updated', cid('b'))).status, 200);
+    assert.equal((await change(second, 'second updated', cid('c'))).status, 200);
+    assert.deepEqual(await rows(), [[first, 'first updated', cid('b')], [second, 'second updated', cid('c')],
+      [control, 'Untouched control', '']]);
+    assert.equal(provider.snapshot().writes, 2);
+    assert.equal(provider.snapshot().failures.length, 0);
+    assert.equal(tls.seen().filter(entry => entry.method === 'POST').length, 2);
+  } finally {
+    await tls.close();
+  }
+});
+
 test('shared record approval Account fixture preserves provider policy in one complete Host/Site wire', () => {
   const provider = {version: 'actql-execution-account-config/0.1', account_id: 'fixture',
     entries: [{entry_id: 'provider', outcome: 'delegate', principal: {all: true},
@@ -1104,6 +1259,7 @@ test('kintone approval provider keeps string identity and original revision for 
 test('authored kintone DELETE distinguishes absent target from unchanged control and rejects stale revision', async () => {
   const path = fileURLToPath(new URL('./fixtures/kintone-approval/delete.case.json', import.meta.url));
   const declared = await readAuthoredCase(path);
+  assert(!('effects' in declared.review));
   const {provider, write} = kintoneApprovalInstallation(declared.fixture!.seed, declared.review.kind);
   assert.deepEqual(write, {resource: 'inquiries', kind: 'delete'});
   const start = provider.snapshot();

@@ -44,7 +44,7 @@ function writeDefinition(profile) {
 
 function sourcesOf(profile) {
   return Object.freeze((profile.write === 'update' ? ['note'] : ['key', 'note']).map(field =>
-    Object.freeze({target: field, field, null_behavior: 'reject'})));
+    Object.freeze({target: field, field, null_behavior: profile.write === 'update' ? 'write_null' : 'reject'})));
 }
 
 async function declarationOf(moon, profile) {
@@ -87,8 +87,8 @@ export async function load(profile, {root, principalId, moon, providerMoon,
     fail('ExternalEffectConstructionUnavailable');
   }
   const selected = checkProfile(profile);
-  if (typeof providerMoon?.externalEffectRequestJson !== 'function' ||
-      typeof providerMoon?.externalEffectObservationJson !== 'function') {
+  if (selected.write !== 'update' && (typeof providerMoon?.externalEffectRequestJson !== 'function' ||
+      typeof providerMoon?.externalEffectObservationJson !== 'function')) {
     fail('ExternalEffectProviderMissing');
   }
   const readers = construction.configurationReader;
@@ -110,7 +110,7 @@ export async function load(profile, {root, principalId, moon, providerMoon,
         origin.length + specification.namespaceId.length));
     },
     project() {return selected.write === 'update'
-      ? standardUpdateImplementation(native, specification) : standardCreateImplementation(native, specification);},
+      ? standardUpdateImplementation(specification) : standardCreateImplementation(native, specification);},
   }));
   return await construction.createRowEffect({connection, runtimeBundleCid,
     bindingCid: cid({version: 'actql-external-effect-binding/0.1',
@@ -125,11 +125,11 @@ function captureEffectProvider(provider, kind) {
   if (provider === null || typeof provider !== 'object' || nodeTypes.isProxy(provider)) {
     fail('ExternalEffectProviderMissing');
   }
-  const names = ['externalEffectRequestJson', 'externalEffectObservationJson',
+  const names = kind === 'update' ? ['externalEffectDriverConstructionCapacity'] : [
+    'externalEffectRequestJson', 'externalEffectObservationJson',
     'installedStandardCreateConstructionProfile', 'installedStandardCreateHttpLimits',
     'externalEffectDriverConstructionCapacity',
-    ...(kind === 'update' ? ['installedDeclaredUpdateConstructionProfile',
-      'installedDeclaredUpdateCaptureConstructionProfile'] : [])];
+  ];
   return Object.freeze(Object.fromEntries(names.map(name => {
     const field = Object.getOwnPropertyDescriptor(provider, name);
     if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
@@ -170,35 +170,22 @@ function standardCreateImplementation(providerMoon, specification) {
 
 const updateRecovery = 'external-event-update';
 const updateBounds = Object.freeze({maxRequestBytes: 512, maxResponseBytes: 512, maxTargetBytes: 80});
-const eventId = value => typeof value === 'string' && /^[a-z0-9-]{1,32}$/u.test(value);
-const eventNote = value => typeof value === 'string' && value.length <= 64 && value.isWellFormed();
+const eventNote = value => value === null ||
+  typeof value === 'string' && value.length <= 64 && value.isWellFormed();
 const eventPath = id => '/events/' + id;
-const updateWireCid = wire => 'sha256:' + createHash('sha256').update(wire).digest('hex');
 
-function standardUpdateImplementation(providerMoon, specification) {
+function standardUpdateImplementation(specification) {
   const boundaryCid = cid({origin, namespace: specification.namespaceId, operation: updateOperation});
-  const requestCid = request => cid({version: updateRecovery, boundaryCid, ...request});
-  const requestOf = (id, note) => {
-    if (!eventId(id) || !eventNote(note)) fail('InvalidExternalUpdateValue');
-    return Object.freeze({id, note, body: JSON.stringify({note})});
-  };
-  const original = member => {
+  const assertResource = member => {
     if (member?.kind !== 'update' || member.resource !== 'events') fail('ForeignExternalUpdateMember');
-    return [member.effectId, member.memberIndex, member.mapping.mappingCid];
   };
   const write = Object.freeze({
     kind: 'update', operation: updateOperation, transport: updateBounds,
     targetRead: Object.freeze({operation: targetOperation, transport: updateBounds}),
-    prepareRequest({member, value, selector}) {
-      original(member);
-      if (!exact(value, ['note'])) fail('InvalidExternalUpdateValue');
-      const request = requestOf(selector, value.note);
-      return Object.freeze({request, requestCid: requestCid(request)});
-    },
-    requestFacts: request => ({target: request.id, value: {note: request.note}}),
-    requestCid,
+    standardText: Object.freeze({resource: 'events', identityField: 'id', field: 'note',
+      domain: updateRecovery, boundaryCid, maxIdentityUnits: 32, maxTextUnits: 64, maxRecoveryBytes: 1024}),
     async observeTargets({member, entries, readTarget}) {
-      original(member);
+      assertResource(member);
       const observed = [];
       for (const [index, {request}] of entries.entries()) {
         const value = await readTarget(index, {method: 'GET', path: eventPath(request.id)}, response => {
@@ -212,7 +199,7 @@ function standardUpdateImplementation(providerMoon, specification) {
       return observed;
     },
     prepareUpdateWrite(member, request, _current, resourceOrigin, selectedRegistration, signal) {
-      original(member);
+      assertResource(member);
       if (resourceOrigin !== origin || selectedRegistration !== registration) fail('ForeignExternalUpdateSite');
       signal?.throwIfAborted();
       return {method: 'PUT', path: eventPath(request.id), body: request.body};
@@ -226,26 +213,6 @@ function standardUpdateImplementation(providerMoon, specification) {
       return {kind: 'typed-success-response', outcome: {state: 'applied', action: 'updated', result: {id: result.id}}};
     },
     footprint: () => ({providerNamespace: registration, resourceKind: 'event', boundaryCid}),
-    recoveryEntry({member, entries}) {
-      if (entries.length !== 1) fail('InvalidExternalUpdateRecovery');
-      const [entry] = entries;
-      const wire = canonicalJson([boundaryCid, original(member), entry.request.id, entry.request.note]);
-      return {kind: updateRecovery, observationCid: updateWireCid(wire), wire};
-    },
-    recoverRequests({durable, members, body}) {
-      if (members.length !== 1 || body.effects?.[0]?.changes?.length !== 1 ||
-          durable.connectorRecovery?.length !== 1) fail('InvalidExternalUpdateRecovery');
-      const [saved] = durable.connectorRecovery, [member] = members;
-      if (saved.kind !== updateRecovery || saved.memberIndex !== member.memberIndex ||
-          typeof saved.wire !== 'string' || Buffer.byteLength(saved.wire) > 1024 ||
-          updateWireCid(saved.wire) !== saved.observationCid) fail('InvalidExternalUpdateRecovery');
-      const savedRequest = JSON.parse(saved.wire);
-      if (!Array.isArray(savedRequest) || savedRequest.length !== 4 || canonicalJson(savedRequest) !== saved.wire ||
-          savedRequest[0] !== boundaryCid || canonicalJson(savedRequest[1]) !== canonicalJson(original(member))) {
-        fail('InvalidExternalUpdateRecovery');
-      }
-      return {requests: [[requestOf(savedRequest[2], savedRequest[3])]]};
-    },
   });
-  return Object.freeze({providerMoon, write, limits: Object.freeze({maxRows: 1, maxMembers: 1})});
+  return Object.freeze({write, limits: Object.freeze({maxRows: 1, maxMembers: 1})});
 }
