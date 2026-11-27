@@ -1835,20 +1835,6 @@ pub fn client_program_logical_observation_record_state(@client_local_host.Client
 
 pub fn client_program_lower_request_published_query(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String?, Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), @client_local_host.ClientRequestQueryLoweringIssue]
 
-pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
-
-pub fn client_program_mock_churn_risk_admit_target_document(@client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.MockTargetDocument, @client_row_source_host.RowSourceIssue]
-
-pub fn client_program_mock_churn_risk_observe_target(@client_row_source_host.MockTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.MockTargetRow, @client_row_source_host.RowSourceIssue]
-
-pub fn client_program_mock_churn_risk_prepare_target_update(@client_row_source_host.MockTargetDocument, @client_row_source_host.MockTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
-
-pub fn client_program_mock_churn_risk_target_before(@client_row_source_host.MockTargetRow) -> String?
-
-pub fn client_program_mock_churn_risk_target_version(@client_row_source_host.MockTargetRow) -> String?
-
-pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]
-
 pub fn client_program_model_provider_defaults_read_construction_capacity(String, String, String, String, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_model_provider_defaults_resolution_capacities(@run_publication_host.ClientModelProviderDefaults, Int64?) -> Array[@execution_relation.ExecutionCapacity?]

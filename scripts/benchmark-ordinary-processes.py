@@ -251,6 +251,7 @@ def python_failure(error):
 def python_sample(config):
     """Only public installed SDK methods; private config belongs to this harness."""
     assert Path(sys.prefix).resolve() == Path(config['venv']).resolve(), 'Wrong installed Python interpreter'
+    diagnostic = config['mode'] == 'diagnostic'
     public_start = time.perf_counter_ns()
     import actql
     assert Path(actql.__file__).resolve().is_relative_to(Path(config['consumer']).resolve())
@@ -319,7 +320,8 @@ def python_sample(config):
             else:
                 row['actualSha256'] = digest(wire(value))
             rows.append(row)
-            if failure or operation.startswith('warm-') and row['wallNs'] >= 100_000_000:
+            slow_diagnostic = diagnostic and operation.startswith('warm-') and row['wallNs'] >= 100_000_000
+            if failure or slow_diagnostic:
                 result['stoppedEarly'] = True
                 break
     except BaseException as error:
@@ -735,7 +737,7 @@ def collect(args):
                              exitNs=value['commands'][-1]['endedNs'], observedNs=end, endNs=end))
         else:
             venv = Path(args.venv).resolve()
-            config = dict(operation=operation, consumer=str(consumer), venv=str(venv), stateId=str(sample_state),
+            config = dict(operation=operation, mode=args.mode, consumer=str(consumer), venv=str(venv), stateId=str(sample_state),
                           count=sample_count, resultPath=str(output / f'{index}-child.json'), originalRun=original)
             config_path = output / f'{index}-config.json'
             write(config_path, config)
@@ -779,7 +781,9 @@ def collect(args):
                        'actualSha256':digest(wire(expected))}
                 series['samples'].append(row)
             write(output/'measurements.json', report)
-            if not args.operation.startswith('warm-') and observation['wallNs'] > (50_000_000_000 if args.operation == 'first-init' else 20_000_000_000):
+            cold_diagnostic_limit = 50_000_000_000 if args.operation == 'first-init' else 20_000_000_000
+            if (args.mode == 'diagnostic' and not args.operation.startswith('warm-')
+                    and observation['wallNs'] > cold_diagnostic_limit):
                 series['stoppedEarly'] = True
                 break
         report['cleanup']['closed'] = True
@@ -809,7 +813,9 @@ def collect(args):
             report['installedPayloadsUnchanged'] = True
         except BaseException as error:
             report['packageFailure'] = str(error)
-        complete = (bool(series['samples']) and all(r['verified'] for r in series['samples'])
+        actual = series['samples']
+        complete = (bool(actual) and (args.mode != 'final' or len(actual) == count)
+                    and all(r['verified'] for r in actual)
                     and report['cleanup']['closed'] and report['installedPayloadsUnchanged']
                     and not report.get('firstFailure'))
         report['functional']['rows'].append(dict(operation=args.operation,completed=complete,

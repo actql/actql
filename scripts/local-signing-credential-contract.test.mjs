@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {project, structuralValidatorSource} from './generate-client-publication-wire.mjs';
+import {project} from './generate-client-publication-wire.mjs';
+import {structuralWireValidator} from './templates/structural-wire-validator.mjs';
 
 const load = name => JSON.parse(readFileSync(new URL('../' + name, import.meta.url)));
 const vectors = load('spec/contracts/fixtures/local-signing-credential-vectors.json');
@@ -15,7 +16,7 @@ const digest = bytes => 'sha256:' + createHash('sha256').update(bytes).digest('h
 // current authority, private custody and durable claim remain separate layers.
 const withoutAnnotations = ({description, $comment, ...schema}) => schema;
 const shapes = new Map([grant, use].map(schema => [schema, project(withoutAnnotations(schema))]));
-const valid = new Function(structuralValidatorSource({extended: true}) + '\nreturn valid;')();
+const valid = structuralWireValidator({extended: true});
 const shape = (schema, value) => valid(value, shapes.get(schema));
 
 test('signing schemas and independent vectors retain exact explicit pins', () => {

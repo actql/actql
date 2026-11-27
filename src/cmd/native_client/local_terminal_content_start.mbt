@@ -3,7 +3,8 @@ fn[T] local_terminal_content_stop(
   issue : @local_host.NativeTerminalContentIssue,
 ) -> T raise ClientStop {
   match issue {
-    TerminalContentEncoding(ContentRowLimit)
+    TerminalContentInput(RowLimit)
+    | TerminalContentEncoding(ContentRowLimit)
     | TerminalContentInput(Encoding(ContentRowLimit)) =>
       stop("LocalContentRowLimit")
     TerminalContentEncoding(ContentByteLimit)

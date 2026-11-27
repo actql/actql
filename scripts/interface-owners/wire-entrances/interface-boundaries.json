@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "2d567c91adbc04bc7dc9ed527761893daaaf3d130169c3492f6d373ce4786024",
+      "sha256": "60909b9e27e0e47412b1aa0b09e82579787fe5fac64bdbad3c1e7a3332d0e65d",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -12501,7 +12501,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "8e69178b5ae4f1e7f85cfee7686ee9c3a555e4617ea3f87c7162cf0303d65c8f",
+      "sha256": "fa90abf73d1f8c9c2c5c481a3402a88b9760cc8e725a7be85be1d1b500504b26",
       "exports": [
         "ControlJsonValue",
         "WireControlAdmission",
@@ -17597,7 +17597,7 @@
     {
       "module": "packages/client-wire/publication.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "8f58fed15f875c83f3d73a7c48944b298e141827a860814060b366f65e4be90e",
+      "sha256": "81102d5aa349dff4719e4066b17d254db5a04966d00e2991397df7a07daa07a5",
       "exports": [
         "WireDeliveryAttempt",
         "WireDeliveryRecord",
@@ -18082,7 +18082,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               },
               {
@@ -18108,7 +18108,7 @@
     },
     {
       "module": "scripts/checkpoint-answer-compiler.mjs",
-      "sha256": "93bb066cb1c24405fc6e8a2306771319c39070ab908cc464b50d22052dc6d29c",
+      "sha256": "e5c3f164ce34c2986a3cac3ee75e897f976ed2e5cbaa0ec2ad3702b26fa7018c",
       "exports": [
         "compileCheckpointAnswer"
       ],
@@ -18126,50 +18126,10 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "compileCheckpointAnswer/compileCheckpointAnswer",
-          "parameters": [
-            "path",
-            "target",
-            "onError",
-            "forceNew"
-          ],
-          "async": false
-        },
-        {
-          "name": "compileCheckpointAnswer/config/config",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "compileCheckpointAnswer/result/result",
-          "parameters": [
-            "name",
-            "contents"
-          ],
-          "async": false
-        },
-        {
-          "name": "diagnosticHost/diagnosticHost",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "diagnosticHost/diagnosticHost#2",
-          "parameters": [],
-          "async": false
         }
       ],
       "imports": [
-        "./generate-client-publication-wire.mjs",
-        "node:fs",
-        "node:url",
-        "typescript"
+        "./wire-template-compiler.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -18182,12 +18142,7 @@
           "operations": [
             "<module>",
             "compileCheckpointAnswer",
-            "compileCheckpointAnswer/bindings/bindings",
-            "compileCheckpointAnswer/compileCheckpointAnswer",
-            "compileCheckpointAnswer/config/config",
-            "compileCheckpointAnswer/result/result",
-            "diagnosticHost/diagnosticHost",
-            "diagnosticHost/diagnosticHost#2"
+            "compileCheckpointAnswer/bindings/bindings"
           ],
           "exports": [
             "compileCheckpointAnswer"
@@ -18284,7 +18239,7 @@
                 "anchor": "## Review integrity DATA"
               },
               {
-                "path": "scripts/checkpoint-answer-compiler.mts",
+                "path": "scripts/wire-template-compiler.mts",
                 "anchor": "const result = program.emit(entry,"
               },
               {
@@ -18302,7 +18257,231 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
+                "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity_test.mbt",
+                "anchor": "test \"pure review integrity preserves existing Model and opaque Effect preimages\""
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Common review preimages keep root-only self exclusion and exact Unicode DATA'"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
+                "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/wire-template-compiler.mjs",
+      "sha256": "d44bba273a56005a314c631c0dce3b2e4e880ac7a63949b422666b8d9f9a1f68",
+      "exports": [
+        "compileWireTemplate"
+      ],
+      "operations": [
+        {
+          "name": "compileWireTemplate",
+          "parameters": [
+            "name",
+            "bindings",
+            "header",
+            "predicates"
+          ],
+          "async": false
+        },
+        {
+          "name": "compileWireTemplate/compileWireTemplate",
+          "parameters": [
+            "path",
+            "target",
+            "onError",
+            "forceNew"
+          ],
+          "async": false
+        },
+        {
+          "name": "compileWireTemplate/config/config",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "compileWireTemplate/functions/functions",
+          "parameters": [
+            "name",
+            "type",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "compileWireTemplate/result/result",
+          "parameters": [
+            "path",
+            "content"
+          ],
+          "async": false
+        },
+        {
+          "name": "diagnosticHost/diagnosticHost",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "diagnosticHost/diagnosticHost#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:fs",
+        "node:url",
+        "typescript"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "public-wire-codec",
+      "owner": "existing Common checkpoint document / Client-Host wire generation / lightweight SDK value owner",
+      "rationale": "The shared TypeScript compiler emits the runtime and declaration together for each materialized wire template.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "diagnosticHost/diagnosticHost",
+            "diagnosticHost/diagnosticHost#2",
+            "compileWireTemplate",
+            "compileWireTemplate/compileWireTemplate",
+            "compileWireTemplate/config/config",
+            "compileWireTemplate/functions/functions",
+            "compileWireTemplate/result/result"
+          ],
+          "exports": [
+            "compileWireTemplate"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Shared document authority"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| responsibility |"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "| inputsOutputs |"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Canonical frames and signatures"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Refusal and original lifetime"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "These bounded source generators run no Client or Host operation and confer no cancellation or physical cleanup authority. The caller owns process cancellation; output freshness remains a separate check."
+            },
+            "resources": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Bounded capture and staging"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Generation and verification"
+              },
+              {
+                "path": "docs/design/checkpoint-answer-construction.md",
+                "anchor": "## Review integrity DATA"
+              },
+              {
+                "path": "scripts/wire-template-compiler.mts",
+                "anchor": "const result = program.emit(entry,"
+              },
+              {
+                "path": "scripts/templates/checkpoint-answer-construction.mts",
+                "anchor": "export function createCheckpointAnswerCodec(primitives: AnswerPrimitives)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/checkpoint-answer-construction.test.mjs",
+                "anchor": "test('candidate inventories derive from protocol and unknown construction expressions refuse generation'"
+              },
+              {
+                "path": "src/checkpoint_document/answer_vectors_test.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               },
               {
@@ -18459,7 +18638,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               },
               {
@@ -18485,7 +18664,7 @@
     },
     {
       "module": "scripts/generate-client-host-wire.mjs",
-      "sha256": "885d132dff49a9318d6baebbb03080da1b6927e39883d8fa8fa199faa2677ea1",
+      "sha256": "6c9a6fbaedf24fa87f72f0ad090db6da4dfb48ecb4603b5d0d7296c01211692f",
       "exports": [
         "buildClientHostWire",
         "nativeProgramSchema",
@@ -18497,6 +18676,35 @@
           "parameters": [
             "registry",
             "protocol"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/bindings/bindings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/bindings/bindings#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/bindings/bindings#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildClientHostWire/bindings/bindings#4",
+          "parameters": [
+            "name",
+            "index"
           ],
           "async": false
         },
@@ -18537,17 +18745,17 @@
           "async": false
         },
         {
-          "name": "buildClientHostWire/checkVariants/checkVariants",
+          "name": "buildClientHostWire/buildClientHostWire#5",
           "parameters": [
-            "branch"
+            "schema",
+            "index"
           ],
           "async": false
         },
         {
-          "name": "buildClientHostWire/module/module",
+          "name": "buildClientHostWire/checkVariants/checkVariants",
           "parameters": [
-            "name",
-            "index"
+            "branch"
           ],
           "async": false
         },
@@ -18577,35 +18785,6 @@
           "name": "buildClientHostWire/schemas/schemas",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "buildClientHostWire/types/types",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "buildClientHostWire/types/types#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "buildClientHostWire/types/types#3",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "buildClientHostWire/types/types#4",
-          "parameters": [
-            "name",
-            "index"
           ],
           "async": false
         },
@@ -18685,6 +18864,7 @@
         "./generate-native-client-wire.mjs",
         "./interactive-run-control-contract.mjs",
         "./interactive-run-control-schema.mjs",
+        "./wire-template-compiler.mjs",
         "node:fs/promises",
         "node:path",
         "node:url"
@@ -18706,15 +18886,10 @@
             "buildClientHostWire/buildClientHostWire#3",
             "buildClientHostWire/buildClientHostWire#4",
             "buildClientHostWire/checkVariants/checkVariants",
-            "buildClientHostWire/module/module",
             "buildClientHostWire/nullLiterals/nullLiterals",
             "buildClientHostWire/nullLiterals/nullLiterals/nullLiterals",
             "buildClientHostWire/runWait/runWait",
             "buildClientHostWire/schemas/schemas",
-            "buildClientHostWire/types/types",
-            "buildClientHostWire/types/types#2",
-            "buildClientHostWire/types/types#3",
-            "buildClientHostWire/types/types#4",
             "nativeProgramSchema",
             "projectClientHostOptionalFields",
             "projectClientHostOptionalFields/canonical/canonical/canonical",
@@ -18723,7 +18898,12 @@
             "projectClientHostOptionalFields/projectClientHostOptionalFields/projectClientHostOptionalFields",
             "projectClientHostOptionalFields/projectClientHostOptionalFields/projectClientHostOptionalFields#2",
             "projectClientHostOptionalFields/projectClientHostOptionalFields#2",
-            "projectClientHostOptionalFields/projectClientHostOptionalFields#3"
+            "projectClientHostOptionalFields/projectClientHostOptionalFields#3",
+            "buildClientHostWire/bindings/bindings",
+            "buildClientHostWire/bindings/bindings#2",
+            "buildClientHostWire/bindings/bindings#3",
+            "buildClientHostWire/bindings/bindings#4",
+            "buildClientHostWire/buildClientHostWire#5"
           ],
           "exports": [
             "buildClientHostWire",
@@ -18800,7 +18980,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               }
             ]
@@ -19017,7 +19197,7 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               }
             ]
@@ -19027,11 +19207,9 @@
     },
     {
       "module": "scripts/generate-native-client-wire.mjs",
-      "sha256": "572bf5b90474ceca3a6477236f50c21bab3f69a6aa1467a4aff6155f8a4f6578",
+      "sha256": "cf13e5d31d7fe06b738a0af2e2389aa0e248d33d70cdccd144bd8c630983b57b",
       "exports": [
         "formatMoonBit",
-        "jsRequestResponseRules",
-        "jsResponseRules",
         "nativeClientWire",
         "requestResponseRules",
         "responseRules"
@@ -19041,59 +19219,6 @@
           "name": "formatMoonBit",
           "parameters": [
             "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsRequestResponseRules",
-          "parameters": [
-            "schemas",
-            "rules"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsRequestResponseRules/jsRequestResponseRules",
-          "parameters": [
-            "name",
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsRequestResponseRules/jsRequestResponseRules/alternatives/alternatives",
-          "parameters": [
-            "schema"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsResponseRules",
-          "parameters": [
-            "rules"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsResponseRules/jsResponseRules",
-          "parameters": [
-            "name",
-            "rule"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsResponseRules/jsResponseRules/jsResponseRules",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "jsResponseRules/jsResponseRules/jsResponseRules#2",
-          "parameters": [
-            "field",
-            "value"
           ],
           "async": false
         },
@@ -19355,13 +19480,6 @@
           "operations": [
             "<module>",
             "formatMoonBit",
-            "jsRequestResponseRules",
-            "jsRequestResponseRules/jsRequestResponseRules",
-            "jsRequestResponseRules/jsRequestResponseRules/alternatives/alternatives",
-            "jsResponseRules",
-            "jsResponseRules/jsResponseRules",
-            "jsResponseRules/jsResponseRules/jsResponseRules",
-            "jsResponseRules/jsResponseRules/jsResponseRules#2",
             "nativeClientWire",
             "nativeClientWire/alternatives/alternatives",
             "nativeClientWire/candidates/candidates",
@@ -19398,8 +19516,6 @@
           ],
           "exports": [
             "formatMoonBit",
-            "jsRequestResponseRules",
-            "jsResponseRules",
             "nativeClientWire",
             "requestResponseRules",
             "responseRules"
@@ -19474,12 +19590,18 @@
                 "anchor": "test "
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "test('Native wire formatter receives complete source through regular-file stdin'"
               }
             ]
           }
         }
+      ],
+      "privateOperations": [
+        "nativeClientWire/emit",
+        "nativeClientWire/emit/number/number",
+        "requestResponseRules/invalid/invalid",
+        "requestResponseRules/record/record"
       ]
     }
   ]

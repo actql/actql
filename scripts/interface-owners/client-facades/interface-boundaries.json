@@ -9197,7 +9197,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-contract.generated.mjs",
-      "sha256": "170e71af07cdbcb99ac43625ce42bf0c958f588ae4c22a02fc80c340b64a70a2",
+      "sha256": "3fc6e1e0bce6d7b4215b29f5338aec23cb58b6ca21ececec79a985deb4195361",
       "exports": [
         "validAnswerEvidence",
         "validAnswerResolution"
@@ -9219,56 +9219,64 @@
           "async": false
         },
         {
-          "name": "valid/valid",
+          "name": "structuralWireValidator/valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#2",
+          "name": "structuralWireValidator/valid/valid#2",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#3",
+          "name": "structuralWireValidator/valid/valid#3",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#4",
+          "name": "structuralWireValidator/valid/valid#4",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#5",
+          "name": "structuralWireValidator/valid/valid#5",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#6",
+          "name": "structuralWireValidator/valid/valid#6",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#7",
+          "name": "structuralWireValidator/valid/valid#7",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#8",
+          "name": "structuralWireValidator/valid/valid#8",
           "parameters": [
             "key",
             "item"
@@ -9276,7 +9284,7 @@
           "async": false
         },
         {
-          "name": "valid/valid#9",
+          "name": "structuralWireValidator/valid/valid#9",
           "parameters": [
             "key",
             "field"
@@ -9284,14 +9292,14 @@
           "async": false
         },
         {
-          "name": "validAnswerEvidence/validAnswerEvidence",
+          "name": "validAnswerEvidence",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validAnswerResolution/validAnswerResolution",
+          "name": "validAnswerResolution",
           "parameters": [
             "value"
           ],
@@ -9311,17 +9319,18 @@
             "<module>",
             "sameConstant/sameConstant",
             "sameConstant/sameConstant#2",
-            "valid/valid",
-            "valid/valid#2",
-            "valid/valid#3",
-            "valid/valid#4",
-            "valid/valid#5",
-            "valid/valid#6",
-            "valid/valid#7",
-            "valid/valid#8",
-            "valid/valid#9",
-            "validAnswerEvidence/validAnswerEvidence",
-            "validAnswerResolution/validAnswerResolution"
+            "structuralWireValidator/valid",
+            "structuralWireValidator/valid/valid",
+            "structuralWireValidator/valid/valid#2",
+            "structuralWireValidator/valid/valid#3",
+            "structuralWireValidator/valid/valid#4",
+            "structuralWireValidator/valid/valid#5",
+            "structuralWireValidator/valid/valid#6",
+            "structuralWireValidator/valid/valid#7",
+            "structuralWireValidator/valid/valid#8",
+            "structuralWireValidator/valid/valid#9",
+            "validAnswerEvidence",
+            "validAnswerResolution"
           ],
           "exports": [
             "validAnswerEvidence",
@@ -9424,12 +9433,17 @@
                 "anchor": "valid signatures for another original Summary refuse"
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]
           }
         }
+      ],
+      "privateOperations": [
+        "sameConstant",
+        "structuralWireValidator",
+        "wireObject"
       ]
     },
     {
@@ -20974,7 +20988,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "ad6c578deacc32cf56455492a41013f3d47608b55ee930b876eec18f1b4beb80",
+      "sha256": "496b54a8a7a4e7b5b8065977b723d0d1fdda20a9dd89047c0103f94cc83d15df",
       "exports": [
         "createCheckpointAnswerCodec",
         "hasCanonicalReviewContentPadding"
@@ -21161,49 +21175,64 @@
           "async": false
         },
         {
-          "name": "valid/valid",
+          "name": "structuralWireValidator/valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#2",
+          "name": "structuralWireValidator/valid/valid#2",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#3",
+          "name": "structuralWireValidator/valid/valid#3",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid#4",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#4",
+          "name": "structuralWireValidator/valid/valid#5",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#5",
+          "name": "structuralWireValidator/valid/valid#6",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#6",
+          "name": "structuralWireValidator/valid/valid#7",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#7",
+          "name": "structuralWireValidator/valid/valid#8",
           "parameters": [
             "key",
             "item"
@@ -21211,7 +21240,7 @@
           "async": false
         },
         {
-          "name": "valid/valid#8",
+          "name": "structuralWireValidator/valid/valid#9",
           "parameters": [
             "key",
             "field"
@@ -21262,15 +21291,17 @@
             "shape/shape#2",
             "signature",
             "source",
-            "valid/valid",
-            "valid/valid#2",
-            "valid/valid#3",
-            "valid/valid#4",
-            "valid/valid#5",
-            "valid/valid#6",
-            "valid/valid#7",
-            "valid/valid#8",
-            "validSignerIds"
+            "validSignerIds",
+            "structuralWireValidator/valid",
+            "structuralWireValidator/valid/valid",
+            "structuralWireValidator/valid/valid#2",
+            "structuralWireValidator/valid/valid#3",
+            "structuralWireValidator/valid/valid#4",
+            "structuralWireValidator/valid/valid#5",
+            "structuralWireValidator/valid/valid#6",
+            "structuralWireValidator/valid/valid#7",
+            "structuralWireValidator/valid/valid#8",
+            "structuralWireValidator/valid/valid#9"
           ],
           "exports": [
             "createCheckpointAnswerCodec",
@@ -21399,6 +21430,29 @@
             ]
           }
         }
+      ],
+      "privateOperations": [
+        "canonicalText",
+        "capture",
+        "capture/string/string",
+        "capture/visit",
+        "createCheckpointAnswerCodec/frame",
+        "createCheckpointAnswerCodec/identity",
+        "createCheckpointAnswerCodec/original/original",
+        "createCheckpointAnswerCodec/withProof",
+        "document",
+        "limitsOf",
+        "own/own",
+        "present",
+        "quotedBytes",
+        "refuse",
+        "sameConstant",
+        "shape",
+        "structuralWireValidator",
+        "timestamp",
+        "validCid",
+        "validSignerToken",
+        "wireObject"
       ]
     },
     {
@@ -21719,7 +21773,7 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-contract.generated.d.mts",
-      "sha256": "e80292359cc72f50461f74cc035598b898bfef0580c64f26a350e0a75732e72d",
+      "sha256": "777069a4f2d7c4d84ff7f8af1c903389658605313eeaa9b54ee468bcee8c9282",
       "exports": [
         "AnswerEvidence",
         "AnswerResolution",
@@ -21858,7 +21912,7 @@
                 "anchor": "valid signatures for another original Summary refuse"
               },
               {
-                "path": "scripts/generate-client-host-wire.test.mjs",
+                "path": "scripts/generate-client-host-wire.test.mts",
                 "anchor": "SDK answer grammar projects existing Resolution and Evidence"
               }
             ]

@@ -3,7 +3,8 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
-import {project, structuralValidatorSource} from './generate-client-publication-wire.mjs';
+import {project} from './generate-client-publication-wire.mjs';
+import {structuralWireValidator} from './templates/structural-wire-validator.mjs';
 
 const load = name => JSON.parse(readFileSync(new URL('../' + name, import.meta.url)));
 const contract = load('spec/contracts/actql-installation-metadata-credential.json');
@@ -23,7 +24,7 @@ function structural(schema) {
   return plain;
 }
 const shapes = Object.fromEntries(Object.entries(contract.schemas).map(([key, value]) => [key, project(structural(value))]));
-const valid = new Function(structuralValidatorSource({extended: true}) + '\nreturn valid;')();
+const valid = structuralWireValidator({extended: true});
 const subject = JSON.parse(vectors.subject_wire);
 const grant = JSON.parse(vectors.grant_wire);
 
