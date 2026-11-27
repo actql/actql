@@ -2,17 +2,35 @@
 import {execFileSync, fork} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
 import {closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync,
-  readFileSync, readdirSync, readSync, realpathSync, statfsSync, unlinkSync, writeFileSync} from 'node:fs';
+  readFileSync, readdirSync, readSync, realpathSync, statfsSync, unlinkSync, writeFileSync, type Stats} from 'node:fs';
 import {availableParallelism, homedir, hostname, totalmem} from 'node:os';
 import {join} from 'node:path';
 
-const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
-const digest = value => createHash('sha256').update(value).digest('hex');
-const uid = () => process.getuid();
+type Resources = {memoryBytes: number; diskBytes: number; cpuThreads: number};
+type Headroom = Resources & {totalMemoryBytes: number};
+type HeavyPool = {version: string; token: string; slot?: number; resources?: Resources};
+type LockOwner = {token: string; pid: number; uid: number; host: string; worktree: string;
+  startedAt: string; evidence?: string; heavyPool?: HeavyPool};
+type FileIdentity = Pick<Stats, 'dev' | 'ino'>;
+type HeldLock = {path: string; stat: Stats};
+type LockDirectory = ReturnType<typeof lockDirectory>;
+type PoolMember = HeldLock & {owner: LockOwner & {heavyPool: HeavyPool & {slot: number; resources: Resources}}};
+type LocalCheckParameters = {
+  root: string;
+  timeoutSeconds: number;
+  graceSeconds?: number;
+  heavy: boolean;
+  heavyResources?: Resources;
+  steps: readonly {name: string; command: string; args: readonly string[]; env?: NodeJS.ProcessEnv; scratch?: string}[];
+};
+
+const same = (a: FileIdentity, b: FileIdentity) => a.dev === b.dev && a.ino === b.ino;
+const digest = (value: string) => createHash('sha256').update(value).digest('hex');
+const uid = () => process.getuid!();
 
 // A supplied budget is a duration, not a classification or approval. Bound it
 // only by Node's timer range, so an overflowing timer cannot fire immediately.
-export function durationSeconds(value, name = 'timeout-seconds') {
+export function durationSeconds(value: unknown, name = 'timeout-seconds') {
   const seconds = Number(value);
   if (!/^(?:\d+)(?:\.\d+)?$/u.test(String(value)) || !Number.isFinite(seconds) ||
       seconds <= 0 || seconds * 1000 > 2147483647) {
@@ -21,7 +39,7 @@ export function durationSeconds(value, name = 'timeout-seconds') {
   return seconds;
 }
 
-export function checkBudget(explicit, minutes) {
+export function checkBudget(explicit: unknown, minutes: unknown) {
   if (explicit !== undefined) return durationSeconds(explicit);
   if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes <= 0) {
     throw new Error('No workflow timeout is available; supply --timeout-seconds explicitly');
@@ -34,10 +52,10 @@ export function lockDirectory(home = homedir()) {
   const paths = [root, join(root, '.cache'), join(root, '.cache', 'actql'),
     join(root, '.cache', 'actql', 'local-checks'),
     join(root, '.cache', 'actql', 'local-checks', digest(hostname()).slice(0, 16))];
-  const identities = [];
+  const identities: Stats[] = [];
   for (const [index, path] of paths.entries()) {
     if (index > 0) {
-      try { mkdirSync(path); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+      try { mkdirSync(path); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error; }
     }
     const stat = lstatSync(path);
     if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== uid()) {
@@ -50,10 +68,10 @@ export function lockDirectory(home = homedir()) {
     if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== uid() ||
         !same(stat, identities[index])) throw new Error(`Local check state ownership changed: ${path}`);
   });
-  return {path: paths.at(-1), check};
+  return {path: paths.at(-1)!, check};
 }
 
-function readLock(path) {
+function readLock(path: string) {
   // O_NOFOLLOW alone still blocks while opening a FIFO, before fstat or the
   // supervisor's execution timer can run. Never wait on an unowned object.
   const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
@@ -67,22 +85,22 @@ function readLock(path) {
     let length = 0, count;
     while (length < bytes.length && (count = readSync(fd, bytes, length, bytes.length - length, null))) length += count;
     if (length > 16384) throw new Error('Lock ownership or metadata is ambiguous');
-    return {stat, owner: JSON.parse(bytes.subarray(0, length).toString('utf8'))};
+    return {stat, owner: JSON.parse(bytes.subarray(0, length).toString('utf8')) as LockOwner};
   } finally { closeSync(fd); }
 }
 
-export function lockOwnerStatus(owner) {
+export function lockOwnerStatus(owner: Partial<LockOwner> | null | undefined) {
   if (owner?.host !== hostname() || owner?.uid !== uid() ||
-      !Number.isSafeInteger(owner?.pid) || owner.pid <= 0) return 'unknown';
-  try { process.kill(owner.pid, 0); return 'PID present (identity may have changed)'; }
-  catch (error) { return error.code === 'ESRCH' ? 'PID absent (children may remain)' : 'unknown'; }
+      !Number.isSafeInteger(owner?.pid) || owner.pid! <= 0) return 'unknown';
+  try { process.kill(owner.pid!, 0); return 'PID present (identity may have changed)'; }
+  catch (error) { return (error as NodeJS.ErrnoException).code === 'ESRCH' ? 'PID absent (children may remain)' : 'unknown'; }
 }
 
 const poolVersion = 'actql-local-heavy-pool/1';
 export const maximumHeavyJobs = 4;
 const mib = 1024 * 1024;
 
-export function heavyResourceRequest(value = {}) {
+export function heavyResourceRequest(value: Partial<Resources> = {}) {
   if (value === null || typeof value !== 'object' || Array.isArray(value) ||
       Object.keys(value).some(key => !['memoryBytes', 'diskBytes', 'cpuThreads'].includes(key))) {
     throw new Error('Invalid heavy verification resource request');
@@ -97,44 +115,45 @@ export function heavyResourceRequest(value = {}) {
 // These are cooperative verification reservations, not product limits or OS quotas.
 // Current memory availability already reflects running jobs. Check the next
 // job against that measurement, and all estimates against physical memory.
-export function heavyResourceAdmission(request, members, available) {
+export function heavyResourceAdmission(request: Partial<Resources> | undefined,
+  members: readonly Partial<Resources>[], available: Headroom) {
   request = heavyResourceRequest(request);
   const reserved = {memoryBytes: 0, diskBytes: 0, cpuThreads: 0};
   for (const member of members) {
     const resources = heavyResourceRequest(member);
-    for (const key of Object.keys(reserved)) reserved[key] += resources[key];
+    for (const key of Object.keys(reserved) as (keyof Resources)[]) reserved[key] += resources[key];
   }
-  if (Object.keys(reserved).some(key => !Number.isSafeInteger(reserved[key]) ||
+  if ((Object.keys(reserved) as (keyof Resources)[]).some(key => !Number.isSafeInteger(reserved[key]) ||
       !Number.isSafeInteger(available?.[key]) || available[key] < 0) ||
       !Number.isSafeInteger(available.totalMemoryBytes) || available.totalMemoryBytes < 0) {
     throw new Error('Invalid heavy verification headroom');
   }
-  const required = {memoryBytes: request.memoryBytes + 256 * mib,
-    diskBytes: reserved.diskBytes + request.diskBytes + 128 * mib,
-    cpuThreads: reserved.cpuThreads + request.cpuThreads};
+  const required = {memoryBytes: request.memoryBytes! + 256 * mib,
+    diskBytes: reserved.diskBytes + request.diskBytes! + 128 * mib,
+    cpuThreads: reserved.cpuThreads + request.cpuThreads!};
   const memoryPoolRequiredBytes = reserved.memoryBytes + required.memoryBytes;
   return {admitted: members.length < maximumHeavyJobs &&
     memoryPoolRequiredBytes <= available.totalMemoryBytes &&
-    Object.keys(required).every(key => required[key] <= available[key]),
-  limit: maximumHeavyJobs, request, reserved, required, memoryPoolRequiredBytes, available};
+    (Object.keys(required) as (keyof Resources)[]).every(key => required[key] <= available[key]),
+  limit: maximumHeavyJobs, request: request as Resources, reserved, required, memoryPoolRequiredBytes, available};
 }
 
-export function availableVerificationMemory(platform, text, total) {
+export function availableVerificationMemory(platform: string, text: string, total: number) {
   if (platform === 'linux') {
     const match = /^MemAvailable:\s+(\d+) kB$/mu.exec(text);
     const bytes = match && Number(match[1]) * 1024;
-    if (Number.isSafeInteger(bytes) && bytes >= 0) return bytes;
+    if (Number.isSafeInteger(bytes) && bytes! >= 0) return bytes!;
   } else if (platform === 'darwin') {
     const match = /^System-wide memory free percentage: (\d+)%$/mu.exec(text);
     const percentage = match && Number(match[1]);
-    if (match && percentage <= 100 && Number.isSafeInteger(total) && total > 0) {
-      return Math.floor(total * percentage / 100);
+    if (match && percentage! <= 100 && Number.isSafeInteger(total) && total > 0) {
+      return Math.floor(total * percentage! / 100);
     }
   }
   throw new Error('Available verification memory could not be measured');
 }
 
-function verificationHeadroom(root) {
+function verificationHeadroom(root: string) {
   const disk = statfsSync(root, {bigint: true});
   const bytes = disk.bavail * disk.bsize;
   const memory = process.platform === 'darwin'
@@ -148,7 +167,7 @@ function verificationHeadroom(root) {
     diskBytes: Number(bytes > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : bytes)};
 }
 
-function busyLock(path) {
+function busyLock(path: string) {
   let detail = 'unreadable or incomplete owner metadata';
   try {
     const {owner} = readLock(path);
@@ -159,12 +178,12 @@ function busyLock(path) {
     'No automatic stale-lock removal. Inspect this owner and its processes before manual recovery.');
 }
 
-function newLock(path, owner, directory) {
+function newLock(path: string, owner: LockOwner, directory: LockDirectory) {
   directory.check();
   let fd;
   try { fd = openSync(path, constants.O_WRONLY | constants.O_CREAT |
     constants.O_EXCL | constants.O_NOFOLLOW, 0o600); }
-  catch (error) { if (error.code === 'EEXIST') throw busyLock(path); throw error; }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw busyLock(path); throw error; }
   try {
     const stat = fstatSync(fd);
     writeFileSync(fd, JSON.stringify(owner) + '\n');
@@ -172,7 +191,7 @@ function newLock(path, owner, directory) {
   } finally { closeSync(fd); }
 }
 
-function checkedLock(item, token, directory) {
+function checkedLock(item: HeldLock, token: string, directory: LockDirectory) {
   directory.check();
   const current = readLock(item.path);
   if (!same(current.stat, item.stat) || !same(lstatSync(item.path), item.stat) ||
@@ -182,19 +201,19 @@ function checkedLock(item, token, directory) {
   return current;
 }
 
-function removeLock(item, token, directory) {
+function removeLock(item: HeldLock, token: string, directory: LockDirectory) {
   checkedLock(item, token, directory);
   unlinkSync(item.path);
 }
 
-function withPoolAdmission(directory, owner, use) {
+function withPoolAdmission<T>(directory: LockDirectory, owner: LockOwner, use: () => T): T {
   const path = join(directory.path, 'heavy-pool-admission.lock');
   const deadline = process.hrtime.bigint() + 1_000_000_000n;
   let mutex;
   while (!mutex) {
     try { mutex = newLock(path, owner, directory); }
     catch (error) {
-      if (error.message.startsWith('Local check lock busy:') && process.hrtime.bigint() < deadline) {
+      if ((error as Error).message.startsWith('Local check lock busy:') && process.hrtime.bigint() < deadline) {
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
       } else throw error;
     }
@@ -203,8 +222,8 @@ function withPoolAdmission(directory, owner, use) {
   finally { removeLock(mutex, owner.token, directory); }
 }
 
-function poolMembers(directory, poolToken) {
-  const members = [];
+function poolMembers(directory: LockDirectory, poolToken: string) {
+  const members: PoolMember[] = [];
   const known = new Set([1, 2, 3, 4].map(slot => `heavy-slot-${slot}.lock`));
   for (const name of readdirSync(directory.path)) {
     if (name.startsWith('heavy-slot-') && !known.has(name)) throw busyLock(join(directory.path, name));
@@ -213,7 +232,7 @@ function poolMembers(directory, poolToken) {
     const path = join(directory.path, `heavy-slot-${slot}.lock`);
     let member;
     try { member = readLock(path); }
-    catch (error) { if (error.code === 'ENOENT') continue; throw busyLock(path); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue; throw busyLock(path); }
     const pool = member.owner.heavyPool;
     if (pool?.version !== poolVersion || pool.token !== poolToken || pool.slot !== slot ||
         member.owner.uid !== uid() || member.owner.host !== hostname() ||
@@ -227,28 +246,29 @@ function poolMembers(directory, poolToken) {
     heavyResourceRequest(pool.resources);
     // A reservation remains bound to the original exclusive worktree Owner.
     // Missing or replaced custody is not available capacity, even with a valid pool token.
-    let worktree;
+    let worktree: ReturnType<typeof readLock>;
     try {
       worktree = readLock(join(directory.path, `worktree-${digest(member.owner.worktree)}.lock`));
-      if (['token', 'pid', 'uid', 'host', 'worktree'].some(key =>
+      if ((['token', 'pid', 'uid', 'host', 'worktree'] as const).some(key =>
         worktree.owner?.[key] !== member.owner[key])) throw new Error('Heavy member worktree Owner changed');
     } catch { throw busyLock(path); }
-    members.push({...member, path});
+    members.push({...member, path} as PoolMember);
   }
   return members;
 }
 
-function acquireHeavyReservation(root, owner, directory, resources) {
+function acquireHeavyReservation(root: string, owner: LockOwner, directory: LockDirectory,
+  resources: Partial<Resources> | undefined) {
   return withPoolAdmission(directory, owner, () => {
     const path = join(directory.path, 'heavy.lock');
-    let barrier, created = false;
+    let barrier: HeldLock & {owner: LockOwner}, created = false;
     try { barrier = {...readLock(path), path}; }
     catch (error) {
-      if (error.code !== 'ENOENT') throw busyLock(path);
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw busyLock(path);
       // Retained slots without their barrier are ambiguous, not free capacity.
       for (let slot = 1; slot <= maximumHeavyJobs; slot++) {
         try { lstatSync(join(directory.path, `heavy-slot-${slot}.lock`)); }
-        catch (missing) { if (missing.code === 'ENOENT') continue; throw missing; }
+        catch (missing) { if ((missing as NodeJS.ErrnoException).code === 'ENOENT') continue; throw missing; }
         throw new Error('Heavy reservation exists without its legacy barrier; inspect ownership');
       }
       const token = randomUUID();
@@ -282,12 +302,12 @@ function acquireHeavyReservation(root, owner, directory, resources) {
               current.owner.heavyPool.token !== pool.token) {
             throw new Error('Refusing to remove a changed heavy compatibility barrier');
           }
-          checkedLock(reservation, owner.token, directory);
+          checkedLock(reservation!, owner.token, directory);
           const members = poolMembers(directory, pool.token);
-          if (!members.some(member => same(member.stat, reservation.stat))) {
+          if (!members.some(member => same(member.stat, reservation!.stat))) {
             throw new Error('Heavy reservation membership changed');
           }
-          removeLock(reservation, owner.token, directory);
+          removeLock(reservation!, owner.token, directory);
           if (members.length === 1) removeLock(barrier, barrier.owner.token, directory);
         });
       }};
@@ -298,18 +318,19 @@ function acquireHeavyReservation(root, owner, directory, resources) {
   });
 }
 
-export function acquireLocalLocks({root, heavy, heavyResources, directory = lockDirectory(), evidence}) {
+export function acquireLocalLocks({root, heavy, heavyResources, directory = lockDirectory(), evidence}:
+  Pick<LocalCheckParameters, 'root' | 'heavy' | 'heavyResources'> & {directory?: LockDirectory; evidence?: string}) {
   const worktree = realpathSync(root);
   const owner = {token: randomUUID(), pid: process.pid, uid: uid(), host: hostname(),
     worktree, startedAt: new Date().toISOString(), evidence};
   const paths = [join(directory.path, `worktree-${digest(worktree)}.lock`)];
-  const held = [];
-  let shared;
+  const held: HeldLock[] = [];
+  let shared: ReturnType<typeof acquireHeavyReservation> | undefined;
   const release = () => {
     // Preserve the original worktree identity refusal before changing shared custody.
     for (const item of held) {
       try { checkedLock(item, owner.token, directory); }
-      catch (error) { if (error.code === 'ENOENT') throw busyLock(item.path); throw error; }
+      catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw busyLock(item.path); throw error; }
     }
     if (shared) { shared.release(); shared = undefined; }
     for (const item of [...held].reverse()) {
@@ -328,21 +349,21 @@ export function acquireLocalLocks({root, heavy, heavyResources, directory = lock
     }
     return {owner, paths, release, heavyAdmission: shared?.admission};
   } catch (error) {
-    try { release(); } catch (cleanup) { error.message += `\n${cleanup.message}`; }
+    try { release(); } catch (cleanup) { (error as Error).message += `\n${(cleanup as Error).message}`; }
     throw error;
   }
 }
 
 // The supervisor owns the new process group and its locks, including when the
 // caller is killed. IPC disconnect requests cancellation; there is no PID poll.
-export function runLocalCheck(config, {signal} = {}) {
+export function runLocalCheck(config: LocalCheckParameters, {signal}: {signal?: AbortSignal} = {}) {
   if (signal?.aborted) return Promise.resolve(130);
-  return new Promise((resolve, reject) => {
+  return new Promise<number>((resolve, reject) => {
     const child = fork(new URL('./local-checks-supervisor.mjs', import.meta.url), [], {
       cwd: config.root, detached: true, execArgv: [], stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
     });
-    let terminalStatus;
-    child.on('message', message => {
+    let terminalStatus: number | undefined;
+    child.on('message', (message: {terminalStatus?: number}) => {
       if (Number.isInteger(message.terminalStatus)) terminalStatus = message.terminalStatus;
     });
     const cancel = () => {

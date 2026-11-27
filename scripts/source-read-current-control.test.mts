@@ -26,25 +26,30 @@ test('Source owner covers the exact current module and every operation', async (
   const {createHash} = await import('node:crypto');
   const {moonOperations} = await import('./moon-interface-inventory.mjs');
   const {assertInterfaceCoverage} = await import('./interface-inventory.mjs');
+  type Declaration = Parameters<typeof assertInterfaceCoverage>[0]['declarations'][number] &
+    {responsibilityFacet?: string};
   const module = 'src/client_local_host/installed_source_read.mbt';
   const source = readFileSync(new URL('../' + module, import.meta.url));
   // Validate both existing owners independently: merging their declarations
   // must not hide a stale hash in one behind the other's current operation.
   for (const path of ['src/client_local_host/ordered-direct-inputs-interface-boundaries.json',
     'scripts/interface-owners/core-functional/interface-boundaries.json']) {
-    const inventory = JSON.parse(readFileSync(new URL('../' + path, import.meta.url)));
+    const inventory: {declarations: Declaration[]} =
+      JSON.parse(readFileSync(new URL('../' + path, import.meta.url), 'utf8'));
     const declaration = inventory.declarations.find(value => value.module === module);
-    assert.equal(declaration.responsibilityFacet, 'primary');
+    assert.equal(declaration!.responsibilityFacet, 'primary');
     assertInterfaceCoverage({root: new URL('../', import.meta.url).pathname,
       modules: [{module, sha256: createHash('sha256').update(source).digest('hex'),
         exports: [], operations: moonOperations(source.toString())}],
-      declarations: [declaration]});
+      declarations: [declaration!]});
   }
 });
 
 test('hosted lint runs the Source current controls for code profiles without weakening failure handling', async () => {
   const {parse} = await import('yaml');
-  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  type WorkflowStep = {name?: string; run?: string; if?: string; 'continue-on-error'?: unknown};
+  const workflow: {jobs: {lint: {steps: WorkflowStep[]}}} =
+    parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const step = workflow.jobs.lint.steps.find(value => value.name === 'Test original Source current control ownership');
   assert(step);
   assert.equal(step.run, 'node --test scripts/source-read-current-control.test.mjs');

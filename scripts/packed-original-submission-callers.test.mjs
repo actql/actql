@@ -478,7 +478,12 @@ test('packed acquisition inspection consumes the original SDK outcome and existi
   assert.notDeepEqual(original.submissionRef, f.sdk.getSubmissionInput(f.execution).submissionRef);
   const imports = nodes(tree, node => node.type === 'VariableDeclarator' && node.id.name === 'installedControl');
   assert.equal(imports.length, 1);
-  const installedUrl = imports[0].init.argument.source;
+  const installedModule = imports[0].init.argument;
+  assert.equal(installedModule.type, 'ImportExpression');
+  const installedSpecifier = installedModule.source;
+  assert.equal(installedSpecifier.type, 'MemberExpression');
+  assert.equal(installedSpecifier.property.name, 'href');
+  const installedUrl = installedSpecifier.object;
   assert.equal(installedUrl.callee.name, 'pathToFileURL');
   const installedPath = installedUrl.arguments[0];
   assert.equal(installedPath.callee.name, 'join');

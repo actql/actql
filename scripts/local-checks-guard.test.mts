@@ -1,26 +1,48 @@
 import assert from 'node:assert/strict';
-import {spawn, spawnSync} from 'node:child_process';
+import {spawn, spawnSync, type ChildProcessByStdio} from 'node:child_process';
 import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
   realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {availableParallelism, hostname, tmpdir} from 'node:os';
 import {join} from 'node:path';
-import test from 'node:test';
+import type {Readable} from 'node:stream';
+import test, {type TestContext} from 'node:test';
 import {acquireLocalLocks, checkBudget, durationSeconds, lockDirectory,
   availableVerificationMemory, heavyResourceAdmission, heavyResourceRequest,
   lockOwnerStatus, runLocalCheck} from './local-checks-guard.mjs';
 
+type Outcome = {code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string};
+type Caller = {child: ChildProcessByStdio<null, Readable, Readable>; done: Promise<Outcome>};
+type GuardOptions = Parameters<typeof runLocalCheck>[0];
+type GuardLock = ReturnType<typeof acquireLocalLocks>;
+type TestOutcome = TestContext & {passed?: boolean; error?: Error};
+type Fixture = ReturnType<typeof fixture>;
+type StreamMode = 'drain' | 'stall' | 'closed';
+type PipeOptions = {exitCode?: number; failEvidence?: boolean; stdout?: StreamMode; stderr?: StreamMode;
+  cancellation?: 'caller' | 'timeout'; outputBytes?: number; failFinalEvidence?: boolean; cancelBeforeReady?: boolean;
+  delayGroupInspection?: boolean; failExitEvidence?: boolean};
+type EvidenceSummary = {
+  status: string; owner: GuardLock['owner']; exitCode: number; locks: GuardLock['paths'];
+  heavyAdmission: NonNullable<GuardLock['heavyAdmission']>;
+  outputComplete: boolean; callerOutputComplete: boolean; complete: boolean; locksReleased: boolean;
+  steps: {status: string; code: number | null; signal: NodeJS.Signals | null; streamsComplete: boolean;
+    exitedAt: string; error?: string; streamErrors: {stream: string; code: string}[]}[];
+  errors: {stage: string; code: string}[];
+};
+type PipeTrace = {event: string; pid: number; parentPid: number};
+type Processes = {status: number | null; error?: string; rows: string};
+
 const tinyResources = {memoryBytes: 16 * 1024 * 1024, diskBytes: 1024 * 1024, cpuThreads: 1};
 const guard = new URL('./local-checks-guard.mjs', import.meta.url).href;
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Normal cancellation must allow a process exit, pipe EOF and the supervisor's
 // bounded ps inspection. This is fixture-only, not a production change.
 const cancellationGraceSeconds = 3;
 // These ordering tests need time to start both Node processes and observe their
 // readiness/exit records. Timeout still fires through the real production timer.
 const cancellationTimeoutSeconds = 3;
-function fixture(t) {
+function fixture(t: TestOutcome) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), 'actql-local-guard-')));
-  const runs = [];
+  const runs: Caller[] = [];
   t.after(async () => {
     // Only signal caller handles owned by this fixture. Their supervisors retain
     // responsibility for process-group cancellation and its finite TERM grace.
@@ -34,7 +56,7 @@ function fixture(t) {
       rmSync(directory, {recursive: true, force: true});
       return;
     }
-    const error = t.error?.cause ?? t.error ?? cleanupFailure?.reason;
+    const error: Error | undefined = t.error?.cause ?? t.error ?? cleanupFailure?.reason;
     writeFileSync(join(directory, 'failure.json'), JSON.stringify({
       test: t.name, error: String(error?.stack ?? error).slice(0, 16384),
       callers: outcomes.map((result, index) => {
@@ -50,14 +72,14 @@ function fixture(t) {
   }, {timeout: 30000});
   const home = join(directory, 'home'), root = join(directory, 'checkout');
   mkdirSync(home); mkdirSync(root);
-  const env = {...process.env, HOME: home};
+  const env: NodeJS.ProcessEnv = {...process.env, HOME: home};
   delete env.NODE_TEST_CONTEXT;
-  return {directory, home, root, env, runs, diagnostic: message => t.diagnostic(message)};
+  return {directory, home, root, env, runs, diagnostic: (message: string) => t.diagnostic(message)};
 }
-function steps(source) {
+function steps(source: string) {
   return [{name: 'fixture', command: process.execPath, args: ['-e', source]}];
 }
-function start(f, options = {}, extraEnv = {}) {
+function start(f: Fixture, options: Partial<GuardOptions> = {}, extraEnv: NodeJS.ProcessEnv = {}) {
   const config = {root: f.root, heavy: true, heavyResources: tinyResources, timeoutSeconds: 10, graceSeconds: cancellationGraceSeconds,
     steps: steps('console.log("fixture ran")'), ...options};
   const script = `import {runLocalCheck} from ${JSON.stringify(guard)};
@@ -67,7 +89,7 @@ function start(f, options = {}, extraEnv = {}) {
   let stdout = '', stderr = '';
   child.stdout.on('data', data => { stdout += data; });
   child.stderr.on('data', data => { stderr += data; });
-  const done = new Promise((resolve, reject) => {
+  const done = new Promise<Outcome>((resolve, reject) => {
     child.once('error', reject);
     child.once('close', (code, signal) => resolve({code, signal, stdout, stderr}));
   });
@@ -75,20 +97,20 @@ function start(f, options = {}, extraEnv = {}) {
   f.runs.push(run);
   return run;
 }
-async function until(predicate) {
+async function until(predicate: () => unknown) {
   const deadline = Date.now() + 10_000;
   while (!predicate()) {
     if (Date.now() > deadline) throw new Error('Fixture did not reach expected state');
     await sleep(20);
   }
 }
-function attempts(f, root = f.root) {
+function attempts(f: {root: string}, root = f.root) {
   const parent = join(root, '_build/local-checks/attempts');
   return existsSync(parent) ? readdirSync(parent).map(name => join(parent, name)) : [];
 }
-function summary(directory) { return JSON.parse(readFileSync(join(directory, 'summary.json'), 'utf8')); }
-function locks(f) { return readdirSync(lockDirectory(f.home).path); }
-function live(pid) {
+function summary(directory: string) { return JSON.parse(readFileSync(join(directory, 'summary.json'), 'utf8')) as EvidenceSummary; }
+function locks(f: Fixture) { return readdirSync(lockDirectory(f.home).path); }
+function live(pid: number) {
   const result = spawnSync('ps', ['-p', String(pid), '-o', 'stat='], {encoding: 'utf8'});
   return result.status === 0 && result.stdout.trim() && !result.stdout.trim().startsWith('Z');
 }
@@ -98,9 +120,9 @@ const locateEvidence = `const fs = require('fs'), path = require('path');
 
 // Node's spawn(..., stdio: 'pipe') may use socket pairs. Shell pipelines give
 // both supervisor streams actual pipes, checked by each receiver with fstat.
-function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
+function pipedRun(f: Fixture, {exitCode = 0, failEvidence = false, stdout = 'drain',
   stderr = 'drain', cancellation, outputBytes = 200000, failFinalEvidence = false,
-  cancelBeforeReady = false, delayGroupInspection = false, failExitEvidence = false} = {}) {
+  cancelBeforeReady = false, delayGroupInspection = false, failExitEvidence = false}: PipeOptions = {}) {
   const caller = join(f.directory, 'caller.mjs'), receiver = join(f.directory, 'receiver.cjs');
   const ready = join(f.directory, 'output-ready'), done = join(f.directory, 'caller-done');
   const release = join(f.directory, 'release-handler'), handlerReady = join(f.directory, 'handler-ready');
@@ -256,7 +278,7 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
     // metadata even when spawnSync did not return a normal pipeline status.
     writeFileSync(join(f.directory, 'pipe-shell.stdout'), result.stdout ?? '');
     writeFileSync(join(f.directory, 'pipe-shell.stderr'), result.stderr ?? '');
-    const trace = existsSync(lifecycle) ? readFileSync(lifecycle, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : [];
+    const trace: PipeTrace[] = existsSync(lifecycle) ? readFileSync(lifecycle, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse as (input: string) => PipeTrace) : [];
     const records = attempts(f).map(directory => {
       try {
         const record = summary(directory);
@@ -266,9 +288,9 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
           callerOutputComplete: record.callerOutputComplete,
           steps: record.steps.map(({status, code, signal, streamsComplete}) =>
             ({status, code, signal, streamsComplete})), errors: record.errors};
-      } catch (error) { return {unreadable: error.code ?? error.name}; }
+      } catch (error) { return {unreadable: (error as NodeJS.ErrnoException).code ?? (error as Error).name}; }
     });
-    const state = {shellPid: result.pid, error: result.error?.code, status: result.status, signal: result.signal,
+    const state: {processes?: Processes; [name: string]: unknown} = {shellPid: result.pid, error: (result.error as NodeJS.ErrnoException | undefined)?.code, status: result.status, signal: result.signal,
       elapsed: performance.now() - started, outputReady: existsSync(ready),
       callerDone: existsSync(done) ? readFileSync(done, 'utf8') : null,
       capturedBytes: {shellStdout: Buffer.byteLength(result.stdout ?? ''),
@@ -277,11 +299,11 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
         stderr: existsSync(err) ? readFileSync(err).length : null}, trace, records};
     const pids = [...new Set([result.pid, ...trace.map(item => item.pid),
       ...trace.map(item => item.parentPid), ...records.map(item => item.supervisorPid)]
-      .filter(pid => Number.isInteger(pid) && pid > 0))];
+      .filter(pid => Number.isInteger(pid) && pid! > 0))];
     const processes = spawnSync('ps', ['-p', pids.join(','), '-o', 'pid=',
       '-o', 'ppid=', '-o', 'pgid=', '-o', 'stat='],
     {encoding: 'utf8', timeout: 1000, maxBuffer: 16384});
-    state.processes = {status: processes.status, error: processes.error?.code,
+    state.processes = {status: processes.status, error: (processes.error as NodeJS.ErrnoException | undefined)?.code,
       rows: processes.stdout ?? ''};
     writeFileSync(join(f.directory, 'pipe-failure.json'), JSON.stringify(state, null, 2) + '\n');
     f.diagnostic(`Pipe fixture failure: ${JSON.stringify(state)}`);
@@ -290,16 +312,16 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
   assert.equal(result.signal, null);
   return {...result, elapsed: performance.now() - started,
     stdout: readFileSync(out), stderr: readFileSync(err, 'utf8'),
-    events: existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n').map(JSON.parse) : []};
+    events: existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n').map(JSON.parse as (input: string) => unknown) : []};
 }
 
-function assertFullCallerOutput(bytes) {
+function assertFullCallerOutput(bytes: Uint8Array) {
   assert.equal(bytes.length, 400000);
   assert.equal(bytes.filter(byte => byte === 111).length, 200000);
   assert.equal(bytes.filter(byte => byte === 101).length, 200000);
 }
 
-for (const [exitCode, failEvidence] of [[0, false], [7, false], [7, true]]) {
+for (const [exitCode, failEvidence] of [[0, false], [7, false], [7, true]] as const) {
   test(`real caller pipes retain full stdout and stderr for exit ${exitCode}, evidence failure ${failEvidence}`, t => {
     const f = fixture(t), result = pipedRun(f, {exitCode, failEvidence});
     assert.equal(result.status, exitCode, result.stderr.slice(-2000));
@@ -386,7 +408,7 @@ test('real caller stderr drains a late evidence-save error after the main output
 });
 
 for (const stream of ['stdout', 'stderr']) {
-  for (const mode of ['stall', 'closed']) {
+  for (const mode of ['stall', 'closed'] as const) {
     for (const exitCode of [0, 7]) {
       test(`${mode} caller ${stream} has a bounded exit and preserves command status ${exitCode}`, t => {
         const f = fixture(t), result = pipedRun(f, {exitCode, [stream]: mode});
@@ -410,7 +432,7 @@ for (const stream of ['stdout', 'stderr']) {
   }
 }
 
-for (const cancellation of ['timeout', 'caller']) {
+for (const cancellation of ['timeout', 'caller'] as const) {
   test(`closed caller stderr cannot replace first-cause ${cancellation} status`, t => {
     const f = fixture(t), result = pipedRun(f, {stderr: 'closed', cancellation});
     const expected = cancellation === 'timeout' ? 124 : 130;
@@ -500,13 +522,13 @@ test('failed fixtures retain actual evidence and reap owned callers; successful 
     {env: f.env, encoding: 'utf8', timeout: 20000});
   assert.equal(result.error, undefined);
   assert.equal(result.status, 1, result.stderr);
-  const retained = JSON.parse(readFileSync(paths));
-  t.after(() => { if (t.passed) rmSync(retained.failed, {recursive: true, force: true}); });
+  const retained = JSON.parse(readFileSync(paths) as unknown as string);
+  t.after(() => { if ((t as TestOutcome).passed) rmSync(retained.failed, {recursive: true, force: true}); });
   assert.ok(result.stdout.includes(`Failed local guard fixture retained: ${retained.failed}`));
   assert.equal(existsSync(retained.passed), false, 'successful fixture cleanup is unchanged');
   const failed = {root: join(retained.failed, 'checkout')};
   const [evidence] = attempts(failed), record = summary(evidence);
-  const failure = JSON.parse(readFileSync(join(retained.failed, 'failure.json')));
+  const failure = JSON.parse(readFileSync(join(retained.failed, 'failure.json')) as unknown as string);
   assert.match(failure.error, /intentional fixture assertion/u);
   assert.equal(record.status, 'interrupted');
   assert.equal(record.exitCode, 130);
@@ -548,7 +570,7 @@ test('unknown/stale/PID-reused owners and changed tokens are never reclaimed', t
   writeFileSync(lock.paths[0], JSON.stringify(foreign));
   assert.throws(() => lock.release(), /changed local check lock/u);
   assert.throws(() => acquireLocalLocks({root: f.root, heavy: false, directory}), /No automatic stale-lock removal/u);
-  assert.equal(JSON.parse(readFileSync(lock.paths[0])).token, 'different-owner');
+  assert.equal(JSON.parse(readFileSync(lock.paths[0]) as unknown as string).token, 'different-owner');
   assert.equal(lockOwnerStatus({...lock.owner, uid: -1}), 'unknown');
 });
 
@@ -633,7 +655,7 @@ for (const exitCode of [0, 7]) {
     assert.equal(record.locksReleased, false);
     assert.notEqual(record.status, 'passed');
     assert.equal(record.steps[0].code, exitCode);
-    assert.equal(JSON.parse(readFileSync(record.locks[0])).token, 'changed-owner');
+    assert.equal(JSON.parse(readFileSync(record.locks[0]) as unknown as string).token, 'changed-owner');
     // Refused original worktree custody must preserve the shared reservation
     // and compatibility barrier too; it cannot certify available capacity.
     assert.deepEqual(locks(f).sort(), [...record.locks,
@@ -641,9 +663,9 @@ for (const exitCode of [0, 7]) {
     assert.deepEqual(readFileSync(record.locks[1]), readFileSync(join(f.root, 'slot-lock-before.json')));
     assert.deepEqual(readFileSync(record.heavyAdmission.barrier),
       readFileSync(join(f.root, 'barrier-lock-before.json')));
-    const member = JSON.parse(readFileSync(record.locks[1]));
-    const barrier = JSON.parse(readFileSync(record.heavyAdmission.barrier));
-    for (const key of ['token', 'pid', 'uid', 'host', 'worktree']) {
+    const member = JSON.parse(readFileSync(record.locks[1]) as unknown as string);
+    const barrier = JSON.parse(readFileSync(record.heavyAdmission.barrier) as unknown as string);
+    for (const key of ['token', 'pid', 'uid', 'host', 'worktree'] as const) {
       assert.equal(member[key], record.owner[key]);
       assert.equal(barrier[key], record.owner[key]);
     }
@@ -676,7 +698,7 @@ for (const name of ['output.log', 'summary.json']) {
       const [evidence] = attempts(f), target = join(evidence, name);
       if (replacement === 'regular') assert.equal(readFileSync(target, 'utf8'), 'replacement bytes');
       if (replacement === 'fifo') assert.ok(lstatSync(target).isFIFO());
-      const record = JSON.parse(readFileSync(join(evidence, name === 'summary.json' ? 'summary.json.saved' : 'summary.json')));
+      const record = JSON.parse(readFileSync(join(evidence, name === 'summary.json' ? 'summary.json.saved' : 'summary.json')) as unknown as string);
       assert.equal(record.complete, false);
       if (name === 'output.log') assert.equal(record.exitCode, 7);
       assert.match(result.stdout, /original failure output/u);
@@ -701,7 +723,7 @@ for (const replaceParent of [false, true]) {
     assert.match(result.stderr, /EvidenceDirectoryOwnershipChanged/u);
     const parent = join(f.root, '_build/local-checks/attempts');
     const retained = replaceParent ? join(parent + '.saved', readdirSync(parent + '.saved')[0]) :
-      join(parent, readdirSync(parent).find(name => name.endsWith('.saved')));
+      join(parent, readdirSync(parent).find(name => name.endsWith('.saved'))!);
     assert.equal(summary(retained).complete, false);
     const destination = replaceParent ? join(foreign, readdirSync(foreign)[0]) : foreign;
     for (const name of ['summary.json', 'output.log']) assert.equal(readFileSync(join(destination, name), 'utf8'), 'unrelated bytes');
@@ -739,7 +761,7 @@ test('failure preserves exit status and logs, without retry, then releases locks
 
 // Hold the admitted command until the competing caller has finished. A fixed
 // sleep can end before a slow caller reaches admission and cannot prove a race.
-function heldSteps(marker, release) {
+function heldSteps(marker: string, release: string) {
   return steps(`const fs = require('fs');
     fs.writeFileSync(${JSON.stringify(marker)}, 'x');
     const timer = setInterval(() => {
@@ -759,7 +781,7 @@ test('heavy admission refuses memory, disk, CPU pressure and more than four rese
     {...available, cpuThreads: 64}).admitted, false);
   for (const value of [null, [], {unknown: 1}, {cpuThreads: 0}, {diskBytes: -1},
     {memoryBytes: 1.5}, {memoryBytes: Number.MAX_SAFE_INTEGER + 1}]) {
-    assert.throws(() => heavyResourceRequest(value), /resources|request/u);
+    assert.throws(() => heavyResourceRequest(value as never), /resources|request/u);
   }
 });
 
@@ -777,7 +799,7 @@ test('heavy admission does not subtract existing memory estimates from current a
 });
 
 test('available memory uses OS availability rather than cache-depleted raw free pages', () => {
-  assert.equal(availableVerificationMemory('linux',
+  assert.equal((availableVerificationMemory as (platform: string, text: string) => number)('linux',
     'MemTotal: 2048000 kB\nMemFree: 100 kB\nMemAvailable: 1024000 kB\n'), 1024000 * 1024);
   assert.equal(availableVerificationMemory('darwin',
     'The system has 34359738368.\nSystem-wide memory free percentage: 35%\n',
@@ -794,7 +816,7 @@ test('four real heavy supervisors coexist, refuse a fifth, and keep the legacy b
     t.skip('Four CPU reservations require four actual available CPUs; pure admission counters still run');
     return;
   }
-  const f = fixture(t), directory = lockDirectory(f.home), runs = [], markers = [], releases = [];
+  const f = fixture(t), directory = lockDirectory(f.home), runs = [], markers: string[] = [], releases = [];
   for (let index = 0; index < 4; index++) {
     const root = join(f.directory, `parallel-${index}`); mkdirSync(root);
     const marker = join(root, 'started'), release = join(root, 'release');
@@ -835,12 +857,12 @@ test('four real heavy supervisors coexist, refuse a fifth, and keep the legacy b
 test('a live legacy singleton and malformed pooled members are retained, not bypassed', t => {
   const f = fixture(t), directory = lockDirectory(f.home);
   const barrier = join(directory.path, 'heavy.lock');
-  const legacy = {token: 'legacy-live-owner', pid: process.pid, uid: process.getuid(),
+  const legacy = {token: 'legacy-live-owner', pid: process.pid, uid: process.getuid!(),
     host: hostname(), worktree: f.root};
   writeFileSync(barrier, JSON.stringify(legacy));
   assert.throws(() => acquireLocalLocks({root: f.root, heavy: true,
     heavyResources: tinyResources, directory}), /lock busy/u);
-  assert.deepEqual(JSON.parse(readFileSync(barrier)), legacy);
+  assert.deepEqual(JSON.parse(readFileSync(barrier) as unknown as string), legacy);
   rmSync(barrier); // fixture owns this inert fake lock, not a production Owner.
   const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
   const slot = lock.paths[1], original = readFileSync(slot, 'utf8');
@@ -898,7 +920,7 @@ test('pooled admission and release refuse a member whose worktree Owner token ch
 test('partial heavy admission failure releases only its new locks and preserves other members', t => {
   const f = fixture(t), directory = lockDirectory(f.home);
   assert.throws(() => acquireLocalLocks({root: f.root, heavy: true,
-    heavyResources: {cpuThreads: 0}, directory}), /positive safe integers/u);
+    heavyResources: {cpuThreads: 0} as GuardOptions['heavyResources'], directory}), /positive safe integers/u);
   assert.deepEqual(locks(f), [], 'failed first construction leaves no barrier or reservation');
   const first = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
   const original = locks(f).sort().map(name => [name, readFileSync(join(directory.path, name), 'utf8')]);
@@ -1013,7 +1035,7 @@ test('Native approval OS sampler timeout remains inside the existing owned proce
     });`;
   const result = await start(f, {timeoutSeconds: cancellationTimeoutSeconds, steps: steps(source)}).done;
   assert.notEqual(result.code, 0, 'Killing only the sampler cannot establish completion');
-  for (const pid of JSON.parse(readFileSync(pids))) assert.equal(Boolean(live(pid)), false);
+  for (const pid of JSON.parse(readFileSync(pids) as unknown as string) as number[]) assert.equal(Boolean(live(pid)), false);
   const record = summary(attempts(f)[0]);
   assert.equal(record.outputComplete, true);
   assert.equal(record.locksReleased, true);
@@ -1031,14 +1053,14 @@ test('timeout stops inherited descendants and leaves an unrelated process alive'
     console.log('before timeout');setInterval(()=>{},1000);`;
   const result = await start(f, {timeoutSeconds: cancellationTimeoutSeconds, steps: steps(source)}).done;
   assert.equal(result.code, 124, result.stderr);
-  for (const pid of JSON.parse(readFileSync(pids))) assert.equal(Boolean(live(pid)), false);
-  assert.ok(live(unrelated.pid));
+  for (const pid of JSON.parse(readFileSync(pids) as unknown as string) as number[]) assert.equal(Boolean(live(pid)), false);
+  assert.ok(live(unrelated.pid!));
   assert.equal(summary(attempts(f)[0]).status, 'timeout');
   assert.match(readFileSync(join(attempts(f)[0], 'output.log'), 'utf8'), /before timeout/u);
   assert.deepEqual(locks(f), []);
 });
 
-for (const [exitCode, resistant] of [[0, false], [7, false], [7, true]]) {
+for (const [exitCode, resistant] of [[0, false], [7, false], [7, true]] as const) {
   test(`leftover descendant cleanup preserves status ${exitCode} with TERM resistance ${resistant}`, async t => {
     const f = fixture(t), pidFile = join(f.root, 'descendant-pid');
     const descendant = `${resistant ? "process.on('SIGTERM',()=>{});" : ''}
@@ -1140,23 +1162,23 @@ for (const exitCode of [0, 7]) {
         });`;
       const run = start(f, {timeoutSeconds: cancellation === 'timeout' ? cancellationTimeoutSeconds : 10,
         graceSeconds: cancellationGraceSeconds, steps: steps(source)});
-      let pending, result;
+      let pending: EvidenceSummary | undefined, result: Outcome;
       try {
         await until(() => {
           try {
             if (attempts(f).length === 0) return false;
             pending = summary(attempts(f)[0]);
-            return pending.steps[0]?.code === exitCode;
+            return pending!.steps[0]?.code === exitCode;
           } catch (error) {
-            if (error.code === 'ENOENT' || error instanceof SyntaxError) return false;
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT' || error instanceof SyntaxError) return false;
             throw error;
           }
         });
-        assert.equal(pending.complete, false);
-        assert.equal(pending.status, exitCode ? 'failed' : 'running', 'direct exit precedes cancellation');
-        assert.equal(pending.steps[0].streamsComplete, false);
-        assert.equal(pending.steps[0].status, exitCode ? 'failed' : 'draining');
-        assert.ok(pending.steps[0].exitedAt);
+        assert.equal(pending!.complete, false);
+        assert.equal(pending!.status, exitCode ? 'failed' : 'running', 'direct exit precedes cancellation');
+        assert.equal(pending!.steps[0].streamsComplete, false);
+        assert.equal(pending!.steps[0].status, exitCode ? 'failed' : 'draining');
+        assert.ok(pending!.steps[0].exitedAt);
         assert.equal(locks(f).length, 3, 'direct exit alone must not release custody');
         if (cancellation === 'caller') run.child.kill('SIGINT');
       } finally { result = await run.done; }
@@ -1167,7 +1189,7 @@ for (const exitCode of [0, 7]) {
       assert.equal(record.exitCode, expected);
       assert.equal(record.steps[0].code, exitCode);
       assert.equal(record.steps[0].signal, null);
-      assert.deepEqual(JSON.parse(readFileSync(termObserved)), {
+      assert.deepEqual(JSON.parse(readFileSync(termObserved) as unknown as string), {
         status: cancellation === 'timeout' ? 'timeout' : 'interrupted',
         code: exitCode, streamsComplete: false,
       }, 'TERM observes an already-persisted direct exit, before inherited pipes close');
@@ -1190,7 +1212,7 @@ for (const exitCode of [0, 7]) {
   }
 }
 
-for (const cancellation of ['timeout', 'caller']) {
+for (const cancellation of ['timeout', 'caller'] as const) {
   for (const resistant of [false, true]) {
     test(`${cancellation} cancellation keeps its status when a later TERM handler exits 7, with descendant resistance ${resistant}`, async t => {
       const f = fixture(t), ready = join(f.root, 'ready');
@@ -1224,7 +1246,7 @@ for (const cancellation of ['timeout', 'caller']) {
       const record = summary(attempts(f)[0]);
       assert.equal(record.exitCode, expected);
       assert.equal(record.steps[0].code, 7, 'late direct exit remains diagnostic evidence');
-      assert.deepEqual(JSON.parse(readFileSync(termObserved)), {
+      assert.deepEqual(JSON.parse(readFileSync(termObserved) as unknown as string), {
         status: cancellation === 'timeout' ? 'timeout' : 'interrupted', code: null,
       }, 'cancellation is persisted before the TERM handler exits');
       assert.equal(record.steps[0].status, 'failed');
@@ -1236,7 +1258,7 @@ for (const cancellation of ['timeout', 'caller']) {
       assert.equal(locks(f).length, resistant ? 3 : 0);
       assert.match(record.status, cancellation === 'timeout' ? /^timeout/u : /^interrupted/u);
       if (resistant) assert.match(record.status, /SIGKILL escalation/u);
-      for (const pid of JSON.parse(readFileSync(ready))) assert.equal(Boolean(live(pid)), false);
+      for (const pid of JSON.parse(readFileSync(ready) as unknown as string) as number[]) assert.equal(Boolean(live(pid)), false);
       assert.match(readFileSync(join(attempts(f)[0], 'output.log'), 'utf8'), /TERM handler exits 7/u);
     });
   }
@@ -1311,7 +1333,7 @@ test('supervisor SIGKILL retains ownership rather than auto-clearing a stale PID
 
 test('cancelled before acquisition starts nothing and does not signal other processes', async t => {
   const f = fixture(t), abort = new AbortController(); abort.abort();
-  assert.equal(await runLocalCheck({root: f.root}, {signal: abort.signal}), 130);
+  assert.equal(await runLocalCheck({root: f.root} as GuardOptions, {signal: abort.signal}), 130);
   assert.deepEqual(readdirSync(f.home), []);
   assert.deepEqual(readdirSync(f.root), []);
 });

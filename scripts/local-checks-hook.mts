@@ -3,14 +3,24 @@
 import {readFileSync} from 'node:fs';
 import {isAbsolute, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {classifyJob, classifyMoon} from './local-checks-policy.mjs';
+import {classifyJob, classifyMoon, type LocalCheckPolicy} from './local-checks-policy.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+
+type CommandClassification =
+  | {recognized: false; classification: 'unknown'; explicitOverride?: never}
+  | {recognized: true; heavy: false; classification: 'reporting'; explicitOverride?: never}
+  | (LocalCheckPolicy & {recognized: true; explicitOverride: boolean; route: string} &
+    ({moonArgs: string[]; jobArgs?: never} | {jobArgs: string[]; moonArgs?: never}));
+type HookPayload = {hook_event_name?: unknown; tool_name?: unknown; cwd?: unknown;
+  tool_input?: {command?: unknown} | null};
+export type HookResponse = {hookSpecificOutput: {hookEventName: 'PreToolUse';
+  permissionDecision: 'deny'; permissionDecisionReason: string}};
 
 // Deliberately only one unquoted literal command. Unsupported shell syntax is
 // unclassified, not safe. In particular, never search a compound command for
 // an override flag that could belong to a different command.
-export function classifyCommand(command) {
+export function classifyCommand(command: unknown): CommandClassification {
   if (typeof command !== 'string' ||
       !/^[ \t]*[A-Za-z0-9_./:@%+=,-]+(?:[ \t]+[A-Za-z0-9_./:@%+=,-]+)*[ \t]*$/u.test(command)) {
     return {recognized: false, classification: 'unknown'};
@@ -42,7 +52,7 @@ export function classifyCommand(command) {
   const options = action === 'run' ? rest : rest.slice(0, delimiter);
   let explicitOverride = false;
   let dryRun = false;
-  const jobArgs = [];
+  const jobArgs: string[] = [];
   for (let index = 0; index < options.length; index++) {
     if (options[index] === '--allow-heavy') { explicitOverride = true; continue; }
     if (options[index] === '--dry-run' && action === 'run') { dryRun = true; continue; }
@@ -69,18 +79,19 @@ export function classifyCommand(command) {
     return {recognized: false, classification: 'unknown'};
   }
   return {recognized: true, ...policy, explicitOverride,
-    ...(dryRun ? {heavy: false, classification: 'reporting'} : {}),
+    ...(dryRun ? {heavy: false, classification: 'reporting'} as const : {}),
     route: `${action} ${subject}`,
     ...(action === 'run' ? {jobArgs} : {moonArgs: rest.slice(delimiter + 1)})};
 }
 
-function inCheckout(cwd, checkout) {
+function inCheckout(cwd: unknown, checkout: string) {
   if (typeof cwd !== 'string' || !isAbsolute(cwd)) return false;
   const path = relative(checkout, cwd);
   return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
-export function hookDecision(payload, {checkout = root} = {}) {
+export function hookDecision(input: unknown, {checkout = root} = {}) {
+  const payload = input as HookPayload | null | undefined;
   if (payload?.hook_event_name !== 'PreToolUse' || payload.tool_name !== 'Bash' ||
       !inCheckout(payload.cwd, checkout)) return null;
   const result = classifyCommand(payload.tool_input?.command);
@@ -100,7 +111,7 @@ export function hookDecision(payload, {checkout = root} = {}) {
     '--allow-heavy is deliberate friction, not user approval or a permission grant.';
 }
 
-export function runHookAdapter(moduleUrl, respond, label) {
+export function runHookAdapter(moduleUrl: string, respond: (payload: unknown) => HookResponse | null, label: string) {
   if (!process.argv[1] || resolve(process.argv[1]) !== fileURLToPath(moduleUrl)) return;
   try {
     const result = respond(JSON.parse(readFileSync(0, 'utf8')));
