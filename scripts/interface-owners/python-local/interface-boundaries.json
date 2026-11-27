@@ -82541,7 +82541,7 @@
     },
     {
       "module": "src/cmd/native_client/local_adoption.mbt",
-      "sha256": "fcf53244ea2be64c31a9bcb41224a4793fe1400a8a9d85fddced9097b15b3701",
+      "sha256": "39190f357b4d6a8dcbbc09425289847c58d3d8e7fa9fdc4de4f588a4376c3d4e",
       "exports": [],
       "operations": [
         {
@@ -92818,7 +92818,7 @@
           }
         }
       ],
-      "sha256": "b162195e6777ed29f9a7e4cfc70b5e13a531da7683cd9dda40f4f5a63419ccaa",
+      "sha256": "f3d3ce7de19f4be028f4fec17d48c9e233c1739f1c4af1c0be12f4f4d9118bf1",
       "exports": [],
       "operations": [
         {
@@ -92855,7 +92855,7 @@
         },
         {
           "name": "encode_client_run_state_original",
-          "declaration": "encode_client_run_state_original ( definition : @ publication . PublicationContract , manifest : @ publication . PublicationContract ? , state_wire : String , status : @ publication . RunOutcomeStatus , locator ? : ( String , String ) ?"
+          "declaration": "encode_client_run_state_original ( definition : @ publication . PublicationContract , manifest : @ publication . PublicationContract ? , state_wire : String , status : @ publication . RunOutcomeStatus , locator ? : ClientRunStateModelLocator ?"
         },
         {
           "name": "prepare_client_run_state_original",

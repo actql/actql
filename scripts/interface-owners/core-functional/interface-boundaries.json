@@ -110907,7 +110907,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "be24d811750aaefb1f1d4e8ea04f3c5557a36b4164c6911fbc0f4b8d5d604667",
+      "sha256": "a7272126c7b80c950464b945cadec6adeab7301217f1dd201e5db1ecd55fb8c2",
       "exports": [],
       "operations": [
         {
@@ -112415,7 +112415,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "4882465f532adc3a8f2f45b91700984f8ec07ccaed44fe5cce299f648f1b9fd9",
+      "sha256": "4634a4cbf15e60a6fa8a75b448a77ea0325089b894e94afb621f9c95009e04cd",
       "exports": [],
       "operations": [
         {
@@ -112436,7 +112436,7 @@
         },
         {
           "name": "LocalCommandBusinessPreparation::compile_effect_first",
-          "declaration": "LocalCommandBusinessPreparation : : compile_effect_first ( self : LocalCommandBusinessPreparation , scope : String , configuration_cid : String , namespace_id : String , request_id : String , now : String , until : String , request : @ run_host . ClientRequestIdentity , current_time : ( ) - > String , ) - > LocalEffectFirstCompilation raise ClientStop"
+          "declaration": "LocalCommandBusinessPreparation : : compile_effect_first ( self : LocalCommandBusinessPreparation , scope : String , configuration_cid : String , namespace_id : String , request_id : String , now : String , until : String , request : @ run_host . ClientRequestIdentity , current_time : ( ) - > String , http_installations : Array [ LocalModelHttpInstallationSettings ] ? , ) - > LocalEffectFirstCompilation raise ClientStop"
         },
         {
           "name": "LocalCommandBusinessPreparation::request_compilation",
