@@ -2511,6 +2511,189 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "packages/provider-ai-sdk/_internal/openai-responses.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "8ac11cc32fb2aec7a082d1b3a8ec2f9c6bb0f5b094c2793b8510c2404fa9822e",
+      "exports": [
+        "createLanguageModel",
+        "credentialBinding",
+        "optionNamespace",
+        "optionSchema",
+        "readReportedResponse",
+        "readReportedUsage",
+        "sdkProvider",
+        "verifyRequest"
+      ],
+      "operations": [
+        {
+          "name": "createLanguageModel",
+          "parameters": [
+            "factory",
+            "modelId",
+            "fetch",
+            "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedUsage",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "verifyRequest",
+          "parameters": [
+            "wire",
+            "options",
+            "route",
+            "providerOptions"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createLanguageModel",
+            "readReportedResponse",
+            "readReportedUsage",
+            "verifyRequest"
+          ],
+          "exports": [
+            "createLanguageModel",
+            "credentialBinding",
+            "optionNamespace",
+            "optionSchema",
+            "readReportedResponse",
+            "readReportedUsage",
+            "sdkProvider",
+            "verifyRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "export function verifyRequest"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "export function readReportedUsage"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "export function readReportedResponse"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "factory !== createOpenAI"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "route.apiMode === 'responses'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mts",
+                "anchor": "readVerifiedSdkImage"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "unboundOpenAICredential, fetch"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "prepareRegisteredSdkLanguageModel"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "SdkAdditionalRequestRefused"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "InvalidRegisteredOpenAIResponses"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "the selected Responses adapter requires no provider storage or continuation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
+                "anchor": "optionSchema"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
+                "anchor": "createAdmittedRegisteredSdkPreflight"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "a selected registered V4 factory serializes and decodes Responses through the guarded port"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./original-undici-transport.mjs",
+        "@ai-sdk/openai",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
       "sha256": "dc48f630b585e893ba143cb2241f7421631906a99799a453e82a01ef0f3e9674",
@@ -2966,7 +3149,7 @@
     {
       "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "101ff62b1251294cf58fcb5068b0da45c819878768a69281e2ddc96260acb7e3",
+      "sha256": "ed5a018c1eeb8f7dc6fd0375fa209cec4b59f18618f7b6d9f97f3ee736456541",
       "exports": [
         "ConfiguredModelProviderRegistration",
         "ModelProviderRegistration",
@@ -2985,6 +3168,7 @@
         "ProjectOpenAIChatProviderOptions",
         "ProjectionLimits",
         "QuantityCapacity",
+        "RegisteredSdkModelGeneration",
         "RegisteredSdkProviderOptions",
         "RequestLimits",
         "ResponseLimits",
@@ -3161,7 +3345,8 @@
             "createOpenAIChatProvider",
             "createProjectOpenAIChatProvider",
             "createRegisteredSdkProvider",
-            "createRegisteredSdkProviders"
+            "createRegisteredSdkProviders",
+            "RegisteredSdkModelGeneration"
           ],
           "attributes": {
             "responsibility": [
@@ -3935,7 +4120,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d277bb976c4830c95b2aeb1370cd828eb5cc4c5781cbe672edcd7598f3ad632",
+      "sha256": "1788ee5f423211f4ffdb3bb9559e438fb97111acc9286b793dd6ad4febfb6169",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider",
@@ -4118,6 +4303,14 @@
           "async": false
         },
         {
+          "name": "prepareSdkProvider/bindings/bindings/bindings",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareSdkProvider/borrow/borrow",
           "parameters": [],
           "async": false
@@ -4135,9 +4328,16 @@
           "async": false
         },
         {
-          "name": "prepareSdkProviderTasks/prepareSdkProviderTasks",
+          "name": "prepareSdkProvider/prepareSdkProvider",
           "parameters": [
-            "task"
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/registeredSdk/registeredSdk",
+          "parameters": [
+            "item"
           ],
           "async": false
         },
@@ -4155,6 +4355,13 @@
           "name": "prepareSdkProviderTasks/select/select/select",
           "parameters": [
             "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProviderTasks/selectedSdk/selectedSdk",
+          "parameters": [
+            "route"
           ],
           "async": false
         },
@@ -4201,11 +4408,14 @@
             "prepareSdkProvider/borrow/borrow",
             "prepareSdkProvider/config/config",
             "prepareSdkProvider/config/config/validQuote/validQuote/validQuote",
-            "prepareSdkProviderTasks/prepareSdkProviderTasks",
             "prepareSdkProviderTasks/profile/profile",
             "prepareSdkProviderTasks/select/select",
             "prepareSdkProviderTasks/select/select/select",
-            "requireConfigurationContext/requireConfigurationContext"
+            "requireConfigurationContext/requireConfigurationContext",
+            "prepareSdkProvider/bindings/bindings/bindings",
+            "prepareSdkProvider/prepareSdkProvider",
+            "prepareSdkProvider/registeredSdk/registeredSdk",
+            "prepareSdkProviderTasks/selectedSdk/selectedSdk"
           ],
           "exports": [
             "createOpenAIChatProvider",

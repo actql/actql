@@ -15,7 +15,8 @@ const operationInputAcceptance = 'adapters/host-node/client-operation-input-reje
 const expected = (phase, assertion = 'submission-input') => {
   if (phase === 'submission-attempt-custody') {
     return ['refused/authorization', 'refused/admission_capacity', 'refused/epoch_expired',
-      'refused/epoch_not_yet_valid', 'conflict/intent', 'conflict/restart_decision'].map(outcome => ({
+      'refused/epoch_not_yet_valid', 'refused/model_provider_selection_unavailable',
+      'conflict/intent', 'conflict/restart_decision', 'conflict/model_provider_selection'].map(outcome => ({
       name: `typed Submission ${outcome} explains only its original invocation`,
       assertions: [{id: assertion, operator: 'strictEqual'}],
     }));

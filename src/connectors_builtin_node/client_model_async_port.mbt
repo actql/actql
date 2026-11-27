@@ -156,50 +156,6 @@ pub fn client_program_observe_infer_raw_capture(
 }
 
 ///|
-// Bind only the exact original configuration, Profile and admitted Provider.
-#export_name("clientProgramBindAdmittedStructuredModelProvider")
-pub fn client_program_bind_admitted_structured_model_provider(
-  provider : @model.ModelProvider,
-  original : @model.AdmittedModelProvider,
-  binding : @publication.RunEvidenceValue,
-  configuration : String,
-  selector : String,
-  model_id : String,
-  adapter_kind : String,
-  api_mode : String,
-  profile : @check_environment.ModelResponseProfile,
-  installation : @check_environment.ModelResponseProfileInstallation,
-  adapter_supports : Bool,
-  model_supports : Bool,
-) -> Result[
-  @model.AdmittedStructuredModelProvider,
-  @model.StructuredModelCapabilityIssue,
-] {
-  match
-    @model.register_structured_model_capability(
-      provider,
-      binding,
-      configuration,
-      {
-        selector,
-        model_id,
-        adapter_kind,
-        api_mode,
-        endpoint: installation.endpoint,
-      },
-      profile,
-      adapter_supports,
-      model_supports,
-    ) {
-    Ok(capability) =>
-      @model.bind_admitted_structured_model_provider(
-        capability, original, installation,
-      )
-    Err(issue) => Err(issue)
-  }
-}
-
-///|
 // Initialization retains this exact capability before any original Request.
 #export_name("clientProgramPrepareInstalledStructuredSdkCapability")
 pub fn client_program_prepare_installed_structured_sdk_capability(
@@ -215,14 +171,12 @@ pub fn client_program_prepare_installed_structured_sdk_capability(
   @model.StructuredModelCapability,
   @model.StructuredModelCapabilityIssue,
 ] {
-  @model.register_structured_model_capability(
+  @model.register_installed_sdk_structured_model_capability(
     provider,
     binding,
     configuration,
     { selector, model_id, adapter_kind: "ai-sdk", api_mode, endpoint, },
     profile,
-    true,
-    true,
   )
 }
 
@@ -239,6 +193,18 @@ pub fn client_program_admit_installed_structured_sdk_capability(
   @model.bind_admitted_structured_model_provider(
     capability, original, installation,
   )
+}
+
+///|
+#export_name("clientProgramInstalledStructuredSdkSupportRefusal")
+pub fn client_program_installed_structured_sdk_support_refusal(
+  issue : @model.StructuredModelCapabilityIssue,
+) -> String? {
+  match issue {
+    UnsupportedAdapter => Some("InstalledModelStructuredAdapterUnsupported")
+    UnsupportedModel => Some("InstalledModelStructuredModelUnsupported")
+    _ => None
+  }
 }
 
 ///|

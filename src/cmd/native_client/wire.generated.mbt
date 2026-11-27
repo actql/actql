@@ -10630,7 +10630,8 @@ fn wire_rule_957(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "admission_capacity" ||
     text == "epoch_expired" ||
-    text == "epoch_not_yet_valid") {
+    text == "epoch_not_yet_valid" ||
+    text == "model_provider_selection_unavailable") {
     return false
   }
   true
@@ -10712,7 +10713,9 @@ fn wire_rule_959(value : Json) -> Bool {
 ///|
 fn wire_rule_963(value : Json) -> Bool {
   guard value is String(text) else { return false }
-  if !(text == "intent" || text == "restart_decision") {
+  if !(text == "intent" ||
+    text == "restart_decision" ||
+    text == "model_provider_selection") {
     return false
   }
   true

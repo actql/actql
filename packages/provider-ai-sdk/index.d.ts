@@ -80,12 +80,20 @@ export type ProjectOpenAIChatProviderOptions = Omit<OpenAIChatProviderOptions,
 export declare function createProjectOpenAIChatProvider(
   options: ProjectOpenAIChatProviderOptions,
 ): ConfiguredModelProviderRegistration;
+/** Trusted generation settings for one admitted SDK route. The checked Task
+ * may set max_output_tokens up to taskMaxOutputTokens. */
+export type RegisteredSdkModelGeneration = OpenAIChatProviderOptions['generation'] & Readonly<{
+  selector: string;
+  taskMaxOutputTokens: number;
+}>;
 /** Select a provider from the Host's independently admitted SDK registrations.
  * The registered route supplies its model, endpoint and credential reference. */
 export type RegisteredSdkProviderOptions = Pick<OpenAIChatProviderOptions,
   'providerId' | 'generation' | 'budget' | 'observeEgress' | 'maxSecretBytes'> & Readonly<{
   /** Original request_data_handling contract, checked by the same Common owner. */
   dataHandlingContractWire: string;
+  /** Frozen per-route settings. Omitted routes use the Provider's defaults. */
+  modelGeneration?: readonly RegisteredSdkModelGeneration[];
   transportTimeouts: PhysicalTransportTimeouts & Readonly<{callMs: number}>;
 }>;
 export declare function createRegisteredSdkProvider(

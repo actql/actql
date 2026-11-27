@@ -12,6 +12,7 @@ import {createGoogle} from '@ai-sdk/google';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
 import * as anthropic from './_internal/anthropic-messages.mjs';
 import * as google from './_internal/google-generate-content.mjs';
+import * as responses from './_internal/openai-responses.mjs';
 import {interceptSdkRequest, prepareRegisteredSdkLanguageModel, pollSdkPreparation, sdkPreparedRequest,
   deliverSdkResponse, pollSdkDecode, takeSdkDecodedResult,
   cancelSdkPreparation, cleanupSdkPreparation} from './_internal/intercepted-request.mjs';
@@ -171,12 +172,18 @@ test('the same suspended real SDK invocation decodes one supplied response witho
     {code: 'SdkDecodedResultUnavailable'});
 });
 
-const responsesBase = 'https://fixture.invalid/v1';
+const responsesBase = 'https://api.openai.com/v1';
 const responsesEndpoint = responsesBase + '/responses';
-const responsesModel = 'fixture-model';
+const responsesModel = 'gpt-4.1-mini';
 const responsesAdmission = Object.freeze({});
-const responsesRequest = {model: responsesModel, max_output_tokens: 16,
-  input: [{role: 'user', content: [{type: 'input_text', text}]}],
+const responsesRoute = {modelId: responsesModel, apiMode: 'responses', endpoint: responsesEndpoint};
+const responsesProviderOptions = {openai: {store: false, strictJsonSchema: true}};
+const responsesOptions: RegisteredOptions = {prompt: [{role: 'system', content: 'Return the assessment.'},
+  {role: 'user', content: [{type: 'text', text}]}], maxOutputTokens: 16, temperature: 0,
+  providerOptions: responsesProviderOptions, responseFormat: {type: 'json', schema, name: 'assessment'}};
+const responsesRequest = {model: responsesModel, max_output_tokens: 16, temperature: 0, store: false,
+  input: [{role: 'system', content: 'Return the assessment.'},
+    {role: 'user', content: [{type: 'input_text', text}]}],
   text: {format: {type: 'json_schema', name: 'assessment', schema, strict: true}}};
 
 function registeredResponses(overrides: Partial<Parameters<typeof prepareRegisteredSdkLanguageModel>[0]> = {}) {
@@ -187,11 +194,10 @@ function registeredResponses(overrides: Partial<Parameters<typeof prepareRegiste
       return isDeepStrictEqual(route, [responsesAdmission, 'fixture-alias',
         responsesModel, 'responses', responsesEndpoint]);
     }},
-    createLanguageModel: (fetch: typeof globalThis.fetch) => createOpenAI({baseURL: responsesBase,
-      apiKey: 'fixture-only', fetch}).responses(responsesModel),
-    options: {prompt: [{role: 'user', content: [{type: 'text', text}]}],
-      maxOutputTokens: 16, responseFormat: {type: 'json', schema, name: 'assessment'}},
-    verifyRequest: (wire: string) => isDeepStrictEqual(JSON.parse(wire), responsesRequest),
+    createLanguageModel: (fetch: typeof globalThis.fetch) =>
+      responses.createLanguageModel(createOpenAI, responsesModel, fetch, responsesRoute),
+    options: responsesOptions,
+    verifyRequest: (wire: string) => responses.verifyRequest(wire, responsesOptions, responsesRoute, responsesProviderOptions),
     maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16, notify() {},
     ...overrides});
 }
@@ -215,6 +221,31 @@ test('a selected registered V4 factory serializes and decodes Responses through 
     {type: 'text', text: '{"assessment":"ok"}',
       providerMetadata: {openai: {itemId: 'fixture-message'}}},
   ]);
+  assert.deepEqual(responses.readReportedUsage(raw), {inputTokens: 3n, outputTokens: 4n});
+  assert.equal(responses.readReportedResponse(raw)?.outcome, 'stop');
+  assert.equal(responses.readReportedResponse({...raw, status: 'in_progress'})?.outcome, 'other');
+  assert.equal(responses.readReportedResponse({...raw, output: [raw.output[0], raw.output[0]]})?.outcome, 'other');
+  assert.deepEqual(responses.readReportedUsage({usage: {input_tokens: 0}}), {inputTokens: 0n, outputTokens: undefined});
+  assert.equal(responses.readReportedUsage({}), undefined);
+  for (const [reason, outcome] of [['max_output_tokens', 'length'], ['content_filter', 'content-filter']]) {
+    assert.deepEqual(responses.readReportedResponse({...raw, status: 'incomplete', incomplete_details: {reason}}),
+      {model: responsesModel, requestId: raw.id, finishReason: reason, outcome});
+  }
+  assert.equal(responses.readReportedResponse({...raw, output: [{type: 'message', role: 'assistant',
+    content: [{type: 'refusal', refusal: 'Fixture refusal'}]}]})?.outcome, 'refusal');
+  assert.equal(responses.readReportedResponse({...raw, output: [{type: 'message', role: 'assistant',
+    content: [{type: 'refusal', refusal: false}]}]})?.outcome, 'other');
+});
+
+test('the selected Responses adapter requires no provider storage or continuation', () => {
+  assert.equal(responses.verifyRequest(JSON.stringify(responsesRequest), responsesOptions, responsesRoute, {}), false);
+  assert.equal(responses.verifyRequest(JSON.stringify(responsesRequest), {...responsesOptions, seed: 1},
+    responsesRoute, responsesProviderOptions), false);
+  for (const extra of [{store: true}, {store: undefined}, {previous_response_id: 'foreign'},
+    {tools: [{type: 'web_search'}]}]) {
+    assert.equal(responses.verifyRequest(JSON.stringify({...responsesRequest, ...extra}), responsesOptions,
+      responsesRoute, responsesProviderOptions), false);
+  }
 });
 
 test('a foreign registered route or missing request verifier refuses before the factory', () => {

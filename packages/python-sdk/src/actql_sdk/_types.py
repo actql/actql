@@ -498,7 +498,7 @@ SubmissionAttempt2SubmissionRefEpoch = TypedDict("SubmissionAttempt2SubmissionRe
 
 SubmissionAttempt2SubmissionRef = TypedDict("SubmissionAttempt2SubmissionRef", {"epoch": Required["SubmissionAttempt2SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
 
-SubmissionAttempt2 = TypedDict("SubmissionAttempt2", {"kind": Required["Literal[\"refused\"]"], "attemptRef": Required["SubmissionAttempt2AttemptRef"], "submissionRef": Required["SubmissionAttempt2SubmissionRef"], "intentCid": Required["str"], "guarantee": Required["Literal[\"attempt_uncommitted_unconsumed\"]"], "reason": Required["Literal[\"admission_capacity\", \"epoch_expired\", \"epoch_not_yet_valid\"]"]}, total=False)
+SubmissionAttempt2 = TypedDict("SubmissionAttempt2", {"kind": Required["Literal[\"refused\"]"], "attemptRef": Required["SubmissionAttempt2AttemptRef"], "submissionRef": Required["SubmissionAttempt2SubmissionRef"], "intentCid": Required["str"], "guarantee": Required["Literal[\"attempt_uncommitted_unconsumed\"]"], "reason": Required["Literal[\"admission_capacity\", \"epoch_expired\", \"epoch_not_yet_valid\", \"model_provider_selection_unavailable\"]"]}, total=False)
 
 SubmissionAttempt3AttemptRef = TypedDict("SubmissionAttempt3AttemptRef", {"operation": Required["Literal[\"submit\"]"], "attemptId": Required["str"]}, total=False)
 
@@ -506,7 +506,7 @@ SubmissionAttempt3SubmissionRefEpoch = TypedDict("SubmissionAttempt3SubmissionRe
 
 SubmissionAttempt3SubmissionRef = TypedDict("SubmissionAttempt3SubmissionRef", {"epoch": Required["SubmissionAttempt3SubmissionRefEpoch"], "nonce": Required["str"]}, total=False)
 
-SubmissionAttempt3 = TypedDict("SubmissionAttempt3", {"kind": Required["Literal[\"conflict\"]"], "attemptRef": Required["SubmissionAttempt3AttemptRef"], "submissionRef": Required["SubmissionAttempt3SubmissionRef"], "intentCid": Required["str"], "reason": Required["Literal[\"intent\", \"restart_decision\"]"]}, total=False)
+SubmissionAttempt3 = TypedDict("SubmissionAttempt3", {"kind": Required["Literal[\"conflict\"]"], "attemptRef": Required["SubmissionAttempt3AttemptRef"], "submissionRef": Required["SubmissionAttempt3SubmissionRef"], "intentCid": Required["str"], "reason": Required["Literal[\"intent\", \"restart_decision\", \"model_provider_selection\"]"]}, total=False)
 
 SubmissionAttempt = SubmissionAttempt0 | SubmissionAttempt1 | SubmissionAttempt2 | SubmissionAttempt3
 

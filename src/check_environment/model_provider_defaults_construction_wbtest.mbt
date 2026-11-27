@@ -47,7 +47,7 @@ test "default resolution constructor inventory preserves source kinds and visit 
     Some(200L),
   )
   // Independent source census: one resolution, one copied generation, one
-  // three-Int scratch Array per visit, one work cell, six issue/Err sites, Ok.
+  // three-Int scratch Array per visit, one work cell, seven issue/Err sites, Ok.
   assert_eq(inventory, {
     resolved_records: 1L,
     generation_copies: 1L,
@@ -55,14 +55,14 @@ test "default resolution constructor inventory preserves source kinds and visit 
     comparison_items: 3L,
     comparison_array_constructions: 2L,
     work_cells: 1L,
-    issue_tags: 6L,
-    error_results: 6L,
+    issue_tags: 7L,
+    error_results: 7L,
     success_results: 1L,
   })
   assert_eq(resolution_inventory_extent(inventory), {
-    record_headers: 19L,
-    reference_slots: 13L,
-    scalar_words: 41L,
+    record_headers: 21L,
+    reference_slots: 14L,
+    scalar_words: 43L,
   })
   let borrowed = model_provider_defaults_resolution_construction_inventory(
     original,
@@ -70,9 +70,9 @@ test "default resolution constructor inventory preserves source kinds and visit 
   )
   assert_eq(borrowed, { ..inventory, generation_copies: 0L, })
   assert_eq(resolution_inventory_extent(borrowed), {
-    record_headers: 18L,
-    reference_slots: 12L,
-    scalar_words: 38L,
+    record_headers: 20L,
+    reference_slots: 13L,
+    scalar_words: 40L,
   })
   assert_eq(
     model_provider_defaults_resolution_retained_extent(original, Some(200L)),
@@ -114,14 +114,14 @@ test "default resolution constructor inventory keeps empty profile refusals with
     comparison_items: 0L,
     comparison_array_constructions: 0L,
     work_cells: 1L,
-    issue_tags: 6L,
-    error_results: 6L,
+    issue_tags: 7L,
+    error_results: 7L,
     success_results: 1L,
   })
   assert_eq(resolution_inventory_extent(inventory), {
-    record_headers: 14L,
-    reference_slots: 7L,
-    scalar_words: 14L,
+    record_headers: 16L,
+    reference_slots: 8L,
+    scalar_words: 16L,
   })
   for task_tokens in [None, Some(1L)] {
     assert_eq(

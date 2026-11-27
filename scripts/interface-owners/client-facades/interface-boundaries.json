@@ -3069,7 +3069,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "bf2f8accc98b366392f0ca97156909e7082ae1bf3247ee54cc505e52abe81ee4",
+      "sha256": "c3265ea014b7b759f18bf7c0327a8af2e9cac6bb55c07a77f1638da333ceb692",
       "exports": [
         "CalendarArtifactInstallation",
         "Client",
@@ -19289,7 +19289,7 @@
     {
       "module": "packages/sdk/operation-presentation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "75f1a8cdad81454feaccac2f98b6f28c581ea9fd8622fbb5b67b0ab6282a6d38",
+      "sha256": "dba44833e67a0327071c3ec7a5857a6e16c904f1a5d465bd80069d87ebee1071",
       "exports": [
         "getOperationPresentationInfo",
         "localizeOperation",

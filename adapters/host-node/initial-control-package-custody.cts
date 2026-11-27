@@ -21,10 +21,20 @@ type SdkImageRegistration = Readonly<{
   sdk: ImageFact;
   packageImages?: readonly ExternalPackage[];
 }>;
+type SdkCapabilitySupport = 'supported' | 'experimental' | 'unsupported' | 'unavailable';
+type SdkRoute = Readonly<{
+  selector: string; modelId: string; apiMode: string; endpoint: string;
+  structuredCapability: Readonly<{operation: 'structured_generate'; adapter: SdkCapabilitySupport; model: SdkCapabilitySupport}>;
+  providerOptions: unknown;
+  credential?: Readonly<{reference: unknown; header: unknown}>;
+}>;
+type SdkRegistration = SdkImageRegistration & Readonly<{
+  providerId: string; defaultSelector: string; routes: readonly SdkRoute[];
+}>;
 type VerifiedSdkImages = Readonly<{adapter: unknown; sdk: unknown}>;
 type ImageCustody = ReturnType<typeof capturePackageCustody>;
 type SelectedSdkInstallation = Readonly<{
-  verifiedSdkInstallations: ReadonlyMap<string, SdkImageRegistration>;
+  verifiedSdkInstallations: ReadonlyMap<string, SdkRegistration>;
   sdkImageCustody: ImageCustody;
 }>;
 type NativeLoader = typeof import('./host-journal-native-image.cjs').loadOrdinaryLocalFilesNative;
@@ -553,17 +563,37 @@ function prepareOrdinaryModelSdkInstallation(source: unknown) {
   const envelope = declareOrdinaryInitialControlPhaseEnvelope(getHeapStatistics().heap_size_limit);
   const {limits} = envelope;
   let remainingImages = limits.imageFiles, remainingEdges = limits.dependencyEdges;
-  const registrations = new Map<string, SdkImageRegistration>();
+  const registrations = new Map<string, SdkRegistration>();
+  const knownSupport = ['supported', 'experimental', 'unsupported', 'unavailable'];
+  let remainingRoutes = 64;
   for (let index = 0; index < source.length; index++) {
     const field = Object.getOwnPropertyDescriptor(source, index);
     if (field === undefined || !Object.hasOwn(field, 'value')) fail(invalidSdkRegistration);
     const original: unknown = field.value;
-    data(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential', 'packageImages']);
-    if (Object.hasOwn(original, 'credential')) data(original.credential, ['reference', 'header']);
+    data(original, ['providerId', 'adapter', 'sdk', 'lock', 'defaultSelector', 'routes'], ['packageImages']);
     data(original.adapter, ['path', 'cid', 'packageName', 'version']);
     data(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
     data(original.lock, ['path', 'cid', 'packageName', 'version']);
-    data(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
+    const id = original.providerId;
+    if (typeof id !== 'string' || id.length === 0 || id.length > 256 || registrations.has(id)) {
+      fail(invalidSdkRegistration);
+    }
+    const selectors = new Set<string>();
+    const routes = frozenList(original.routes, remainingRoutes);
+    for (const route of routes) {
+      data(route, ['selector', 'modelId', 'apiMode', 'endpoint', 'structuredCapability', 'providerOptions'], ['credential']);
+      if (Object.hasOwn(route, 'credential')) data(route.credential, ['reference', 'header']);
+      if (typeof route.selector !== 'string' || route.selector.length === 0 || route.selector.length > 256 ||
+          selectors.has(route.selector)) fail(invalidSdkRegistration);
+      selectors.add(route.selector);
+      const capability = route.structuredCapability;
+      data(capability, ['operation', 'adapter', 'model']);
+      if (capability.operation !== 'structured_generate' ||
+          typeof capability.adapter !== 'string' || !knownSupport.includes(capability.adapter) ||
+          typeof capability.model !== 'string' || !knownSupport.includes(capability.model)) fail(invalidSdkRegistration);
+    }
+    if (typeof original.defaultSelector !== 'string' || !selectors.has(original.defaultSelector)) fail(invalidSdkRegistration);
+    remainingRoutes -= routes.length;
     if (Object.hasOwn(original, 'packageImages')) {
       const adapterName = original.adapter.packageName, graph = original.packageImages;
       const admitted = closures.get(adapterName);
@@ -597,11 +627,7 @@ function prepareOrdinaryModelSdkInstallation(source: unknown) {
         closures.set(adapterName, graph);
       } else if (admitted !== graph) fail(invalidSdkRegistration);
     } else if (original.adapter.packageName !== sdkPackage) fail(invalidSdkRegistration);
-    const id = original.route.providerId;
-    if (typeof id !== 'string' || id.length === 0 || id.length > 256 || registrations.has(id)) {
-      fail(invalidSdkRegistration);
-    }
-    registrations.set(id, original as unknown as SdkImageRegistration);
+    registrations.set(id, original as unknown as SdkRegistration);
   }
   if (sdkImageFailure !== undefined) throw sdkImageFailure.cause;
   if (sdkImageStarting) fail('InitialControlSdkImageStarting');

@@ -18,6 +18,8 @@ import {openSourceFreeEffectComputation as openSourceFree} from './local-values-
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
+import {assertRestoredModelRunSelection, originalModelPlanReplayRefusal,
+  prepareRestoredModelEffectRequest, runWithRestoredModelInput} from './installed-model-originals.mjs';
 import {createEffectPreviewControls} from '../host-common/runtime-effect-preview-control.mjs';
 import {checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
   from './client-program-preparation.mjs';
@@ -1617,15 +1619,34 @@ test('retained manager refuses ambiguous captured and typed intent inputs before
 function freshModelEffectResumeFixture(options = {}) {
   const savedOriginal = Object.freeze({preparedWire: 'saved-prepared-wire'});
   const snapshot = Object.freeze({requestId: 'original-request', updateTargetPreparedOriginal: savedOriginal});
-  const prepared = {}, identity = {}, intent = {}, adopted = {}, facts = {}, freshOriginal = {};
-  const ref = {runDefinitionCid: 'original-definition'}, accepted = {ref}, calls = [];
+  const prepared = {}, identity = {}, intent = {}, facts = {}, freshOriginal = {};
+  const ref = {runDefinitionCid: 'original-definition', namespaceId: 'original-scope',
+    authorityScopeCid: 'original-authority'};
+  const accepted = {ref}, calls = [];
+  const moon = {}, inferSelections = new Map();
+  if (options.modelBinding !== undefined) {
+    const occurrence = {}, taskCid = 'same-original-task';
+    const {providerBindingCid, preflightFailure} = options.modelBinding;
+    accepted.runAdmissionEvidence = {modelOriginalRunWire: 'saved-model-original',
+      modelPlanBindings: {bindings: [{task: 0, stage: 1, step: 2, taskCid, providerBindingCid: 'saved-provider'}]}};
+    inferSelections.set(prepared, {occurrence, providerBinding: {identity: providerBindingCid},
+      currentProvider() {calls.push('model-provider-current');return true;},
+      structuredPreflightRefusal: preflightFailure,
+      assertTrustedRuntime() {calls.push('model-preflight');}});
+    moon.clientProgramInferOccurrenceCoordinates = original => {
+      assert.strictEqual(original, occurrence);
+      return runtimeTupleFromFields({0: 0, 1: 1, 2: 2});
+    };
+    moon.clientProgramInferOccurrenceModelTaskCid = original => {
+      assert.strictEqual(original, occurrence);return taskCid;
+    };
+  }
   const current = {requestId: snapshot.requestId, requestIdentity: identity, ref,
     runDefinition: {}, runAdmissionEvidence: {updateTargetRunOriginal: {materialsWire: 'complete-saved-material'}}};
   const prepareSubmit = async submission => {
     assert.equal(submission.updateTargetPreparedOriginal.preparedWire, savedOriginal.preparedWire);
     submission.preparedProgram = prepared; calls.push('fresh-prepare'); return prepared;
   };
-  prepareSubmit.kindOf = value => {assert.strictEqual(value, prepared); return 'effectful';};
   prepareSubmit.assertSubmittedIntent = (value, original) => {
     assert.strictEqual(value, prepared); assert.strictEqual(original, intent); calls.push('same-intent');
   };
@@ -1639,41 +1660,33 @@ function freshModelEffectResumeFixture(options = {}) {
     if (Object.hasOwn(options, 'failure')) throw options.failure;
     return facts;
   }};
-  const ports = {prepared, identity, ref, retained: current, moon: {}, control: {}, namespaceId: 'original-scope',
-    token: {snapshot: {submission: snapshot}}, canonicalValueJson: JSON.stringify,
-    assertCurrent() {calls.push('current');}, hostConnection: () => true,
-    journal: {lookupOwnedDefinition: () => current,
-      originalSubmittedIntent: () => ({intent, assertCurrent() {calls.push('intent-current');}}),
-      resolveDefinition: () => ({ref: options.wrongRun ? {runDefinitionCid: 'foreign-definition'} : ref})},
-    preparation: {retainEffectRequestInput(_moon, submission, original, unused, wire) {
-      assert.equal(submission.updateTargetPreparedOriginal.preparedWire, savedOriginal.preparedWire);
-      assert.strictEqual(original, intent); assert.equal(unused, undefined); assert.equal(wire, 'complete-saved-material');
-      calls.push('fund-original-input'); return {finish: outcome => calls.push('finish-' + outcome)};
-    }, bindSourceRequest(submission, value) {assert.strictEqual(value, prepared); calls.push('bind-source');}},
-    prepareSubmit, localPreparationCustody: {
-      adopt(value) {assert.strictEqual(value, prepared); calls.push('adopt'); return adopted;},
-      attach(_submission, value) {assert.strictEqual(value, adopted); calls.push('attach');}},
-    retainRestoredSourceFreeRequest() {assert.fail('A fresh funded Effect cannot borrow an old restored pair');},
-    requestOf: () => ({requested: identity, effectful: true}), effectRun,
-    async admitEffectDefinition(submission) {
-      const original = capture(submission);
-      assert.strictEqual(original.updateTargetPreparedOriginal, freshOriginal);
-      calls.push('same-run-admission'); return accepted;
-    },
-    async executeEffectComputation(value, source, target, model) {
-      assert.strictEqual(value, facts); assert.equal(source, undefined); assert.equal(target, undefined);
-      assert.equal(model.active, false); calls.push('execute-original'); return {status: 'waiting_checkpoint'};
-    }, record: {checkpointCid: null}, claim: undefined, active: undefined, parentCheckpoint: undefined,
-    runId: 'original-run', restorationDispatchEntered: false, restorationStopConfirmed: false,
-    restorationReclaimed: () => true,
-    retainInstalledHostRuntimeFailure(cause, cleanup) {cleanup(); return cause;}};
-  const capture = new Function('prepareSubmit', 'effectRun',
-    'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'capturedUpdateOriginal', 'VariableDeclarator') +
-    '; return capturedUpdateOriginal;')(prepareSubmit, effectRun);
-  const resume = new Function(...Object.keys(ports),
-    'const ' + retainedRequestSourceMember('./embedded-local.mjs', 'runRestoredModel', 'VariableDeclarator') +
-    '; return runRestoredModel;')(...Object.values(ports));
-  return {resume, calls, snapshot, savedOriginal};
+  const resume = () => runWithRestoredModelInput(async retainInput => {
+    const request = {...snapshot};
+    await prepareRestoredModelEffectRequest(request,
+      {intent, assertCurrent() {calls.push('intent-current');}},
+      current.runAdmissionEvidence.updateTargetRunOriginal.materialsWire, {
+        retain(submission, original, wire) {
+          assert.strictEqual(submission.updateTargetPreparedOriginal, savedOriginal);
+          assert.strictEqual(original, intent);assert.equal(wire, 'complete-saved-material');
+          calls.push('fund-original-input');return {finish: outcome => calls.push('finish-' + outcome)};
+        },
+        retainInput, prepare: prepareSubmit, assertIntent: prepareSubmit.assertSubmittedIntent,
+        attach(submission, value) {
+          assert.strictEqual(value, prepared);assert.strictEqual(submission.preparedProgram, prepared);
+          calls.push('adopt', 'attach');
+        },
+      });
+    assertRestoredModelRunSelection(moon, ref,
+      options.wrongRun ? {ref: {runDefinitionCid: 'foreign-definition'}} : accepted,
+      () => inferSelections.get(request.preparedProgram));
+    assert.strictEqual(effectRun.capturePreparedOriginal(request.preparedProgram,
+      request.updateTargetPreparedOriginal), freshOriginal);
+    calls.push('same-run-admission');
+    assert.strictEqual(await effectRun.restoreComputation(accepted), facts);
+    calls.push('execute-original');
+    return {status: 'waiting_checkpoint'};
+  });
+  return {resume, calls, snapshot, savedOriginal, ref};
 }
 
 test('cold Model Effect resume captures its fresh funded pair while retaining the complete saved original', async () => {
@@ -1702,6 +1715,26 @@ test('cold Model Effect resume refuses a different original Run before capture o
   assert(!f.calls.includes('fresh-funded-capture')); assert(!f.calls.includes('execute-original'));
   assert.equal(f.calls.at(-1), 'finish-failed');
   assert.strictEqual(f.snapshot.updateTargetPreparedOriginal, f.savedOriginal);
+});
+
+test('cold Model Effect checks the original provider before preflight, capture or execution', async () => {
+  const preflightFailure = new Error('OriginalModelPreflightRefusal');
+  const changed = freshModelEffectResumeFixture({modelBinding: {providerBindingCid: 'different-provider', preflightFailure}});
+  await assert.rejects(changed.resume(), error =>
+    error.code === 'ClientModelProviderSelectionChanged' &&
+    originalModelPlanReplayRefusal(error, changed.ref) === 'model_provider_selection');
+  assert(changed.calls.includes('model-provider-current'));
+  assert(!changed.calls.includes('model-preflight'));
+  assert(!changed.calls.includes('fresh-funded-capture'));
+  assert(!changed.calls.includes('execute-original'));
+  assert.equal(changed.calls.at(-1), 'finish-failed');
+
+  const matching = freshModelEffectResumeFixture({modelBinding: {providerBindingCid: 'saved-provider', preflightFailure}});
+  await assert.rejects(matching.resume(), error => error === preflightFailure);
+  assert(matching.calls.indexOf('model-provider-current') < matching.calls.indexOf('model-preflight'));
+  assert(!matching.calls.includes('fresh-funded-capture'));
+  assert(!matching.calls.includes('execute-original'));
+  assert.equal(matching.calls.at(-1), 'finish-failed');
 });
 
 test('target material inverse is admitted once before the original Request is adopted', () => {

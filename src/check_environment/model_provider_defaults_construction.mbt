@@ -33,8 +33,8 @@ pub(all) struct ModelProviderDefaultsResolutionConstructionInventory {
 /// frames and target lowering are not inferred from these logical quantities.
 /// The comparison Array never escapes an iteration or reaches the result.
 ///
-/// Co-count six issue/Err sites: InvalidLimits, InvalidTaskOutputTokens,
-/// DefaultUnavailable, both WorkLimit returns and UnknownModel. Each issue tag
+/// Co-count seven issue/Err sites: InvalidLimits, both InvalidTaskOutputTokens
+/// returns, DefaultUnavailable, both WorkLimit returns and UnknownModel. Each issue tag
 /// is 1H1W and each Err carrier is 1H1R1W. The success Ok is also 1H1R1W.
 /// These alternatives remain explicit even for early-refusal inputs, without
 /// evaluating predicates or claiming every alternative is simultaneously live.
@@ -73,8 +73,8 @@ pub fn model_provider_defaults_resolution_construction_inventory(
     },
     comparison_array_constructions: original.models.length().to_int64(),
     work_cells: 1L,
-    issue_tags: 6L,
-    error_results: 6L,
+    issue_tags: 7L,
+    error_results: 7L,
     success_results: 1L,
   }
 }

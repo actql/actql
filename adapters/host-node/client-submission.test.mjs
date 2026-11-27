@@ -12,6 +12,7 @@ const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {boundedPrimarySql} from './client-request-journal-sql.mjs';
+import {rejectModelPlanReplay} from './installed-model-originals.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {installedSourceFor as selectInstalledSource} from './installed-source.mjs';
@@ -46,7 +47,8 @@ async function fixture(t, callbacks = {}) {
   const install = () => service = installNodeClientSubmission({journal, moon,
     authorizedScope: () => authorized ? fields : undefined,
     prepareSubmit: async value => {prepareCount++; return callbacks.prepare?.(value) ?? {};},
-    submit: async value => {submitCount++; return await callbacks.submit(value);},
+    submit: async (value, replayRef) => {submitCount++; return await callbacks.submit(value, replayRef);},
+    retainedModelReplay: callbacks.retainedModelReplay,
     lookupRequest: async value => callbacks.lookup?.(value) ?? {kind: 'not_found'},
     checkSubmissionInput: callbacks.check ?? checkValues,
     admitPreparedSubmission: callbacks.admit,
@@ -416,6 +418,56 @@ test('typed Submission uses the existing receipt and rebinds AlreadySatisfied to
     attemptRef: {operation: 'submit', attemptId: 'second-invocation'}, outcome: original.outcome});
   assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original.outcome);
   assert.deepEqual(f.counts, {prepare: 2, submit: 2}, 'explicit replay still uses the original Run owner');
+});
+
+test('a changed Model replay conflicts for the new attempts while immutable lookup keeps the original', async t => {
+  let f, original, mode = 'first';
+  const join = Promise.withResolvers();
+  const forged = Object.assign(new Error('copied selection error'), {code: 'ClientModelProviderSelectionChanged'});
+  f = await fixture(t, {
+    prepare() {
+      if (mode === 'unavailable') {
+        throw Object.assign(new Error('current preparation refused'), {code: 'ClientProgramUnsupported'});
+      }
+      return {};
+    },
+    async submit(value, replayRef) {
+      if (mode === 'first') return admitOriginal(f, value);
+      assert.deepEqual(replayRef, original.outcome.admission.ref);
+      if (mode === 'forged') throw forged;
+      await join.promise;
+      rejectModelPlanReplay(replayRef, 'model_provider_selection');
+    },
+    retainedModelReplay(_actor, ref) {
+      assert.deepEqual(ref, original.outcome.admission.ref);
+      if (mode === 'changed') join.resolve();
+      return true;
+    },
+    lookup(value) {
+      const admitted = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+      return admitted === undefined ? {kind: 'not_found'} : {kind: 'found', ref: admitted.ref};
+    },
+  });
+  const request = id => ({...f.body(), attemptRef: {operation: 'submit', attemptId: id}});
+  original = await f.service.submitAttempt(request('new-model-run'));
+  mode = 'changed';
+  f.restart();
+  const replay = id => f.service.submitAttempt(request(id));
+  const changed = await Promise.all([replay('changed-one'), replay('changed-two')]);
+  for (const [index, id] of ['changed-one', 'changed-two'].entries()) {
+    assert.deepEqual(changed[index], {kind: 'conflict', reason: 'model_provider_selection',
+      attemptRef: request(id).attemptRef, submissionRef: f.ref, intentCid: original.outcome.intentCid});
+  }
+  assert.deepEqual(f.counts, {prepare: 2, submit: 2}, 'concurrent replay shares one checked admission comparison');
+  mode = 'unavailable';
+  assert.deepEqual(await replay('current-unavailable'), {kind: 'refused', reason: 'model_provider_selection_unavailable',
+    attemptRef: request('current-unavailable').attemptRef, submissionRef: f.ref, intentCid: original.outcome.intentCid,
+    guarantee: 'attempt_uncommitted_unconsumed'});
+  assert.deepEqual(f.counts, {prepare: 3, submit: 2});
+  mode = 'forged';
+  await assert.rejects(replay('copied-error'), cause => cause === forged);
+  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original.outcome);
+  assert.deepEqual(f.counts, {prepare: 4, submit: 3}, 'history lookup sends no request to the execution owner');
 });
 
 for (const change of ['unsupported', 'protected rejection', 'authority lost', 'Run lost',

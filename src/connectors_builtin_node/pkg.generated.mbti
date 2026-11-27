@@ -554,8 +554,6 @@ pub fn client_program_bigquery_request_material(@actql/actql/connectors/bigquery
 
 pub fn client_program_bigquery_retire_read_borrow(@actql/actql/connectors/bigquery/read.Read) -> Result[Unit, @actql/actql/connectors/bigquery/read.ReadIssue]
 
-pub fn client_program_bind_admitted_structured_model_provider(@model_execution.ModelProvider, @model_execution.AdmittedModelProvider, @run_publication.RunEvidenceValue, String, String, String, String, String, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, Bool, Bool) -> Result[@model_execution.AdmittedStructuredModelProvider, @model_execution.StructuredModelCapabilityIssue]
-
 pub fn client_program_bind_compiled_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
 pub fn client_program_bind_compiled_infer_result_policy(@run_publication_host.ClientCompiledRun, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
@@ -2303,6 +2301,8 @@ pub fn client_program_installed_standard_create_recipe_capacities(Array[(@execut
 pub fn client_program_installed_standard_create_request_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_standard_driver_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_structured_sdk_support_refusal(@model_execution.StructuredModelCapabilityIssue) -> String?
 
 pub fn client_program_installed_table_construction_inventory(Int64, Int64, Int64, Int64) -> Result[Array[Int64], @physical_resources.PreparationCapacityIssue]
 

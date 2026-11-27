@@ -1,7 +1,7 @@
 // Static ModelTask registration shares the installed checker composition.
 // This metadata is neither a provider registration nor an egress grant. The
 // common execution owner must separately admit dependencies and authority.
-import {runtimeField, runtimePair} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimePair, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {retainInferOriginalReadInstallation, retainInferOriginalReadRecipe} from './infer-original-installation.mjs';
@@ -25,6 +25,7 @@ type ProviderRuntime = DefaultsRuntime & Readonly<{
   clientProgramInstallModelProvider(providerId: string, invoke: Callback): unknown;
   clientProgramInstallAsyncModelProvider?(providerId: string): unknown;
   clientProgramAdmitInstalledStructuredSdkCapability?(capability: unknown, acquisition: unknown, installation: unknown): unknown;
+  clientProgramInstalledStructuredSdkSupportRefusal?(issue: unknown): unknown;
 }>;
 type PrepareSdkCapability = (registration: unknown, providerId: string, taskCid: string,
   provider: unknown, selection: RawSelection) => SdkCapability;
@@ -40,14 +41,17 @@ type TaskData = Readonly<{
   originalReadInstallation: ReturnType<typeof retainInferOriginalReadInstallation>; originalReadRecipe: ReturnType<typeof retainInferOriginalReadRecipe>;
   rawCaptureSelection: RawSelection; quantityCapacity: QuantityCapacity;
   physicalPreflight: Callback; reconcileResponse: Callback | undefined;
-  observeEgress: () => unknown; validatePrompt: Prompt;
+  observeEgress: () => unknown; validatePrompt: Prompt; registeredSdk: unknown;
 }>;
+type StructuredPreflight = Readonly<{kind: 'ready'; prepare: Callback}> |
+  Readonly<{kind: 'refused'; cause: Error}>;
 type InstalledProvider = Readonly<{
   provider: unknown; originalReadInstallation: ReturnType<typeof retainInferOriginalReadInstallation>; originalReadRecipe: ReturnType<typeof retainInferOriginalReadRecipe>;
   rawCaptureSelection: RawSelection | undefined; bindingOriginals: BindingOriginals | undefined;
   assertTrustedRuntime: (() => void) | undefined; assertNewTrustedRuntime: (() => void) | undefined;
   requireEagerSdkStartup: (() => void) | undefined;
   physicalPreflight: Callback | undefined; entryPersistence: 'async' | undefined;
+  selectStructuredPreflight?(original: unknown): StructuredPreflight;
   reconcileResponse: Callback | undefined; quantityCapacity: QuantityCapacity | undefined;
   observeEgress: (() => unknown) | undefined; validatePrompt: Prompt; resolveTaskDefaults: ResolveDefaults;
   selectTaskOriginals?(taskCid: string): InstalledProvider;
@@ -291,7 +295,7 @@ function snapshotTaskInstallations(source: unknown, providerId: string, bindings
     const observeEgress = value('observeEgress'), reconcileResponse = value('reconcileResponse');
     if (value('providerId') !== providerId || value('entryPersistence') !== 'async' ||
         value('bindingOriginals') !== bindings || value('sdkStaticOriginals') !== sdkOriginals ||
-        value('registeredSdk') !== registeredSdk ||
+        (value('registeredSdk') === undefined) !== (registeredSdk === undefined) ||
         (originalReadSource === undefined) === (recipeSource === undefined) ||
         typeof physicalPreflight !== 'function' || typeof validatePrompt !== 'function' ||
         typeof observeEgress !== 'function' ||
@@ -305,7 +309,7 @@ function snapshotTaskInstallations(source: unknown, providerId: string, bindings
     if (rawCaptureSelection === undefined || quantityCapacity === undefined) {
       throw new TypeError('InvalidInstalledModelTaskInstallations');
     }
-    result.set(taskCid, Object.freeze({originalReadInstallation, originalReadRecipe,
+    result.set(taskCid, Object.freeze({originalReadInstallation, originalReadRecipe, registeredSdk: value('registeredSdk'),
       rawCaptureSelection, quantityCapacity, physicalPreflight: physicalPreflight as Callback,
       reconcileResponse: reconcileResponse as Callback | undefined,
       observeEgress() {try {return Reflect.apply(observeEgress, entry, []);} catch {return undefined;}},
@@ -499,8 +503,9 @@ export function installModelProviders(moon: ProviderRuntime, register?: (runtime
     if (preparedDefaults !== undefined) installedDefaults.set(retained, preparedDefaults);
     if (tasks !== undefined) {
       for (const [taskCid, data] of tasks) {
-        const capability = registeredSdk === undefined ? undefined : prepareSdkCapability!(
-          registeredSdk, providerId, taskCid, provider, data.rawCaptureSelection);
+        const {registeredSdk: taskSdk, ...taskInstallation} = data;
+        const capability = taskSdk === undefined ? undefined : prepareSdkCapability!(
+          taskSdk, providerId, taskCid, provider, data.rawCaptureSelection);
         let view: InstalledProvider;
         const current = () => {
           assertTrustedRuntime?.();
@@ -515,21 +520,36 @@ export function installModelProviders(moon: ProviderRuntime, register?: (runtime
           current();
           return value;
         };
-        view = Object.freeze({...retained, ...data,
+        view = Object.freeze({...retained, ...taskInstallation,
           assertTrustedRuntime: current,
           assertNewTrustedRuntime() {assertNewTrustedRuntime?.(); current();},
           validatePrompt: guarded(data.validatePrompt),
           observeEgress: guarded(data.observeEgress),
           // Common registers the acquired cursor before its existing current
-          // guard can refuse advance. Do not lose cleanup by throwing after
-          // this factory has already returned an owned physical cursor.
-          physicalPreflight(...args: unknown[]) {
+          // guard can refuse advance. Only check current before the factory
+          // returns an owned physical cursor.
+          physicalPreflight: capability === undefined ? (...args: unknown[]) => {
             current();
-            if (capability === undefined) return data.physicalPreflight(...args);
-            const admitted = checked(moon.clientProgramAdmitInstalledStructuredSdkCapability!(
-              capability.opaque, args[3], capability.installation));
-            return data.physicalPreflight(...args, admitted);
-          },
+            return data.physicalPreflight(...args);
+          } : undefined,
+          ...(capability === undefined ? {} : {selectStructuredPreflight(original: unknown): StructuredPreflight {
+            current();
+            const result = moon.clientProgramAdmitInstalledStructuredSdkCapability!(
+              capability.opaque, original, capability.installation);
+            if (runtimeIsError(result)) {
+              const cause = runtimeField(result, 0);
+              const code = runtimeUnboxedReferenceOption(moon.clientProgramInstalledStructuredSdkSupportRefusal!(cause));
+              if (code === 'InstalledModelStructuredAdapterUnsupported' || code === 'InstalledModelStructuredModelUnsupported') {
+                return Object.freeze({kind: 'refused', cause: Object.assign(new Error(code, {cause}), {code})});
+              }
+            }
+            const admitted = checked(result);
+            return Object.freeze({kind: 'ready', prepare(request, notification, rawBinder, supplied) {
+              current();
+              if (supplied !== original) throw new TypeError('ForeignInstalledStructuredModelProvider');
+              return data.physicalPreflight(request, notification, rawBinder, original, admitted);
+            }});
+          }}),
           resolveTaskDefaults(...args: Parameters<ResolveDefaults>) {current(); return retained!.resolveTaskDefaults(...args);}});
         taskViews!.set(taskCid, view);
       }

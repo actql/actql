@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import * as runStateAccess from '../host-common/run-state-access.mjs';
+import {prepareOriginalEffectReadCurrent} from './installed-model-originals.mjs';
 
 // Execute actual Local statements. The original composition cases use explicit
 // owner ports; the metadata case uses real Common and SQLite. Neither qualifies
@@ -10,7 +11,6 @@ import * as runStateAccess from '../host-common/run-state-access.mjs';
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const statements = [], waitStatements = [];
-const resumeObservers = [], resumeAssignments = [];
 function visit(node) {
   if (node === null || typeof node !== 'object') return;
   if (node.type === 'VariableDeclaration' && node.declarations.some(declaration =>
@@ -21,12 +21,6 @@ function visit(node) {
       node.declarations.some(declaration => declaration.id.name === 'observeRun')) {
     statements.push(source.slice(node.start, node.end));
   }
-  if (node.type === 'VariableDeclaration' && node.declarations.some(declaration =>
-      declaration.id.name === 'observeCancellation' && declaration.init?.type === 'CallExpression' &&
-      declaration.init.callee.property?.name === 'observeRunCancellation' &&
-      declaration.init.arguments[3]?.name === 'retained')) resumeObservers.push(source.slice(node.start,node.end));
-  if (node.type === 'AssignmentExpression' && node.left.name === 'sourceResume' &&
-      node.right.type === 'ObjectExpression') resumeAssignments.push(source.slice(node.start,node.end));
   for (const child of Object.values(node)) {
     if (Array.isArray(child)) child.forEach(visit);
     else if (child && typeof child === 'object') visit(child);
@@ -41,9 +35,8 @@ const names = ['principalId', 'namespaceId', 'authorityScopeCid', 'journal', 'mo
 const compile = new Function(...names, `${statements[0]}; return observeRun;`);
 
 function sourceResumeFixture({probe = () => ({cancellationRequested:false}), leaseFailure, admitFailure} = {}) {
-  assert.equal(resumeObservers.length,1);assert.equal(resumeAssignments.length,1);
   const ref = {}, moon = {}, control = {}, retained = {}, claimed = {claim:{}},
-    view = {checkpointCid:'original-checkpoint'}, continuation = {}, admission = {};
+    view = {checkpointCid:'original-checkpoint'}, admission = {};
   const counts = {observers:0,probes:0,admissions:0};
   const journal = {
     observeRunCancellation(actual,requestControl,publicationControl,original) {
@@ -58,38 +51,45 @@ function sourceResumeFixture({probe = () => ({cancellationRequested:false}), lea
     assert.strictEqual(claim,claimed.claim);assert.deepEqual(options,{checkpointCid:view.checkpointCid});
     counts.admissions++;if(admitFailure)throw admitFailure;return admission;
   }}};
-  const values = {journal,ref,moon,control,retained,claimed,view,continuation,leaseFailure,checkpoints};
-  const resume = new Function(...Object.keys(values),
-    `${resumeObservers[0]}; let sourceResume; ${resumeAssignments[0]}; return sourceResume;`)(...Object.values(values));
-  return {resume,counts,admission};
+  const assertCurrent = prepareOriginalEffectReadCurrent(
+    () => journal.observeRunCancellation(ref, moon, control, retained),
+    () => leaseFailure,
+    () => checkpoints.journal.admitResume(claimed.claim, {checkpointCid:view.checkpointCid}),
+  );
+  return {assertCurrent, counts, admission, failLease(error) {leaseFailure = error;}};
 }
 
 test('Source resume probes reuse one same-original cancellation observer per flight',()=>{
   let cancelled = false;
   const f = sourceResumeFixture({probe:()=>({cancellationRequested:cancelled})});
-  for(let index=0;index<50;index++)assert.strictEqual(f.resume.assertCurrent(),f.admission);
+  for(let index=0;index<50;index++)assert.strictEqual(f.assertCurrent(),f.admission);
   assert.deepEqual(f.counts,{observers:1,probes:50,admissions:50});
   cancelled = true;
-  assert.throws(()=>f.resume.assertCurrent(),{code:'ClientRunCancellationRequested'});
+  assert.throws(()=>f.assertCurrent(),{code:'ClientRunCancellationRequested'});
   assert.deepEqual(f.counts,{observers:1,probes:51,admissions:50});
-  const next = sourceResumeFixture();next.resume.assertCurrent();
+  const next = sourceResumeFixture();next.assertCurrent();
   assert.deepEqual(next.counts,{observers:1,probes:1,admissions:1});
 });
 
 test('Source resume cancellation probes preserve lease priority, read failures and current admission refusal',()=>{
   const leaseFailure = new Error('OriginalLeaseFailure');
   const lease = sourceResumeFixture({leaseFailure});
-  assert.throws(()=>lease.resume.assertCurrent(),error=>error===leaseFailure);
+  assert.throws(()=>lease.assertCurrent(),error=>error===leaseFailure);
   assert.deepEqual(lease.counts,{observers:1,probes:0,admissions:0});
+  const renewed = sourceResumeFixture();
+  assert.strictEqual(renewed.assertCurrent(), renewed.admission);
+  renewed.failLease(leaseFailure);
+  assert.throws(renewed.assertCurrent, error => error === leaseFailure);
+  assert.deepEqual(renewed.counts, {observers:1,probes:1,admissions:1});
   for(const failure of [new Error('OriginalJournalReadFailure'),undefined]) {
     const f = sourceResumeFixture({probe:()=>{throw failure;}});
     let thrown = false;
-    try {f.resume.assertCurrent();}catch(error){thrown=true;assert.strictEqual(error,failure);}
+    try {f.assertCurrent();}catch(error){thrown=true;assert.strictEqual(error,failure);}
     assert.equal(thrown,true);assert.deepEqual(f.counts,{observers:1,probes:1,admissions:0});
   }
   const refusal = Object.assign(new Error('ResumeClaimStale'),{code:'ResumeClaimStale'});
   const current = sourceResumeFixture({admitFailure:refusal});
-  assert.throws(()=>current.resume.assertCurrent(),error=>error===refusal);
+  assert.throws(()=>current.assertCurrent(),error=>error===refusal);
   assert.deepEqual(current.counts,{observers:1,probes:1,admissions:1});
 });
 

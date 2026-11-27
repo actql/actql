@@ -52,20 +52,20 @@ type CapabilityRuntime = Parameters<ProviderInstaller>[0] & Parameters<TaskPrepa
   }>;
 type ModelLimits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxMembers: number; maxWork: number}>;
 type SdkInstallation = NonNullable<ReturnType<typeof packageCustody.ordinaryModelSdkInstallation>>;
-type VerifiedImage = NonNullable<ReturnType<SdkInstallation['verifiedSdkInstallations']['get']>>;
-type VerifiedSdk = VerifiedImage & Readonly<{
-  sdk: VerifiedImage['sdk'] & Readonly<{packageName: string; version: string; exportName: string}>;
-  route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
-  providerOptions: unknown;
-  credential?: Readonly<{reference: unknown; header: unknown}>;
+type VerifiedImageGroup = NonNullable<ReturnType<SdkInstallation['verifiedSdkInstallations']['get']>>;
+type VerifiedSdk = VerifiedImageGroup & Readonly<{
+  sdk: VerifiedImageGroup['sdk'] & Readonly<{packageName: string; version: string; exportName: string}>;
 }>;
+type VerifiedRoute = VerifiedSdk['routes'][number];
 type SdkAdapter = Readonly<{createLanguageModel?: unknown; verifyRequest?: unknown; sdkProvider?: unknown;
   readReportedUsage?: unknown; readReportedResponse?: unknown; optionNamespace?: unknown;
   optionSchema?: unknown; credentialBinding?: unknown}>;
 type Credentials = Readonly<{transport: object; profile: object}>;
-type Registration = Readonly<{route: VerifiedSdk['route']; providerOptions: object;
+type Registration = Readonly<{route: Pick<VerifiedRoute, 'selector' | 'modelId' | 'apiMode' | 'endpoint'> & Readonly<{providerId: string}>;
+  structuredCapability: VerifiedRoute['structuredCapability']; providerOptions: object;
   credential?: Credentials; sdkPackage: string; sdkVersion: string; sdkArtifactCid: unknown;
   adapterArtifactCid: unknown; lockArtifactCid: unknown}>;
+type RegisteredProvider = Readonly<{defaultSelector: string; routes: readonly Registration[]}>;
 type SdkSelection = Readonly<{installation: Readonly<{build_artifact_cid?: unknown; endpoint?: unknown;
   sdk?: Readonly<{package_name?: unknown; version?: unknown; interface?: unknown; lock_artifact_cid?: unknown}>}>; profile: unknown}>;
 type Options = Partial<SdkInstallation> & Readonly<{
@@ -129,8 +129,9 @@ export async function installConfiguredModelProviders({moon, register, project,
   }
   let phase = 'registering', failure: {cause: unknown} | undefined, preparing = false;
   let defaults: Map<string, Defaults>, candidates: CandidateTasks | undefined;
+  let taskSelections: readonly TaskData[] | undefined;
   const executionOriginals = new Map<string, Execution>();
-  let preparedSdkIds: Set<string> | undefined, preparedSdkRegistrations: Map<string, Registration> | undefined;
+  let preparedSdkIds: Set<string> | undefined, preparedSdkRegistrations: Map<string, RegisteredProvider> | undefined;
   const pending = new Set<Promise<unknown>>();
   const track = <Value,>(operation: () => Promise<Value>) => {
     // A sealed context cannot create even a new asynchronous child from an
@@ -222,31 +223,29 @@ export async function installConfiguredModelProviders({moon, register, project,
             preparedSdkIds ??= new Set();
             if (preparedSdkIds.has(providerId)) fail(invalidSdkInstallation);
             preparedSdkIds.add(providerId);
-            originalSdkRecord(original, ['adapter', 'sdk', 'lock', 'route', 'providerOptions'], ['credential', 'packageImages']);
-            if (Object.hasOwn(original, 'credential')) originalSdkRecord(original.credential, ['reference', 'header']);
+            originalSdkRecord(original, ['providerId', 'adapter', 'sdk', 'lock', 'defaultSelector', 'routes'], ['packageImages']);
             originalSdkRecord(original.adapter, ['path', 'cid', 'packageName', 'version']);
             originalSdkRecord(original.lock, ['path', 'cid', 'packageName', 'version']);
             originalSdkRecord(original.sdk, ['path', 'cid', 'packageName', 'version', 'exportName']);
-            originalSdkRecord(original.route, ['providerId', 'selector', 'modelId', 'apiMode', 'endpoint']);
-            const {route, sdk} = original;
-            if (route.providerId !== providerId ||
-                [route.selector, route.modelId, route.apiMode, sdk.packageName, sdk.version, sdk.exportName]
-                  .some(value => typeof value !== 'string' || value.length === 0 || value.length > 256) ||
-                typeof route.endpoint !== 'string' || route.endpoint.length > 2048) {
+            const {sdk, routes} = original;
+            if (original.providerId !== providerId || !Array.isArray(routes) || nodeTypes.isProxy(routes) ||
+                !Object.isFrozen(routes) || routes.length < 1 || routes.length > 64 ||
+                [sdk.packageName, sdk.version, sdk.exportName]
+                  .some(value => typeof value !== 'string' || value.length === 0 || value.length > 256)) {
               fail(invalidSdkInstallation);
             }
             return Object.freeze({});
           },
           retained: () => capacity(16n),
         }));
-        const explicitCredential = Object.hasOwn(original, 'credential');
-        const credentialNodes = explicitCredential ? 16n : 0n;
+        const routeCount = BigInt(original.routes.length);
+        // Keep every actual verified route and options snapshot in the original
+        // installation. Package namespace and transient descriptor work occur once.
+        const retainedNodes = 16n + 96n * routeCount;
+        const routeText = 10304n * routeCount;
         return construction.prepareModelTaskInput(Object.freeze({
-          capacity: () => capacity(64n + credentialNodes, 10304n, 0n, 128n + credentialNodes, 10304n),
+          capacity: () => capacity(retainedNodes, routeText, 0n, retainedNodes + 64n, 10304n),
           project() {
-            // Borrow module originals only from the package custody already
-            // held by this Host. A registration cannot supply a loader, a
-            // namespace, a file URL or an independent package search.
             const selected = packageCustody.readVerifiedSdkImages(sdkImageCustody, original);
             check();
             requireOriginal();
@@ -262,48 +261,63 @@ export async function installConfiguredModelProviders({moon, register, project,
                 readReportedResponse !== undefined && typeof readReportedResponse !== 'function') {
               fail(invalidSdkInstallation);
             }
-            const providerOptions = sdkProviderOptions(original.providerOptions,
-              adapter.optionNamespace, adapter.optionSchema);
-            let credential: Credentials | undefined;
-            if (explicitCredential) {
-              // Borrow the nonsecret route contract from the same verified
-              // adapter. User Task options never supply an environment key.
-              const declared = originalSdkRecord(adapter.credentialBinding,
-                ['reference', 'header', 'endpoint', 'prefix', 'placeholder']);
-              if (declared.reference !== original.credential!.reference ||
-                  declared.header !== original.credential!.header || declared.endpoint !== original.route.endpoint) {
-                fail('RegisteredSdkCredentialMismatch');
+            const selectors = new Set<string>();
+            const routes = Array.from({length: original.routes.length}, (_, index) => {
+              const field = Object.getOwnPropertyDescriptor(original.routes, String(index));
+              if (!field?.enumerable || !Object.hasOwn(field, 'value')) fail(invalidSdkInstallation);
+              const source = field.value as VerifiedRoute;
+              originalSdkRecord(source, ['selector', 'modelId', 'apiMode', 'endpoint',
+                'structuredCapability', 'providerOptions'], ['credential']);
+              if (Object.hasOwn(source, 'credential')) originalSdkRecord(source.credential, ['reference', 'header']);
+              originalSdkRecord(source.structuredCapability, ['operation', 'adapter', 'model']);
+              const {selector, modelId, apiMode, endpoint} = source;
+              if ([selector, modelId, apiMode].some(value => typeof value !== 'string' ||
+                    value.length === 0 || value.length > 256) || selectors.has(selector) ||
+                  typeof endpoint !== 'string' || endpoint.length > 2048) fail(invalidSdkInstallation);
+              selectors.add(selector);
+              const route = Object.freeze({providerId, selector, modelId, apiMode, endpoint});
+              const providerOptions = sdkProviderOptions(source.providerOptions, adapter.optionNamespace, adapter.optionSchema);
+              let credential: Credentials | undefined;
+              if (source.credential !== undefined) {
+                const declared = originalSdkRecord(adapter.credentialBinding,
+                  ['reference', 'header', 'endpoint', 'prefix', 'placeholder']);
+                if (declared.reference !== source.credential.reference ||
+                    declared.header !== source.credential.header || declared.endpoint !== endpoint) {
+                  fail('RegisteredSdkCredentialMismatch');
+                }
+                credential = Object.freeze({transport: declared,
+                  profile: Object.freeze({reference: declared.reference, header: declared.header,
+                    endpoint: declared.endpoint, prefix: declared.prefix})});
               }
-              credential = Object.freeze({transport: declared,
-                profile: Object.freeze({reference: declared.reference, header: declared.header,
-                  endpoint: declared.endpoint, prefix: declared.prefix})});
-            }
+              return Object.freeze({route, structuredCapability: source.structuredCapability, providerOptions, sdkProvider,
+                readReportedUsage, readReportedResponse,
+                ...(credential === undefined ? {} : {credential}),
+                sdkPackage: original.sdk.packageName,
+                sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
+                adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
+                createLanguageModel(fetch: unknown) {
+                  assertCurrent();
+                  assertNewHostRuntime?.();
+                  requireOriginal();
+                  sdkImageCustody!.assertCurrent();
+                  return createLanguageModel(factory, modelId, fetch, route);
+                },
+                verifyRequest(wire: string, call: unknown) {
+                  assertCurrent();
+                  assertNewHostRuntime?.();
+                  requireOriginal();
+                  sdkImageCustody!.assertCurrent();
+                  return verifyRequest(wire, call, route, providerOptions);
+                }});
+            });
+            if (selectors.size !== original.routes.length || !selectors.has(original.defaultSelector)) fail(invalidSdkInstallation);
             check();
-            const registration = Object.freeze({route: original.route, providerOptions, sdkProvider,
-              readReportedUsage, readReportedResponse,
-              ...(credential === undefined ? {} : {credential}),
-              sdkPackage: original.sdk.packageName,
-              sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
-              adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
-              createLanguageModel(fetch: unknown) {
-                assertCurrent();
-                assertNewHostRuntime?.();
-                requireOriginal();
-                sdkImageCustody!.assertCurrent();
-                return createLanguageModel(factory, original.route.modelId, fetch, original.route);
-              },
-              verifyRequest(wire: string, call: unknown) {
-                assertCurrent();
-                assertNewHostRuntime?.();
-                requireOriginal();
-                sdkImageCustody!.assertCurrent();
-                return verifyRequest(wire, call, original.route, providerOptions);
-              }});
+            const registration = Object.freeze({defaultSelector: original.defaultSelector, routes: Object.freeze(routes)});
             preparedSdkRegistrations ??= new Map();
             preparedSdkRegistrations.set(providerId, registration);
             return registration;
           },
-          retained: () => capacity(64n + credentialNodes, 10304n),
+          retained: () => capacity(retainedNodes, routeText),
         }));
       });
     },
@@ -521,7 +535,8 @@ export async function installConfiguredModelProviders({moon, register, project,
           tasks.push(material);
         }
         preparing = false;
-        return Object.freeze({tasks: Object.freeze(tasks),
+        taskSelections = Object.freeze(tasks);
+        return Object.freeze({tasks: taskSelections,
           verifyChatConfiguration(name: string, selector: string, modelId: string, endpoint: string) {
             return track(async () => {
               const original = taskFor(name);
@@ -677,6 +692,10 @@ export async function installConfiguredModelProviders({moon, register, project,
       for (const entry of entries) {
         const original = defaults!.get(entry?.providerId);
         if (original === undefined) fail('InstalledModelDefaultsForeignOriginal');
+        if (verifiedSdkInstallations?.has(entry.providerId) &&
+            !preparedSdkRegistrations?.get(entry.providerId)?.routes.includes(entry.registeredSdk)) {
+          fail(invalidSdkInstallation);
+        }
         original.bindRegistration(entry);
       }
     }
@@ -684,22 +703,30 @@ export async function installConfiguredModelProviders({moon, register, project,
     const prepareSdkCapability = preparedSdkRegistrations === undefined ? undefined :
       (registration: Registration, providerId: string, taskCid: string, provider: unknown, raw: RawSelection) => {
         const original = taskOriginals?.find(task => task.taskCid === taskCid && task.providerId === providerId);
-        if (preparedSdkRegistrations!.get(providerId) !== registration || original === undefined ||
+        if (!preparedSdkRegistrations!.get(providerId)?.routes.includes(registration) || original === undefined ||
             typeof moon.clientProgramPrepareInstalledStructuredSdkCapability !== 'function' ||
-            typeof moon.clientProgramAdmitInstalledStructuredSdkCapability !== 'function') {
+            typeof moon.clientProgramAdmitInstalledStructuredSdkCapability !== 'function' ||
+            typeof moon.clientProgramInstalledStructuredSdkSupportRefusal !== 'function') {
           fail(invalidSdkInstallation);
         }
         assertCurrent(); assertNewHostRuntime?.();
         const {route} = registration, {binding} = original.defaults as {binding: Binding};
+        if (taskSelections?.find(task => task.taskCid === taskCid && task.providerId === providerId)?.modelSelector !== route.selector) {
+          fail(invalidSdkInstallation);
+        }
         const revision = JSON.parse(binding.originals.installationRevision.wire);
         const configuration = JSON.parse(binding.originals.configuration.wire);
+        const selected = plainSdkRecord(configuration.structured_routes) &&
+          Object.hasOwn(configuration.structured_routes, route.selector) ? configuration.structured_routes[route.selector] : undefined;
         const {installation} = raw as unknown as SdkSelection;
         const sdk = installation.sdk;
         if (revision.sdk_entry_artifact_cid !== registration.sdkArtifactCid ||
             revision.builder_artifact_cid !== registration.adapterArtifactCid ||
             revision.lock_artifact_cid !== registration.lockArtifactCid ||
-            !isDeepStrictEqual(configuration.provider_options, registration.providerOptions) ||
-            !isDeepStrictEqual(configuration.registered_credential, registration.credential?.profile) ||
+            !plainSdkRecord(selected) ||
+            !isDeepStrictEqual(selected.provider_options, registration.providerOptions) ||
+            !isDeepStrictEqual(selected.structured_capability, registration.structuredCapability) ||
+            !isDeepStrictEqual(selected.registered_credential, registration.credential?.profile) ||
             installation.build_artifact_cid !== registration.adapterArtifactCid ||
             installation.endpoint !== route.endpoint || sdk?.package_name !== registration.sdkPackage ||
             sdk.version !== registration.sdkVersion || sdk.interface !== 'v4' ||

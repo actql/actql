@@ -19,7 +19,7 @@ const acceptance = packedInputs === undefined ? {
   runtime: {
     root: new URL('../../', import.meta.url).href,
     client: new URL('../../packages/node/index.mjs', import.meta.url).href,
-    httpHost: new URL('./embedded-local.mjs', import.meta.url).href,
+    httpHost: new URL('../../packages/local-node/http-host.mjs', import.meta.url).href,
     inferFixture: new URL('../../scripts/fixtures/installed-infer-fixture.mjs', import.meta.url).href,
     providerFixture: new URL('../../scripts/fixtures/model-provider-binding-fixture.mjs', import.meta.url).href,
     environment: fileURLToPath(new URL('../../spec/local-check-environment.json', import.meta.url)),
@@ -604,9 +604,12 @@ for (const transport of ['local', 'https']) {
     const original = f.journal().scopes[0];
     const replay = f.phase('approve-replacement-probe', {providerRevision: 'public-model-fixture-2'});
     assertSameRun(waiting, replay);
-    assert.notEqual(replay.status, 'succeeded');
+    assert.equal(replay.replayConflict, true);
+    assert.equal(replay.resolution.results[0].status, 'committed');
+    assert.equal(replay.status, 'failed');
     assertSends(f, []);
     assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    assert.equal(f.journal().attempts.length, 0);
     assert.equal(f.journal().scopes[0].scope_cid, original.scope_cid);
     assert.equal(f.journal().scopes[0].originals_json, original.originals_json);
   });

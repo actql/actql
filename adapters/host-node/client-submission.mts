@@ -7,8 +7,9 @@ import {validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
   validSubmissionName, validNamedSubmissionAttempt} from '../../packages/client-wire/index.mjs';
 
 import type {WireCheckOutcome, WireClientBodyByOperation, WireConnection, WireNamedSubmissionAttempt, WireOperationAttemptRef,
-  WireRequestLookup, WireRunRef, WireSubmissionLookup, WireSubmissionOutcome, WireSubmissionRef,
+  WireRequestLookup, WireRunRef, WireSubmissionAttempt, WireSubmissionLookup, WireSubmissionOutcome, WireSubmissionRef,
   WireSubmissionRestart, WireSubmitReply} from '../../packages/client-wire/index.js';
+import {originalModelPlanReplayRefusal, rejectModelPlanReplay} from './installed-model-originals.mjs';
 import type {openClientRequestJournal} from './client-request-journal.mjs';
 import type {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 
@@ -43,7 +44,8 @@ type Prepare = ((request: PrepareRequest) => MaybePromise<object>) &
 type PreparationCheck = Readonly<Actor & {kind: 'program' | 'text'; scope: 'bound_input';
   input: SubmitRequest['input']; parameters: unknown}>;
 type Installation = Readonly<EpochOptions & {journal: Journal; moon: Core; prepareSubmit: Prepare;
-  submit(request: Submission): MaybePromise<WireSubmitReply>;
+  submit(request: Submission, replayRef?: WireRunRef): MaybePromise<WireSubmitReply>;
+  retainedModelReplay?(request: Actor, ref: WireRunRef): boolean;
   lookupRequest(request: Actor & Readonly<{requestId: string}>): MaybePromise<WireRequestLookup>;
   checkSubmissionInput?(request: PreparationCheck): MaybePromise<WireCheckOutcome | undefined>;
   observeOriginalPreparationFailure?(failure: unknown, request: SubmitRequest): MaybePromise<unknown>;
@@ -56,6 +58,7 @@ type AttemptFields = Scope & Readonly<{actorId: string; unresolvedHistory?: Wire
 type RecordFields = AttemptFields & Readonly<{phase?: string; outcome?: WireSubmissionOutcome}>;
 type Attempt = Readonly<{fields: Scope;
   observe(retained: Retained | undefined): void;
+  rejectModelReplay(issue: NonNullable<ReturnType<typeof originalModelPlanReplayRefusal>>): never;
   check(ref: WireSubmissionRef, intent: unknown, options: AttemptFields): void;
   record(ref: WireSubmissionRef, intent: unknown, options: RecordFields): Retained;
 }>;
@@ -64,9 +67,10 @@ type AttemptWithSubmission = Extract<AttemptResult, {submission: unknown}>;
 type RecordedAttempt = AttemptWithSubmission & Readonly<{submission: Retained}>;
 type ObservedAttempt = Readonly<{kind: 'recorded' | 'already_satisfied'; attemptRef: WireOperationAttemptRef;
   outcome: WireSubmissionLookup}>;
+type RejectedAttempt = Extract<WireSubmissionAttempt, {kind: 'refused' | 'conflict'}>;
 type SubmissionService = Readonly<{
   submitIntent(request: SubmitRequest): Promise<WireSubmissionLookup>;
-  submitAttempt(request: AttemptRequest): Promise<AttemptResult | ObservedAttempt>;
+  submitAttempt(request: AttemptRequest): Promise<AttemptResult | ObservedAttempt | RejectedAttempt>;
   submitNamedAttempt(request: NamedRequest): Promise<WireNamedSubmissionAttempt>;
   lookupSubmission(request: LookupRequest): Promise<WireSubmissionLookup>;
   issueEpoch(request: Actor): Promise<ReturnType<Journal['issueSubmissionEpoch']>>;
@@ -111,7 +115,7 @@ export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedS
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
   prepareSubmit, submit, lookupRequest, checkSubmissionInput, observeOriginalPreparationFailure,
-  bindOwnedRequest, admitPreparedSubmission, preparationCustody, submittedIntentOriginal}: Installation): SubmissionService {
+  bindOwnedRequest, admitPreparedSubmission, preparationCustody, submittedIntentOriginal, retainedModelReplay}: Installation): SubmissionService {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
       typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
@@ -120,7 +124,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       admitPreparedSubmission !== undefined && typeof admitPreparedSubmission !== 'function' ||
       checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function' ||
       observeOriginalPreparationFailure !== undefined && typeof observeOriginalPreparationFailure !== 'function' ||
-      submittedIntentOriginal !== undefined && typeof submittedIntentOriginal !== 'function') {
+      submittedIntentOriginal !== undefined && typeof submittedIntentOriginal !== 'function' ||
+      retainedModelReplay !== undefined && typeof retainedModelReplay !== 'function') {
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
   const copyRequest = <Value extends Actor, Changes extends Readonly<Record<string, unknown>>>(value: Value, changes: Changes): Value & Changes => preparationCustody === undefined
@@ -314,12 +319,14 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       fail('ClientProgramUnsupported');
     }
   };
-  const replayReady = async (value: SubmitRequest, retained: Retained, fields: Scope, original: Ready, input: unknown): Promise<Ready> => {
-    const requestId = retained.requestId;
-    if (flights.has(requestId)) return original;
+  const replayReady = async (value: SubmitRequest, retained: Retained, fields: Scope, original: Ready, input: unknown,
+    attempt?: Attempt): Promise<Ready> => {
+    const requestId = retained.requestId, ref = original.admission.ref;
+    const pending = flights.get(requestId);
+    if (pending !== undefined && retainedModelReplay?.(value, ref) !== true) return original;
     // A ready receipt establishes acceptance, not physical dispatch. Only
     // explicit replay re-enters the existing Run owner; lookup stays read-only.
-    const flight = (async () => {
+    const flight = pending ?? (async () => {
       let preparedProgram;
       try {
         preparedProgram = await prepareOwned(value, requestId);
@@ -327,6 +334,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       }
       catch (error) {
         if (!isClientSubmitRejection((error as Failure)?.code)) throw error;
+        if (retainedModelReplay?.(value, ref) === true) {
+          rejectModelPlanReplay(ref, 'model_provider_selection_unavailable');
+        }
         // Current execution support cannot replace an already accepted intent.
         // Re-read through the same authorized owner after the awaited failure:
         // lost authority or custody is not permission to return a stale receipt.
@@ -344,7 +354,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
           current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
       const reply = await submit(own(value, preparedSubmission(copyRequest(value, {requestId,
         submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
-          intentCid: value.intentCid, currentAuthorization: true}}), preparedProgram)));
+          intentCid: value.intentCid, currentAuthorization: true}}), preparedProgram)), ref);
       const observed = await authorize(value);
       if (observed.authorityScopeCid !== fields.authorityScopeCid ||
           observed.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
@@ -356,8 +366,22 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // including when the existing owner refuses a changed Source binding.
       return original;
     })().finally(() => {if (flights.get(requestId) === flight) flights.delete(requestId);});
-    flights.set(requestId, flight);
-    return await flight;
+    if (pending === undefined) flights.set(requestId, flight);
+    try {
+      const observed = await flight;
+      if (observed.kind !== 'ready' ||
+          observed.admission.ref.runDefinitionCid !== ref.runDefinitionCid ||
+          observed.admission.ref.namespaceId !== ref.namespaceId ||
+          observed.admission.ref.authorityScopeCid !== ref.authorityScopeCid) fail('InvalidClientHostSubmissionOutcome');
+      return observed;
+    } catch (error) {
+      const issue = originalModelPlanReplayRefusal(error, ref);
+      if (issue === undefined || attempt === undefined) throw error;
+      const authorized = await authorize(value);
+      if (authorized.authorityScopeCid !== fields.authorityScopeCid ||
+          authorized.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+      return attempt.rejectModelReplay(issue);
+    }
   };
   const submittedInput = (value: SubmitRequest) => {
     const original = submittedIntentOriginal?.(value);
@@ -410,7 +434,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (retained.observation === 'conflict') fail('ClientSubmittedIntentConflict');
       const result = await refresh(value, retained, fields);
       if (result.kind === 'unresolvable') fail('ClientSubmissionUnresolvable');
-      if (result.kind === 'ready') return await replayReady(value, retained, fields, result, input);
+      if (result.kind === 'ready') return await replayReady(value, retained, fields, result, input, attempt);
       if (result.kind !== 'preparing') return await discloseOutcome(value, result, fields, retained);
     }
     if (retained === undefined) {
@@ -553,7 +577,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (selected === undefined) return journal.checkSubmissionAttempt(value.submissionRef,
       undefined, {attemptRef: value.attemptRef, currentAuthorization: false}, moon);
     const fields = scopeFields(selected);
-    const rejections = new WeakMap<Error, AttemptResult>();
+    const rejections = new WeakMap<Error, AttemptResult | RejectedAttempt>();
     let attemptKind: ObservedAttempt['kind'] = 'recorded';
     const project = (result: AttemptResult): AttemptResult => {
       if (['refused', 'conflict'].includes(result.kind)) {
@@ -567,6 +591,15 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       const outcome = await submitIntent(value, {fields,
         observe(retained) {
           if (retained?.observation === 'already_satisfied') attemptKind = retained.observation;
+        },
+        rejectModelReplay(issue) {
+          const attemptRef = {operation: 'submit' as const, attemptId: value.attemptRef.attemptId};
+          const input = {attemptRef, submissionRef: value.submissionRef, intentCid: value.intentCid};
+          const interruption = new Error('SubmissionAttemptRejected');
+          rejections.set(interruption, issue === 'model_provider_selection'
+            ? {...input, kind: 'conflict', reason: issue}
+            : {...input, kind: 'refused', reason: issue, guarantee: 'attempt_uncommitted_unconsumed'});
+          throw interruption;
         },
         check(ref, input, options) {
           project(journal.checkSubmissionAttempt(ref, input,

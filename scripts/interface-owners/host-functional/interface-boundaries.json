@@ -23305,7 +23305,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "db458f90082cf7bcb64d36f78d0cf49bdc5a8b1dcd7e76a558754934e7d992d5",
+      "sha256": "4e372a5015ac02a70810fde4e98cfca637660ca38a2d38b74a8ab3bcebf3fd88",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23328,6 +23328,7 @@
             "assertRequestedStopAvailable",
             "requestIdentityFor",
             "inferPlanFor",
+            "modelPlanBindingsFor",
             "resultPolicyOriginalFor",
             "validateInstallation",
             "updateTargetOriginals",
@@ -39777,7 +39778,7 @@
     {
       "module": "adapters/host-node/client-request-journal-records.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0cd56c10d6ba24516f13844c4278140afaa0177a3d1f57e961af3fb23385940a",
+      "sha256": "127e72e73f24459bfeb42c72b1a1f5e640cc0e07b733896dbe7e928539b519da",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -45515,7 +45516,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ceeff7134ea4415d9c00a44ac45e54fd40639cda1627515412944e04f0754bdf",
+      "sha256": "60a76ef2c522e9876be2a278d33736c0bb885fc84f2bdd76210889846df0aad0",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -45544,7 +45545,8 @@
             "bindOwnedRequest",
             "admitPreparedSubmission",
             "preparationCustody",
-            "submittedIntentOriginal"
+            "submittedIntentOriginal",
+            "retainedModelReplay"
           ],
           "async": false
         },
@@ -45669,6 +45671,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/submitAttempt/submitAttempt/outcome/init:rejectModelReplay/init:rejectModelReplay",
+          "parameters": [
+            "issue"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientSubmission/submitIntent/submitIntent",
           "parameters": [
             "request",
@@ -45737,7 +45746,8 @@
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight",
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight#2",
             "installNodeClientSubmission/unresolved/unresolved",
-            "issueNodeClientSubmissionEpoch"
+            "issueNodeClientSubmissionEpoch",
+            "installNodeClientSubmission/submitAttempt/submitAttempt/outcome/init:rejectModelReplay/init:rejectModelReplay"
           ],
           "exports": [
             "installNodeClientSubmission",
@@ -46889,7 +46899,8 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
-        "./client-program-preparation.mjs"
+        "./client-program-preparation.mjs",
+        "./installed-model-originals.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -66021,7 +66032,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "f7a3275f5abde3aea040e8d39d4d16d0fdc9304cee202fee8abfa07f9422ca33",
+      "sha256": "1d61cd0893a4e9a63078f5262113c65c60b7cf3a180ce5d6b43fb4442d4ca173",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -80448,13 +80459,67 @@
     {
       "module": "adapters/host-node/installed-model-originals.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1b6c8a5376008e75fdfb3814eef12a0c10b3f718cce66b33bb1966f1efecbcf4",
+      "sha256": "4ac4003e0912de8d1a81924c1133c3ef2ec7457a404326fb9d3602c40411c540",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
-        "originalModelRunWire"
+        "assertInstalledModelPreflight",
+        "assertOriginalModelPlanReplay",
+        "assertRestoredModelRunSelection",
+        "originalModelPlanReplayRefusal",
+        "originalModelRunWire",
+        "prepareOriginalEffectReadCurrent",
+        "prepareOriginalEffectReadRequest",
+        "prepareRestoredModelEffectRequest",
+        "rejectModelPlanReplay",
+        "retainOriginalEffectInput",
+        "runWithEffectReadInput",
+        "runWithRestoredModelInput",
+        "selectedModelPlanRows"
       ],
       "operations": [
+        {
+          "name": "assertInstalledModelPreflight",
+          "parameters": [
+            "selection"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertOriginalModelPlanReplay",
+          "parameters": [
+            "moon",
+            "retained",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
+          "parameters": [
+            "prior",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "assertRestoredModelRunSelection",
+          "parameters": [
+            "moon",
+            "ref",
+            "admitted",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalModelPlanReplayRefusal",
+          "parameters": [
+            "error",
+            "ref"
+          ],
+          "async": false
+        },
         {
           "name": "originalModelRunWire",
           "parameters": [
@@ -80470,16 +80535,146 @@
             "wire"
           ],
           "async": false
+        },
+        {
+          "name": "prepareOriginalEffectReadCurrent",
+          "parameters": [
+            "observeCancellation",
+            "readLeaseFailure",
+            "admitResume"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalEffectReadCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalEffectReadRequest",
+          "parameters": [
+            "request",
+            "moon",
+            "retained",
+            "retain",
+            "retainInput",
+            "prepare",
+            "attach",
+            "bind",
+            "check"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareRestoredModelEffectRequest",
+          "parameters": [
+            "request",
+            "originalIntent",
+            "materialWire",
+            "retain",
+            "retainInput",
+            "prepare",
+            "assertIntent",
+            "attach"
+          ],
+          "async": true
+        },
+        {
+          "name": "rejectModelPlanReplay",
+          "parameters": [
+            "ref",
+            "issue"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalEffectInput",
+          "parameters": [
+            "register",
+            "open",
+            "finish"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalEffectInput/init:finish/init:finish",
+          "parameters": [
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainOriginalEffectInput/pending/pending",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "runWithEffectReadInput",
+          "parameters": [
+            "work",
+            "stopRenewal"
+          ],
+          "async": true
+        },
+        {
+          "name": "runWithEffectReadInput/runWithEffectReadInput",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "runWithEffectReadInput/runWithEffectReadInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runWithEffectReadInput/runWithEffectReadInput#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runWithRestoredModelInput",
+          "parameters": [
+            "work"
+          ],
+          "async": true
+        },
+        {
+          "name": "runWithRestoredModelInput/result/result",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "runWithRestoredModelInput/runWithRestoredModelInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedModelPlanRows",
+          "parameters": [
+            "moon",
+            "selection"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "originalModelRunWire",
-            "originalModelRunWire/originalModelRunWire"
+            "originalModelRunWire/originalModelRunWire",
+            "originalModelPlanReplayRefusal",
+            "rejectModelPlanReplay"
           ],
           "exports": [
-            "originalModelRunWire"
+            "originalModelRunWire",
+            "originalModelPlanReplayRefusal",
+            "rejectModelPlanReplay"
           ],
           "attributes": {
             "responsibility": [
@@ -80763,11 +80958,262 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "assertInstalledModelPreflight",
+            "assertOriginalModelPlanReplay",
+            "assertOriginalModelPlanReplay/assertOriginalModelPlanReplay",
+            "assertRestoredModelRunSelection",
+            "selectedModelPlanRows"
+          ],
+          "exports": [
+            "assertInstalledModelPreflight",
+            "assertOriginalModelPlanReplay",
+            "assertRestoredModelRunSelection",
+            "selectedModelPlanRows"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export function assertRestoredModelRunSelection("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('cold Model Effect checks the original provider before preflight, capture or execution'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareOriginalEffectReadCurrent",
+            "prepareOriginalEffectReadCurrent/assertCurrent",
+            "prepareOriginalEffectReadRequest",
+            "prepareRestoredModelEffectRequest",
+            "retainOriginalEffectInput",
+            "retainOriginalEffectInput/init:finish/init:finish",
+            "retainOriginalEffectInput/pending/pending",
+            "runWithEffectReadInput",
+            "runWithEffectReadInput/runWithEffectReadInput",
+            "runWithEffectReadInput/runWithEffectReadInput#2",
+            "runWithEffectReadInput/runWithEffectReadInput#3",
+            "runWithRestoredModelInput",
+            "runWithRestoredModelInput/result/result",
+            "runWithRestoredModelInput/runWithRestoredModelInput"
+          ],
+          "exports": [
+            "prepareOriginalEffectReadCurrent",
+            "prepareOriginalEffectReadRequest",
+            "prepareRestoredModelEffectRequest",
+            "retainOriginalEffectInput",
+            "runWithEffectReadInput",
+            "runWithRestoredModelInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-originals.mts",
+                "anchor": "export async function runWithRestoredModelInput<Result>("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Retained Effect Request restoration"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-target-read-continuation.test.mjs",
+                "anchor": "test('actual read-access resume retains the same input retirement retry without preparing again'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('cold Model Effect cannot return its request input before the same failed execution cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('Source resume probes reuse one same-original cancellation observer per flight'"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('Source resume cancellation probes preserve lease priority, read failures and current admission refusal'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "./installed-host-cleanup.mjs",
         "./source-alias-construction.mjs"
       ],
       "compilerFields": [],
