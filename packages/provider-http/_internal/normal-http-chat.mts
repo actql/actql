@@ -176,7 +176,8 @@ function buildEntry(moon: Runtime, selected: SelectedTasks, config: ReturnType<t
   task: Task, originals: Readonly<Record<string, unknown>>, profile: unknown,
   runtimeCid: string, builderCid: string, layoutCid: string) {
   const installation = Object.freeze({builder_id:builderId,builder_revision:'1',codec_id:codecId,codec_revision:'1',
-    build_artifact_cid:builderCid,sdk:null,endpoint:config.endpoint,http_method:'POST',streaming:false,
+    // The typed Common installation uses the compiled Option representation.
+    build_artifact_cid:builderCid,sdk:undefined,endpoint:config.endpoint,http_method:'POST',streaming:false,
     validator_id:codecId,validator_revision:'1',validator_artifact_cid:runtimeCid,completion_basis:'generation_finish'});
   const now = Date.now(), at = (ms: number) => new Date(now + ms).toISOString();
   const transport = createOriginalUndiciFetch({endpoint:config.endpoint,requestLimits,responseLimits,

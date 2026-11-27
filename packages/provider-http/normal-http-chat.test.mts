@@ -109,7 +109,10 @@ test('configured direct Chat sends its original route, profile and Graph recipe 
     assert.equal(declaration.originalReadInstallation,undefined);
     const recipe=declaration.originalReadRecipe as {nodeInstallation:{layout:{response_profile:unknown},
       installation:{sdk:unknown}}};
-    assert.equal(recipe.nodeInstallation.installation.sdk,null);
+    assert.equal(recipe.nodeInstallation.installation.sdk,undefined);
+    const raw = declaration.rawCaptureSelection as {installation:unknown; profile:unknown};
+    assert.equal(raw.installation,recipe.nodeInstallation.installation);
+    assert.equal(raw.profile,f.profile);
     assert.equal(recipe.nodeInstallation.layout.response_profile,f.profile);
     assert.equal(Object.hasOwn(recipe.nodeInstallation.layout,'program_definition_cid'),false);
     assert.equal(keyReads,0);
