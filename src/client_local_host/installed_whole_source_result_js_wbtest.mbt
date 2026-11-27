@@ -15,18 +15,7 @@ fn whole_source_result_publication_fixture(
   producer_result? : Bool = false,
 ) -> Unit raise {
   let declaration = if numeric_case {
-    let catalogue = @row_source_host.prepare_mock_churn_risk_catalogue({
-      max_bytes: 1000000,
-      max_nodes: 100000,
-      max_depth: 100,
-      max_views: 10,
-      max_fields: 100,
-    }).unwrap()
-    let (query_name, original) = @row_source_host.mock_churn_risk_query_alias_at(
-      catalogue, 1,
-    ).unwrap()
-    assert_eq(query_name, "snowflake.usage_30d")
-    original
+    installed_usage_table_declaration()
   } else {
     pure_provider_declaration()
   }
