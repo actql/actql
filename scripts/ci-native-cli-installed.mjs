@@ -189,7 +189,8 @@ export async function acceptInstalledNativeCli(directory) {
     for (const scenario of sharedHostSourceScenarios) {
       const outputRoot = join(root, `shared-source-${scenario}`);
       const input = join(root, `shared-source-${scenario}.json`);
-      await writeFile(input, JSON.stringify({outputRoot, nativeDirectory: directory, scenario}) + '\n', {flag: 'wx'});
+      await writeFile(input, JSON.stringify({outputRoot, nativeDirectory: directory, scenario,
+        transportArchive: join(transportDirectory, transport.file)}) + '\n', {flag: 'wx'});
       // Same existing normal producer and bounded runner; no additional Common
       // supplier, Host implementation or publication lane is added here.
       await run(process.execPath, [join(repository, 'scripts/fixtures/shared-host-source-acceptance.mjs'), input],

@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {isAbsolute, join, resolve} from 'node:path';
+import {basename, isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const registry = 'https://registry.npmjs.org/';
@@ -44,11 +44,20 @@ function runCacheNpm(cache: string, cwd: string, args: string[]) {
 async function stageCachedTransport(cache: string, destination: string,
   transport: ReturnType<typeof lockedClientTransport>) {
   runCacheNpm(cache, destination, ['pack', transport.specifier, '--offline', '--pack-destination', destination]);
-  const bytes = await readFile(join(destination, transport.file));
+  return verifyTransportArchive(join(destination, transport.file), transport);
+}
+
+async function verifyTransportArchive(path: string, transport: ReturnType<typeof lockedClientTransport>) {
+  assert(isAbsolute(path) && basename(path) === transport.file, 'Expected the locked Local transport archive path');
+  const bytes = await readFile(path);
   assert.equal('sha512-' + createHash('sha512').update(bytes).digest('base64'), transport.integrity,
     'Cached Undici does not match the root npm lock');
   return {name: 'undici', version: transport.specifier.slice('undici@'.length),
     file: transport.file, integrity: transport.integrity};
+}
+
+export async function verifyLockedClientTransportArchive(path: string) {
+  return verifyTransportArchive(path, await readLockedClientTransport());
 }
 
 export async function stageLockedClientTransport(cache: string, destination: string) {
