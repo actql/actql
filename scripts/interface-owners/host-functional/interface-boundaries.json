@@ -66032,7 +66032,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "065e42fa0563ad5effdc859a371f9f9f51a6770b1a09f98ef73cb1c72412b984",
+      "sha256": "3ebe2150e6bbbb7d0a8c12b16398b2657efd5fef2592347fcf97d4c4f85b9c89",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -66141,6 +66141,14 @@
           "name": "capturePackageCustody/requiresBundled/requiresBundled",
           "parameters": [
             "registration"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/sameOrdinaryPackageImage/sameOrdinaryPackageImage",
+          "parameters": [
+            "edge",
+            "index"
           ],
           "async": false
         },
@@ -66308,6 +66316,7 @@
             "readVerifiedSdkImages",
             "capturePackageCustody/bindEdge/previous/previous",
             "capturePackageCustody/capturePackageCustody",
+            "capturePackageCustody/sameOrdinaryPackageImage/sameOrdinaryPackageImage",
             "capturePackageCustody/sharesCapturedImages/sharesCapturedImages",
             "capturePackageCustody/validateExternalLock/original/original",
             "capturePackageCustody/validateExternalLock/verify/verify",
@@ -66346,6 +66355,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "function captureDependency(binding: unknown, from: string, importer: string | undefined,"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "function sameOrdinaryPackageImage(original: unknown, selected: unknown, images: readonly unknown[],"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mts",
@@ -66496,6 +66509,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "ordinary external adapters share only the exact installed dependency under their own locks"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "an ordinary released package alias retains both manifest variants and the same physical dependencies"
               }
             ]
           }
