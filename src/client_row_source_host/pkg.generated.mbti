@@ -28,8 +28,6 @@ import {
 // Values
 pub fn abort_row_run(RowRun) -> Unit
 
-pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]
-
 pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]
 
 pub fn accept_charged_relation_input_document(RowRun, RowPageCharge, RowInputAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]
@@ -45,8 +43,6 @@ pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue
 pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
 
 pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
-
-pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]
 
 pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]
 
@@ -234,24 +230,6 @@ pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String
 
 pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String
 
-pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
-
-pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int
-
-pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
-
-pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int
-
-pub fn mock_churn_risk_target_before(MockTargetRow) -> String?
-
-pub fn mock_churn_risk_target_version(MockTargetRow) -> String?
-
-pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
-
-pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int
-
-pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]
-
 pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
 
 pub fn observe_relation_target_from_catalog_key(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
@@ -259,8 +237,6 @@ pub fn observe_relation_target_from_catalog_key(RelationTargetDocument, RowDecla
 pub fn observe_relation_target_with_key(RelationOrderedTargetDocument, RowDeclaration, @decode_core.Cursor) -> Result[RelationTargetRow, RowSourceIssue]
 
 pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]
-
-pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
 
@@ -273,10 +249,6 @@ pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourcevi
 pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]
 
 pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]
-
-pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]
-
-pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]
 
 pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]
 
@@ -658,18 +630,6 @@ pub(all) enum LocalCsvTableIssue {
   InvalidLocalCsvColumns
   InvalidLocalCsvKey
 } derive(Eq, @debug.Debug)
-
-pub struct MockChurnRiskCatalogue {
-  // private fields
-}
-
-pub struct MockTargetDocument {
-  // private fields
-}
-
-pub struct MockTargetRow {
-  // private fields
-}
 
 pub struct RelationDocument {
   // private fields

@@ -482,102 +482,36 @@ fixture credentials or permissions into a real connection.
 
 ### Bundled mock catalogue declarations
 
-The documented churn-risk mock installation has an explicit product catalogue
-for Salesforce `Account` and Snowflake `usage_30d`. The Host selects that
-catalogue under the original mock Project/Profile and installation generation;
-it does not identify a contract from a Task, filename, row count or observed
-values. Hand-authored equivalent projects and changed fixture rows use the same
-declared schemas. Other resources require their own supplied catalogue.
-
-`mock-churn-risk-catalogue.mjs` supplies immutable field-map schema wires,
-their complete existing schema CIDs, positive query aliases and candidate-key
-facts to the existing Common Relation declaration constructor. It does not
-calculate a semantic CID, parse rows or check logical types in JavaScript.
-Common validates the schema originals and constructs the Catalog, SourceViews,
-contracts and evidence members. The `salesforce.accounts` read alias refers to
-the original `Account` resource; it does not rename the UPDATE target or issue
-an Effect Mapping.
-
-The single owned `mock_churn_risk_catalogue.json` DATA source supplies both
-that immutable Node asset and the generated typed Common input. The portable
-Common factory admits the same declarations through the existing Relation
-owner. Its opaque catalogue keeps private source and alias arrays; count/index
-getters return the same original declarations for each logical name. Another
-factory invocation creates different originals, even when their complete
-Catalog bytes match. Native consumers reuse this factory rather than copying
-schema wires, pins or alias tables into a second implementation.
-
-Temporary typed inputs, view/alias arrays, schema parsing and hashing overlap
-the two returned declarations and private catalogue arrays. Returned tuples and
-declaration references retain their own caller lifetime. Factory construction,
-alias membership and dropping a DATA reference do not establish an installed
-generation, Source capacity, current permission or physical cleanup.
-
-The declared Snowflake `active_users` type is logical Int64. Its physical
-JSON codec must preserve full signed64 values without a binary64 round trip;
-an admitted Number is not implicitly promoted. Salesforce `Risk_Reason__c`
-is declared nullable Text even when all initial fixture values are null.
-Candidate keys are `id` and `account_id` respectively. The actual fixture's
-explicit key must be retained and validated against these contracts, never
-replaced with the bundled key after missing or invalid input. Every known
-field and row remains subject to original Source admission.
-
-The descriptors supply no acquisition override: the existing empty bound
-request, finite scan and projection-only contract remain with Common. Selecting
-these declarations supplies neither an Account grant nor resources, business
-Run custody, a Model profile, approval, target versions or cold restoration.
-Those original responsibilities remain independently required. The immutable
-module objects, schema/facts Strings and aliases remain retained alongside the
-Common parsed declarations, encoding/hash workspace and Host installation;
-module lifetime and bounds do not make that storage free or physically closed.
-
-The existing Row Source owner also derives the mock Account UPDATE Mapping
-from that same original declaration. It checks the selected implementation
-generation, complete fixed field contracts, original View/facts correspondence
-and `id` candidate key before calling its existing RelationUpdate constructor.
-The private Node bridge forwards that original and returns Common's Mapping
-body. It does not relabel a create Mapping or rebuild a CID in JavaScript.
-The original Host still supplies the positive `salesforce.Account` target alias
-and its installation provenance; a readable Source alias cannot supply it.
-`salesforce:record:update` remains an operation requirement, not a current grant,
-and the Mapping requires review. Neither construction nor successful checking
-observes a target version, writes a row or confirms an approval.
+The churn-risk template supplies the Project's original catalogue and data.
+The installed Mock admits those inputs through the declared-file inventory,
+the same path used for hand-authored projects. Common issues each Relation
+declaration, schema and candidate-key contract from the selected catalogue.
+The `salesforce.accounts` read alias resolves to the declared `Account`
+resource. Write aliases and reviewed Effects use their own declared Mapping
+and current authority.
 
 #### Original physical Mock records
 
-The existing Row Source owner accepts the full original Mock JSON document
-under both installed Relation declarations. It consumes the selected RowRun's
-own pending byte ticket before decoding, and requires the same acquisition,
-prepared input schema and original declared view. A foreign declaration,
-copied view, another attempt's ticket or repeated admission cannot substitute.
-The ticket accounts for bytes; equal length is not original-body provenance.
-The Host must retain the actual body, file/current observation and operation
-correspondence independently.
+The Host observes the whole data document and charges the actual bytes to the
+original RowRun before Common parses or projects the document. Each declared
+physical binding supplies its resource, row and key paths and original
+Relation view. Before appending typed input, Common consumes the same Run's
+one-use page charge and checks the selected acquisition, schema, view and
+document bounds. The Host owns currentness, the actual body observation and
+physical cleanup.
 
-Strict preserving parsing retains exact field spelling and numeric byte spans.
-The two connection/resource objects are closed, each explicit file key must
-match its original declared candidate key, and duplicate physical keys refuse.
-Both complete tables, every row and every declared field are admitted before
-any selected row is appended. Missing fields remain distinct from explicit
-nullable values. A projected-out column or unconsumed relation cannot hide an
-invalid physical value in this selected document.
+The file's explicit key must match its declared candidate key. Preserving
+parsing keeps physical integer tokens and field spelling, validates complete
+declared rows, and keeps missing fields distinct from nullable values. The
+template's Snowflake `active_users` values reach logical Int64 without a
+binary64 round trip. Salesforce `Risk_Reason__c` remains nullable Text.
+The RowRun retains its original request, residual filtering, and capture
+responsibilities through the selected projection.
 
-For the original Int64 contract, the physical profile takes an ASCII integer
-number token from that same parser span and original bytes. It never converts
-the parser's binary64 value to Int64, and does not accept an external String,
-fraction, exponent token, negative zero or overflow as an integer observation.
-Canonical decimal String encoding is an internal schema-directed Value wire,
-not a relabelled physical Text cell. Selected values use the checked input's
-exact Contract objects and enter its existing typed-row receiver. Query request,
-Parameter, residual filtering and eventual capture remain with the same
-acquisition; no Source completion or current grant follows from decoding.
-
-The shared full-file holding, each Run's independent ticket, parser String and
-Nodes/spans, decoded tree, both schema/key originals, temporary checked cells,
-selected row arrays, integer text/cursor conversion and append workspace may
-overlap. Byte/node/depth/row/work bounds remain independent and are not funding.
-Failure aborts only the same attempt. Data-reference retirement, ticket
-consumption and successful row append are not physical cleanup acknowledgements.
+The document backing, parser and projections, selected rows and append
+workspace are bounded under the installed Source's existing capacity. A failed
+receiver aborts its own attempt. The original child must confirm physical
+cleanup before the Host can retire its custody.
 
 The standard RowRun page entry retains its 400,000-node and depth-32 defaults.
 An installed Source may narrow that page envelope on the same pending RowRun
