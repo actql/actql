@@ -489,8 +489,8 @@ const mutations = [
     "return freezeInput({outcome: 'failed', summary, hint, problem,",
     'check-problem-explanation', 'check-problem-explanation', [], 'packages/sdk/check-presentation.mjs'],
   ['check outcome bypasses its schema identity pin',
-    'valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;',
-    'valid(value, schemas.check_outcome);',
+    'valid(value, schemas.check_outcome) && wireObject(value) &&\n        value.outcome_schema_cid === checkOutcomeSchemaCid;',
+    'valid(value, schemas.check_outcome) && wireObject(value);',
     'check-schema-pin', 'check-outcome-pin'],
 
   ['frontier comparison discards the bound context',
