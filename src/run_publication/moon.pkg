@@ -1,7 +1,6 @@
 supported_targets = "+js+wasm+native"
 
 import {
-  "moonbitlang/core/encoding/base64",
   "moonbitlang/core/json" @moonjson,
   "actql/actql/bounded_tuple_sort" @sort,
   "actql/actql/canonical_value" @canonical,

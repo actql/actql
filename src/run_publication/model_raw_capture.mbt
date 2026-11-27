@@ -327,7 +327,7 @@ pub fn model_raw_response_store_plaintext(
   if bytes.length() != byte_count || "sha256:" + @sha.hex(bytes) != content_cid {
     return None
   }
-  Some(descriptor + "\n" + @base64.encode(bytes))
+  Some(descriptor + "\n" + @admitted.encode_canonical_base64(bytes))
 }
 
 ///|
@@ -355,9 +355,8 @@ pub fn read_model_raw_response_store_plaintext(
     return None
   }
   let encoded = text[prefix.length():]
-  let bytes = @base64.decode(encoded) catch { _ => return None }
-  guard bytes.length() == count &&
-    @base64.encode(bytes)[:] == encoded &&
+  guard @admitted.decode_canonical_base64(encoded, count) is Some(bytes) &&
+    bytes.length() == count &&
     "sha256:" + @sha.hex(bytes) == content_cid else {
     return None
   }

@@ -65,9 +65,9 @@ pub fn private_evidence_aad(name : String, cid : String) -> Bytes? {
 pub fn encode_private_evidence_envelope(encrypted : Bytes) -> Bytes? {
   let size = encrypted.length()
   guard size > 28 && size <= 1048576 + 28 else { return None }
-  let nonce = @base64.encode(encrypted[0:12])
-  let tag = @base64.encode(encrypted[size - 16:])
-  let ciphertext = @base64.encode(encrypted[12:size - 16])
+  let nonce = @admitted.encode_canonical_base64(encrypted[0:12])
+  let tag = @admitted.encode_canonical_base64(encrypted[size - 16:])
+  let ciphertext = @admitted.encode_canonical_base64(encrypted[12:size - 16])
   Some(@utf8.encode(private_evidence_envelope_text(nonce, tag, ciphertext)))
 }
 
@@ -87,20 +87,13 @@ pub fn decode_private_evidence_envelope(envelope : Bytes) -> Bytes? {
     fields.get("ciphertext") is Some(String(ciphertext)) else {
     return None
   }
-  let decode = (text : String) => {
-    let bytes = @base64.decode(text) catch { _ => return None }
-    if @base64.encode(bytes) != text {
-      return None
-    }
-    Some(bytes)
-  }
-  guard decode(nonce) is Some(nonce_bytes) &&
+  guard @admitted.decode_canonical_base64(nonce[:], 12) is Some(nonce_bytes) &&
     nonce_bytes.length() == 12 &&
-    decode(tag) is Some(tag_bytes) &&
+    @admitted.decode_canonical_base64(tag[:], 16) is Some(tag_bytes) &&
     tag_bytes.length() == 16 &&
-    decode(ciphertext) is Some(cipher_bytes) &&
-    cipher_bytes.length() > 0 &&
-    cipher_bytes.length() <= 1048576 else {
+    @admitted.decode_canonical_base64(ciphertext[:], 1048576)
+    is Some(cipher_bytes) &&
+    cipher_bytes.length() > 0 else {
     return None
   }
   Some(nonce_bytes + cipher_bytes + tag_bytes)
