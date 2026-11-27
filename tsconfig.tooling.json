@@ -114,6 +114,10 @@
   ],
   "exclude": [
     "scripts/templates/checkpoint-answer-construction.mts",
+    "scripts/templates/checkpoint-answer-artifacts.mts",
+    "scripts/templates/client-host-wire.mts",
+    "scripts/templates/client-publication-wire.mts",
+    "scripts/templates/interactive-control-wire.mts",
     "scripts/templates/update-target-data-codec.mts",
     "**/*.typecheck.mts",
     "**/*.d.mts",

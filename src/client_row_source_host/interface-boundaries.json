@@ -358,12 +358,11 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "6bb04bb53f054bebe28650056c61a70ad37a774f2d92797e8109c26b543f9181",
+      "sha256": "4ac8b1dd12e02edf081a2fc31517db01bb33c4b9d7091d55729606472508e648",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
         "pub fn abort_row_run(RowRun) -> Unit",
-        "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_relation_input_document(RowRun, RowPageCharge, RowInputAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]",
@@ -372,7 +371,6 @@
         "pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]",
         "pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]",
         "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
-        "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
         "pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]",
         "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn admit_relation_target_key(RelationOrderedTargetDocument, @decode_core.Cursor) -> Result[RelationTargetKey, RowSourceIssue]",
@@ -466,28 +464,16 @@
         "pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)",
         "pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String",
         "pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String",
-        "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-        "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
-        "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-        "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int",
-        "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
-        "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
-        "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-        "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
-        "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
         "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
         "pub fn observe_relation_target_from_catalog_key(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
         "pub fn observe_relation_target_with_key(RelationOrderedTargetDocument, RowDeclaration, @decode_core.Cursor) -> Result[RelationTargetRow, RowSourceIssue]",
         "pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
-        "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]",
         "pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]",
         "pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]",
         "pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]",
-        "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
-        "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]",
         "pub fn prepare_relation_document_key_contract(RowDeclaration, String, Array[String], RowPageLimits) -> Result[RelationDocumentPreparedKey, RowMappingIssue]",
         "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
@@ -655,9 +641,6 @@
         "pub fn start_original_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, Int64, Int64, (RowAttempt) -> Bool, prefix? : @physical_resources.Reservation?) -> Result[RowRun, RowHostIssue]",
         "pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
-        "pub struct MockChurnRiskCatalogue {",
-        "pub struct MockTargetDocument {",
-        "pub struct MockTargetRow {",
         "pub struct RelationDocument {",
         "pub struct RelationTargetDocument {",
         "pub struct RelationTargetRow {",
@@ -673,10 +656,6 @@
         {
           "name": "abort_row_run",
           "declaration": "pub fn abort_row_run(RowRun) -> Unit"
-        },
-        {
-          "name": "accept_charged_mock_churn_risk_document",
-          "declaration": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
         },
         {
           "name": "accept_charged_relation_document",
@@ -709,10 +688,6 @@
         {
           "name": "accept_row_run_values",
           "declaration": "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]"
-        },
-        {
-          "name": "admit_mock_churn_risk_target_document",
-          "declaration": "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]"
         },
         {
           "name": "admit_relation_document",
@@ -1087,42 +1062,6 @@
           "declaration": "pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String"
         },
         {
-          "name": "mock_churn_risk_query_alias_at",
-          "declaration": "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
-        },
-        {
-          "name": "mock_churn_risk_query_alias_count",
-          "declaration": "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int"
-        },
-        {
-          "name": "mock_churn_risk_source_at",
-          "declaration": "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
-        },
-        {
-          "name": "mock_churn_risk_source_count",
-          "declaration": "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int"
-        },
-        {
-          "name": "mock_churn_risk_target_before",
-          "declaration": "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?"
-        },
-        {
-          "name": "mock_churn_risk_target_version",
-          "declaration": "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?"
-        },
-        {
-          "name": "mock_churn_risk_update_alias_at",
-          "declaration": "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?"
-        },
-        {
-          "name": "mock_churn_risk_update_alias_count",
-          "declaration": "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int"
-        },
-        {
-          "name": "observe_mock_churn_risk_target",
-          "declaration": "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]"
-        },
-        {
           "name": "observe_relation_target",
           "declaration": "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]"
         },
@@ -1137,10 +1076,6 @@
         {
           "name": "prepare_catalog_row_input_acquisition",
           "declaration": "pub fn prepare_catalog_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]"
-        },
-        {
-          "name": "prepare_churn_risk_mock_update_mapping",
-          "declaration": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
         {
           "name": "prepare_declared_row_acquisition",
@@ -1165,14 +1100,6 @@
         {
           "name": "prepare_local_csv_table",
           "declaration": "pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]"
-        },
-        {
-          "name": "prepare_mock_churn_risk_catalogue",
-          "declaration": "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]"
-        },
-        {
-          "name": "prepare_mock_churn_risk_target_update",
-          "declaration": "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]"
         },
         {
           "name": "prepare_relation_document_contract",
@@ -2332,198 +2259,6 @@
         },
         {
           "operations": [
-            "accept_charged_mock_churn_risk_document",
-            "admit_mock_churn_risk_target_document",
-            "mock_churn_risk_target_before",
-            "mock_churn_risk_target_version",
-            "observe_mock_churn_risk_target",
-            "prepare_churn_risk_mock_update_mapping",
-            "prepare_mock_churn_risk_target_update"
-          ],
-          "exports": [
-            "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
-            "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
-            "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
-            "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
-            "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
-            "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
-            "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
-            "pub struct MockTargetDocument {",
-            "pub struct MockTargetRow {"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "/// Bounded, owned DATA from the actual Mock file. It supplies no read/write"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "pub fn admit_mock_churn_risk_target_document("
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "fn mock_target_row_original(row : MockTargetRow) -> Bool {"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "/// bytes rather than retaining a mutable caller view across later awaits."
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "bytes.length() > max_work"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_records_wbtest.mbt",
-                "anchor": "test \"mock physical source exact integer spans reach the original typed input without Number conversion\""
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
-                "anchor": "test \"Mock target owns original bytes and rejects copied row or foreign document correspondence\""
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
-                "anchor": "test \"Mock target refuses malformed whole documents and non-Mapping updates before output\""
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "accept_charged_row_run_projected_page",
             "project_row_source_typed_json_page",
             "row_source_json_page_original",
@@ -3132,173 +2867,6 @@
               {
                 "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
                 "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "mock_churn_risk_query_alias_at",
-            "mock_churn_risk_query_alias_count",
-            "mock_churn_risk_source_at",
-            "mock_churn_risk_source_count",
-            "mock_churn_risk_update_alias_at",
-            "mock_churn_risk_update_alias_count",
-            "prepare_mock_churn_risk_catalogue"
-          ],
-          "exports": [
-            "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-            "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
-            "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-            "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int",
-            "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-            "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
-            "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
-            "pub struct MockChurnRiskCatalogue {"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              },
-              {
-                "path": "scripts/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('portable catalogue retains the complete previously authored Node DATA vector'"
               }
             ]
           }

@@ -4,16 +4,21 @@ export const connection = {mode:'remote', owner:'remote', consentRefs:[], runner
 export const ref = {namespaceId:'namespace-a', authorityScopeCid:`sha256:${'a'.repeat(64)}`, runDefinitionCid:`sha256:${'b'.repeat(64)}`};
 export const profile = {version:'actql-client-host/0.1', mode:'remote', owner:'remote', durability:'durable', scopeRef:'principal-a', capabilities:['result-jsonl'], limits:{maxReadWireBytes:4096,maxRowWireBytes:1024,maxRowRetainedValueBytes:1024,maxRetainedValueBytes:4096,maxRows:10,maxBatchRows:3,maxBatchRetainedValueBytes:1024}};
 export const admission = {ref, durability:'durable', revision:1};
-const corpus=[];
-const add=(name,kind,value,expected,selected=connection)=>corpus.push({name,kind,value,expected,selected});
-const omit=(value,key)=>Object.fromEntries(Object.entries(value).filter(([k])=>k!==key));
-for(const [kind,base] of [['profile',profile],['admission',admission],['run_ref',ref],['connection',connection]]) {
+type CorpusCase = {
+  name: string; kind: string; value: unknown; expected: boolean;
+  selected?: Record<string, unknown>; operation?: string;
+  requestId?: string; failureCode?: string;
+};
+const corpus: CorpusCase[] = [];
+const add=(name: string,kind: string,value: unknown,expected: boolean,selected: Record<string, unknown> = connection)=>corpus.push({name,kind,value,expected,selected});
+const omit=(value: object,key: string)=>Object.fromEntries(Object.entries(value).filter(([k])=>k!==key));
+for(const [kind,base] of [['profile',profile],['admission',admission],['run_ref',ref],['connection',connection]] as const) {
  add(`${kind}:valid`,kind,base,true);
  add(`${kind}:unknown field`,kind,{...base,extra:true},false);
  for(const key of Object.keys(base)) add(`${kind}:missing ${key}`,kind,omit(base,key),false);
  add(`${kind}:null`,kind,null,false);
 }
-for(const [label,text,expected] of [['empty','',false],['newline','a\nb',false],['nul','a\0b',false],['delete','a\x7fb',false],['255','a'.repeat(255),true],['256','a'.repeat(256),true],['257','a'.repeat(257),false],['astral256','😀'.repeat(128),true],['astral258','😀'.repeat(129),false]]) {
+for(const [label,text,expected] of [['empty','',false],['newline','a\nb',false],['nul','a\0b',false],['delete','a\x7fb',false],['255','a'.repeat(255),true],['256','a'.repeat(256),true],['257','a'.repeat(257),false],['astral256','😀'.repeat(128),true],['astral258','😀'.repeat(129),false]] as const) {
  add(`profile:scope ${label}`,'profile',{...profile,scopeRef:text},expected);
  add(`reference:namespace ${label}`,'run_ref',{...ref,namespaceId:text},expected);
  add(`admission:namespace ${label}`,'admission',{...admission,ref:{...ref,namespaceId:text}},expected);
@@ -56,7 +61,7 @@ for (const text of ['bad', `sha256:${'A'.repeat(64)}`, `sha256:${'a'.repeat(63)}
 }
 add('connection:both forbidden options','connection',{...connection,movementPolicyRef:'p',cloudConnectionRef:'c'},false);
 add('admission:attach durable downgrade','admission',{...admission,durability:'volatile'},false,{...connection,durability:'durable'});
-corpus.at(-1).operation = 'attach';
+corpus.at(-1)!.operation = 'attach';
 export const clientWireCorpus=corpus;
 
 // Independent restart-link response fixtures. The Native client must bind the
@@ -82,7 +87,7 @@ for (const [label, link, expected] of [
   ['invalid original epoch interval', {...restartLink, submissionRef: {...restartOld,
     epoch: {...restartOld.epoch, notBefore: restartOld.epoch.expiresAt}}}, false],
   ['wrong acknowledgement', {...restartLink, acknowledgement: 'retry'}, false],
-]) corpus.push({name: `submission restart:${label}`, kind: 'submission',
+] as const) corpus.push({name: `submission restart:${label}`, kind: 'submission',
   operation: 'lookup-submission', requestId: restartFresh.nonce,
   value: {...restartReady, unresolvedHistory: link}, expected,
   failureCode: 'InvalidHostSubmissionLookup'});
@@ -103,7 +108,7 @@ const held = {kind: 'held', requestId: fixedRequestId,
   prepareAttemptId: 'prepare-a', state: 'waiting_checkpoint',
   durability: 'durable', lookupExpiresAt: '2026-10-04T10:00:00Z',
   checkpoint: heldCheckpoint};
-const boundedTextCases = [
+const boundedTextCases: [string, string, boolean][] = [
   ['empty', '', false],
   ['newline', 'a\nb', false],
   ['nul', 'a\0b', false],
@@ -114,12 +119,12 @@ const boundedTextCases = [
   ['astral256', '😀'.repeat(128), true],
   ['astral258', '😀'.repeat(129), false],
 ];
-function addLookup(name, value, expected, requestId = fixedRequestId) {
+function addLookup(name: string, value: unknown, expected: boolean, requestId = fixedRequestId) {
   corpus.push({name: `lookup:${name}`, kind: 'lookup', value, expected,
     selected: connection, requestId, operation: 'lookup-request',
     failureCode: 'InvalidHostRequestLookup'});
 }
-function addHeld(name, value, expected, requestId = fixedRequestId) {
+function addHeld(name: string, value: unknown, expected: boolean, requestId = fixedRequestId) {
   // Both public routes must make the same held-response admission decision.
   for (const [route, operation, failureCode] of [
     ['lookup', 'lookup-request', 'InvalidHostRequestLookup'],
@@ -134,7 +139,7 @@ for (const [label, value] of [
   ['not_found', {kind: 'not_found'}],
   ['unknown', lookupUnknown],
   ['found', lookupFound],
-]) {
+] as const) {
   addLookup(`${label} valid`, value, true);
   addLookup(`${label} unknown field`, {...value, extra: true}, false);
   for (const key of Object.keys(value)) {
@@ -177,7 +182,7 @@ for (const [label, requestId, expected] of [
   ['256', 'a'.repeat(256), true],
   ['astral256', '😀'.repeat(128), true],
   ['astral258', '😀'.repeat(129), false],
-]) {
+] as const) {
   for (const [kind, value] of [
     ['not_found', {kind: 'not_found'}],
     ['unknown', lookupUnknown],
@@ -189,7 +194,7 @@ for (const [label, requestId, expected] of [
 // Explicit state/presence truth table. Columns are state, checkpoint,
 // endReason, terminalErrorCode, and acceptance. In particular, resuming may
 // retain a checkpoint; ended may retain a checkpoint and terminalErrorCode.
-const heldPresenceTruthTable = [
+const heldPresenceTruthTable: [string, boolean, boolean, boolean, boolean][] = [
   ['waiting_checkpoint', false, false, false, false],
   ['waiting_checkpoint', false, false, true, false],
   ['waiting_checkpoint', false, true, false, false],
@@ -217,7 +222,7 @@ const heldPresenceTruthTable = [
 ];
 for (const [state, checkpoint, endReason, terminalErrorCode, expected]
   of heldPresenceTruthTable) {
-  const value = {...omit(held, 'checkpoint'), state};
+  const value: Record<string, unknown> = {...omit(held, 'checkpoint'), state};
   if (checkpoint) value.checkpoint = heldCheckpoint;
   if (endReason) value.endReason = 'cancelled';
   if (terminalErrorCode) value.terminalErrorCode = 'ClientRunStartDenied';

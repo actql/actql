@@ -26,7 +26,7 @@ const mutations = [
     to: '      current = {text: record.input.text, version};\n      const ticket = ++issued;',
     targets: [target('fix application preserves exact input and rechecks before one atomic commit', 'fix-committed-buffer')]},
   {name: 'fix EOF boundary bypass', path: wire, file: wireTests,
-    from: '      if (fix.edits.some(edit => edit.start_byte !== input.byte_length ||\n          edit.end_byte !== input.byte_length)) return false;', to: '',
+    from: '                        if (fix.edits.some(edit => edit.start_byte !== input.byte_length || edit.end_byte !== input.byte_length))\n                            return false;', to: '',
     targets: [target('comment fix wire admits only known exact revision-bound EOF insertions', 'fix-wire')]},
   {name: 'fix public producer omitted', path: host, file: hostTests,
     from: '              write_check_comment_fix(writer, documents)', to: '              ()',

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {project, structuralValidatorSource} from './generate-client-publication-wire.mjs';
+import {project} from './generate-client-publication-wire.mjs';
+import {structuralWireValidator} from './templates/structural-wire-validator.mjs';
 
 import {checkEffectCheckpointContract} from './remote-effect-checkpoint-contract.mjs';
 
@@ -38,7 +39,7 @@ const canonical = value => value && typeof value === 'object'
       JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
   : JSON.stringify(value);
 const hash = text => 'sha256:' + createHash('sha256').update(text).digest('hex');
-const validate = new Function(structuralValidatorSource() + '\nreturn valid;')();
+const validate = structuralWireValidator();
 
 test('Remote Site fixed preimages and transitive identities are independent', () => {
   for (const vector of vectors) {

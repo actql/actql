@@ -1,4 +1,4 @@
-import {finiteWireNumberSource} from './client-wire-scalar-rules.mjs';
+import {compileWireTemplate} from './wire-template-compiler.mjs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join, resolve} from 'node:path';
@@ -118,77 +118,6 @@ export function typeOf(schema: ProjectedSchema): string | undefined {
   throw new Error('UnsupportedPublicationType');
 }
 
-export function structuralValidatorSource({extended = false, compositeConstants = false, inlineTypeScript = false} = {}) {
-  const valueAnnotation = inlineTypeScript ? ': unknown' : '';
-  const schemaAnnotation = inlineTypeScript ? ': SummarySchema' : '';
-  const record = (value: string) => inlineTypeScript ? `(${value} as Readonly<Record<string, unknown>>)` : value;
-  const present = inlineTypeScript ? '!' : '';
-  const resultAnnotation = inlineTypeScript ? ': boolean' : '';
-  const number = inlineTypeScript ? '(value as number)' : 'value';
-  const options = inlineTypeScript ? '(schema.enum as readonly unknown[])' : 'schema.enum';
-  return finiteWireNumberSource(inlineTypeScript ? 'typescript' : 'js') + (compositeConstants ?
-`function sameConstant(value${valueAnnotation}, expected${valueAnnotation})${resultAnnotation} {\n` +
-`  if (value === expected) return true;\n` +
-`  if (Array.isArray(expected)) return Array.isArray(value) && value.length === expected.length && expected.every((item, index) => sameConstant(value[index], item));\n` +
-`  if (expected !== null && typeof expected === 'object') return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === Object.keys(expected).length && Object.keys(expected).every(key => Object.hasOwn(value, key) && sameConstant(${record('value')}[key], ${record('expected')}[key]));\n` +
-`  return false;\n` +
-`}\n\n` : '') + `function valid(value${valueAnnotation}, schema${schemaAnnotation})${resultAnnotation} {\n` +
-`  if (typeof value === 'number' && !finiteWireNumber(value)) return false;\n` +
-`  if (typeof value === 'string' && !value.isWellFormed()) return false;\n` +
-    (extended ?
-`  if (schema.anyOf && !schema.anyOf.some(rule => valid(value, rule))) return false;\n` +
-`  if (schema.if && !valid(value, schema.if) && schema.else && !valid(value, schema.else)) return false;\n` +
-`  if (schema.type === 'null') return value === null;\n` +
-`  if (schema.format === 'date-time' && (typeof value !== 'string' || !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/u.test(value) || Number.isNaN(Date.parse(value)))) return false;\n`
-      : '') +
-    (inlineTypeScript ? '' : `  if (schema.$ref) return valid(value, schemas[schema.$ref]);\n`) +
-`  if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;\n` +
-`  if (schema.not && valid(value, schema.not)) return false;\n` +
-`  if (schema.if && valid(value, schema.if) && !valid(value, schema.then${present})) return false;\n` +
-`  if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;\n` +
-`  if (Object.hasOwn(schema, 'const') && ${compositeConstants ? '!sameConstant(value, schema.const)' : 'value !== schema.const'}) return false;\n` +
-`  if (schema.enum && !${options}.includes(value)) return false;\n` +
-`  if (typeof value === 'number' &&\n` +
-`      (schema.minimum !== undefined && value < schema.minimum ||\n` +
-`       schema.maximum !== undefined && value > schema.maximum)) return false;\n` +
-`  if (typeof value === 'string' &&\n` +
-`      ((schema.minLength !== undefined && [...value].length < schema.minLength) ||\n` +
-`        (schema.maxLength !== undefined && ${extended ? '[...value].length' : 'value.length'} > schema.maxLength) ||\n` +
-`        (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))\n` +
-`    return false;\n` +
-`  if (schema.type === 'string') return typeof value === 'string';\n` +
-`  if (schema.type === 'number') return typeof value === 'number';\n` +
-`  if (schema.type === 'integer') return Number.isSafeInteger(value) &&\n` +
-`    (schema.minimum === undefined || ${number} >= schema.minimum) &&\n` +
-`    (schema.maximum === undefined || ${number} <= schema.maximum);\n` +
-`  if (schema.type === 'boolean') return typeof value === 'boolean';\n` +
-`  if (schema.type === 'array') return Array.isArray(value) &&\n` +
-`    (schema.minItems === undefined || value.length >= schema.minItems) &&\n` +
-`    (schema.maxItems === undefined || value.length <= schema.maxItems) &&\n` +
-`    value.every(item => valid(item, schema.items${present})) &&\n` +
-`    (!schema.uniqueItems || new Set(value).size === value.length);\n` +
-`  if (value !== null && typeof value === 'object' && !Array.isArray(value) &&\n` +
-`      ((schema.minProperties !== undefined && Object.keys(value).length < schema.minProperties) ||\n` +
-`       (schema.maxProperties !== undefined && Object.keys(value).length > schema.maxProperties))) return false;\n` +
-`  if (schema.type === 'object' || schema.properties || schema.required) {\n` +
-`    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;\n` +
-`    if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;\n` +
-`    if (schema.propertyNames && Object.keys(value).some(key =>\n` +
-`        !valid(key, schema.propertyNames${present}))) return false;\n` +
-`    if (schema.additionalProperties === false &&\n` +
-`        Object.keys(value).some(key => !Object.hasOwn(schema.properties${present}, key))) return false;\n` +
-`    if (schema.additionalProperties &&\n` +
-`        typeof schema.additionalProperties === 'object' &&\n` +
-`        Object.entries(value).some(([key, item]) =>\n` +
-`          !Object.hasOwn(schema.properties ?? {}, key) &&\n` +
-`          !valid(item, schema.additionalProperties${inlineTypeScript ? " as SummarySchema" : ""}))) return false;\n` +
-`    return Object.entries(schema.properties ?? {}).every(([key, field]) =>\n` +
-`      !Object.hasOwn(value, key) || valid(${record('value')}[key], field));\n` +
-`  }\n` +
-`  return true;\n` +
-`}\n\n`;
-}
-
 export function buildClientPublicationWire(registries: unknown) {
   const schemas: Record<string, ProjectedSchema> = {};
   for (const [path, collection, keys] of sources) {
@@ -201,23 +130,13 @@ export function buildClientPublicationWire(registries: unknown) {
       schemas[key] = project(registry[collection][key]);
     }
   }
-  const module = `// Generated from registered ActQL publication schemas.\n` +
-`// Run: node scripts/generate-client-publication-wire.mjs --write\n` +
-`const schemas = ${JSON.stringify(schemas, null, 2)};\n\n` +
-structuralValidatorSource() +
-`export const validDeliveryAttempt = value => valid(value, schemas.delivery_attempt);\n` +
-`export const validDeliveryRecord = value => valid(value, schemas.delivery_record);\n` +
-`export const validHostReleaseReceipt = value =>\n` +
-`  valid(value, schemas.result_delivery_receipt);\n`;
-  const types = `// Generated from registered ActQL publication schemas.\n` +
-`export type WireDeliveryAttempt = ${typeOf(schemas.delivery_attempt)};\n\n` +
-`export type WireDeliveryRecord = ${typeOf(schemas.delivery_record)};\n\n` +
-`export type WireHostReleaseReceipt = ${typeOf(
-  schemas.result_delivery_receipt)};\n` +
-`export declare function validDeliveryAttempt(value: unknown): value is WireDeliveryAttempt;\n` +
-`export declare function validDeliveryRecord(value: unknown): value is WireDeliveryRecord;\n` +
-`export declare function validHostReleaseReceipt(value: unknown): value is WireHostReleaseReceipt;\n`;
-  return {module, types};
+  const header = '// Generated from registered ActQL publication schemas.\n' +
+    '// Run: node scripts/generate-client-publication-wire.mjs --write\n';
+  const bindings = `const schemas: Readonly<Record<string, WireSchema>> = ${JSON.stringify(schemas, null, 2)};\n` +
+    `export type WireDeliveryAttempt = ${typeOf(schemas.delivery_attempt)};\n` +
+    `export type WireDeliveryRecord = ${typeOf(schemas.delivery_record)};\n` +
+    `export type WireHostReleaseReceipt = ${typeOf(schemas.result_delivery_receipt)};\n`;
+  return compileWireTemplate('client-publication-wire', bindings, header);
 }
 
 async function main() {
