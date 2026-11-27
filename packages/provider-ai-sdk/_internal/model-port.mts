@@ -60,13 +60,9 @@ type RegisteredPreflight = Omit<StructuredInput, 'installation' | 'checked' | 'n
 // Unchecked views of the existing consumed Common calls. These signatures do
 // not admit an original, validate a result, or replace any runtime guard.
 interface ModelRuntime {
-  clientProgramModelAsyncPhysicalRequestPlan(request: unknown, bytes: bigint,
-    tokens: bigint, costUnits: bigint, durationMs: bigint, profile: unknown,
-    installation: unknown, start: StartOriginal): unknown;
   clientProgramModelAsyncNativeDecisionRequestPlan?(request: unknown, original: unknown,
     provider: unknown, bytes: bigint, tokens: bigint, costUnits: bigint, durationMs: bigint,
     profile: unknown, installation: unknown, probability: unknown, start: StartOriginal): unknown;
-  clientProgramModelPhysicalSavedChat(response: unknown): unknown;
   clientProgramModelPhysicalSavedNativeDecision?(response: unknown, original: unknown,
     provider: unknown, probability: unknown): unknown;
   clientProgramModelPhysicalUnknown(): unknown;
@@ -102,15 +98,6 @@ type PreparePlan = (moon: ModelRuntime, request: unknown, bytes: bigint,
   quantities: NonNullable<PhysicalOptions['quantities']>, profile: unknown,
   installation: unknown, start: StartOriginal, readDecoded?: ReadDecoded) => unknown;
 type SelectSaved = (moon: ModelRuntime, response: unknown, checked: CheckedOriginal) => unknown;
-
-// Private source integration only: not an exported package installation API.
-// All records, SDK/request/response buffers and Promise overlaps must be funded
-// by the original Run Ledger before this port is installed. No budget, grant,
-// execution state or scheduler is inferred here. Common owns every transition.
-export function createSdkModelPreflight(options: PhysicalOptions) {
-  return createSdkPhysicalPreflight(options, generationPlan,
-    (moon, response) => moon.clientProgramModelPhysicalSavedChat(response), 'raw-only');
-}
 
 // The admitted selection belongs to the existing installed Provider. The
 // runtime still binds this exact Request, Profile, Call, Store and one send.
@@ -230,15 +217,8 @@ export function createAdmittedRegisteredSdkPreflight({moon, request, admission,
     preparationProgress}, admission, registeredSdk.readReportedUsage, registeredSdk.readReportedResponse);
 }
 
-function generationPlan(moon: ModelRuntime, request: unknown, bytes: bigint, quantities: NonNullable<PhysicalOptions['quantities']>, profile: unknown, installation: unknown, start: StartOriginal) {
-  return moon.clientProgramModelAsyncPhysicalRequestPlan(request, bytes,
-    quantities.tokens, quantities.costUnits, quantities.durationMs, profile, installation, start);
-}
-
-// Native membership/profile checking belongs to Common's dedicated builder.
-// No generation settings, decoded SDK facts, startup funding or new Entry
-// issuer are introduced. This callback runs during preflight, never between
-// the existing final one-shot gate and its fixed physical transport.
+// Common's dedicated builder checks native membership and profile.
+// This callback runs during preflight, before the final one-shot send gate.
 export function createSdkNativeDecisionPreflight(options: PhysicalOptions, original: unknown, provider: unknown, probability: unknown) {
   if (typeof options?.moon?.clientProgramModelAsyncNativeDecisionRequestPlan !== 'function' ||
       typeof options?.moon?.clientProgramModelPhysicalSavedNativeDecision !== 'function' ||
@@ -257,7 +237,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
   observeAt, cleanupRaw, preparationProgress, rawCaptureBinder, needsCredential = false}: PhysicalOptions,
   preparePlan: PreparePlan | undefined, selectSaved: SelectSaved | undefined,
-  responseMode: 'sdk' | 'raw-only' | 'saved-sdk', readReportedUsage?: ReportedUsage,
+  responseMode: 'sdk' | 'saved-sdk', readReportedUsage?: ReportedUsage,
   readReportedResponse?: ReportedResponse) {
   const deferredRaw = rawCaptureBinder !== undefined;
   const structured = responseMode === 'saved-sdk';
@@ -374,11 +354,10 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       catch { /* Neither failure nor cancellation is a quiescence ACK. */ }
     }
     const observed = pollResponse();
-    // Only a selected original transport with an actual cleanup port reports
-    // the separate fact. Legacy decoded/native transports stay unchanged.
+    // The selected Saved SDK transport reports actual physical cleanup separately.
     // SDK true is DATA: the same Common callback still checks Call/Entry/Plan/
     // attempt/reservation before admitting its own internal nominal observation.
-    if ((responseMode === 'raw-only' || structured) && io !== undefined &&
+    if (structured && io !== undefined &&
         typeof moon.clientProgramModelPhysicalIoObservation === 'function') {
       return moon.clientProgramModelPhysicalIoObservation(call, io === true, observed);
     }
@@ -485,7 +464,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     preparationTerminal = true;
     try {
       prepareSdkTransport(preparation, {fetch, responseLimits, observeAt, responseMode} as TransportOptions);
-      if ((responseMode === 'raw-only' || structured) && sdkOriginalIoObservationAvailable(preparation) &&
+      if (structured && sdkOriginalIoObservationAvailable(preparation) &&
           typeof moon.clientProgramModelPhysicalIoObservation !== 'function') {
         throw new TypeError('OriginalSdkPhysicalIoObservationUnavailable');
       }
@@ -509,7 +488,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     };
     const bound = needsCredential ? rawCaptureBinder!(bindRaw, () => {
       if (retired || plan === undefined || preparation === undefined) {
-        throw new TypeError('OpenAIProjectCredentialPreparationUnavailable');
+        throw new TypeError('ModelProjectCredentialPreparationUnavailable');
       }
       bindSdkTransportCredential(preparation);
     }) : rawCaptureBinder!(bindRaw);

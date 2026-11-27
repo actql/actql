@@ -6,10 +6,11 @@ import test from 'node:test';
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {createOriginalUndiciFetch, prepareOriginalUndiciFetch} from
-  './_internal/original-undici-transport.mjs';
+  '@actql/local-node/_internal/model-http-transport';
 import {readBoundedInferResponse} from './_internal/bounded-response.mjs';
 
-const require = createRequire(import.meta.url);
+// Observe Undici from the same Local transport, even with a second pinned copy in the test prefix.
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const {Readable: BodyReadable} = require('undici/lib/api/readable.js');
 
 async function exercise(t, {maxBytes, overflow, chunked}) {

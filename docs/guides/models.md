@@ -101,12 +101,14 @@ model selector, deadlines and ceilings in the trusted application setup.
 
 ```js
 import {open} from '@actql/node';
-import {createProjectOpenAIChatProvider} from '@actql/provider-ai-sdk';
+import {createRegisteredSdkProvider} from '@actql/provider-ai-sdk';
 
 const client = await open({installation: {
   authorization: configuredAuthorization,
-  registerModelProviders: createProjectOpenAIChatProvider({
-    modelId: configuredModelId,
+  modelSdkRegistrations,
+  registerModelProviders: createRegisteredSdkProvider({
+    providerId: 'models/openai',
+    dataHandlingContractWire,
     generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
     transportTimeouts: {connectMs: 3_000, headersMs: 10_000, bodyMs: 5_000, callMs: 15_000},
     budget: {maxCalls: 1n, maxRows: 1, maxTokens: 1000n,
@@ -125,15 +127,18 @@ try {
 ```
 
 `configuredAuthorization` is the application's existing Account and signer
-configuration. `observeOpenAIEgress` returns the application's current
+configuration. The trusted Host supplies `modelSdkRegistrations` with the exact
+OpenAI SDK, adapter and lock images, the resolved model and endpoint, and the
+credential reference. Its Provider ID must match the project registry.
+`dataHandlingContractWire` is the selected request-data-handling contract.
+`observeOpenAIEgress` returns the application's current
 `classification`, `region`, `providerRetention` and `trainingUse` facts.
 Account and egress rules apply to the exact provider and Task. The Host reads
 the environment value only for an authorized fresh call to
 `https://api.openai.com/v1/chat/completions`. A missing or invalid value
 refuses the call before dispatch. Saved reads use the recorded result without
 needing the key. Keep the key out of Program data, project files, diagnostics
-and exports. Explicit installations using `createOpenAIChatProvider` can
-select a file credential and a custom endpoint.
+and exports.
 
 ### The mock model
 

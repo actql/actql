@@ -12,6 +12,7 @@ import {prepareCopiedTypeScript} from './copied-typescript-preparation.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson, normalPackSourceInputs, initializeNormalPackSourceIndex} from './packed-client-packages.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {preparePackedClientInstallCache} from './prepare-packed-client-install-cache.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const names = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
@@ -25,6 +26,7 @@ delete environment.NODE_PATH;
 delete environment.ACTQL_PACKED_CLIENT_PACKAGES;
 delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
 delete environment.ACTQL_LOCAL_EFFECT_PROFILE;
+await preparePackedClientInstallCache(environment.npm_config_cache);
 function run(command, args, cwd, timeout = 120000) {
   const result = spawnSync(command, args, {cwd, env: environment, encoding: 'utf8',
     timeout, maxBuffer: 32 * 1024 * 1024});

@@ -101,9 +101,10 @@ test('normal provider diagnostic recording refusal or missing delivery cannot ma
 });
 
 // Actual consumer entry execution with inert package sentinels. These cases
-// prove pre-import refusal, not package/runtime/normal Model acceptance.
-for (const variant of ['linked-provider', 'redirected-public-entry', 'linked-node-modules']) {
-  test(`installed Model consumer refuses ${variant} before either public package executes`, t => {
+// prove that the actual consumer rejects each altered installation before import.
+for (const variant of ['linked-provider', 'redirected-public-entry', 'linked-node-modules', 'optional-sdk-in-direct',
+  'nested-sdk-in-direct', 'dependency-on-sdk-in-direct']) {
+  test(`installed Model consumer refuses ${variant} before any public package executes`, t => {
     const root = mkdtempSync(join(tmpdir(), 'actql-model-package-origin-'));
     t.after(() => rmSync(root, {recursive: true, force: true}));
     const consumer = join(root, 'consumer'), outside = join(root, 'outside');
@@ -114,27 +115,45 @@ for (const variant of ['linked-provider', 'redirected-public-entry', 'linked-nod
     const modules = variant === 'linked-node-modules' ? join(outside, 'node_modules') : join(consumer, 'node_modules');
     mkdirSync(join(modules, '@actql'), {recursive: true});
     if (variant === 'linked-node-modules') symlinkSync(modules, join(consumer, 'node_modules'));
-    for (const name of ['node', 'provider-ai-sdk', 'local-node']) {
+    const packages = ['node', 'sdk', 'local-node'];
+    if (!['nested-sdk-in-direct', 'dependency-on-sdk-in-direct'].includes(variant)) packages.push('provider-ai-sdk');
+    for (const name of packages) {
       const directory = variant === 'linked-provider' && name === 'provider-ai-sdk'
         ? join(outside, name) : join(modules, '@actql', name);
       mkdirSync(directory);
       if (variant === 'linked-provider' && name === 'provider-ai-sdk') {
         symlinkSync(directory, join(modules, '@actql', name));
       }
-      const entry = name === 'local-node' ? 'observation.mjs'
-        : variant === 'redirected-public-entry' && name === 'provider-ai-sdk' ? 'other.mjs' : 'index.mjs';
-      writeFileSync(join(directory, 'package.json'), JSON.stringify({name: '@actql/' + name,
-        type: 'module', exports: {[name === 'local-node' ? './observation' : '.']: './' + entry}}));
-      writeFileSync(join(directory, entry), `import{writeFileSync}from'node:fs';
+      const entry = variant === 'redirected-public-entry' && name === 'provider-ai-sdk' ? 'other.mjs' : 'index.mjs';
+      const exports = {'.': './' + entry};
+      if (name === 'local-node') exports['./observation'] = './observation.mjs';
+      writeFileSync(join(directory, 'package.json'), JSON.stringify({
+        name: '@actql/' + name, type: 'module', version: '1.0.0', exports,
+        ...(variant === 'dependency-on-sdk-in-direct' && name === 'local-node'
+          ? {optionalDependencies: {'@ai-sdk/openai': '1.0.0'}} : {}),
+      }));
+      const sentinel = `import{writeFileSync}from'node:fs';
         writeFileSync(${JSON.stringify(join(root, name + '.executed'))},'unexpected');
         export function connect(){throw Error('No product execution selected');}
-        export function createOpenAIChatProvider(){throw Error('No product execution selected');}`);
+        export function createRegisteredSdkProvider(){throw Error('No product execution selected');}`;
+      for (const target of Object.values(exports)) writeFileSync(join(directory, target), sentinel);
     }
-    const result = spawnSync(process.execPath, ['case.mjs', 'warm'], {cwd: consumer,
+    if (variant === 'nested-sdk-in-direct') {
+      const nested = join(modules, '@actql/local-node/node_modules/model-implementation');
+      mkdirSync(nested, {recursive: true});
+      writeFileSync(join(nested, 'package.json'), JSON.stringify({name: 'ai', version: '1.0.0'}));
+    }
+    const phase = variant.endsWith('-in-direct') ? 'direct-project' : 'warm';
+    const result = spawnSync(process.execPath, ['case.mjs', phase], {cwd: consumer,
       encoding: 'utf8', timeout: 10000, maxBuffer: 65536});
     assert.ifError(result.error); assert.equal(result.status, 1);
-    assert.match(result.stderr, /fresh installation|expected installed package entry|fresh node_modules/);
-    for (const name of ['node', 'provider-ai-sdk', 'local-node']) assert.equal(existsSync(join(root, name + '.executed')), false);
+    const expected = {
+      'optional-sdk-in-direct': /SDK-free installation resolved optional package @actql\/provider-ai-sdk/,
+      'nested-sdk-in-direct': /SDK-free installation contains @actql\/local-node\/node_modules\/model-implementation/,
+      'dependency-on-sdk-in-direct': /SDK-free installation declares a dependency on AI SDK in @actql\/local-node/,
+    };
+    assert.match(result.stderr, expected[variant] ?? /fresh installation|expected installed package entry|fresh node_modules/);
+    for (const name of packages) assert.equal(existsSync(join(root, name + '.executed')), false);
     assert.equal(existsSync(join(consumer, '.state')), false);
     assert.equal(existsSync(join(consumer, 'actql.config.json')), false);
   });

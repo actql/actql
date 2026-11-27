@@ -97,16 +97,19 @@ test('promotion review: separate acyclic bundle binds original upper plan and re
 test('promotion review: the optional Provider target requires both ordinary installs and distinct cold Saved evidence', async t => {
   const f = await fixture(t, {provider: true});
   await assert.rejects(f.prepare(), /explicit five-package target/u);
-  const entry = '@actql/provider-ai-sdk', close = {firstCloseReturned: true, aliveScopedFD0: true};
+  const entry = '@actql/provider-ai-sdk';
+  const registered = {registeredSdk: true, projectCredential: true, firstCloseReturned: true, aliveScopedFD0: true};
   const installed = (entry, artifacts) => ({entry, version: f.body.releaseSetBinding.version,
     lockfileVersion: 3, lockBytes: 80, lockSha256: 'd'.repeat(64),
     payloads: artifacts.map(({name, version, integrity, sha256}) => ({name, version, integrity, originalArchiveSha256: sha256}))});
   const acceptance = {entry, installed: installed(entry, f.artifacts),
     phases: [
       {case: 'usage-reported', phase: 'usage-reported', status: 'passed', pid: 23,
-        actual: {phase: 'usage-reported', maxCalls: 1, usageMode: 'reported', usageCaptures: 1, tasks: 1, requests: 1, calls: 1, ...close}},
+        actual: {phase: 'usage-reported', maxCalls: 1, usageMode: 'reported', usageCaptures: 1, tasks: 1, requests: 1, calls: 1,
+          projectTlsConnects: 1, ...registered}},
       {case: 'usage-reported', phase: 'cold', status: 'passed', pid: 24,
-        actual: {phase: 'cold', maxCalls: 1, calls: 0, egressChecks: 0, originalSavedFirst: true, ...close}},
+        actual: {phase: 'cold', maxCalls: 1, calls: 0, egressChecks: 0, originalSavedFirst: true,
+          projectTlsConnects: 0, ...registered}},
     ]};
   f.body.providerAcceptance = acceptance;
   await f.save();
@@ -121,6 +124,9 @@ test('promotion review: the optional Provider target requires both ordinary inst
     value => {value.installed.payloads.at(-1).originalArchiveSha256 = 'f'.repeat(64);},
     value => {value.phases.pop();},
     value => {value.phases[1].pid = value.phases[0].pid;},
+    value => {delete value.phases[0].actual.registeredSdk;},
+    value => {value.phases[1].actual.projectCredential = false;},
+    value => {value.phases[1].actual.projectTlsConnects = 1;},
     value => {value.phases[1].actual.egressChecks = 1;},
     value => {value.phases[1].actual.originalSavedFirst = false;},
     value => {value.phases[1].actual.firstCloseReturned = false;},

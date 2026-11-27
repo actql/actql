@@ -1,13 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
-import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
+import {prepareSelectedChat} from './selected-chat.fixture.mjs';
 import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
-  startSdkTransport, pollSdkTransport, sdkTransportResponse, pollSdkDecode,
-  takeSdkDecodedResult, cancelSdkPreparation, cleanupSdkPreparation,
-  sdkTransportRawObservation}
+  startSdkTransport, pollSdkTransport, pollSdkDecode,
+  confirmSavedSdkTransportResponse, takeSavedSdkDecodedResult,
+  cancelSdkPreparation, cleanupSdkPreparation, sdkTransportRawObservation}
   from './_internal/intercepted-request.mjs';
-import {deliverSdkResponse} from './_internal/intercepted-request.mjs';
 
 const responseWire = '{"id":"physical-chat-1","object":"chat.completion",' +
   '"created":0,"model":"actual-reported-model","choices":[{"index":0,' +
@@ -20,17 +19,17 @@ const bounds = {maxBytes: bytes.byteLength, maxChunkBytes: bytes.byteLength,
   observedHeaders: ['content-type', 'x-request-id']};
 const schema = {type: 'object', properties: {assessment: {type: 'string'}},
   required: ['assessment'], additionalProperties: false};
-const expectedBody = {model: 'gpt-4.1-nano', max_tokens: 16,
+const expectedBody = {model: 'gpt-4.1-nano', max_tokens: 16, temperature: 0, top_p: 1,
   response_format: {type: 'json_schema', json_schema: {schema, strict: true,
     name: 'assessment'}}, store: false,
-  messages: [{role: 'user', content: 'Original e\u0301\r\n'}]};
+  messages: [{role: 'system', content: 'Return an assessment.'}, {role: 'user', content: 'Original e\u0301\r\n'}]};
 
 function realPreparation(notify = () => {}) {
-  return prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
+  return prepareSelectedChat({selector: 'fixture-task', modelId: 'gpt-4.1-nano',
     baseURL: 'https://fixture.invalid/v1', apiKey: 'private-key-sentinel',
     maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16, notify,
-    options: {prompt: [{role: 'user', content: [{type: 'text',
-      text: 'Original e\u0301\r\n'}]}], maxOutputTokens: 16,
+    options: {prompt: [{role: 'system', content: 'Return an assessment.'}, {role: 'user', content: [{type: 'text',
+      text: 'Original e\u0301\r\n'}]}], temperature: 0, topP: 1, maxOutputTokens: 16,
       responseFormat: {type: 'json', schema, name: 'assessment'},
       providerOptions: {openai: {store: false, strictJsonSchema: true}}}});
 }
@@ -48,6 +47,12 @@ async function release(handle) {
     await turn();
   }
   assert.fail('Same original SDK/reader cleanup did not finish');
+}
+function confirmRaw(handle, original) {
+  assert.deepEqual(pollSdkDecode(handle), {kind: 'pending'});
+  const saved = {receipt: Object.freeze({}), bytes: Uint8Array.from(original.body)};
+  confirmSavedSdkTransportResponse(handle, original, saved);
+  return saved;
 }
 function rawResponse(wire = bytes, status = 200) {
   return new Response(wire, {status, headers: {'content-type': 'application/json',
@@ -68,7 +73,7 @@ test('actual SDK transport exposes cancelled raw prefix while original read and 
     await release(handle);
   });
   await until(() => pollSdkPreparation(handle), 'ready');
-  prepareSdkTransport(handle, {responseLimits: bounds, fetch() {
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: bounds, fetch() {
     sends++;
     return {status: 200, headers: new Headers({'content-type': 'application/json'}),
       body: {getReader() { return {
@@ -118,13 +123,15 @@ test('real SDK defaults do not replace the separately retained original partial 
   t.after(()=>release(handle));
   let calls=0;
   await until(()=>pollSdkPreparation(handle),'ready');
-  prepareSdkTransport(handle,{responseLimits:{...bounds,maxBytes:originalBytes.length,
+  prepareSdkTransport(handle,{responseMode: 'saved-sdk',
+    responseLimits:{...bounds,maxBytes:originalBytes.length,
     maxChunkBytes:originalBytes.length},fetch(){calls++;return rawResponse(originalBytes);}});
   startSdkTransport(handle);
   await until(()=>pollSdkTransport(handle),'response');
-  await until(()=>pollSdkDecode(handle),'ready');
   const original=sdkTransportRawObservation(handle);
-  const decoded=takeSdkDecodedResult(handle);
+  const saved = confirmRaw(handle, original);
+  await until(()=>pollSdkDecode(handle),'ready');
+  const decoded=takeSavedSdkDecodedResult(handle, saved.receipt, saved.bytes);
   // These SDK zeros are generated defaults, not provider observations. The
   // Common raw codec must independently retain absent prompt/total as unknown.
   assert.equal(decoded.usage.inputTokens.total,0);
@@ -145,13 +152,15 @@ test('real SDK returned raw and validated trees overlap the original request and
   t.after(()=>release(handle));
   let calls=0;
   await until(()=>pollSdkPreparation(handle),'ready');
-  prepareSdkTransport(handle,{responseLimits:{...bounds,maxBytes:originalBytes.length,
+  prepareSdkTransport(handle,{responseMode: 'saved-sdk',
+    responseLimits:{...bounds,maxBytes:originalBytes.length,
     maxChunkBytes:originalBytes.length},fetch(){calls++;return rawResponse(originalBytes);}});
   startSdkTransport(handle);
   await until(()=>pollSdkTransport(handle),'response');
-  await until(()=>pollSdkDecode(handle),'ready');
   const original=sdkTransportRawObservation(handle);
-  const decoded=takeSdkDecodedResult(handle);
+  const saved = confirmRaw(handle, original);
+  await until(()=>pollSdkDecode(handle),'ready');
+  const decoded=takeSavedSdkDecodedResult(handle, saved.receipt, saved.bytes);
   // The raw parse and schema-validated projection are distinct objects. SDK
   // normalization/stripping is not the Common metadata or capture contract.
   assert.notEqual(decoded.usage.raw,decoded.response.body.usage);
@@ -201,7 +210,7 @@ test('fixed real SDK transport starts once and delivers bounded original bytes t
   t.after(() => release(handle));
   await until(() => pollSdkPreparation(handle), 'ready');
   const mutableLimits = {...bounds, observedHeaders: [...bounds.observedHeaders]};
-  prepareSdkTransport(handle, {responseLimits: mutableLimits, fetch(url, init) {
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: mutableLimits, fetch(url, init) {
     calls++;
     assert.equal(url, 'https://fixture.invalid/v1/chat/completions');
     assert.equal(init.method, 'POST');
@@ -220,14 +229,15 @@ test('fixed real SDK transport starts once and delivers bounded original bytes t
   assert.equal(calls, 1);
   assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
   await until(() => pollSdkTransport(handle), 'response');
-  const original = sdkTransportResponse(handle);
+  const original = sdkTransportRawObservation(handle);
   assert.deepEqual(original.body, bytes);
   assert.equal(original.body.buffer.byteLength, bounds.maxBytes);
   assert.deepEqual(original.headers, [['content-type', 'application/json'],
     ['x-request-id', 'actual-header-id']]);
   assert.equal(original.transportComplete, true);
+  const saved = confirmRaw(handle, original);
   await until(() => pollSdkDecode(handle), 'ready');
-  const decoded = takeSdkDecodedResult(handle);
+  const decoded = takeSavedSdkDecodedResult(handle, saved.receipt, saved.bytes);
   assert.deepEqual(decoded.content, [{type: 'text', text: '{"assessment":"é\\r\\n"}'}]);
   assert.equal(decoded.response.modelId, 'actual-reported-model');
   assert.equal(calls, 1);
@@ -244,7 +254,7 @@ test('Host response time is observed before delayed body read and retained witho
   let observations = 0;
   let deliver;
   const received = new Promise(resolve => { deliver = resolve; });
-  prepareSdkTransport(handle, {responseLimits: bounds,
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: bounds,
     observeAt() { observations++; return now; },
     fetch: () => received});
   startSdkTransport(handle);
@@ -269,10 +279,10 @@ test('physical preparation and cancellation never authorize a start or build a s
   let calls = 0;
   const handle = realPreparation();
   await until(() => pollSdkPreparation(handle), 'ready');
-  assert.throws(() => prepareSdkTransport(handle, {fetch() {},
+  assert.throws(() => prepareSdkTransport(handle, {responseMode: 'saved-sdk', fetch() {},
     responseLimits: {...bounds, maxBytes: 0}}), {code: 'InvalidInferResponseReader'});
-  prepareSdkTransport(handle, {fetch() { calls++; }, responseLimits: bounds});
-  assert.throws(() => prepareSdkTransport(handle, {fetch() {}, responseLimits: bounds}),
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', fetch() { calls++; }, responseLimits: bounds});
+  assert.throws(() => prepareSdkTransport(handle, {responseMode: 'saved-sdk', fetch() {}, responseLimits: bounds}),
     {code: 'SdkTransportPreparationRefused'});
   cancelSdkPreparation(handle);
   assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
@@ -287,7 +297,7 @@ test('a final invoke throw or lost response stays unknown and cannot restart', a
     let calls = 0;
     const handle = realPreparation();
     await until(() => pollSdkPreparation(handle), 'ready');
-    prepareSdkTransport(handle, {responseLimits: bounds, fetch() {
+    prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: bounds, fetch() {
       calls++;
       const secret = new Error('credential/provider-exception-sentinel');
       if (asynchronous) return Promise.reject(secret);
@@ -296,7 +306,7 @@ test('a final invoke throw or lost response stays unknown and cannot restart', a
     startSdkTransport(handle);
     const observed = await until(() => pollSdkTransport(handle), 'unknown');
     assert.deepEqual(observed, {kind: 'unknown', issue: 'SdkTransportUnknown'});
-    assert.equal(sdkTransportResponse(handle), undefined);
+    assert.equal(sdkTransportRawObservation(handle), undefined);
     assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
     await until(() => pollSdkDecode(handle), 'rejected');
     await release(handle);
@@ -318,7 +328,7 @@ test('raw byte overflow refuses before SDK parsing and retains original prefix u
       return response.json();
     }});
   await until(() => pollSdkPreparation(handle), 'ready');
-  prepareSdkTransport(handle, {responseLimits: {maxBytes: 4, maxChunkBytes: 4,
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: {maxBytes: 4, maxChunkBytes: 4,
     maxChunks: 4, maxHeaderBytes: 16}, fetch() {
     calls++;
     return {status: 200, headers: new Headers(), body: {getReader() {
@@ -331,7 +341,7 @@ test('raw byte overflow refuses before SDK parsing and retains original prefix u
   startSdkTransport(handle);
   const observed = await until(() => pollSdkTransport(handle), 'response');
   assert.equal(observed.issue, 'InferResponseByteLimit');
-  const original = sdkTransportResponse(handle);
+  const original = sdkTransportRawObservation(handle);
   assert.equal(new TextDecoder().decode(original.body), 'abcd');
   assert.equal(original.transportComplete, false);
   assert.equal(await original.readerRetirement, false);
@@ -351,7 +361,7 @@ test('pending response cancellation preserves unknown responsibility and waits f
   let rejectPhysical;
   const handle = realPreparation();
   await until(() => pollSdkPreparation(handle), 'ready');
-  prepareSdkTransport(handle, {responseLimits: bounds, fetch(_, init) {
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: bounds, fetch(_, init) {
     calls++;
     return new Promise((_, reject) => {
       rejectPhysical = reject;
@@ -376,16 +386,19 @@ test('actual HTTP refusal is retained without inferring a retry or SDK success',
   const errorBytes = new TextEncoder().encode(errorBody);
   const handle = realPreparation();
   await until(() => pollSdkPreparation(handle), 'ready');
-  prepareSdkTransport(handle, {responseLimits: bounds, fetch() {
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: bounds, fetch() {
     calls++;
     return rawResponse(errorBytes, 503);
   }});
   startSdkTransport(handle);
   await until(() => pollSdkTransport(handle), 'response');
-  assert.equal(sdkTransportResponse(handle).status, 503);
-  assert.deepEqual(sdkTransportResponse(handle).body, errorBytes);
+  assert.equal(sdkTransportRawObservation(handle).status, 503);
+  const original = sdkTransportRawObservation(handle);
+  assert.deepEqual(original.body, errorBytes);
+  const saved = confirmRaw(handle, original);
   await until(() => pollSdkDecode(handle), 'rejected');
-  assert.throws(() => takeSdkDecodedResult(handle), {code: 'SdkDecodedResultUnavailable'});
+  assert.throws(() => takeSavedSdkDecodedResult(handle, saved.receipt, saved.bytes),
+    {code: 'SdkDecodedResultUnavailable'});
   assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
   await release(handle);
   assert.equal(calls, 1);
@@ -394,44 +407,47 @@ test('actual HTTP refusal is retained without inferring a retry or SDK success',
 test('foreign SDK handles cannot start, observe or retire a fixed transport', async () => {
   const handle = realPreparation();
   await until(() => pollSdkPreparation(handle), 'ready');
-  prepareSdkTransport(handle, {responseLimits: bounds, fetch() { return rawResponse(); }});
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: bounds, fetch() { return rawResponse(); }});
   for (const foreign of [{}, {...handle}, Object.freeze({})]) {
     assert.throws(() => startSdkTransport(foreign), {code: 'ForeignSdkPreparation'});
     assert.throws(() => pollSdkTransport(foreign), {code: 'ForeignSdkPreparation'});
-    assert.throws(() => sdkTransportResponse(foreign), {code: 'ForeignSdkPreparation'});
+    assert.throws(() => sdkTransportRawObservation(foreign), {code: 'ForeignSdkPreparation'});
     assert.throws(() => cleanupSdkPreparation(foreign), {code: 'ForeignSdkPreparation'});
   }
   await release(handle);
 });
 
-test('a prepared transport cannot take a manual legacy response or an already supplied SDK response', async () => {
+test('Saved SDK transport refuses early, foreign, altered and duplicate Raw confirmation', async t => {
   let calls = 0;
   const handle = realPreparation();
+  t.after(() => release(handle));
   await until(() => pollSdkPreparation(handle), 'ready');
-  prepareSdkTransport(handle, {responseLimits: bounds, fetch() { calls++; return rawResponse(); }});
-  assert.throws(() => deliverSdkResponse(handle, rawResponse()), {code: 'SdkResponseDeliveryRefused'});
+  const saved = {receipt: Object.freeze({}), bytes: Uint8Array.from(bytes)};
+  const refused = {code: 'SdkSavedResponseBindingRefused'};
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: bounds,
+    fetch() {calls++;return rawResponse();}});
+  assert.throws(() => confirmSavedSdkTransportResponse(handle, undefined, saved), refused);
   assert.equal(calls, 0);
   startSdkTransport(handle);
-  assert.throws(() => deliverSdkResponse(handle, rawResponse()), {code: 'SdkResponseDeliveryRefused'});
+  await until(() => pollSdkTransport(handle), 'response');
+  const original = sdkTransportRawObservation(handle);
+  assert.throws(() => confirmSavedSdkTransportResponse(handle, {...original}, saved), refused);
+  const altered = Uint8Array.from(saved.bytes);
+  altered[0] ^= 1;
+  assert.throws(() => confirmSavedSdkTransportResponse(handle, original, {receipt: saved.receipt, bytes: altered}), refused);
+  assert.deepEqual(pollSdkDecode(handle), {kind: 'pending'});
+  confirmSavedSdkTransportResponse(handle, original, saved);
+  assert.throws(() => confirmSavedSdkTransportResponse(handle, original, saved), refused);
   await until(() => pollSdkDecode(handle), 'ready');
-  await release(handle);
-  assert.equal(calls, 1);
-  const supplied = realPreparation();
-  await until(() => pollSdkPreparation(supplied), 'ready');
-  deliverSdkResponse(supplied, rawResponse());
-  assert.throws(() => prepareSdkTransport(supplied, {responseLimits: bounds, fetch() { calls++; }}),
-    {code: 'SdkTransportPreparationRefused'});
-  await release(supplied);
   assert.equal(calls, 1);
 });
-
 test('header refusal retains the unread original until its own cleanup retry succeeds', async () => {
   let reads = 0;
   let retirements = 0;
   let calls = 0;
   const handle = realPreparation();
   await until(() => pollSdkPreparation(handle), 'ready');
-  prepareSdkTransport(handle, {responseLimits: {...bounds, maxHeaderBytes: 1}, fetch() {
+  prepareSdkTransport(handle, {responseMode: 'saved-sdk', responseLimits: {...bounds, maxHeaderBytes: 1}, fetch() {
     calls++;
     return {status: 200, headers: new Headers({'content-type': 'application/json'}),
       body: {getReader() { reads++; throw new Error('Must not read oversized headers'); },

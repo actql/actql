@@ -15,6 +15,24 @@ function destination(t) {
   return directory;
 }
 
+test('ordinary Local source inventory owns the complete direct Chat emit without a Provider package install', async () => {
+  const original = localNodePackageInputs(root);
+  const inputs = {...original, adapterEntries:['adapters/host-node/original-model-http-transport.mjs'], dataFiles:[]};
+  const copies = await localNodeAdapterSourceInputs({root, inputs});
+  const prefix = 'adapters/host-node/model-http/';
+  const members = copies.filter(copy => copy.path.startsWith(prefix));
+  assert.deepEqual(members.map(copy => copy.path.slice(prefix.length)).sort(),
+    ['normal-http-chat','installed-http-chat','model-port','original-chat-request',
+      'original-materials','bounded-response','compiler-binding.generated']
+      .flatMap(name => [name+'.mjs',name+'.d.mts']).sort());
+  for (const {path,source} of members) {
+    assert.equal(source, join(root, 'packages/provider-http/_internal', path.slice(prefix.length)));
+    assert(readFileSync(source).byteLength > 0);
+  }
+  const manifest = JSON.parse(readFileSync(join(root, 'packages/local-node/package.json'), 'utf8'));
+  assert.equal(Object.hasOwn(manifest.dependencies, '@actql/provider-http'), false);
+});
+
 test('ordinary Local copy includes the public preload and every private image custody dependency', async t => {
   const output = destination(t), inputs = localNodePackageInputs(root);
   const entry = 'adapters/host-node/infer-trusted-node-preload.cjs';

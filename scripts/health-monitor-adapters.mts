@@ -11,7 +11,7 @@ import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {inventory, unpack} from './package-release.mjs';
 import {installedModulesPayloadInventory} from './package-inventory.mjs';
 import {inspectInstalledConnectorBins} from './installed-connector-bin.mjs';
-import {CLIENT_PACKAGES, packedClientPackage} from './packed-client-packages.mjs';
+import {CLIENT_PACKAGES, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {verifyNodeBenchmarkPackages, nodeWarmSmallQueryFixtures, nodeBenchmarkFailure} from './node-benchmark-evidence.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles, twoModelWholeDealReviewFiles, twoModelJoinedWholeDealReviewFiles, twoModelJoinedInputsDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
@@ -224,7 +224,9 @@ export async function prepareHealthPackages({repository, root, source, retained,
     '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => {
       assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained!), row.file);
-    })], {cwd: consumer, name: 'install-node'});
+    })], {cwd: consumer, name: 'install-node',
+    ...(process.env.ACTQL_TEST_NPM_CACHE
+      ? {env: {...process.env, npm_config_cache: packedNpmCache(root)}} : {})});
   await verifyNodeBenchmarkPackages(manifest, retained, consumer);
   return {manifest, manifestPath: retained, consumer};
 }

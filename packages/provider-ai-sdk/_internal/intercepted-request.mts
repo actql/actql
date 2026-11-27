@@ -5,7 +5,7 @@
 import type {LanguageModelV4, LanguageModelV4CallOptions} from '@ai-sdk/provider';
 import {createHash} from 'node:crypto';
 import {fixedInferResponseLimits, readBoundedInferResponse} from './bounded-response.mjs';
-import {prepareOriginalUndiciFetch} from './original-undici-transport.mjs';
+import {originalLocalModelHttpTransport} from './local-model-http-transport.mjs';
 
 type ResponseLimits = Parameters<typeof fixedInferResponseLimits>[0];
 type FixedResponseLimits = ReturnType<typeof fixedInferResponseLimits>;
@@ -36,7 +36,7 @@ interface TransportState {
   physicalRetired: boolean; physicalRetiring: boolean;
   limits: FixedResponseLimits; observeAt: (() => unknown) | undefined;
   observedAt: unknown; rawObservation: (RawResponse & {observedAt: unknown}) | undefined;
-  responseMode: 'sdk' | 'raw-only' | 'raw-only-retiring' | 'saved-sdk';
+  responseMode: 'sdk' | 'saved-sdk';
   rawDigest?: string; saved?: SavedSdkResponse;
   started: boolean; settled: boolean; raw: RawResponse | undefined;
   failure: string | undefined; readerRetired: boolean; retiring: boolean;
@@ -61,10 +61,6 @@ interface PreparationState {
 interface UnreadResponse {body?: null | {cancel(): unknown}}
 
 const preparations = new WeakMap<object, PreparationState>();
-// Internal SDK consumer retirement, not Provider failure or a response fact.
-// The owned transport mode records why its already intercepted wait ends;
-// the existing rejection handlers still wait for actual SDK settlement.
-const rawConsumerRetired = Symbol('ActQLSdkRawConsumerRetired');
 const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 &&
   (value as number) <= 2_147_483_647;
 const issue = (code: string) => Object.assign(new TypeError(code), {code});
@@ -221,10 +217,7 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
     return handle;
   }
   Promise.resolve(operation).then(value => {
-    if (state.transport?.responseMode === 'raw-only-retiring') {
-      state.taken = true;
-      state.decoded = undefined;
-    } else if (!state.delivered || state.fetchCount !== 1 || state.violation) {
+    if (!state.delivered || state.fetchCount !== 1 || state.violation) {
       state.failure = state.violation ?? 'SdkReturnedBeforeResponse';
       state.responseReject?.(issue(state.failure));
     } else {
@@ -234,15 +227,8 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
       state.decoded = value;
     }
   }, () => {
-    if (state.transport?.responseMode === 'raw-only-retiring') {
-      // SDK error wrapping cannot turn this private, intentionally ended
-      // consumer into Provider failure/Unknown. Common adopts only raw facts.
-      state.taken = true;
-      state.decoded = undefined;
-    } else {
-      state.failure = state.violation ?? (state.stopped
-        ? 'SdkPreparationCancelled' : 'SdkPreparationRejected');
-    }
+    state.failure = state.violation ?? (state.stopped
+      ? 'SdkPreparationCancelled' : 'SdkPreparationRejected');
   }).finally(() => {
     state.settled = true;
     state.responseResolve = undefined;
@@ -276,12 +262,12 @@ export function sdkPreparedRequest(handle: unknown) {
 // The complete request/init, limits and closure are fixed BEFORE Core consumes
 // its original one-shot send gate. Their holdings must already be funded.
 export function prepareSdkTransport(handle: unknown, {fetch, responseLimits, observeAt,
-  responseMode = 'sdk'}: {fetch: typeof globalThis.fetch; responseLimits: ResponseLimits; observeAt?: () => unknown; responseMode?: 'sdk' | 'raw-only' | 'saved-sdk'}) {
+  responseMode = 'sdk'}: {fetch: typeof globalThis.fetch; responseLimits: ResponseLimits; observeAt?: () => unknown; responseMode?: 'sdk' | 'saved-sdk'}) {
   const state = record(handle);
   if (pollSdkPreparation(handle).kind !== 'ready' ||
       state.transport !== undefined || state.delivered || state.settled ||
       typeof fetch !== 'function' ||
-      !['sdk', 'raw-only', 'saved-sdk'].includes(responseMode) ||
+      !['sdk', 'saved-sdk'].includes(responseMode) ||
       (observeAt !== undefined && typeof observeAt !== 'function')) {
     throw issue('SdkTransportPreparationRefused');
   }
@@ -291,7 +277,8 @@ export function prepareSdkTransport(handle: unknown, {fetch, responseLimits, obs
     headers: original.headers, redirect: 'error', signal: state.controller!.signal});
   // Selected per-call Client/options are fixed in preparation before Entry.
   // Generic/native transports retain their original fetch behavior.
-  const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits, state.controller);
+  const physical = originalLocalModelHttpTransport()
+    .prepareOriginalUndiciFetch(fetch, original.url, init, limits, state.controller);
   state.transport = {invoke: physical?.invoke ?? (() => fetch(original.url, init as RequestInit)),
     physicalCleanup: physical?.cleanup, physicalRetired: physical === undefined,
     physicalRetiring: false, limits, observeAt,
@@ -308,7 +295,7 @@ export function bindSdkTransportCredential(handle: unknown) {
   const state = record(handle), transport = state.transport;
   if (transport?.bindCredential === undefined || transport.credentialAttempted ||
       transport.started || state.stopped || state.settled) {
-    throw issue('OpenAIProjectCredentialPreparationUnavailable');
+    throw issue('ModelProjectCredentialPreparationUnavailable');
   }
   // An error may stop this original preparation. It must not trigger another
   // attempt at credential acquisition, SDK preparation or dispatch.
@@ -357,15 +344,6 @@ export function startSdkTransport(handle: unknown) {
     if (!raw.transportComplete || raw.issue !== undefined) {
       transport.failure = raw.issue ?? 'SdkTransportIncomplete';
       state.responseReject?.(issue('SdkTransportIncomplete'));
-      return;
-    }
-    if (transport.responseMode === 'raw-only') {
-      // Chat's original raw/Store/Common codec owns response interpretation.
-      // Do not allocate an unused SDK Response copy or decoder tree. This is
-      // not raw persistence or reader retirement: those original obligations
-      // remain held, independently of the SDK Promise's later settlement.
-      transport.responseMode = 'raw-only-retiring';
-      state.responseReject?.(rawConsumerRetired);
       return;
     }
     if (transport.responseMode === 'saved-sdk') {
@@ -425,15 +403,6 @@ export function pollSdkTransport(handle: unknown) {
   return Object.freeze({kind: 'unknown', issue: transport.failure});
 }
 
-// A private original physical view, not a serializer or public diagnostic.
-// The original Artifact/capture owner must admit and retain these bytes; SDK
-// defaults or a complete transport are not a verified endpoint completion.
-export function sdkTransportResponse(handle: unknown) {
-  const state = record(handle);
-  if (pollSdkTransport(handle).kind !== 'response') return undefined;
-  return state.transport!.raw;
-}
-
 // Retain an actually observed partial/error body as well as a complete body.
 // This does not turn an incomplete transport into a successful response. The
 // original capture caller must preserve its exact bytes and EOF separately.
@@ -444,15 +413,6 @@ export function sdkTransportRawObservation(handle: unknown) {
   transport.rawObservation ??= Object.freeze({...transport.raw,
     observedAt: transport.observedAt});
   return transport.rawObservation;
-}
-
-// Feed an already bounded owned response to the same suspended SDK invocation.
-// This does not send, authorize, validate completeness or issue a success token.
-// The transport/raw-response Owner must retain its independent original bytes.
-export function deliverSdkResponse(handle: unknown, response: unknown) {
-  const state = record(handle);
-  if (state.transport !== undefined) throw issue('SdkResponseDeliveryRefused');
-  deliverOriginalSdkResponse(state, response);
 }
 
 function deliverOriginalSdkResponse(state: PreparationState, response: unknown) {
@@ -471,9 +431,6 @@ export function pollSdkDecode(handle: unknown) {
   const state = record(handle);
   if (state.failure || state.violation) return Object.freeze({kind: 'rejected',
     issue: state.failure ?? state.violation});
-  if (state.settled && state.transport?.responseMode === 'raw-only-retiring') {
-    return Object.freeze({kind: 'retired'});
-  }
   return Object.freeze({kind: state.settled ? 'ready' : 'pending'});
 }
 
@@ -505,9 +462,8 @@ function takeOriginalSdkDecodedResult(handle: unknown, state: PreparationState) 
   return value;
 }
 
-// The Chat physical caller validates its answer/observations from original raw
-// custody, not this SDK-normalized projection. Retire that unused local alias
-// after SDK settlement even when raw Store cleanup is still pending. Reuse the
+// Retire an unused SDK projection after the original operation settles,
+// including when its raw Store cleanup is still pending. Reuse the
 // original one-time-transfer bit; do not mutate an escaped value or retire raw,
 // transport, request, reader, Promise or entered-call responsibility. This is
 // not physical GC, saved response, remote stop or capacity-release evidence.

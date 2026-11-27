@@ -2110,23 +2110,6 @@ pub fn client_program_openai_chat_projection_issue_kind(
 }
 
 ///|
-/// Incremental read-only preparation; no Run or call authority is issued.
-#export_name("clientProgramStartOpenAIChatProjection")
-pub fn client_program_start_openai_chat_projection(
-  provider : @model.AdmittedModelProvider,
-  request : @model.ModelRequest,
-  max_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-  max_frames : Int,
-  max_work : Int,
-) -> Result[@model.OpenAIChatProjection, @model.OpenAIChatProjectionIssue] {
-  @model.start_openai_chat_projection(
-    provider, request, max_bytes, max_nodes, max_depth, max_frames, max_work,
-  )
-}
-
-///|
 #export_name("clientProgramAdvanceOpenAIChatProjection")
 pub fn client_program_advance_openai_chat_projection(
   cursor : @model.OpenAIChatProjection,

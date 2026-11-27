@@ -11,12 +11,9 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b521a615b7046751dc6f63668c9d5980b6a7e2f22a37f22502a0140ccec457ca",
+      "sha256": "9ee25282683f6029a5dbca7139d284aa8402ea3943e07e6fab0ba8f6b43056b5",
       "exports": [
-        "createConfiguredUndiciOpenAIChatRegistration",
-        "createConfiguredUndiciRegisteredSdkRegistration",
-        "createInstalledOpenAIChatRegistration",
-        "createInstalledUndiciOpenAIChatRegistration"
+        "createConfiguredUndiciRegisteredSdkRegistration"
       ],
       "operations": [
         {
@@ -34,48 +31,33 @@
           "async": false
         },
         {
-          "name": "createConfiguredUndiciOpenAIChatRegistration",
-          "parameters": [
-            "config",
-            "transportTimeouts",
-            "openAICredentialBytes",
-            "registeredSdk"
-          ],
-          "async": false
-        },
-        {
           "name": "createConfiguredUndiciRegisteredSdkRegistration",
           "parameters": [
-            "config",
-            "transportTimeouts",
+            "physical",
+            "timeouts",
             "credentialBytes",
             "registeredSdk"
           ],
           "async": false
         },
         {
-          "name": "createInstalledOpenAIChatRegistration",
-          "parameters": [
-            "config"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledUndiciOpenAIChatRegistration",
-          "parameters": [
-            "config"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedChatRegistration/installedChatRegistration",
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration",
+          "parameters": [
+            "task",
+            "selector",
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration/init:physicalPreflight/init:physicalPreflight",
           "parameters": [
             "request",
             "notification",
@@ -86,37 +68,14 @@
           "async": false
         },
         {
-          "name": "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/common/init:checked/init:checked",
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installedChatRegistration/installedChatRegistration/installedChatRegistration",
-          "parameters": [
-            "task",
-            "selector",
-            "payload"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedChatRegistration/installedChatRegistration#2",
-          "parameters": [
-            "moon"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedChatRegistration/installedChatRegistration#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedChatRegistration/installedChatRegistration#4",
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#2",
           "parameters": [
             "name",
             "value"
@@ -124,21 +83,21 @@
           "async": false
         },
         {
-          "name": "installedChatRegistration/installedChatRegistration#5",
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#3",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "installedChatRegistration/installedChatRegistration#6",
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#4",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "installedChatRegistration/installedChatRegistration#7",
+          "name": "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#5",
           "parameters": [
             "moon"
           ],
@@ -177,11 +136,8 @@
       "imports": [
         "./bounded-response.mjs",
         "./compiler-binding.generated.mjs",
-        "./model-port.mjs",
-        "./openai-chat.mjs",
-        "./original-materials.mjs",
-        "./original-openai-chat.mjs",
-        "./original-undici-transport.mjs"
+        "./local-model-http-transport.mjs",
+        "./model-port.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -193,30 +149,22 @@
             "<module>",
             "assertRuntime/assertRuntime/assertRuntime",
             "cid/cid",
-            "createConfiguredUndiciOpenAIChatRegistration",
             "createConfiguredUndiciRegisteredSdkRegistration",
-            "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration",
-            "installedChatRegistration/installedChatRegistration",
-            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight",
-            "installedChatRegistration/installedChatRegistration/init:physicalPreflight/init:physicalPreflight/common/init:checked/init:checked",
-            "installedChatRegistration/installedChatRegistration/installedChatRegistration",
-            "installedChatRegistration/installedChatRegistration#2",
-            "installedChatRegistration/installedChatRegistration#3",
-            "installedChatRegistration/installedChatRegistration#4",
-            "installedChatRegistration/installedChatRegistration#5",
-            "installedChatRegistration/installedChatRegistration#6",
-            "installedChatRegistration/installedChatRegistration#7",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#2",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#3",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#4",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration#5",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration/init:physicalPreflight/init:physicalPreflight",
+            "createConfiguredUndiciRegisteredSdkRegistration/createConfiguredUndiciRegisteredSdkRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
             "snapshotData/entries/entries",
             "snapshotData/snapshotData",
             "snapshotData/snapshotData#2",
             "text/text"
           ],
           "exports": [
-            "createConfiguredUndiciOpenAIChatRegistration",
-            "createConfiguredUndiciRegisteredSdkRegistration",
-            "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration"
+            "createConfiguredUndiciRegisteredSdkRegistration"
           ],
           "attributes": {
             "responsibility": [
@@ -227,8 +175,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "path": "packages/provider-ai-sdk/_internal/installed-openai-chat.mts",
+                "anchor": "createConfiguredUndiciRegisteredSdkRegistration"
               }
             ],
             "identity": [
@@ -279,7 +227,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -299,16 +247,16 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "recipe binds each original checked Graph through the existing Host owner"
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
+                "anchor": "normal binding profile and original Read recipe consume the same separate SDK R E demand"
               }
             ]
           }
@@ -479,7 +427,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -530,7 +478,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -550,12 +498,12 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               }
             ]
           }
@@ -565,10 +513,9 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "248511fd15a0578043f115453d67f3a4a6302332c7eea95534a7f72f8f7f9e8b",
+      "sha256": "fe2271067a50ef29248994292d1e3946b9cf01b394c93e17c5c081b8a4da399c",
       "exports": [
         "createAdmittedRegisteredSdkPreflight",
-        "createSdkModelPreflight",
         "createSdkNativeDecisionPreflight",
         "createSdkStructuredModelPreflight",
         "originalSdkCallOptions",
@@ -619,21 +566,6 @@
         {
           "name": "createAdmittedRegisteredSdkPreflight/preparationProgress/init:cleanup/init:cleanup",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createSdkModelPreflight",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSdkModelPreflight/createSdkModelPreflight",
-          "parameters": [
-            "moon",
-            "response"
-          ],
           "async": false
         },
         {
@@ -808,19 +740,6 @@
           "async": false
         },
         {
-          "name": "generationPlan",
-          "parameters": [
-            "moon",
-            "request",
-            "bytes",
-            "quantities",
-            "profile",
-            "installation",
-            "start"
-          ],
-          "async": false
-        },
-        {
           "name": "originalSdkCallOptions",
           "parameters": [
             "generation",
@@ -864,8 +783,6 @@
             "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/init:advance",
             "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/schema/schema",
             "createAdmittedRegisteredSdkPreflight/preparationProgress/init:cleanup/init:cleanup",
-            "createSdkModelPreflight",
-            "createSdkModelPreflight/createSdkModelPreflight",
             "createSdkNativeDecisionPreflight",
             "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight",
             "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight#2",
@@ -890,14 +807,12 @@
             "createSdkPhysicalPreflight/start/start",
             "createSdkStructuredModelPreflight",
             "createSdkStructuredModelPreflight/createSdkStructuredModelPreflight",
-            "generationPlan",
             "originalSdkCallOptions",
             "sdkProjectionBounds",
             "sdkProjectionBounds/sdkProjectionBounds"
           ],
           "exports": [
             "createAdmittedRegisteredSdkPreflight",
-            "createSdkModelPreflight",
             "createSdkNativeDecisionPreflight",
             "createSdkStructuredModelPreflight",
             "originalSdkCallOptions",
@@ -913,7 +828,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -964,7 +879,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -984,12 +899,12 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               },
               {
                 "path": "adapters/host-node/infer-original-http-common.test.mjs",
@@ -1097,7 +1012,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -1148,7 +1063,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -1168,585 +1083,12 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/provider-ai-sdk/_internal/original-materials.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "57ea4a61029b1f79583c8c5f11343c27259f95d9101730e738a638c7ef105024",
-      "exports": [
-        "admitOpenAIOriginalMaterials",
-        "snapshotOpenAIOriginalMaterials"
-      ],
-      "operations": [
-        {
-          "name": "admitOpenAIOriginalMaterials",
-          "parameters": [
-            "moon",
-            "materials"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitOpenAIOriginalMaterials/policies/policies",
-          "parameters": [
-            "name",
-            "kind"
-          ],
-          "async": false
-        },
-        {
-          "name": "fields/fields/fields",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "identity/identity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installation/installation",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "integer/integer",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "original/original",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "original/original/original",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "quantity/quantity",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "record/record/fields/fields",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "record/record/record",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "record/record/record#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "scalar/scalar",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "shape/shape/shape",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#6",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "./compiler-binding.generated.mjs"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "role": "public-wire-codec",
-      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "admitOpenAIOriginalMaterials",
-            "admitOpenAIOriginalMaterials/policies/policies",
-            "fields/fields/fields",
-            "identity/identity",
-            "installation/installation",
-            "integer/integer",
-            "original/original",
-            "original/original/original",
-            "quantity/quantity",
-            "record/record/fields/fields",
-            "record/record/record",
-            "record/record/record#2",
-            "scalar/scalar",
-            "shape/shape/shape",
-            "snapshotOpenAIOriginalMaterials",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#5",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#6",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#2",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#3",
-            "snapshotOpenAIOriginalMaterials/snapshotOpenAIOriginalMaterials#4"
-          ],
-          "exports": [
-            "admitOpenAIOriginalMaterials",
-            "snapshotOpenAIOriginalMaterials"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "model_physical_call_for_request"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "physical_equal(original.request, request)"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/model_execution/raw_capture_save.mbt",
-                "anchor": "ModelPhysicalCall"
-              },
-              {
-                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
-                "anchor": "pending cleanup"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "No notification, await or request construction is interposed here."
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/provider-http/model-port.test.mts",
-                "anchor": "unknown"
-              },
-              {
-                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
-                "anchor": "failed save keeps original error"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
-              },
-              {
-                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
-                "anchor": "cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "Installation must fund"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
-                "anchor": "projectionLimits"
-              }
-            ],
-            "extension": [
-              {
-                "path": "scripts/generate-js-compiler-bindings.mts",
-                "anchor": "generateCompilerBindings"
-              },
-              {
-                "path": "scripts/generate-model-original-materials.mts",
-                "anchor": "generateCompilerBindings"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/provider-http/original-materials.test.mts",
-                "anchor": "actual HTTP Common readers"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
-              },
-              {
-                "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "recipe binds each original checked Graph through the existing Host owner"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "7bf07026871783b0ab9be471e9317dab716013686e0836050ad04220400a9565",
-      "exports": [
-        "createAdmittedOpenAIChatPreflight",
-        "prepareAdmittedOpenAIChatRequest",
-        "prepareOriginalOpenAIChatRequest"
-      ],
-      "operations": [
-        {
-          "name": "createAdmittedOpenAIChatPreflight",
-          "parameters": [
-            "moon",
-            "admittedProvider",
-            "request",
-            "taskCid",
-            "promptCid",
-            "outputSchemaCid",
-            "modelSelector",
-            "projectionLimits",
-            "modelId",
-            "baseURL",
-            "apiKey",
-            "maxRequestBytes",
-            "maxHeaderBytes",
-            "maxHeaders",
-            "signal",
-            "notify",
-            "rawCaptureBinder",
-            "structuredAdmission",
-            "port"
-          ],
-          "async": false
-        },
-        {
-          "name": "createAdmittedOpenAIChatPreflight/progress/init:advance/init:advance",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "originalExpectedBodyVerifier/originalExpectedBodyVerifier",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareAdmittedOpenAIChatRequest",
-          "parameters": [
-            "moon",
-            "admittedProvider",
-            "request",
-            "taskCid",
-            "promptCid",
-            "outputSchemaCid",
-            "modelSelector",
-            "projectionLimits",
-            "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOriginalOpenAIChatRequest",
-          "parameters": [
-            "moon",
-            "request",
-            "modelSelector",
-            "modelId",
-            "baseURL",
-            "apiKey",
-            "prompt",
-            "responseFormat",
-            "maxRequestBytes",
-            "maxHeaderBytes",
-            "maxHeaders",
-            "signal",
-            "notify",
-            "verifyRequest",
-            "structuredAdmission"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "./compiler-binding.generated.mjs",
-        "./model-port.mjs",
-        "./openai-chat.mjs",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "role": "physical-io",
-      "owner": "Existing Common Model Owner and the installed physical Provider adapter",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "createAdmittedOpenAIChatPreflight",
-            "createAdmittedOpenAIChatPreflight/progress/init:advance/init:advance",
-            "createAdmittedOpenAIChatPreflight/progress/init:cleanup/init:cleanup",
-            "originalExpectedBodyVerifier/originalExpectedBodyVerifier",
-            "prepareAdmittedOpenAIChatRequest",
-            "prepareOriginalOpenAIChatRequest"
-          ],
-          "exports": [
-            "createAdmittedOpenAIChatPreflight",
-            "prepareAdmittedOpenAIChatRequest",
-            "prepareOriginalOpenAIChatRequest"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "model_physical_call_for_request"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
-              },
-              {
-                "path": "src/model_execution/http_chat_projection.mbt",
-                "anchor": "OpenAISdkV4"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "physical_equal(original.request, request)"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/model_execution/raw_capture_save.mbt",
-                "anchor": "ModelPhysicalCall"
-              },
-              {
-                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
-                "anchor": "pending cleanup"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "No notification, await or request construction is interposed here."
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/provider-http/model-port.test.mts",
-                "anchor": "unknown"
-              },
-              {
-                "path": "packages/provider-ai-sdk/model-port-retirement.test.mjs",
-                "anchor": "failed save keeps original error"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "if (pending || saving !== undefined || reconciliationPending)"
-              },
-              {
-                "path": "packages/provider-ai-sdk/admitted-native-decision.test.mjs",
-                "anchor": "cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "Installation must fund"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
-                "anchor": "projectionLimits"
-              },
-              {
-                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
-                "anchor": "installed_node_model_sdk_v4_request_capacity"
-              }
-            ],
-            "extension": [
-              {
-                "path": "scripts/generate-js-compiler-bindings.mts",
-                "anchor": "generateCompilerBindings"
-              },
-              {
-                "path": "scripts/generate-model-original-materials.mts",
-                "anchor": "generateCompilerBindings"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/provider-http/original-materials.test.mts",
-                "anchor": "actual HTTP Common readers"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
-              },
-              {
-                "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
-              },
-              {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
-                "anchor": "normal binding profile and original Read recipe"
-              },
-              {
-                "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
-                "anchor": "SDK expected wires remain per row"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               }
             ]
           }
@@ -1960,7 +1302,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -2011,7 +1353,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -2031,12 +1373,12 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               }
             ]
           }
@@ -2046,9 +1388,10 @@
     {
       "module": "packages/provider-http/_internal/installed-http-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cd06dea93fde48906c9df6d9cbac61fdefcafef2c95fdbe2ebcd9cf159fe3caa",
+      "sha256": "b42dd9b2d1d76165228e81497d4cc3e65d9bd116da2c6fc4c29680102b781e2e",
       "exports": [
-        "createInstalledHttpChatRegistration"
+        "createInstalledHttpChatRegistration",
+        "createInstalledPreparedHttpChatRegistration"
       ],
       "operations": [
         {
@@ -2073,14 +1416,22 @@
           "async": false
         },
         {
-          "name": "createInstalledHttpChatRegistration/config/config",
+          "name": "createInstalledPreparedHttpChatRegistration",
+          "parameters": [
+            "value",
+            "prepareTransport"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedHttpChatRegistration/config/config",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "createInstalledHttpChatRegistration/createInstalledHttpChatRegistration",
+          "name": "installedHttpChatRegistration/installedHttpChatRegistration",
           "parameters": [
             "moon"
           ],
@@ -2209,8 +1560,6 @@
             "assertRuntime/assertRuntime",
             "cid/cid",
             "createInstalledHttpChatRegistration",
-            "createInstalledHttpChatRegistration/config/config",
-            "createInstalledHttpChatRegistration/createInstalledHttpChatRegistration",
             "installedOpaqueRegistration/installedOpaqueRegistration",
             "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight",
             "installedOpaqueRegistration/installedOpaqueRegistration/init:physicalPreflight/init:physicalPreflight/init:checked/init:checked",
@@ -2224,10 +1573,14 @@
             "snapshot/snapshot#2",
             "snapshot/snapshot#3",
             "snapshotArray/snapshotArray",
-            "text/text"
+            "text/text",
+            "createInstalledPreparedHttpChatRegistration",
+            "installedHttpChatRegistration/config/config",
+            "installedHttpChatRegistration/installedHttpChatRegistration"
           ],
           "exports": [
-            "createInstalledHttpChatRegistration"
+            "createInstalledHttpChatRegistration",
+            "createInstalledPreparedHttpChatRegistration"
           ],
           "attributes": {
             "responsibility": [
@@ -2239,7 +1592,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -2290,7 +1643,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -2310,12 +1663,16 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
+              },
+              {
+                "path": "packages/provider-http/installed-http-chat.test.mts",
+                "anchor": "configured HTTP retains the existing Graph-bound Read recipe and protected credential selector"
               }
             ]
           }
@@ -2323,9 +1680,306 @@
       ]
     },
     {
+      "module": "packages/provider-http/_internal/normal-http-chat.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "745072c4749748663763eeebe22d4e48f84c2dca706e45f0db9634eb5c64ce80",
+      "exports": [
+        "createHttpChatProvider"
+      ],
+      "operations": [
+        {
+          "name": "buildEntry/buildEntry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "buildEntry/buildEntry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "buildEntry/buildEntry#3",
+          "parameters": [
+            "endpoint",
+            "init",
+            "limits",
+            "controller"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildEntry/init:observeEgress/init:observeEgress",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "buildEntry/init:observeEgress/init:observeEgress/fields/fields",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildEntry/init:observeEgress/init:observeEgress/init:observeEgress",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "buildEntry/init:observeEgress/init:observeEgress/init:observeEgress#2",
+          "parameters": [
+            "field",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider",
+          "parameters": [
+            "moon",
+            "context"
+          ],
+          "async": true
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/binding/binding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/config/config",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
+          "parameters": [
+            "task",
+            "selector",
+            "payload"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/entries/entries",
+          "parameters": [
+            "task",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/prepared/prepared",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/tasks/tasks",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatProvider/createHttpChatProvider/tasks/tasks/tasks",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/amount/amount",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/rawPolicies/rawPolicies",
+          "parameters": [
+            "role",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/readConfiguration",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/readConfiguration#2",
+          "parameters": [
+            "ms"
+          ],
+          "async": false
+        },
+        {
+          "name": "readConfiguration/readConfiguration#3",
+          "parameters": [
+            "quote"
+          ],
+          "async": false
+        },
+        {
+          "name": "readData/readData",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readData/readData#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readData/readData#3",
+          "parameters": [
+            "name",
+            "field"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Local Host configuration of the original SDK-free direct Chat provider",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "buildEntry/buildEntry",
+            "buildEntry/buildEntry#2",
+            "buildEntry/buildEntry#3",
+            "buildEntry/init:observeEgress/init:observeEgress",
+            "buildEntry/init:observeEgress/init:observeEgress/fields/fields",
+            "buildEntry/init:observeEgress/init:observeEgress/init:observeEgress",
+            "buildEntry/init:observeEgress/init:observeEgress/init:observeEgress#2",
+            "createHttpChatProvider",
+            "createHttpChatProvider/createHttpChatProvider",
+            "createHttpChatProvider/createHttpChatProvider/binding/binding",
+            "createHttpChatProvider/createHttpChatProvider/config/config",
+            "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
+            "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
+            "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/createHttpChatProvider",
+            "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider/entries/entries",
+            "createHttpChatProvider/createHttpChatProvider/createHttpChatProvider#2",
+            "createHttpChatProvider/createHttpChatProvider/prepared/prepared",
+            "createHttpChatProvider/createHttpChatProvider/tasks/tasks",
+            "createHttpChatProvider/createHttpChatProvider/tasks/tasks/tasks",
+            "readConfiguration/amount/amount",
+            "readConfiguration/rawPolicies/rawPolicies",
+            "readConfiguration/readConfiguration",
+            "readConfiguration/readConfiguration#2",
+            "readConfiguration/readConfiguration#3",
+            "readData/readData",
+            "readData/readData#2",
+            "readData/readData#3"
+          ],
+          "exports": [
+            "createHttpChatProvider"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/provider-http/_internal/normal-http-chat.mts",
+                "anchor": "export function createHttpChatProvider"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-http/_internal/normal-http-chat.mts",
+                "anchor": "export function createHttpChatProvider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors_builtin_node/client_model_configuration_bridge_wbtest.mbt",
+                "anchor": "installed Chat checks the selected transport on the exact current original binding"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mts",
+                "anchor": "providerEntries(project: () => unknown)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mts",
+                "anchor": "providerEntries(project: () => unknown)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-http/normal-http-chat.test.mts",
+                "anchor": "direct configuration refuses untrusted endpoint and an explicitly competing SDK selection before admission"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "The installed original Call owns cancellation and transport cleanup."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mts",
+                "anchor": "providerEntries(project: () => unknown)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-http/_internal/normal-http-chat.mts",
+                "anchor": "export function createHttpChatProvider"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-http/normal-http-chat.test.mts",
+                "anchor": "configured direct Chat sends its original route, profile and Graph recipe to the existing Host without reading a key"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./installed-http-chat.mjs",
+        "@actql/local-node/_internal/model-http-transport",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "packages/provider-http/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "415086e70101e90f868c0b2052cdf1a78853ae66c75d27ca31a3234a66d81e7a",
+      "sha256": "08fc85feb0aa6d289089ee4ce5b299d0b5be4d541cb2ce6ee1d6620c28088073",
       "exports": [
         "createHttpChatPreflight"
       ],
@@ -2350,6 +2004,8 @@
             "installation",
             "quantities",
             "fetch",
+            "prepareTransport",
+            "needsCredential",
             "notify",
             "observeAt",
             "checked",
@@ -2371,11 +2027,33 @@
           "async": false
         },
         {
-          "name": "createHttpChatPreflight/bound/bound",
+          "name": "createHttpChatPreflight/advancePhysicalCleanup/advancePhysicalCleanup/advancePhysicalCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/advancePhysicalCleanup/advancePhysicalCleanup/advancePhysicalCleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/advancePhysicalCleanup/advancePhysicalCleanup/finish/finish",
+          "parameters": [
+            "closed"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/bindRaw/bindRaw",
           "parameters": [
             "registration",
             "persistence"
           ],
+          "async": false
+        },
+        {
+          "name": "createHttpChatPreflight/bound/bound",
+          "parameters": [],
           "async": false
         },
         {
@@ -2484,26 +2162,26 @@
           "async": false
         },
         {
-          "name": "createHttpChatPreflight/poll/poll/poll",
+          "name": "createHttpChatPreflight/pollResponse/pollResponse/pollResponse",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createHttpChatPreflight/poll/poll/poll#2",
+          "name": "createHttpChatPreflight/pollResponse/pollResponse/pollResponse#2",
           "parameters": [
             "saved"
           ],
           "async": false
         },
         {
-          "name": "createHttpChatPreflight/poll/poll/poll#3",
+          "name": "createHttpChatPreflight/pollResponse/pollResponse/pollResponse#3",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "createHttpChatPreflight/poll/poll/poll#4",
+          "name": "createHttpChatPreflight/pollResponse/pollResponse/pollResponse#4",
           "parameters": [],
           "async": false
         },
@@ -2567,6 +2245,10 @@
             "createHttpChatPreflight",
             "createHttpChatPreflight/abort/abort",
             "createHttpChatPreflight/advance/advance",
+            "createHttpChatPreflight/advancePhysicalCleanup/advancePhysicalCleanup/advancePhysicalCleanup",
+            "createHttpChatPreflight/advancePhysicalCleanup/advancePhysicalCleanup/advancePhysicalCleanup#2",
+            "createHttpChatPreflight/advancePhysicalCleanup/advancePhysicalCleanup/finish/finish",
+            "createHttpChatPreflight/bindRaw/bindRaw",
             "createHttpChatPreflight/bound/bound",
             "createHttpChatPreflight/cancel/cancel",
             "createHttpChatPreflight/cleanup/cleanup",
@@ -2586,10 +2268,10 @@
             "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#2",
             "createHttpChatPreflight/init:reconcileRaw/init:reconcileRaw/init:reconcileRaw#3",
             "createHttpChatPreflight/poll/poll",
-            "createHttpChatPreflight/poll/poll/poll",
-            "createHttpChatPreflight/poll/poll/poll#2",
-            "createHttpChatPreflight/poll/poll/poll#3",
-            "createHttpChatPreflight/poll/poll/poll#4",
+            "createHttpChatPreflight/pollResponse/pollResponse/pollResponse",
+            "createHttpChatPreflight/pollResponse/pollResponse/pollResponse#2",
+            "createHttpChatPreflight/pollResponse/pollResponse/pollResponse#3",
+            "createHttpChatPreflight/pollResponse/pollResponse/pollResponse#4",
             "createHttpChatPreflight/start/start",
             "createHttpChatPreflight/start/start/start",
             "createHttpChatPreflight/start/start/start/start",
@@ -2611,7 +2293,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -2634,6 +2316,10 @@
               {
                 "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mts",
+                "anchor": "Keep the original response/Store work independent of the physical ACK."
               }
             ],
             "failure": [
@@ -2662,7 +2348,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -2682,12 +2368,20 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
+              },
+              {
+                "path": "packages/provider-http/model-port.test.mts",
+                "anchor": "selected HTTP binds a protected credential once through the original Host continuation"
+              },
+              {
+                "path": "packages/provider-http/model-port.test.mts",
+                "anchor": "direct HTTP keeps one original prepared Undici Call through"
               }
             ]
           }
@@ -2769,7 +2463,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -2820,7 +2514,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -2840,12 +2534,12 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               }
             ]
           }
@@ -3122,7 +2816,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -3173,7 +2867,7 @@
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "projectionLimits"
               }
             ],
@@ -3193,12 +2887,12 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               }
             ]
           }
@@ -3208,18 +2902,9 @@
     {
       "module": "scripts/generate-model-original-materials.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1bca77bde0ef72a45471a5e7c82e70940732b82fd917d97e070c83276c31afca",
+      "sha256": "00d9ecbb6825c225493eb62a0b2f8dfcb4ce1464053945bce1f80f94685135e0",
       "exports": [],
-      "operations": [
-        {
-          "name": "<anonymous>",
-          "parameters": [
-            "name",
-            "count"
-          ],
-          "async": false
-        }
-      ],
+      "operations": [],
       "imports": [
         "./generate-js-compiler-bindings.mjs",
         "./typescript-interface-emit.mjs",
@@ -3232,21 +2917,20 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
-            "<anonymous>"
+            "<module>"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "scripts/generate-model-original-materials.mts",
-                "anchor": "One closed DATA snapshot/Common-reader connection"
+                "anchor": "emitInterfaceTypeScript(root, new URL(stem"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/model-original-materials.mts.in",
-                "anchor": "admit__PROVIDER__OriginalMaterials"
+                "anchor": "admitHTTPOriginalMaterials"
               }
             ],
             "identity": [
@@ -3300,12 +2984,12 @@
                 "anchor": "actual HTTP Common readers"
               },
               {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "actual Common readers"
+                "path": "adapters/host-node/infer-original-http-common.test.mjs",
+                "anchor": "registered SDK rejects a separate equal profile before Entry and transport"
               },
               {
                 "path": "scripts/model-original-materials.test.mts",
-                "anchor": "one closed DATA source"
+                "anchor": "the independent HTTP material generator emits its closed DATA reader"
               }
             ]
           }
