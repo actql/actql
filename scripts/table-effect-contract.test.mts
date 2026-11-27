@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import {machineCid} from './actql-spec-family.mjs';
+import {verifyIdentity} from './check-canonical-json.mjs';
+import {checkTableEffectContract, checkTableOperation, localTablePhysicalContract, type TableOperation} from
+  './table-effect-contract.mjs';
+import {authoredTableVectors, tableMoonVectors, authoredLocalTableReceiptVectors,
+  localTableMoonVectors} from './table-effect-vectors.mjs';
+
+type ReceiptRegistry = {schemas: {receipt: {properties: Record<string, unknown>}}};
+const read = <Value = unknown,>(path: string): Value => JSON.parse(readFileSync(path, 'utf8'));
+const corpus = read<ReturnType<typeof authoredTableVectors>>('portability/corpus/table-effect.json');
+const request = corpus.cases.find(entry => entry.id === 'create')!.body as TableOperation;
+const reseal = <Body extends {request_cid: string}>(body: Body) => {
+  const {request_cid: _, ...preimage} = body;
+  return {...preimage, request_cid: machineCid(preimage)};
+};
+
+test('Table provider envelopes retain their exact narrow contract', () => {
+  checkTableEffectContract(read('spec/contracts/actql-table-effect.json'));
+  assert.deepEqual(read('spec/contracts/actql-local-table-iceberg.json'), localTablePhysicalContract());
+  assert.equal(read<ReceiptRegistry>('spec/contracts/actql-table-effect.json').schemas.receipt.properties.metadata_location, undefined);
+  assert.equal(read<ReceiptRegistry>('spec/contracts/actql-table-effect.json').schemas.receipt.properties.snapshot_id, undefined);
+});
+
+test('Local physical evidence and logical receipts have separate independently sealed identities', () => {
+  assert.equal(readFileSync('src/connectors/local/table/receipt_vectors.generated_wbtest.mbt', 'utf8'),
+    localTableMoonVectors());
+  for (const {physical, logical} of authoredLocalTableReceiptVectors()) {
+    for (const body of [physical, logical]) {
+      const {receipt_cid, ...preimage} = body;
+      verifyIdentity(preimage, receipt_cid);
+    }
+    assert.notEqual(physical.receipt_cid, logical.receipt_cid);
+    assert.equal(logical.physical_receipt_cid, physical.receipt_cid);
+  }
+});
+
+test('Table request/receipt vectors use independently authored preimages', () => {
+  assert.deepEqual(corpus, authoredTableVectors());
+  for (const entry of corpus.cases) {
+    const field = Object.hasOwn(entry.body, 'receipt_cid')
+      ? 'receipt_cid' : 'request_cid';
+    const {[field]: expected, ...preimage} = entry.body as Record<string, unknown> & Record<typeof field, string>;
+    verifyIdentity(preimage, expected);
+    assert.equal(expected, entry.expected_cid);
+  }
+  assert.equal(readFileSync(
+    'src/effect_application/table_vectors.generated_wbtest.mbt', 'utf8'),
+  tableMoonVectors(corpus));
+});
+
+test('create and guarded replace refuse changed binding and mixed preconditions', () => {
+  checkTableOperation(request);
+  const replace = corpus.cases.find(entry => entry.id === 'replace')!.body as TableOperation;
+  checkTableOperation(replace);
+  for (const key of ['effect_identity_cid', 'input_artifact_cid',
+    'input_carrier', 'schema_cid', 'storage_mapping_cid', 'data_policy_cid']) {
+    assert.throws(() => checkTableOperation({...request,
+      [key]: `sha256:${'f'.repeat(64)}`}));
+  }
+  assert.throws(() => checkTableOperation(reseal({...request,
+    expected_table: replace.expected_table})));
+  assert.throws(() => checkTableOperation(reseal({...replace,
+    expected_table: null})));
+  assert.throws(() => checkTableOperation(reseal({...request,
+    item_key: 'invented-row-key'})));
+  assert.throws(() => checkTableOperation(reseal({...request, namespace: []})));
+  assert.throws(() => checkTableOperation(reseal({...request,
+    table_name: 'e\u0301'})));
+});
+
+test('original operation binding does not collapse into name or current head', () => {
+  const changedEffect = reseal({...request,
+    effect_identity_cid: `sha256:${'e'.repeat(64)}`});
+  const changedRun = reseal({...request,
+    logical_request_scope_cid: `sha256:${'e'.repeat(64)}`});
+  checkTableOperation(changedEffect);
+  checkTableOperation(changedRun);
+  assert.notEqual(changedEffect.request_cid, request.request_cid);
+  assert.notEqual(changedRun.request_cid, request.request_cid);
+  const contract = read<{semantics: {unknown: string}}>('spec/contracts/actql-table-effect.json');
+  assert.equal(contract.semantics.unknown,
+    'reconcile_original_operation_no_resend_no_potentially_published_file_cleanup');
+});
+
+test('logical Carrier kinds are identity-bound while Local declares only Relation operations', () => {
+  const identities = new Set();
+  for (const kind of ['relation', 'graph', 'vectors', 'events']) {
+    const operation = reseal({...request, input_carrier: {kind, cid: request.input_carrier.cid}});
+    checkTableOperation(operation);
+    identities.add(operation.request_cid);
+    if (kind !== 'relation') assert.throws(() => checkTableOperation({...operation,
+      input_carrier: request.input_carrier}));
+  }
+  assert.equal(identities.size, 4, 'A CID without its Carrier kind cannot alias another input');
+  for (const input_carrier of [{kind: 'unknown', cid: request.input_carrier.cid},
+    {kind: 'graph'}, {...request.input_carrier, extra: true}]) {
+    assert.throws(() => checkTableOperation(reseal({...request, input_carrier})));
+  }
+  const {input_carrier, ...legacy} = request;
+  assert.throws(() => checkTableOperation(reseal({...legacy, input_relation_cid: input_carrier.cid})),
+    'Actual retired operation shape is refused, not implicitly converted');
+  assert.deepEqual(localTablePhysicalContract().operations,
+    {create: ['relation'], replace: ['relation'], snapshot_read: ['relation']});
+});
+
+// JSON Schema maxLength and common admission count Unicode scalar values.
+test('Table name and namespace length preserve supplementary Unicode boundaries', () => {
+  for (const field of ['table_name', 'namespace']) {
+    const input = (value: string) => reseal({...request,
+      [field]: field === 'namespace' ? [value] : value});
+    checkTableOperation(input('😀'.repeat(256)));
+    assert.throws(() => checkTableOperation(input('😀'.repeat(257))));
+    assert.throws(() => checkTableOperation(input('\ud800')));
+  }
+});

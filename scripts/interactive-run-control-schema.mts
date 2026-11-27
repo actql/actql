@@ -7,7 +7,7 @@ export type ProtocolSchema = {
   $id?: string;
   type?: string | string[];
   const?: unknown;
-  enum?: unknown[];
+  enum?: readonly unknown[];
   pattern?: string;
   format?: string;
   properties?: Record<string, ProtocolSchema>;
@@ -15,7 +15,7 @@ export type ProtocolSchema = {
   additionalProperties?: boolean | ProtocolSchema;
   propertyNames?: ProtocolSchema;
   items?: false | ProtocolSchema;
-  prefixItems?: ProtocolSchema[];
+  prefixItems?: readonly ProtocolSchema[];
   contains?: ProtocolSchema;
   oneOf?: ProtocolSchema[];
   anyOf?: ProtocolSchema[];

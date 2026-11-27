@@ -111,7 +111,7 @@ but defaults an input with only expected columns to Relation and rejects an empt
 expected-column list. Current language requirements instead require `carrier`
 and do not require that list to be nonempty. The reader follows current prose.
 The embedded protocol input schemas and this reader both exclude legacy
-`schema_ref`, as required by the language. `scripts/local-input-schema.mjs`
+`schema_ref`, as required by the language. `scripts/local-input-schema.mts`
 checks both embedded Program input definitions and their closed field sets;
 inline `schema` remains available. This alignment does not define a Host
 snapshot reference or imply registry, backend or execution support.

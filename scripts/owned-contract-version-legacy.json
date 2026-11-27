@@ -421,10 +421,10 @@
       "reason": "Existing test or rejection fixture occurrence; frozen to this context."
     },
     {
-      "path": "scripts/check-environment.test.mjs",
+      "path": "scripts/check-environment.test.mts",
       "token": "actql-text-rank-selection/1.0",
       "contextSha256": "a1320264dff34b7e5f7b8408e8ef40bf7091d78b1be2a8d321479749d2289b8e",
-      "line": 47,
+      "line": 66,
       "count": 1,
       "reason": "Existing test or rejection fixture occurrence; frozen to this context."
     },
@@ -1765,7 +1765,7 @@
       "reason": "Approved ordered File key decision in Connectors and portable Hosts section 8. This exact occurrence describes, implements, or tests the closed tuple Mapping; the original scalar and collection-only Mapping bodies retain their initial version."
     },
     {
-      "path": "scripts/mapping-contract.mjs",
+      "path": "scripts/mapping-contract.mts",
       "token": "actql.mapping_contract/0.2",
       "contextSha256": "4047f76ed85b655098dd54b0f9a38f12b2b65acb92628a72f40d7f2462b494c3",
       "line": 108,
