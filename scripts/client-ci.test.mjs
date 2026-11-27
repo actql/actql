@@ -45,10 +45,10 @@ import {checkpointObservationSchedule, checkpointObservationRecord, checkpointFa
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
-const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce'];
+const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-model-packed'];
 const acceptanceGroups = [...groups.slice(0, 6), 'native-cli-installed', ...groups.slice(6)];
 const consumers = ['client-distribution', 'client-distribution-callers',
-  'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition'];
+  'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-model-packed'];
 const runs = name => jobs[name].steps.filter(step => step.run).flatMap(step => {
   const command = step.run.trim();
   if (name !== 'client-distribution-mutations' || !command.includes('${{ matrix.script }}')) return [command];
@@ -106,8 +106,7 @@ test('shared Host preparation builds its original Common and signing checkpoint 
     for (const entry of ['src/connectors_builtin_node', 'src/checkpoint_runtime_node'])
       assert.equal(args.filter(value => value === entry).length, 1, entry);
   }
-  for (const file of ['adapters/host-node/normal-openai-http.actual.test.mjs',
-    'adapters/host-node/infer-original-http-common.test.mjs',
+  for (const file of ['adapters/host-node/infer-original-http-common.test.mjs',
     'adapters/host-node/model-task-candidate-binding.actual.test.mjs', 'scripts/ci-rest-actual-common.mjs']) {
     const selected = jobs.host.steps.filter(step => step.run?.split(/\s+/u).includes(file));
     assert.equal(selected.length, 1);
@@ -180,54 +179,42 @@ test('catalogue compiled projection cannot hide a preceding or selected consumer
   }
 });
 
-test('normal Model Host HTTP retains its single prepared Common and required SDK and FD tools', t => {
-  const steps=jobs.host.steps;
-  const files = [
-    'adapters/host-node/normal-openai-http.actual.test.mjs',
-    'adapters/host-node/infer-original-http-common.test.mjs',
+test('the original Model HTTP Common suite keeps whole-file coverage after the sole prepared Host and SDK', t => {
+  const steps = jobs.host.steps;
+  const common = 'adapters/host-node/infer-original-http-common.test.mjs';
+  const selected = steps.filter(step => step.run?.split(/\s+/u).includes(common));
+  assert.equal(selected.length, 1);
+  const [gate] = selected;
+  const preparation = steps.find(step => step.id === 'host-runtime-preparation');
+  assert(steps.indexOf(preparation) < steps.indexOf(gate));
+  assert.equal(gate.if, "${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
+  assert.equal(gate['continue-on-error'], undefined);
+  assert.equal(steps.filter(step => step.run?.includes('moon build') && step.run.includes('src/connectors_builtin_node')).length, 1);
+  const commands = [
+    'npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
+    'node scripts/build-local-node-adapters.mjs --stage-host-model-http-test',
+    'node scripts/local-checks.mjs test node --timeout-seconds 180 --kill-grace-seconds 5 -- ' + common,
   ];
-  const selected=steps.filter(step=>files.some(file=>step.run?.split(/\s+/u).includes(file)));
-  assert.equal(selected.length,1);
-  const [gate]=selected, preparation=steps.find(step=>step.id==='host-runtime-preparation');
-  assert(steps.indexOf(preparation)<steps.indexOf(gate));
-  assert.equal(gate.if,"${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}");
-  assert.equal(gate['continue-on-error'],undefined);
-  assert.equal(steps.filter(step=>step.run?.includes('moon build')&&step.run.includes('src/connectors_builtin_node')).length,1);
-  const commands=gate.run.trim().split('\n').slice(-files.length);
-  let budget=0;
-  for (const [index,file] of files.entries()) {
-    const args=commands[index].trim().split(/\s+/u);
-    assert.deepEqual(args.slice(0,4),['node','scripts/local-checks.mjs','test','node']);
-    assert.deepEqual(args.slice(args.indexOf('--')+1),[file]);
-    assert(!args.includes('--test-name-pattern'),'The actual file includes every required case without a partial selector');
-    const timeout=Number(args[args.indexOf('--timeout-seconds')+1]);
-    const grace=Number(args[args.indexOf('--kill-grace-seconds')+1]);
-    assert(Number.isSafeInteger(timeout)&&timeout>0);
-    assert(Number.isSafeInteger(grace)&&grace>=0);
-    budget+=timeout+grace;
-  }
-  assert(budget<=jobs.host['timeout-minutes']*60,
-    'The independently supervised children stay within the enclosing Host job budget');
-  const directory=mkdtempSync(join(tmpdir(),'actql-normal-model-ci-')),bin=join(directory,'bin');
-  t.after(()=>rmSync(directory,{recursive:true,force:true}));mkdirSync(bin);
-  const calls=join(directory,'calls');
-  writeFileSync(join(bin,'npm'),'#!/bin/sh\nprintf "npm:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\nexit "$ACTQL_CI_NPM_STATUS"\n',{mode:0o755});
-  writeFileSync(join(bin,'node'),'#!/bin/sh\nprintf "node:%s\\n" "$*" >> "$ACTQL_CI_CALLS"\nexit "$ACTQL_CI_NODE_STATUS"\n',{mode:0o755});
-  for(const [lsof,status,nodeStatus] of [[false,0,0],[true,73,0],[true,0,74],[true,0,0]]) {
-    if(lsof)writeFileSync(join(bin,'lsof'),'#!/bin/sh\nexit 0\n',{mode:0o755});
-    writeFileSync(calls,'');
-    const result=spawnSync('/bin/bash',['-eo','pipefail','-c',gate.run],{cwd:root,
-      env:{...process.env,PATH:bin,ACTQL_CI_CALLS:calls,
-        ACTQL_CI_NPM_STATUS:String(status),ACTQL_CI_NODE_STATUS:String(nodeStatus)},
-      encoding:'utf8',timeout:3000});
-    assert.equal(result.error,undefined);assert.equal(result.signal,null);
-    assert.equal(result.status,lsof?(status || nodeStatus):1);
-    const recorded=readFileSync(calls,'utf8').trim().split('\n').filter(Boolean);
-    assert.equal(recorded.filter(value=>value.startsWith('npm:')).length,lsof?1:0);
-    const nodeCalls=recorded.filter(value=>value.startsWith('node:'));
-    const expectedFiles=!lsof||status!==0 ? [] : nodeStatus===0 ? files : files.slice(0,1);
-    if(lsof)assert.equal(recorded[0],'npm:ci --prefix packages/provider-ai-sdk --ignore-scripts');
-    assert.deepEqual(nodeCalls.map(call=>call.trim().split(/\s+/u).at(-1)),expectedFiles);
+  assert.deepEqual(gate.run.trim().split('\n'), commands);
+  assert(185 <= jobs.host['timeout-minutes'] * 60);
+  const directory = mkdtempSync(join(tmpdir(), 'actql-normal-model-ci-')), bin = join(directory, 'bin');
+  t.after(() => rmSync(directory, {recursive: true, force: true})); mkdirSync(bin);
+  const calls = join(directory, 'calls');
+  writeFileSync(join(bin, 'npm'), '#!/bin/sh\nprintf "npm %s\\n" "$*" >> "$ACTQL_CI_CALLS"\n' +
+    'exit "$ACTQL_CI_NPM_STATUS"\n', {mode: 0o755});
+  writeFileSync(join(bin, 'node'), '#!/bin/sh\nprintf "node %s\\n" "$*" >> "$ACTQL_CI_CALLS"\n' +
+    'if [ "$2" = "--stage-host-model-http-test" ]; then exit "$ACTQL_CI_STAGE_STATUS"; fi\n' +
+    'exit "$ACTQL_CI_TEST_STATUS"\n', {mode: 0o755});
+  for (const [npmStatus, stageStatus, testStatus] of [[73, 0, 0], [0, 74, 0], [0, 0, 75], [0, 0, 0]]) {
+    writeFileSync(calls, '');
+    const result = spawnSync('/bin/bash', ['-eo', 'pipefail', '-c', gate.run], {cwd: root,
+      env: {...process.env, PATH: bin, ACTQL_CI_CALLS: calls,
+        ACTQL_CI_NPM_STATUS: String(npmStatus), ACTQL_CI_STAGE_STATUS: String(stageStatus),
+        ACTQL_CI_TEST_STATUS: String(testStatus)},
+      encoding: 'utf8', timeout: 3000});
+    assert.equal(result.error, undefined); assert.equal(result.signal, null);
+    assert.equal(result.status, npmStatus || stageStatus || testStatus);
+    assert.deepEqual(readFileSync(calls, 'utf8').trimEnd().split('\n'), commands.slice(0, npmStatus ? 1 : stageStatus ? 2 : 3));
   }
 });
 
@@ -1164,17 +1151,20 @@ test('Client lanes cover local acceptance without positional command snapshots',
   for (const name of groups.filter(name => name !== 'client-supported-versions')) {
     assert.equal(jobs[name].if, normal);
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
-    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 45 : 30, name);
+    assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 45 : name === 'client-model-packed' ? 20 : 30, name);
     if (name === 'client-packed') {
       assert.equal(jobs[name].strategy['fail-fast'], false, 'no fail-fast sibling cancellation');
       assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable-1', 'query-portable-2', 'query-portable-3', 'query-native']);
+    } else if (name === 'client-model-packed') {
+      assert.equal(jobs[name].strategy['fail-fast'], false);
+      assert.deepEqual(jobs[name].strategy.matrix.node, ['22.22.0', '24']);
     } else if (name === 'client-distribution-mutations') {
       assert.equal(jobs[name].strategy['fail-fast'], false);
     } else assert.equal(jobs[name].strategy, undefined, 'no fail-fast sibling cancellation');
     for (const step of jobs[name].steps.filter(step => step.run)) {
       let preparation;
       if (step.name?.startsWith('Test ')) {
-        if (['client-packed', 'client-packed-composition', 'client-distribution-packed'].includes(name)) preparation = 'client-inputs';
+        if (['client-packed', 'client-packed-composition', 'client-distribution-packed', 'client-model-packed'].includes(name)) preparation = 'client-inputs';
         else if (Object.hasOwn(partitions, name)) preparation = 'distribution-preparation';
       }
       if (name === 'client-packed' && step.id === 'table-python') preparation = 'client-inputs';
@@ -1403,7 +1393,7 @@ test('local commands remain available for each independently retryable group', (
     const child = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'run', name, '--dry-run'], {cwd: root, encoding: 'utf8'});
     assert.equal(child.status, 0, child.stderr);
     for (const command of runs(name)) {
-      if (command === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts') {
+      if (command === 'npm ci' || command === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts') {
         assert(!child.stdout.includes(command), 'Local checks retain installed dependencies');
       } else assert(child.stdout.includes(name === 'client-packed'
         ? command.replace('${{ matrix.query-part }}', 'portable') : command));

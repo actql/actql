@@ -12,8 +12,8 @@ interface OriginalRuntime {
   clientProgramAdmitEffectDependencyBody?(kind: string, cid: string, wire: string,
     maxBytes: number, maxNodes: number, maxDepth: number): unknown;
 }
-const fail: () => never = () => {throw Object.assign(new TypeError('Invalid__PROVIDER__OriginalMaterials'),
-  {code:'Invalid__PROVIDER__OriginalMaterials'});};
+const fail: () => never = () => {throw Object.assign(new TypeError('InvalidHTTPOriginalMaterials'),
+  {code:'InvalidHTTPOriginalMaterials'});};
 const record = <R extends ValidatorMap, O extends ValidatorMap = {}>(value: unknown, required: R, optional: O = {} as O): Readonly<CheckedFields<R> & Partial<CheckedFields<O>>> => {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) fail();
   const names = Reflect.ownKeys(value as object);
@@ -48,14 +48,14 @@ const original = (value: unknown) => record(value,{
 });
 const installation = (value: unknown) => record(value,{
   ...fields('build_artifact_cid,builder_id,builder_revision,codec_id,codec_revision,completion_basis,endpoint,http_method,streaming,validator_artifact_cid,validator_id,validator_revision'),
-  __SDK_FIELD__
+  sdk:(value: unknown) => {if (value !== null) fail();return value;},
 });
 
 // A closed installation DATA snapshot, not a canonical parser, opaque Owner
 // reconstruction or funding proof. Each descriptor is read exactly once;
 // the existing Common readers alone admit the original wire and CID.
-export function snapshot__PROVIDER__OriginalMaterials(value: unknown) {
-__READ_GUARD__
+export function snapshotHTTPOriginalMaterials(value: unknown) {
+
   return record(value,{
     responseProfile:original,
     policyOriginals:value => record(value,{retention:original,metadata:original,clock:original,data:original}),
@@ -64,7 +64,7 @@ __READ_GUARD__
         if (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > 2147483647) fail();return value as number;
       }]))) as Readonly<Record<'maxBytes' | 'maxNodes' | 'maxDepth' | 'maxMembers' | 'maxWork', number>>,
     installation,
-    __READ_FIELD__:value => record(value,{
+    originalReadInstallation:value => record(value,{
       bootstrap:value => record(value,{
         ...fields('bootstrapExecutionBytes,bootstrapRetainedBytes',quantity),
         ...fields('maxDelegations,maxHoldings,maxReservations',integer),
@@ -73,7 +73,7 @@ __READ_GUARD__
       nodeInstallation:value => record(value,{
         runtimeArtifactCid:identity,layoutArtifactCid:identity,
         layout:value => record(value,{
-          ...fields(__LAYOUT_FIELDS__,identity),
+          ...fields('barrier_cid,layout_artifact_cid,parameter_values_cid,program_definition_cid,runtime_artifact_cid',identity),
           ...fields('execution_bytes,prepared_rows,retained_bytes',quantity),
         }),
       }),
@@ -98,16 +98,16 @@ __READ_GUARD__
   });
 }
 
-export function admit__PROVIDER__OriginalMaterials(moon: OriginalRuntime, materials: ReturnType<typeof snapshot__PROVIDER__OriginalMaterials>) {
+export function admitHTTPOriginalMaterials(moon: OriginalRuntime, materials: ReturnType<typeof snapshotHTTPOriginalMaterials>) {
   if (moon === null || (typeof moon !== 'object' && typeof moon !== 'function') ||
       typeof moon.clientProgramReadModelResponseProfile !== 'function' ||
       typeof moon.clientProgramAdmitEffectDependencyBody !== 'function') {
-    throw Object.assign(new TypeError('__PROVIDER__OriginalRuntimeUnavailable'),{code:'__PROVIDER__OriginalRuntimeUnavailable'});
+    throw Object.assign(new TypeError('HTTPOriginalRuntimeUnavailable'),{code:'HTTPOriginalRuntimeUnavailable'});
   }
   const {maxBytes,maxNodes,maxDepth,maxMembers,maxWork} = materials.readerLimits;
   const checked = (result: unknown): unknown => {
     if (runtimeIsOk(result) && runtimeField(result, 0) !== undefined && runtimeField(result, 0) !== null) return runtimeField(result, 0);
-    throw Object.assign(new TypeError('__PROVIDER__OriginalMaterialsRefused'),{code:'__PROVIDER__OriginalMaterialsRefused'});
+    throw Object.assign(new TypeError('HTTPOriginalMaterialsRefused'),{code:'HTTPOriginalMaterialsRefused'});
   };
   const profile = checked(moon.clientProgramReadModelResponseProfile!(
     materials.responseProfile.wire,materials.responseProfile.cid,maxBytes,maxNodes,maxDepth,maxMembers,maxWork));
@@ -119,9 +119,9 @@ export function admit__PROVIDER__OriginalMaterials(moon: OriginalRuntime, materi
     return [name,checked(moon.clientProgramAdmitEffectDependencyBody!(
       kind,body.cid,body.wire,maxBytes,maxNodes,maxDepth))];
   }));
-__READ_BINDING__
+  const {installation,originalReadInstallation:read,rawCaptureSelection:raw} = materials;
   return Object.freeze({
-    __READ_FIELD__:Object.freeze({...read,nodeInstallation:Object.freeze({
+    originalReadInstallation:Object.freeze({...read,nodeInstallation:Object.freeze({
       ...read.nodeInstallation,installation,probability:undefined,
       layout:Object.freeze({...read.nodeInstallation.layout,response_profile:profile}),
     })}),

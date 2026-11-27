@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
-import {prepareOriginalOpenAIChatRequest} from './_internal/original-openai-chat.mjs';
+import {originalSdkCallOptions} from './_internal/model-port.mjs';
+import {prepareSelectedChat} from './selected-chat.fixture.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, cleanupSdkPreparation}
   from './_internal/intercepted-request.mjs';
 
 // Selected first-service request preparation only. The Common generation
 // accessor is a double; this neither admits a Profile nor authorizes a Run.
 // A fake credential stays in the interceptor. No transport is installed.
-const request = Object.freeze({});
 const schema = {type: 'object', properties: {
   reason: {anyOf: [{type: 'string'}, {type: 'null'}]},
   risk: {type: 'string'},
@@ -21,22 +21,18 @@ const expected = model => ({model, temperature: 0, top_p: 1,
     schema, strict: true, name: 'actql_output',
   }}});
 
-function prepare(modelId, reads) {
-  return prepareOriginalOpenAIChatRequest({moon: {
-    clientProgramModelRequestGeneration(actual) {
-      assert.strictEqual(actual, request);
-      reads.count++;
-      return {_0: 'selected-chat', _1: 0, _2: 1, _3: 32n, _4: -7n};
-    },
-  }, request, modelSelector: 'selected-chat', modelId,
-  baseURL: 'https://api.openai.com/v1', apiKey: 'fixture-only-never-sent',
-  maxRequestBytes: 1000, maxHeaderBytes: 4096, maxHeaders: 16,
-  prompt: [{role: 'system', content: 'Original e\u0301\r\n'},
-    {role: 'user', content: [{type: 'text', text: '{"text":"hello"}'}]}],
-  responseFormat: {type: 'json', name: 'actql_output', schema},
-  notify() {}, verifyRequest: body =>
-    // Independent expected envelope, not a value regenerated from SDK output.
-    assert.deepStrictEqual(JSON.parse(body), expected(modelId)) === undefined,
+function prepare(modelId) {
+  const generation={_0:'selected-chat',_1:0,_2:1,_3:32n,_4:-7n};
+  const prompt=[{role:'system',content:'Original e\u0301\r\n'},
+    {role:'user',content:[{type:'text',text:'{"text":"hello"}'}]}];
+  const responseFormat={type:'json',name:'actql_output',schema};
+  return prepareSelectedChat({selector:'selected-chat', modelId,
+    baseURL:'https://api.openai.com/v1',apiKey:'fixture-only-never-sent',
+    maxRequestBytes:1000,maxHeaderBytes:4096,maxHeaders:16,
+    options:originalSdkCallOptions(generation,prompt,responseFormat,'RegisteredSdkGenerationUnsupported'),
+    notify(){},verify:body=>
+      // Independent expected envelope, not a value regenerated from SDK output.
+      assert.deepStrictEqual(JSON.parse(body),expected(modelId))===undefined,
   });
 }
 
@@ -51,8 +47,7 @@ async function until(read, accept) {
 
 test('selected service snapshot preserves the original structured generation before any transport',
   {timeout: 5000}, async () => {
-    const reads = {count: 0};
-    const handle = prepare('gpt-4.1-mini-2025-04-14', reads);
+    const handle = prepare('gpt-4.1-mini-2025-04-14');
     try {
       await until(() => pollSdkPreparation(handle), value => value.kind !== 'pending');
       assert.deepEqual(pollSdkPreparation(handle), {kind: 'ready'});
@@ -63,7 +58,6 @@ test('selected service snapshot preserves the original structured generation bef
       assert.equal(wire.requestBytes, Buffer.byteLength(wire.body));
       assert.ok(wire.requestBytes <= 1000);
       assert.ok(wire.headerBytes <= 4096);
-      assert.equal(reads.count, 1);
     } finally {
       await until(() => cleanupSdkPreparation(handle), value => value === true);
     }
@@ -71,14 +65,12 @@ test('selected service snapshot preserves the original structured generation bef
 
 test('model-dependent SDK generation rewrite is refused without fallback or a new request',
   {timeout: 5000}, async () => {
-    const reads = {count: 0};
-    const handle = prepare('gpt-6-luna', reads);
+    const handle = prepare('gpt-6-luna');
     try {
       const value = await until(() => pollSdkPreparation(handle), observed =>
         observed.kind !== 'pending');
       assert.deepEqual(value, {kind: 'rejected', issue: 'SdkOriginalRequestMismatch'});
       assert.equal(sdkPreparedRequest(handle), undefined);
-      assert.equal(reads.count, 1);
     } finally {
       await until(() => cleanupSdkPreparation(handle), value => value === true);
     }

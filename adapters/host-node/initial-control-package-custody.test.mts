@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {cpSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -43,19 +44,22 @@ function fixture(t: TestContext, host = 'globalThis.actualHostImageValue="origin
     publicNode: null, publicNodeCoverage: 'absent', localPublicModule: 'index.mjs',
     hostModule: 'adapters/host-node/embedded-local.mjs', hostValidator: 'assertInitialControlHostPreparation'};
   function run(body: string, before = '', afterCapture = '', tweak?: (selected: FixtureInventory) => void,
-    initialize = true, publicEntry?: string) {
+    initialize = true, publicEntry?: string, ordinary = false, sdkSelection?: unknown) {
     const selected = structuredClone(inventory); tweak?.(selected);
     const preload = join(directory, 'preload.cjs'), entry = join(directory, 'entry.mjs');
+    const selector = ordinary ? 'captureOrdinaryInitialControlPackageCustody' : 'captureInitialControlPackageCustody';
     writeFileSync(preload, [before,
-      'const {captureInitialControlPackageCustody}=require('+JSON.stringify(custody)+');',
+      'const {readVerifiedSdkImages,'+selector+'}=require('+JSON.stringify(custody)+');',
       'const root='+JSON.stringify(root)+', inventory='+JSON.stringify(selected)+';',
-      'globalThis.packageImageCustody=captureInitialControlPackageCustody(inventory,root,'+JSON.stringify(entry)+
-        ','+(JSON.stringify(publicEntry) ?? 'undefined')+');',
+      'globalThis.readVerifiedSdkImages=readVerifiedSdkImages;',
+      'globalThis.packageImageCustody='+selector+'(inventory,root,'+JSON.stringify(entry)+
+        ','+(JSON.stringify(publicEntry) ?? 'undefined')+','+(JSON.stringify(sdkSelection) ?? 'undefined')+');',
       afterCapture,
       initialize ? 'globalThis.originalHostNamespace=packageImageCustody.initializeHostNamespace();' : '',
     ].join('\n'));
-    writeFileSync(entry, body);
-    const result = spawnSync(process.execPath, ['--require', preload, entry], {
+    writeFileSync(entry, ordinary ? 'import "./preload.cjs";\n' + body : body);
+    const argv = ordinary ? [entry] : ['--require', preload, entry];
+    const result = spawnSync(process.execPath, argv, {
       cwd: directory, env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 30000});
     assert.equal(result.error, undefined); return result;
   }
@@ -396,6 +400,7 @@ test('optional SDK custody follows the actual consumer resolution rather than a 
 
 test('ordinary external adapters share only the exact installed dependency under their own locks', t => {
   const f = fixture(t);
+  admitFixtureUndici(f).include(f.inventory);
   function install(name: string, sources: Record<string, string>) {
     const directory = join(f.directory, 'node_modules', name);
     mkdirSync(directory, {recursive: true});
@@ -454,5 +459,256 @@ test('ordinary external adapters share only the exact installed dependency under
   const result = spawnSync(process.execPath, [entry], {cwd: f.directory, env: {PATH: process.env.PATH},
     encoding: 'utf8', timeout: 30000});
   assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+const sharedImageSource = 'exports.value="captured-local-shared";';
+function admitFixtureUndici(f: ReturnType<typeof fixture>) {
+  const packagePath = createRequire(import.meta.url).resolve('undici/package.json');
+  const original = dirname(packagePath), packageBytes = readFileSync(packagePath);
+  const {version} = JSON.parse(packageBytes.toString('utf8')) as {version: string};
+  assert.equal(version, '7.30.0');
+  const localManifestPath = join(f.root, 'package.json');
+  const manifest = JSON.parse(readFileSync(localManifestPath, 'utf8'));
+  manifest.dependencies = {undici: version};
+  const transportPath = 'adapters/host-node/original-model-http-transport.mjs';
+  manifest.exports = {'.': './index.mjs', './_internal/model-http-transport': './' + transportPath};
+  const localBytes = Buffer.from(JSON.stringify(manifest));
+  writeFileSync(localManifestPath, localBytes);
+  mkdirSync(join(f.directory, 'node_modules'), {recursive: true});
+  symlinkSync(original, join(f.directory, 'node_modules/undici'));
+  mkdirSync(join(f.directory, 'node_modules/@actql'), {recursive: true});
+  symlinkSync(f.root, join(f.directory, 'node_modules/@actql/local-node'));
+  const transportImages = [transportPath, 'adapters/host-common/model-response-reader.mjs',
+    ...['normal-http-chat','installed-http-chat','model-port','original-chat-request','original-materials',
+      'bounded-response','compiler-binding.generated'].map(name => 'adapters/host-node/model-http/' + name + '.mjs'),
+  ].map(path => {
+    const prefix = 'adapters/host-node/model-http/';
+    const relative = path.startsWith(prefix) ? 'packages/provider-http/_internal/' + path.slice(prefix.length) : path;
+    const source = readFileSync(new URL('../../' + relative, import.meta.url));
+    mkdirSync(dirname(join(f.root, path)), {recursive: true});
+    writeFileSync(join(f.root, path), source);
+    return fact(path, source);
+  });
+  const images = readdirSync(original, {recursive: true, withFileTypes: true})
+    .filter(entry => entry.isFile() && /\.(?:[cm]?js|json|wasm)$/u.test(entry.name))
+    .map(entry => {
+      const path = join(entry.parentPath, entry.name);
+      return fact(path.slice(original.length + 1), readFileSync(path));
+    });
+  function include(data: FixtureInventory) {
+    data.images = data.images.map(image => image.path === 'package.json' ? fact('package.json', localBytes) : image);
+    data.images.push(...transportImages);
+    const index = data.packages.push({name: 'undici', version, images: [...images], dependencies: []}) - 1;
+    data.dependencies.push({name: 'undici', package: index});
+    return index;
+  }
+  return {original, include};
+}
+
+function selectPreparedOptionalSdk(inventory: FixtureInventory) {
+  const image = (name: string, dependencies: Dependency[] = []): FixturePackage => {
+    const manifest = Buffer.from(JSON.stringify({name, version: '1.0.0', main: './index.cjs'}));
+    return {name, version: '1.0.0', images: [fact('package.json', manifest),
+      fact('index.cjs', Buffer.from(sharedImageSource))], dependencies};
+  };
+  inventory.optionalSdk = 0;
+  inventory.optionalSdkCoverage = 'prepared';
+  inventory.packages = [image('@actql/provider-ai-sdk', [
+    {name: '@fixture/sdk-only', package: 1}, {name: '@fixture/shared', package: 2},
+  ]), image('@fixture/sdk-only'), image('@fixture/shared')];
+}
+
+test('ordinary Local uses its own shared image with a prepared but uninstalled SDK graph', t => {
+  const f = fixture(t, 'import {value} from "@fixture/shared";globalThis.actualHostImageValue=value;' +
+    'export function assertInitialControlHostPreparation(){};');
+  const undici = admitFixtureUndici(f);
+  const shared = join(f.directory, 'node_modules/@fixture/shared');
+  mkdirSync(shared, {recursive: true});
+  writeFileSync(join(shared, 'package.json'), JSON.stringify({name: '@fixture/shared', version: '1.0.0', main: './index.cjs'}));
+  writeFileSync(join(shared, 'index.cjs'), sharedImageSource);
+  const cid = 'sha256:' + fact('index.cjs', Buffer.from(sharedImageSource)).sha256;
+  const code = [
+    'import assert from "node:assert/strict";',
+    'assert.equal(actualHostImageValue,"captured-local-shared");',
+    'const foreign={packageName:"@fixture/shared",version:"1.0.0",path:"index.cjs",cid:' + JSON.stringify(cid) + '};',
+    'assert.throws(()=>readVerifiedSdkImages(packageImageCustody,{adapter:foreign,sdk:foreign,lock:foreign}),' +
+      '{code:"InitialControlSdkImageUnavailable"});',
+    'packageImageCustody.assertCurrent();',
+  ].join('\n');
+  const graph = (selected: FixtureInventory) => {
+    selectPreparedOptionalSdk(selected);
+    selected.dependencies = [{name: '@fixture/shared', package: 2}];
+    undici.include(selected);
+  };
+  const missing = f.run(code, '', '', graph, true, undefined, true);
+  assert.equal(missing.status, 0, missing.stderr);
+  // If either optional package is resolved, this physical package metadata
+  // refuses immediately. The same Local original remains available.
+  for (const name of ['@actql/provider-ai-sdk', '@fixture/sdk-only']) {
+    const optional = join(f.directory, 'node_modules', name);
+    mkdirSync(optional, {recursive: true});
+    writeFileSync(join(optional, 'package.json'), '{');
+  }
+  const unusable = f.run(code, '', '', graph, true, undefined, true);
+  assert.equal(unusable.status, 0, unusable.stderr);
+
+  writeFileSync(join(shared, 'index.cjs'), sharedImageSource.replace('local', 'fake!'));
+  const changed = f.run('throw Error("UnreachableConsumer");', '', '', graph, true, undefined, true);
+  assert.notEqual(changed.status, 0);
+  assert.match(changed.stderr, /code: 'InitialControlImageChanged'/u);
+  assert.doesNotMatch(changed.stderr, /UnreachableConsumer/u);
+});
+
+test('ordinary Local refuses dangling or unowned optional SDK graph members without resolving a package', t => {
+  const f = fixture(t);
+  const undici = admitFixtureUndici(f);
+  for (const mutate of [
+    (data: FixtureInventory) => { data.packages[0].dependencies[0].package = 99; },
+    (data: FixtureInventory) => { data.packages[0].dependencies[0].name = '@foreign/name'; },
+    (data: FixtureInventory) => { data.packages.push({...data.packages[1], name: '@foreign/unreachable'}); },
+  ]) {
+    const result = f.run('throw Error("UnreachableConsumer");', '', '', inventory => {
+      selectPreparedOptionalSdk(inventory);
+      undici.include(inventory);
+      mutate(inventory);
+    }, true, undefined, true);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /InvalidInitialControlPackageImage/u);
+    assert.doesNotMatch(result.stderr, /Cannot find module|UnreachableConsumer/u);
+  }
+});
+
+test('ordinary Local seals the pinned Undici and both real llhttp original buffers before entry', t => {
+  const f = fixture(t);
+  const undici = admitFixtureUndici(f);
+  const parserPaths = ['lib/llhttp/llhttp-wasm.js', 'lib/llhttp/llhttp_simd-wasm.js'];
+  const body = [
+    'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'const originalRequire = createRequire(import.meta.url);',
+    'const loaded = originalRequire.cache[originalRequire.resolve("undici")];',
+    'assert.equal(loaded?.loaded, true);',
+    'assert.equal(typeof loaded.exports.Client, "function");',
+    'const transport = originalRequire("@actql/local-node/_internal/model-http-transport");',
+    'assert.equal(typeof transport.createOriginalUndiciFetch, "function");',
+    'assert.equal(typeof transport.prepareOriginalUndiciFetch, "function");',
+    'for (const path of ' + JSON.stringify(parserPaths) + ') {',
+    '  const filename = originalRequire.resolve("undici/" + path);',
+    '  const parser = originalRequire.cache[filename];',
+    '  assert.equal(parser?.loaded, true);',
+    '  assert.equal(Object.getOwnPropertyDescriptor(parser, "exports").writable, false);',
+    '  assert.deepEqual([...parser.exports.subarray(0, 4)], [0, 97, 115, 109]);',
+    '  assert.equal(originalRequire(filename), parser.exports);',
+    '}',
+    'packageImageCustody.assertCurrent();',
+  ].join('\n');
+  const accepted = f.run(body, '', '', undici.include, true, undefined, true);
+  assert.equal(accepted.status, 0, accepted.stderr);
+  for (const omitted of parserPaths) {
+    const refused = f.run('throw Error("UnreachableConsumer");', '', '', inventory => {
+      const index = undici.include(inventory);
+      inventory.packages[index].images = inventory.packages[index].images.filter(image => image.path !== omitted);
+    }, true, undefined, true);
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /code: 'InitialControlLocalTransportImageUnavailable'/u);
+    assert.doesNotMatch(refused.stderr, /UnreachableConsumer/u);
+  }
+});
+
+test('a selected ordinary SDK must use the same original Undici root as Local', t => {
+  const f = fixture(t);
+  const undici = admitFixtureUndici(f);
+  const directory = join(f.directory, 'node_modules/@actql/provider-ai-sdk');
+  mkdirSync(directory, {recursive: true});
+  const adapterName = '@actql/provider-ai-sdk', sdkName = '@fixture/sdk';
+  const sdkDirectory = join(f.directory, 'node_modules', sdkName);
+  mkdirSync(sdkDirectory, {recursive: true});
+  const files = {
+    'package.json': JSON.stringify({name: adapterName, version: '1.0.0', type: 'module', main: './index.mjs',
+      dependencies: {undici: '7.30.0', [sdkName]: '1.0.0'},
+      peerDependencies: {'@actql/local-node': '1.0.0'}}),
+    'index.mjs': 'export {}',
+    'adapter.mjs': 'import {createRequire} from "node:module";const originalRequire=createRequire(import.meta.url);' +
+      'export function original(){return originalRequire("@actql/local-node/_internal/model-http-transport");}',
+    'npm-shrinkwrap.json': '{}',
+  };
+  const sdkFiles = {
+    'package.json': JSON.stringify({name: sdkName, version: '1.0.0', type: 'module', main: './index.mjs'}),
+    'index.mjs': 'export const sdkOriginal = true;',
+  };
+  function images(root: string, originals: Record<string, string>) {
+    return Object.entries(originals).map(([path, bytes]) => {
+      writeFileSync(join(root, path), bytes);
+      return fact(path, Buffer.from(bytes));
+    });
+  }
+  const adapterImages = images(directory, files), sdkImages = images(sdkDirectory, sdkFiles);
+  const select = (packageName: string, original: ImageFact) => ({
+    packageName, version: '1.0.0', path: original.path, cid: 'sha256:' + original.sha256,
+  });
+  const selection = [{adapter: select(adapterName, adapterImages[2]), sdk: select(sdkName, sdkImages[1]),
+    lock: select(adapterName, adapterImages[3])}];
+  const include = (inventory: FixtureInventory, separateRoot = false) => {
+    let index = undici.include(inventory);
+    if (separateRoot) index = inventory.packages.push({...inventory.packages[index]}) - 1;
+    const sdkIndex = inventory.packages.push({name: sdkName, version: '1.0.0',
+      images: sdkImages, dependencies: []}) - 1;
+    inventory.optionalSdk = inventory.packages.push({name: adapterName, version: '1.0.0',
+      images: adapterImages, dependencies: [{name: 'undici', package: index}, {name: sdkName, package: sdkIndex},
+        {name: '@actql/local-node', local: true}]}) - 1;
+    inventory.optionalSdkCoverage = 'prepared';
+  };
+  const readSdk = 'globalThis.sdkOriginal=readVerifiedSdkImages(packageImageCustody,' +
+    JSON.stringify(selection[0]) + ');';
+  const accepted = f.run([
+    'import assert from "node:assert/strict";',
+    'import {createRequire} from "node:module";',
+    'assert.equal(sdkOriginal.sdk.sdkOriginal, true);',
+    'assert.equal(sdkOriginal.adapter.original(), createRequire(import.meta.url)("@actql/local-node/_internal/model-http-transport"));',
+    'packageImageCustody.assertCurrent();',
+  ].join('\n'), '', readSdk, include, true, undefined, true, selection);
+  assert.equal(accepted.status, 0, accepted.stderr);
+  mkdirSync(join(directory, 'node_modules'), {recursive: true});
+  cpSync(undici.original, join(directory, 'node_modules/undici'), {recursive: true});
+  const refused = f.run('throw Error("UnreachableConsumer");', '', '', inventory => include(inventory, true),
+    true, undefined, true, selection);
+  assert.notEqual(refused.status, 0);
+  assert.match(refused.stderr, /code: 'InvalidInstalledModelSdkInstallation'/u);
+  assert.doesNotMatch(refused.stderr, /UnreachableConsumer/u);
+});
+
+test('the public Local factory enters the selected direct Chat module after the package seal', t => {
+  const f = fixture(t, 'export function assertInitialControlHostPreparation(){};' +
+    'export function connectEmbeddedLocal(){};export function publishInstalledEffect(){};export function publishInstalledSource(){};');
+  const original = admitFixtureUndici(f);
+  const index = readFileSync(new URL('../../packages/local-node/index.mjs', import.meta.url));
+  const connectors = 'adapters/host-node/installed-connectors.mjs';
+  const connectorsSource = Buffer.from('export function createInstalledConnectorTable(){}');
+  writeFileSync(join(f.root, 'index.mjs'), index);
+  writeFileSync(join(f.root, connectors), connectorsSource);
+  const sdk = join(f.directory, 'node_modules/@actql/sdk');
+  mkdirSync(sdk, {recursive:true});
+  const sdkManifest = Buffer.from(JSON.stringify({name:'@actql/sdk',version:'1.0.0',type:'module',main:'./index.mjs'}));
+  const sdkIndex = Buffer.from('export class ClientError extends Error {}');
+  writeFileSync(join(sdk, 'package.json'), sdkManifest);
+  writeFileSync(join(sdk, 'index.mjs'), sdkIndex);
+  const result = f.run([
+    'import assert from "node:assert/strict";',
+    'import {createHttpChatProvider} from "@actql/local-node";',
+    'const configure=createHttpChatProvider({});',
+    'const cause=Error("SelectedOriginalHostContext");let calls=0;',
+    'const context={prepareConfiguration(){calls++;throw cause;}};',
+    'await assert.rejects(configure({},context), actual=>actual===cause);',
+    'await assert.rejects(configure({},context), {code:"InstalledHttpChatProviderConfigurationReused"});',
+    'assert.equal(calls,1);packageImageCustody.assertCurrent();',
+  ].join('\n'), '', '', inventory => {
+    original.include(inventory);
+    inventory.images = inventory.images.map(image => image.path === 'index.mjs' ? fact('index.mjs', index) : image);
+    inventory.images.push(fact(connectors, connectorsSource));
+    const binding = inventory.packages.push({name:'@actql/sdk',version:'1.0.0',dependencies:[],
+      images:[fact('package.json', sdkManifest),fact('index.mjs', sdkIndex)]}) - 1;
+    inventory.dependencies.push({name:'@actql/sdk',package:binding});
+  }, true, undefined, true);
   assert.equal(result.status, 0, result.stderr);
 });

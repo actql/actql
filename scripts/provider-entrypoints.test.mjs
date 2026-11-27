@@ -3,19 +3,14 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as sdk from '../packages/provider-ai-sdk/index.mjs';
 import * as http from '../packages/provider-http/index.mjs';
-import {createInstalledOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration}
-  from '../packages/provider-ai-sdk/_internal/installed-openai-chat.mjs';
 import {createInstalledHttpChatRegistration} from '../packages/provider-http/_internal/installed-http-chat.mjs';
-import {createRegisteredSdkProvider} from '../packages/provider-ai-sdk/_internal/normal-openai-chat.mjs';
+import {createRegisteredSdkProvider, createRegisteredSdkProviders} from '../packages/provider-ai-sdk/_internal/normal-openai-chat.mjs';
 
-test('optional entries expose Host assemblers and configured registrations', () => {
-  assert.deepEqual(Object.keys(sdk), ['createInstalledOpenAIChatRegistration',
-    'createInstalledUndiciOpenAIChatRegistration', 'createOpenAIChatProvider',
-    'createProjectOpenAIChatProvider', 'createRegisteredSdkProvider', 'createRegisteredSdkProviders']);
+test('optional entries expose registered SDKs and the independent HTTP assembler', () => {
+  assert.deepEqual(Object.keys(sdk), ['createRegisteredSdkProvider', 'createRegisteredSdkProviders']);
   assert.deepEqual(Object.keys(http), ['createInstalledHttpChatRegistration']);
-  assert.strictEqual(sdk.createInstalledOpenAIChatRegistration, createInstalledOpenAIChatRegistration);
-  assert.strictEqual(sdk.createInstalledUndiciOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration);
   assert.strictEqual(sdk.createRegisteredSdkProvider, createRegisteredSdkProvider);
+  assert.strictEqual(sdk.createRegisteredSdkProviders, createRegisteredSdkProviders);
   assert.strictEqual(http.createInstalledHttpChatRegistration, createInstalledHttpChatRegistration);
   for (const entry of [sdk, http]) {
     assert.equal(entry.startSdkTransport, undefined);
@@ -61,7 +56,10 @@ test('external SDK shrinkwrap preserves the exact original dependency bytes', ()
   assert.equal(lock.packages['node_modules/@ai-sdk/google/node_modules/@ai-sdk/provider'].version, '4.0.39');
   assert.equal(lock.packages[''].dependencies['@ai-sdk/provider-utils'], '5.0.58');
   assert.equal(lock.packages['node_modules/@ai-sdk/provider-utils'].version, '5.0.58');
-  assert.deepEqual(manifest.peerDependencies, {zod: lock.packages['node_modules/zod'].version});
+  assert.deepEqual(manifest.peerDependencies, lock.packages[''].peerDependencies);
+  const local = JSON.parse(readFileSync(new URL('../packages/local-node/package.json', import.meta.url)));
+  assert.deepEqual(manifest.peerDependencies, {'@actql/local-node': local.version,
+    zod: lock.packages['node_modules/zod'].version});
   for (const [name, entry] of Object.entries(lock.packages)) {
     if (name === '') continue;
     assert.match(entry.resolved, /^https:\/\/registry\.npmjs\.org\//u);

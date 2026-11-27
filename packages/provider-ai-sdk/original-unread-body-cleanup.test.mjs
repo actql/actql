@@ -51,9 +51,9 @@ undici.Client = new Proxy(OriginalClient, {construct(target, args) {
 }});
 let physical, sdk, chat;
 try {
-  physical = await import('./_internal/original-undici-transport.mjs');
+  physical = await import('@actql/local-node/_internal/model-http-transport');
   sdk = await import('./_internal/intercepted-request.mjs');
-  chat = await import('./_internal/openai-chat.mjs');
+  chat = await import('./selected-chat.fixture.mjs');
 } finally { undici.Client = OriginalClient; }
 
 const requestLimits = {maxBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16};
@@ -90,14 +90,13 @@ test('actual SDK header refusal before getReader keeps unread body close pending
       const fetch = physical.createOriginalUndiciFetch({endpoint,
         requestLimits, responseLimits, physicalAcquisitionLimits});
       async function start() {
-        const handle = chat.prepareOpenAIChatRequest({modelId: 'synthetic-model',
+        const handle = chat.prepareSelectedChat({selector: 'fixture-task', modelId: 'synthetic-model',
           baseURL: endpoint.slice(0, -'/chat/completions'.length), apiKey: 'synthetic-only',
           maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16,
-          notify() {}, options: {prompt: [{role: 'user', content: [{type: 'text', text: 'original'}]}],
-            maxOutputTokens: 16, responseFormat: {type: 'json'}}});
+          notify() {}, options: chat.fixtureStructuredChatOptions('original', 16)});
         handles.push(handle);
         await until(() => sdk.pollSdkPreparation(handle), value => value.kind === 'ready');
-        sdk.prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'raw-only'});
+        sdk.prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'saved-sdk'});
         sdk.startSdkTransport(handle); // No Common Entry/authority admission.
         return handle;
       }

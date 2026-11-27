@@ -62922,7 +62922,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -63430,7 +63430,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66032,7 +66032,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "1d61cd0893a4e9a63078f5262113c65c60b7cf3a180ce5d6b43fb4442d4ca173",
+      "sha256": "065e42fa0563ad5effdc859a371f9f9f51a6770b1a09f98ef73cb1c72412b984",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -66078,6 +66078,13 @@
         {
           "name": "capturePackageCustody/capturePackageCustody",
           "parameters": [
+            "edge"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/capturePackageCustody#2",
+          "parameters": [
             "_",
             "index"
           ],
@@ -66086,20 +66093,6 @@
         {
           "name": "capturePackageCustody/initializeHostNamespace",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "capturePackageCustody/initializeHostNamespace/adapterGroup/adapterGroup",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "capturePackageCustody/initializeHostNamespace/directory/directory",
-          "parameters": [
-            "edge"
-          ],
           "async": false
         },
         {
@@ -66124,7 +66117,7 @@
           "async": false
         },
         {
-          "name": "capturePackageCustody/initializeHostNamespace/transport/transport",
+          "name": "capturePackageCustody/localTransport/localTransport",
           "parameters": [
             "value"
           ],
@@ -66299,7 +66292,6 @@
             "capturePackageCustody/initializeHostNamespace/entry/entry",
             "capturePackageCustody/initializeHostNamespace/group/group",
             "capturePackageCustody/initializeHostNamespace/parser/parser",
-            "capturePackageCustody/initializeHostNamespace/transport/transport",
             "capturePackageCustody/readAsset",
             "concrete/concrete/concrete",
             "ordinaryLocalFilesNative",
@@ -66308,8 +66300,6 @@
             "prepareOrdinaryModelSdkInstallation/data/data/data",
             "prepareOrdinaryModelSdkInstallation/data/data/data#2",
             "prepareOrdinaryModelSdkInstallation/data/data/data#3",
-            "capturePackageCustody/initializeHostNamespace/adapterGroup/adapterGroup",
-            "capturePackageCustody/initializeHostNamespace/directory/directory",
             "capturePackageCustody/readSdkImages",
             "capturePackageCustody/selectSdkImages/adapterGroup/adapterGroup",
             "capturePackageCustody/selectSdkImages/sdkEdge/sdkEdge",
@@ -66323,7 +66313,9 @@
             "capturePackageCustody/validateExternalLock/verify/verify",
             "capturePackageCustody/validateExternalLock/verify/verify/verify",
             "prepareOrdinaryModelSdkInstallation/prepareOrdinaryModelSdkInstallation",
-            "capturePackageCustody/requiresBundled/requiresBundled"
+            "capturePackageCustody/requiresBundled/requiresBundled",
+            "capturePackageCustody/capturePackageCustody#2",
+            "capturePackageCustody/localTransport/localTransport"
           ],
           "exports": [
             "commonjs:captureInitialControlPackageCustody",
@@ -66361,7 +66353,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66541,7 +66533,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",

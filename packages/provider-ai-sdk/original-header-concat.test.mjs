@@ -4,7 +4,7 @@ import test from 'node:test';
 import net from 'node:net';
 import {createRequire} from 'node:module';
 import {createOriginalUndiciFetch, prepareOriginalUndiciFetch} from
-  './_internal/original-undici-transport.mjs';
+  '@actql/local-node/_internal/model-http-transport';
 
 const require = createRequire(import.meta.url);
 

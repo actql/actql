@@ -1,6 +1,5 @@
 import {installModelProviders, prepareInstalledModelProviderDefaults} from './installed-model.mjs';
 import {prepareInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
-import {installedProjectOriginalsForRuntime} from './installed-project-configuration.mjs';
 import {installedSourceConfigurationReader, reserveInstalledSourceRuntimeIdentity} from './installed-host-services.mjs';
 import {fileURLToPath} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -31,11 +30,6 @@ type CapabilityRuntime = Parameters<ProviderInstaller>[0] & Parameters<TaskPrepa
   Readonly<{
     clientProgramInstalledSourceConstructionCapacity(nodes: bigint, text: bigint, wire: bigint,
       workspaceNodes: bigint, workspaceText: bigint, workspaceWire: bigint): unknown;
-    clientProjectModelRegistryDefaultProvider(registry: unknown): unknown;
-    clientProjectModelRegistryProviderCount(registry: unknown): number;
-    clientProjectModelRegistryProviderName(registry: unknown, index: number): unknown;
-    clientProjectModelRegistryProviderType(registry: unknown, index: number): unknown;
-    clientProjectModelRegistryProviderKeyEnvironment(registry: unknown, index: number): unknown;
     clientProgramPrepareModelProviderOriginals(installation: string, contract: string, configuration: string,
       bytes: number, nodes: number, depth: number, work: number): unknown;
     clientProgramModelRawOriginalRetainedCapacity(value: unknown, nodes: number, depth: number, bytes: number): unknown;
@@ -43,7 +37,7 @@ type CapabilityRuntime = Parameters<ProviderInstaller>[0] & Parameters<TaskPrepa
       bytes: number, nodes: number, depth: number): unknown;
     clientProgramNormalizedPublicModelTaskProviderData(task: unknown, bytes: number, nodes: number, depth: number, work: number): unknown;
     clientProgramInstalledChatConfigurationMatches(binding: unknown, configuration: string, provider: string,
-      selector: unknown, modelId: unknown, endpoint: unknown): unknown;
+      selector: string, modelId: string, endpoint: string, transport: string): unknown;
     clientProgramNormalizedPublicModelTaskResponseProfile(task: unknown, profile: unknown,
       bytes: number, nodes: number, depth: number, work: number): unknown;
     clientProgramNormalizedPublicModelTaskNoRetryMaterials(task: unknown, ...limits: (bigint | number)[]): unknown;
@@ -321,44 +315,6 @@ export async function installConfiguredModelProviders({moon, register, project,
         }));
       });
     },
-    projectOpenAIProvider() {
-      return track(async () => {
-        check();
-        const construction = reader();
-        return construction.prepareModelTaskInput(Object.freeze({
-          // The selection borrows the original registry strings. No key,
-          // credential source or new Provider authority belongs to this view.
-          capacity: () => capacity(1n, 0n, 0n, 8n),
-          project() {
-            if (project === undefined) fail('InstalledProjectOpenAIProviderUnavailable');
-            const original = installedProjectOriginalsForRuntime(project, moon);
-            const registry = original.modelRegistry;
-            if (registry === undefined) fail('InstalledProjectOpenAIProviderUnavailable');
-            const providerId = moon.clientProjectModelRegistryDefaultProvider(registry);
-            const count = moon.clientProjectModelRegistryProviderCount(registry);
-            if (typeof providerId !== 'string' || providerId.length === 0 || providerId.length > 256 ||
-                !Number.isSafeInteger(taskLimits?.maxMembers) || !Number.isSafeInteger(count) ||
-                count < 1 || count > taskLimits.maxMembers) {
-              fail('InstalledProjectOpenAIProviderUnavailable');
-            }
-            for (let index = 0; index < count; index++) {
-              if (moon.clientProjectModelRegistryProviderName(registry, index) !== providerId) continue;
-              if (moon.clientProjectModelRegistryProviderType(registry, index) !== 'openai' ||
-                  moon.clientProjectModelRegistryProviderKeyEnvironment(registry, index) !== 'OPENAI_API_KEY') {
-                fail('InstalledProjectOpenAIProviderUnavailable');
-              }
-              check();
-              if (installedProjectOriginalsForRuntime(project, moon) !== original) {
-                fail('ForeignInstalledProjectOriginal');
-              }
-              return Object.freeze({providerId});
-            }
-            fail('InstalledProjectOpenAIProviderUnavailable');
-          },
-          retained: () => capacity(1n),
-        }));
-      });
-    },
     prepareConfiguration(project: () => object) {
       return track(async () => {
         check();
@@ -537,7 +493,8 @@ export async function installConfiguredModelProviders({moon, register, project,
         preparing = false;
         taskSelections = Object.freeze(tasks);
         return Object.freeze({tasks: taskSelections,
-          verifyChatConfiguration(name: string, selector: string, modelId: string, endpoint: string) {
+          verifyChatConfiguration(name: string, selector: string, modelId: string, endpoint: string,
+            transport: 'portable-http') {
             return track(async () => {
               const original = taskFor(name);
               if (typeof moon.clientProgramInstalledChatConfigurationMatches !== 'function') {
@@ -552,7 +509,7 @@ export async function installConfiguredModelProviders({moon, register, project,
                 project() {
                   if (moon.clientProgramInstalledChatConfigurationMatches(binding.value,
                     binding.originals.configuration.wire, original.providerId,
-                    selector, modelId, endpoint) !== true) fail('InstalledModelResolvedConfigurationMismatch');
+                    selector, modelId, endpoint, transport) !== true) fail('InstalledModelResolvedConfigurationMismatch');
                   return Object.freeze({});
                 },
                 retained: () => capacity(4n),

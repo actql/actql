@@ -35,6 +35,7 @@
     "undici": "7.30.0"
   },
   "peerDependencies": {
+    "@actql/local-node": "0.0.0-development",
     "zod": "4.6.5"
   }
 }

@@ -1,10 +1,18 @@
 import {Client, buildConnector} from 'undici';
 import type {Dispatcher} from 'undici';
-import type {Socket} from 'node:net';
-import type {PhysicalAcquisitionLimits, PhysicalTransportTimeouts, RequestLimits, ResponseLimits} from '../index.d.ts';
+import {lookup as platformLookup} from 'node:dns';
+import type {LookupFunction, Socket} from 'node:net';
 import {types} from 'node:util';
-import {fixedInferResponseLimits} from './bounded-response.mjs';
+import {fixedInferResponseLimits} from '../host-common/model-response-reader.mjs';
 
+type RequestLimits = Readonly<{maxBytes: number; maxHeaderBytes: number; maxHeaders: number}>;
+type ResponseLimits = Parameters<typeof fixedInferResponseLimits>[0];
+type PhysicalAcquisitionLimits = Readonly<{
+  maxPlaintextBytes: number; maxBorrowedBackingBytes: number; maxReads: number;
+}>;
+type PhysicalTransportTimeouts = Readonly<{
+  connectMs: number; headersMs: number; bodyMs: number; callMs?: number;
+}>;
 type FixedResponseLimits = ReturnType<typeof fixedInferResponseLimits>;
 type CredentialBinding = Readonly<{reference: string; header: string; prefix: string; marker: string;
   maxBytes: number; missing: string; unavailable: string}>;
@@ -52,6 +60,10 @@ interface NativeReadOptions {
 const installations = new WeakMap<object, Readonly<OriginalInstallation>>();
 const issue = (code: string) => Object.assign(new TypeError(code), {code});
 const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2_147_483_647;
+// Bound the candidates handed to Node net. The OS resolver and Node's result
+// construction precede this check and remain part of the physical Host quote.
+const maxOriginalLookupCandidates = 16;
+const lookupOriginalAddress = platformLookup;
 const acquisitionSnapshots = new WeakSet<object>();
 
 // Private DATA membership only, never a capacity loan or currentness receipt.
@@ -192,7 +204,6 @@ function sameResponseLimits(limits: FixedResponseLimits, original: FixedResponse
 // Private selected Host factory, not an arbitrary Run-provided dispatcher.
 // All descriptor/control/module and future Client/native holdings must already
 // be funded by the original installation/Call before physical preparation.
-export const unboundOpenAICredential = 'actql-unbound-openai-credential';
 
 // The verified registered adapter supplies a single credential reference
 // and wire position. Snapshot only DATA. The environment is read by the
@@ -223,9 +234,9 @@ function snapshotRegisteredCredential(value: unknown, endpoint: string, protocol
 }
 
 export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits,
-  transportTimeouts, openAICredentialBytes, registeredCredential}: {
+  transportTimeouts, registeredCredential}: {
   endpoint: string; requestLimits: RequestLimits; responseLimits: ResponseLimits; physicalAcquisitionLimits: unknown;
-  transportTimeouts?: unknown; openAICredentialBytes?: number; registeredCredential?: unknown;
+  transportTimeouts?: unknown; registeredCredential?: unknown;
 }) {
   const acquisition = fixedOriginalAcquisitionLimits(physicalAcquisitionLimits);
   const timeouts = fixedOriginalTransportTimeouts(transportTimeouts);
@@ -234,16 +245,8 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
   if (typeof endpoint !== 'string' || url.href !== endpoint ||
       !['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
       url.hash || url.search) throw issue('UndiciOriginalEndpointUnavailable');
-  let credential;
-  if (openAICredentialBytes !== undefined) {
-    if (registeredCredential !== undefined || !positive(openAICredentialBytes) || openAICredentialBytes > 4096 ||
-        endpoint !== 'https://api.openai.com/v1/chat/completions') throw issue('OpenAIProjectCredentialEndpointUnavailable');
-    credential = Object.freeze({reference: 'OPENAI_API_KEY', header: 'authorization', prefix: 'Bearer ',
-      marker: 'Bearer ' + unboundOpenAICredential, maxBytes: openAICredentialBytes,
-      missing: 'OpenAIProjectCredentialUnavailable', unavailable: 'OpenAIProjectCredentialPreparationUnavailable'});
-  } else if (registeredCredential !== undefined) {
-    credential = snapshotRegisteredCredential(registeredCredential, endpoint, url.protocol);
-  }
+  const credential = registeredCredential === undefined ? undefined :
+    snapshotRegisteredCredential(registeredCredential, endpoint, url.protocol);
   const {maxBytes, maxHeaderBytes, maxHeaders} = requestLimits ?? {};
   if (![maxBytes, maxHeaderBytes, maxHeaders].every(positive) || maxHeaders > 64) {
     throw issue('UndiciOriginalRequestLimitsUnavailable');
@@ -314,6 +317,8 @@ export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init:
   let socket: Socket | undefined;
   let socketClosed: Promise<boolean> | undefined;
   let connectorFinished: Promise<boolean> | undefined;
+  let lookupFinished: Promise<void> | undefined;
+  let stopping = false;
   let retireAcquisition: (() => void) | undefined;
   // The selected Node listener writes into one dedicated buffer fixed during
   // this original preparation, never a new backing chosen after acquisition.
@@ -370,9 +375,35 @@ export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init:
   // SSL/BIO/handshake native and queued/copy controls remain explicit holdings.
   // A custom connector does not inherit Client.connectTimeout. Bind the
   // selected connect setting directly to this SAME connector's existing timer.
+  const signal = init.signal;
+  const lookup: LookupFunction = (hostname, options, callback) => {
+    if (stopping || signal.aborted || lookupFinished !== undefined) {
+      callback(issue('UndiciOriginalLookupUnavailable'), '');
+      return;
+    }
+    // Keep the same OS resolver, hostname, options and callback shape used by
+    // Node net. Socket destroy cannot cancel an admitted getaddrinfo request.
+    let finish!: () => void;
+    lookupFinished = new Promise(resolve => { finish = resolve; });
+    try {
+      lookupOriginalAddress(hostname, options, (error, addresses, family) => {
+        try {
+          if (stopping || signal.aborted || socket?.destroyed) return;
+          if (error === null && Array.isArray(addresses) && addresses.length > maxOriginalLookupCandidates) {
+            callback(issue('UndiciOriginalLookupCandidatesExceeded'), []);
+            return;
+          }
+          callback(error, addresses, family);
+        } finally { finish(); }
+      });
+    } catch (error) {
+      finish();
+      throw error;
+    }
+  };
   const connector = (original.timeouts === undefined
-    ? buildConnector({allowH2: false, maxCachedSessions: 0, onread} as buildConnector.BuildOptions)
-    : buildConnector({allowH2: false, maxCachedSessions: 0, onread, timeout: original.timeouts.connectMs} as buildConnector.BuildOptions)) as unknown as OriginalConnector;
+    ? buildConnector({allowH2: false, maxCachedSessions: 0, onread, lookup} as buildConnector.BuildOptions)
+    : buildConnector({allowH2: false, maxCachedSessions: 0, onread, lookup, timeout: original.timeouts.connectMs} as buildConnector.BuildOptions)) as unknown as OriginalConnector;
   const connect = (options: buildConnector.Options, callback: (error: Error | null, socket?: Socket | null) => void) => {
     if (connecting) { callback(issue('UndiciOriginalReconnectRefused')); return; }
     connecting = true;
@@ -476,12 +507,17 @@ export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init:
     // observed-header limit). Drive that SAME unread body before awaiting its
     // close. A destroy request is not its ACK: retain all original references
     // until the existing Client/connector/Socket/body observations below agree.
+    stopping = true;
     body?.destroy();
     socket?.destroy(issue('UndiciOriginalTransportRetired'));
     destroying = client!.destroy().then(async () => {
       if (pending !== undefined) await pending;
       if (connectorFinished !== undefined && await connectorFinished !== true) return false;
       if (socketClosed !== undefined && await socketClosed !== true) return false;
+      // Missing DNS means this Call used an address literal or never reached
+      // its connector. Otherwise join the original return, even after EOF,
+      // deadline, or cancellation has already settled the request.
+      if (lookupFinished !== undefined) await lookupFinished;
       if (bodyClosed !== undefined && await bodyClosed !== true) return false;
       retireAcquisition?.();
       retireAcquisition = undefined;
@@ -499,6 +535,7 @@ export function prepareOriginalUndiciFetch(fetch: unknown, input: unknown, init:
       socket = undefined;
       socketClosed = undefined;
       connectorFinished = undefined;
+      lookupFinished = undefined;
       body = undefined;
       bodyClosed = undefined;
       pending = undefined;

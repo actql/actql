@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
-import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
-import {createSdkModelPreflight} from './_internal/model-port.mjs';
+import {createOpenAI} from '@ai-sdk/openai';
+import {readReportedUsage, readReportedResponse, sdkProvider, verifyRequest} from './_internal/openai-chat.mjs';
+import {prepareRegisteredSdkLanguageModel} from './_internal/intercepted-request.mjs';
+import {createSdkStructuredModelPreflight} from './_internal/model-port.mjs';
 
 const originalWire = '{"id":"actual-1","model":"reported-model",' +
   '"choices":[{"index":0,"message":{"role":"assistant",' +
@@ -16,22 +18,40 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
   transportThrow = false, cleanupRaw = () => true} = {}) {
   const request = Object.freeze({original: Symbol('request owner double')});
   const entry = Object.freeze({original: Symbol('consumed Entry double')});
-  const state = {calls: 0, saves: 0, plans: 0, wakes: 0, rawCleanups: 0};
-  state.usageReads = [];
-  const handle = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
-    baseURL: 'https://fixture.invalid/v1', apiKey: 'credential-sentinel',
+  const admission = Object.freeze({original: Symbol('registered admission double')});
+  const state = {calls: 0, saves: 0, plans: 0, wakes: 0, rawCleanups: 0, projected: 0};
+  const selector = 'selected-chat', modelId = 'gpt-4.1-nano', apiMode = 'chat_completions';
+  const baseURL = 'https://fixture.invalid/v1', endpoint = baseURL + '/chat/completions';
+  const options = {
+    prompt: [{role: 'system', content: 'Original é\r\n'},
+      {role: 'user', content: [{type: 'text', text: '{"arg":"one"}'}]}],
+    maxOutputTokens: 16, temperature: 0, topP: 1,
+    responseFormat: {type: 'json', name: 'actql_output', schema: {
+      type: 'object', properties: {answer: {type: 'string'}},
+      required: ['answer'], additionalProperties: false,
+    }},
+  };
+  const handle = prepareRegisteredSdkLanguageModel({
+    moon: {clientProgramAdmittedStructuredSdkRouteMatches(...actual) {
+      assert.deepEqual(actual, [admission, selector, modelId, apiMode, endpoint]);
+      return true;
+    }},
+    admission, selector, modelId, apiMode, endpoint, sdkProvider, options,
+    createLanguageModel: fetch => createOpenAI({baseURL, apiKey: 'credential-sentinel', fetch}).chat(modelId),
+    verifyRequest: body => verifyRequest(body, options, {modelId, apiMode, endpoint}, {openai: {}}),
     maxRequestBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16,
-    notify() { state.wakes++; }, options: {
-      prompt: [{role: 'user', content: [{type: 'text', text: 'Original é\r\n'}]}],
-      maxOutputTokens: 16, responseFormat: {type: 'json'},
-    }});
+    notify() { state.wakes++; },
+  });
+  let decode;
   // Real pinned SDK/request/fixed transport and raw backing, Core owners and
   // persistence/receipt doubles. Not public admission or same-Ledger funding.
   const moon = {
     clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
-    clientProgramModelAsyncPhysicalRequestPlan(actual, bytes, tokens, cost,
-      duration, profile, installation, start) {
+    clientProgramModelStructuredRequestPlan(selected, actual, bytes, tokens, cost,
+      duration, profile, installation, start, decodeSaved) {
+      assert.strictEqual(selected, admission);
       assert.equal(actual, request);
+      decode = decodeSaved;
       assert.ok(bytes > 0n);
       assert.equal(tokens, 16n);
       assert.equal(cost, 0n);
@@ -48,13 +68,20 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
     },
     clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
     clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
-    clientProgramModelPhysicalSavedChat: value => ({kind: 'chat', value}),
-    clientProgramReadReconciledInferRawUsage(call, response, quantum) {
-      state.usageReads.push({call, response, quantum});
-      return [true, 7n];
+    clientProgramModelPhysicalSavedStructured(call, receipt, bytes) {
+      state.projected++;
+      assert.deepEqual(bytes, new Uint8Array(originalBytes));
+      const observation = decode(call, receipt, bytes);
+      assert.equal(observation._0, JSON.parse(originalWire).choices[0].message.content);
+      assert.equal(observation._1, 'stop');
+      assert.equal(observation._2, 0n);
+      assert.equal(observation._3, 4n);
+      assert.equal(observation._4, 'reported-model');
+      assert.equal(observation._5, 'actual-1');
+      return {kind: 'structured', value: receipt};
     },
   };
-  const port = createSdkModelPreflight({moon, request, preparation: handle,
+  const port = createSdkStructuredModelPreflight({moon, request, preparation: handle,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n,
       durationMs: 500n}, responseLimits: limits, checked: value => value,
     observeAt: () => '2026-10-12T00:00:00.000Z',
@@ -68,12 +95,15 @@ function fixture({persistRaw, response, rejectPlan = false, rejectCall = false,
       if (transportThrow) throw new Error('lost-response-secret');
       return response?.() ?? new Response(originalBytes,
         {headers: {'content-type': 'application/json'}});
-    }, async persistRaw(call, raw) {
+    }, async persistRaw(call, raw, structured) {
       state.saves++;
       assert.ok(call);
-      return persistRaw ? persistRaw(call, raw)
-        : {response: {originalRaw: raw, nominal: Symbol('receipt double')}};
-    }});
+      assert.equal(structured, true);
+      state.raw = raw;
+      return persistRaw ? persistRaw(call, raw) : {
+        receipt: {originalRaw: raw, nominal: Symbol('receipt double')}, bytes: raw.body,
+      };
+    }}, admission, readReportedUsage, readReportedResponse);
   return {port, entry, state};
 }
 
@@ -167,10 +197,9 @@ test('unresolved read and cancel preserve incomplete raw view and original reade
   const call = plan.start(f.entry);
   await until(() => reads, value => value === 2);
   call.cancel();
-  const observed = await until(() => call.poll(), value => value.kind === 'chat');
-  // The explicit receipt double transfers raw DATA only. Common's actual
-  // completeness/answer/Unknown decision is outside this private port test.
-  const raw = observed.value.originalRaw;
+  await until(() => call.poll(), value => value.kind === 'unknown');
+  const raw = f.state.raw;
+  assert.equal(f.state.projected, 0);
   const backing = raw.body.buffer;
   assert.equal(raw.issue, 'InferResponseReadCancelled');
   assert.equal(raw.transportComplete, false);
@@ -178,7 +207,8 @@ test('unresolved read and cancel preserve incomplete raw view and original reade
   assert.deepEqual(raw.body, new Uint8Array([123]));
   const retirement = raw.retryReaderRetirement();
   for (let i = 0; i < 16; i++) {
-    assert.strictEqual(call.poll().value, observed.value);
+    assert.equal(call.poll().kind, 'unknown');
+    assert.strictEqual(f.state.raw, raw);
     assert.equal(f.port.preflight.cleanup(), false);
     assert.strictEqual(raw.retryReaderRetirement(), retirement);
     assert.strictEqual(raw.body.buffer, backing);
@@ -201,7 +231,7 @@ test('real SDK preflight retains one plan and starts only its original consumed 
   const call = plan.start(f.entry);
   assert.equal(f.state.calls, 1);
   assert.equal(plan.start(f.entry), undefined);
-  const observed = await until(() => call.poll(), value => value.kind === 'chat');
+  const observed = await until(() => call.poll(), value => value.kind === 'structured');
   assert.deepEqual(observed.value.originalRaw.body, new Uint8Array(originalBytes));
   assert.equal(observed.value.originalRaw.transportComplete, true);
   assert.equal(observed.value.originalRaw.observedAt, '2026-10-12T00:00:00.000Z');
@@ -232,8 +262,8 @@ test('save await keeps cleanup pending and a saved original response is transfer
   await until(() => call.poll(), () => f.state.saves === 1);
   assert.equal(f.port.preflight.cleanup(), false);
   const response = {nominal: Symbol('saved original response double')};
-  finish({response});
-  assert.equal((await until(() => call.poll(), value => value.kind === 'chat')).value,
+  finish({receipt: response, bytes: f.state.raw.body});
+  assert.equal((await until(() => call.poll(), value => value.kind === 'structured')).value,
     response);
   assert.equal(f.state.saves, 1);
   await release(f);
@@ -282,9 +312,9 @@ test('saved raw cleanup remains pending until the original successful save port 
   let savedCall;
   let released = false;
   let cleanupCalls = 0;
-  const f = fixture({persistRaw: call => {
+  const f = fixture({persistRaw: (call, raw) => {
     savedCall = call;
-    return {response: {nominal: Symbol('saved original response double')}};
+    return {receipt: {nominal: Symbol('saved original response double')}, bytes: raw.body};
   }, cleanupRaw(call) {
     assert.equal(call, savedCall);
     cleanupCalls++;
@@ -293,7 +323,7 @@ test('saved raw cleanup remains pending until the original successful save port 
   }});
   const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
-  await until(() => call.poll(), value => value.kind === 'chat');
+  await until(() => call.poll(), value => value.kind === 'structured');
   assert.equal(f.port.preflight.cleanup(), false);
   assert.equal(f.port.preflight.cleanup(), false);
   assert.equal(cleanupCalls, 2);
@@ -326,7 +356,7 @@ test('explicit raw reconciliation reuses the original call without rewriting Unk
   let originalCall;
   let originalRaw;
   let finish;
-  const saved = {response: {nominal: Symbol('reconfirmed original raw double')}};
+  const receipt = {nominal: Symbol('reconfirmed original raw double')};
   const f = fixture({persistRaw(call, raw) {
     if (originalCall === undefined) {
       originalCall = call;
@@ -347,24 +377,19 @@ test('explicit raw reconciliation reuses the original call without rewriting Unk
   await until(() => finish, value => typeof value === 'function');
   assert.equal(f.port.preflight.cleanup(), false);
   assert.equal(call.poll().kind, 'unknown');
+  const saved = {receipt, bytes: originalRaw.body};
   finish(saved);
   assert.equal(await first, saved);
   assert.equal(f.port.reconcileRaw(call), first);
-  assert.equal((await f.port.reconcileRaw(call)).response, saved.response);
-  assert.deepEqual(f.port.readReconciledUsage(call, 1), [true, 7n]);
-  assert.deepEqual(f.state.usageReads, [{call, response: saved.response, quantum: 1}]);
-  assert.throws(() => f.port.readReconciledUsage({}, 1),
-    {message: 'OriginalRawUsageUnavailable'});
-  assert.throws(() => f.port.readReconciledUsage(call, 2 ** 32 + 1),
-    {message: 'OriginalRawUsageUnavailable'});
+  assert.strictEqual((await f.port.reconcileRaw(call)).receipt, receipt);
+  assert.strictEqual((await f.port.reconcileRaw(call)).bytes, originalRaw.body);
+  assert.equal(f.state.projected, 0);
   assert.equal(f.port.rawFailure(), failure);
   assert.equal(call.poll().kind, 'unknown');
   assert.equal(plan.start(f.entry), undefined);
   assert.equal(f.state.calls, 1);
   assert.equal(f.state.saves, 2);
   await release(f);
-  assert.throws(() => f.port.readReconciledUsage(call, 1),
-    {message: 'OriginalRawUsageUnavailable'});
   await assert.rejects(f.port.reconcileRaw(call),
     {message: 'OriginalRawReconciliationUnavailable'});
 });
@@ -392,7 +417,7 @@ test('cancel during original reconfirmation preserves its single view and pendin
   const failure = new Error('Original save unknown');
   let finish;
   let released = false;
-  const saved = {response: {nominal: Symbol('original stopped raw observation')}};
+  const receipt = {nominal: Symbol('original stopped raw observation')};
   const f = fixture({persistRaw() {
     if (f.state.saves === 1) throw failure;
     return new Promise(resolve => { finish = resolve; });
@@ -404,6 +429,7 @@ test('cancel during original reconfirmation preserves its single view and pendin
   await until(() => finish, value => typeof value === 'function');
   call.cancel();
   assert.equal(f.port.preflight.cleanup(), false);
+  const saved = {receipt, bytes: f.state.raw.body};
   finish(saved);
   assert.equal(await original, saved);
   assert.equal(f.port.reconcileRaw(call), original);
@@ -429,10 +455,11 @@ test('incomplete transport preserves exact observed prefix for raw persistence, 
   }})});
   const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
-  const observed = await until(() => call.poll(), value => value.kind === 'chat');
-  assert.deepEqual(observed.value.originalRaw.body, prefix);
-  assert.equal(observed.value.originalRaw.status, 503);
-  assert.equal(observed.value.originalRaw.transportComplete, false);
+  await until(() => call.poll(), value => value.kind === 'unknown');
+  assert.deepEqual(f.state.raw.body, prefix);
+  assert.equal(f.state.raw.status, 503);
+  assert.equal(f.state.raw.transportComplete, false);
+  assert.equal(f.state.projected, 0);
   assert.equal(f.state.saves, 1);
   await release(f);
   assert.equal(f.state.calls, 1);

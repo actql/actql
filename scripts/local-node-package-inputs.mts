@@ -26,6 +26,7 @@ const hostAdapters = [
   'adapters/host-node/node-public-initial-control-bootstrap.cjs',
   'adapters/host-node/entry.mjs',
   'adapters/host-node/embedded-local.mjs',
+  'adapters/host-node/original-model-http-transport.mjs',
   'adapters/host-node/captured-duckdb-source.mjs',
   'adapters/host-node/installed-source.mjs',
   'adapters/host-node/installed-effect.mjs',
@@ -50,7 +51,19 @@ const hostAdapters = [
   'adapters/host-common/owned-invocation-context.mjs',
   'adapters/host-common/credential-scope-fields.generated.mjs',
 ];
+// The same source emits the explicit low-level HTTP package and the
+// SDK-free ordinary Host adapter. Local has no Provider package dependency.
+export const localNodeModelHttpCopySources = Object.freeze(
+  ['normal-http-chat', 'installed-http-chat', 'model-port', 'original-chat-request',
+    'original-materials', 'bounded-response', 'compiler-binding.generated']
+    .flatMap(name => ['.mjs', '.d.mts'].map(extension => Object.freeze({
+      path: 'adapters/host-node/model-http/' + name + extension,
+      source: 'packages/provider-http/_internal/' + name + extension,
+    }))),
+);
 const hostContracts = [
+  'adapters/host-node/original-model-http-transport.d.mts',
+  'adapters/host-common/model-response-reader.d.mts',
   'spec/dependencies/aoa-pipeline-registry.json',
   'spec/dependencies/actql-graph-laws.json',
   'spec/contracts/actql-aoa.json',

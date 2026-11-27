@@ -15,7 +15,7 @@ undici.buildConnector=()=> (_options,callback)=>{
   return socket;
 };
 let transport;
-try {transport=await import('./_internal/original-undici-transport.mjs');}
+try {transport=await import('@actql/local-node/_internal/model-http-transport');}
 finally {undici.buildConnector=originalConnector;}
 const extent=512;
 const endpoint='http://fixture.invalid/chat/completions';

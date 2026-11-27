@@ -3,6 +3,7 @@ import test from 'node:test';
 import {setImmediate as turn} from 'node:timers/promises';
 import {createServer} from 'node:http';
 import {createHttpChatPreflight} from './_internal/model-port.mjs';
+import {createOriginalUndiciFetch, prepareOriginalUndiciFetch} from '@actql/local-node/_internal/model-http-transport';
 import {createInferIoNotification, claimInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
 
 import type {AddressInfo} from 'node:net';
@@ -12,7 +13,7 @@ type Persist = NonNullable<Input['persistRaw']>;
 type Raw = Parameters<Persist>[1];
 type FixtureRead = {done: true} | {done: false; value: Uint8Array};
 type Bind = Parameters<NonNullable<Input['rawCaptureBinder']>>[0];
-type Poll = {kind: 'pending' | 'unknown'} | {kind: 'chat'; response: unknown};
+type Poll = ({kind: 'pending' | 'unknown'} | {kind: 'chat'; response: unknown}) & {ioRetired?: boolean};
 type Call = {poll(): Poll; cancel(): void; cleanup(): boolean};
 type Plan = {start(entry: unknown): Call | undefined};
 type Port = Omit<ReturnType<typeof createHttpChatPreflight>,'preflight' | 'readReconciledUsage'> & {
@@ -31,10 +32,11 @@ function fixture(extra: Partial<Input>={}) {
   const request={},provider={},entry={},saved=Object.freeze({originalSaved: true});
   const responseProfile = {};
   let sends=0,saves=0,cleanupAllowed=false,lastRaw: Raw | undefined;
+  let originalCall: unknown;
   const moon: Input['moon']={
     clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
       assert.strictEqual(profile, responseProfile);
-      assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
+      assert.deepEqual(limits, [4096, 512, 512, 2, extra.responseLimits?.maxHeaderBytes ?? 64]);
       return true;
     },
     clientProgramProjectHTTPChatRequest(p,r,model,...bounds){
@@ -48,11 +50,16 @@ function fixture(extra: Partial<Input>={}) {
       assert.equal(tokens,16n);return {start};
     },
     clientProgramModelPhysicalCallForRequest(e,r,poll,cancel,cleanup){
-      assert.equal(e,entry);assert.equal(r,request);return {poll,cancel,cleanup};
+      assert.equal(e,entry);assert.equal(r,request);
+      originalCall={poll,cancel,cleanup}; return originalCall;
     },
     clientProgramModelPhysicalPending:()=>({kind:'pending'}),
     clientProgramModelPhysicalUnknown:()=>({kind:'unknown'}),
     clientProgramModelPhysicalSavedChat:response=>({kind:'chat',response}),
+    clientProgramModelPhysicalIoObservation(original, ioRetired, observed) {
+      assert.strictEqual(original, originalCall);
+      return {...(observed as Poll), ioRetired};
+    },
     clientProgramReadReconciledInferRawUsage:(call,view,quantum)=>({call,view,quantum}),
   };
   const args: Input={moon,admittedProvider:provider,request,modelId:'fixture',
@@ -82,6 +89,7 @@ test('direct HTTP physical preflight refuses admitted bound mismatch before proj
   const f = fixture();
   t.after(() => finish(f));
   let matches = 0, projections = 0, bindings = 0;
+  let originalCall: unknown;
   const moon: Input['moon'] = {...f.args.moon,
     clientProgramProjectHTTPChatRequest() { projections++; assert.fail('No projection before admission'); },
     clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
@@ -256,3 +264,190 @@ test('independent HTTP uses two explicitly authorized loopback fixture endpoints
     await finish(f);
   }
 });
+
+
+test('selected HTTP port keeps its same unstarted child until actual retirement', async () => {
+  type Prepared = NonNullable<ReturnType<NonNullable<Input['prepareTransport']>>>;
+  let close!: (done: boolean) => void;
+  const acknowledgement = new Promise<boolean>(resolve=>{close=resolve;});
+  let prepared=0,cleanupCalls=0,invocations=0,rawCleanup=0,notifications=0;
+  const original: Prepared = {
+    invoke() { invocations++; return Promise.reject(Error('unexpected send')); },
+    cleanup() {
+      cleanupCalls++;
+      if (cleanupCalls === 1) return Promise.resolve(false);
+      if (cleanupCalls === 2) return Promise.reject(Error('retirement not confirmed'));
+      return acknowledgement;
+    },
+  };
+  const f=fixture({fetch:undefined,prepareTransport(){prepared++;return original;},
+    cleanupRaw(){rawCleanup++;return true;}, notify(){notifications++;}});
+  assert.throws(()=>createHttpChatPreflight({...f.args,fetch:globalThis.fetch as Input['fetch']}),
+    {message:'InvalidHTTPChatPhysicalPort'});
+  const plan=f.port.preflight.advance()._1!;
+  try {
+    assert.equal(prepared,1);
+    assert.equal(f.port.preflight.cleanup(),false);
+    assert.equal(plan.start(f.entry),undefined);
+    assert.equal(f.port.preflight.advance()._1,undefined);
+    await turn();
+    assert.deepEqual([cleanupCalls,notifications],[1,0]);
+    assert.equal(f.port.preflight.cleanup(),false);
+    await turn();
+    assert.deepEqual([cleanupCalls,notifications],[2,0]);
+    for(let i=0;i<3;i++){
+      assert.equal(f.port.preflight.cleanup(),false);
+      await turn();
+    }
+    assert.deepEqual([cleanupCalls,notifications,invocations,rawCleanup,f.saves()],[3,0,0,0,0]);
+  } finally {
+    close(true);
+    await finish(f);
+  }
+  assert.equal(notifications, 1);
+});
+
+test('selected HTTP port refuses missing or credential-unbound prepared children without Fetch', async t => {
+  const missing=fixture({fetch:undefined,prepareTransport:()=>undefined});
+  const {clientProgramModelPhysicalIoObservation, ...withoutIoObservation} = missing.args.moon;
+  assert.equal(typeof clientProgramModelPhysicalIoObservation, 'function');
+  assert.throws(() => createHttpChatPreflight({...missing.args, moon: withoutIoObservation}),
+    {message:'HTTPChatRuntimeUnavailable'});
+  t.after(()=>finish(missing));
+  assert.equal(missing.port.preflight.advance()._1,undefined);
+  let closed=0;
+  const credential=fixture({fetch:undefined,prepareTransport:()=>({
+    invoke(){assert.fail('Unbound credential reached transport');},
+    bindCredential(){assert.fail('Wrong credential owner');},
+    async cleanup(){closed++;return true;},
+  })});
+  assert.equal(credential.port.preflight.advance()._1,undefined);
+  await finish(credential);
+  assert.equal(closed,1);
+});
+
+test('selected HTTP binds a protected credential once through the original Host continuation', async t => {
+  const cases = ['success', 'missing', 'unprepared'] as const;
+  for (const outcome of cases) await t.test(outcome, async () => {
+    const credentialFailure = Object.assign(Error('fixture credential absent'), {code:'ModelProjectCredentialUnavailable'});
+    let bindRaw!: Bind, prepareCredential!: () => void;
+    let binds = 0, sends = 0, closes = 0;
+    const selected = fixture({
+      fetch: undefined, persistRaw: undefined, cleanupRaw: undefined, needsCredential: true,
+      rawCaptureBinder(bind, prepare) { bindRaw = bind; assert(prepare); prepareCredential = prepare; },
+      prepareTransport() {
+        return {
+          bindCredential() {
+            binds++;
+            if (outcome === 'missing') throw credentialFailure;
+          },
+          async invoke() {
+            sends++;
+            assert.equal(binds, 1);
+            return new Response(bytes, {headers:{'content-type':'application/json'}});
+          },
+          async cleanup() { closes++; return true; },
+        };
+      },
+    });
+    const plan = selected.port.preflight.advance()._1!;
+    assert(plan);
+    assert.deepEqual([binds, sends], [0, 0]);
+    const persist = Object.assign(() => ({response:selected.saved}), {cleanup: () => true});
+    if (outcome === 'success') {
+      prepareCredential();
+      assert.throws(prepareCredential, {message:'HTTPChatCredentialPreparationUnavailable'});
+    } else if (outcome === 'missing') {
+      assert.throws(prepareCredential, cause => cause === credentialFailure);
+      assert.throws(prepareCredential, {message:'HTTPChatCredentialPreparationUnavailable'});
+    }
+    assert.equal(sends, 0);
+    bindRaw({}, persist);
+    const call = plan.start(selected.entry)!;
+    const final = await until(() => call.poll(), result => result.kind !== 'pending');
+    assert.equal(final.kind, outcome === 'success' ? 'chat' : 'unknown');
+    assert.deepEqual([binds, sends], [outcome === 'unprepared' ? 0 : 1, outcome === 'success' ? 1 : 0]);
+    assert.throws(prepareCredential, {message:'HTTPChatCredentialPreparationUnavailable'});
+    await until(() => call.cleanup(), value => value);
+    assert.equal(closes, 1);
+    assert.equal(plan.start(selected.entry), undefined);
+  });
+});
+
+for (const mode of ['complete', 'response-loss']) {
+  test(`direct HTTP keeps one original prepared Undici Call through ${mode}`, {timeout:5000}, async t => {
+    let sends=0,connections=0,socketCloses=0;
+    const peer=createServer((req,res)=>{
+      sends++;assert.equal(req.method,'POST');assert.equal(req.url,'/chat');
+      let input='';req.setEncoding('utf8');req.on('data',part=>{input+=part;});
+      req.on('end',()=>{
+        assert.equal(input,body);
+        if(mode==='response-loss'){res.destroy();return;}
+        res.writeHead(200,{'content-type':'application/json','content-length':bytes.byteLength});
+        res.end(bytes);
+      });
+    });
+    peer.on('connection',socket=>{connections++;socket.once('close',()=>{socketCloses++;});});
+    await new Promise<void>((resolve,reject)=>{peer.once('error',reject);peer.listen(0,'127.0.0.1',resolve);});
+    t.after(()=>new Promise<Error | undefined>(resolve=>{peer.close(resolve);peer.closeAllConnections();}));
+    const endpoint=`http://127.0.0.1:${(peer.address() as AddressInfo).port}/chat`;
+    const responseLimits={maxBytes:512,maxChunkBytes:512,maxChunks:2,maxHeaderBytes:512,
+      observedHeaders:['content-type']};
+    const selected=createOriginalUndiciFetch({endpoint,requestLimits:{maxBytes:4096,maxHeaderBytes:128,maxHeaders:4},
+      responseLimits,physicalAcquisitionLimits:{maxPlaintextBytes:4096,maxBorrowedBackingBytes:16384,maxReads:32}});
+    const notification=createInferIoNotification();
+    const wake=claimInferIoNotification(notification);t.after(()=>wake.close());
+    let prepared=0,physicalClosed=false,physicalCloseCalls=0,rawCloses=0;
+    let release!: () => void;
+    const deliveryGate=new Promise<void>(resolve=>{release=resolve;});
+    const f=fixture({endpoint,responseLimits,fetch:undefined,notify:notification.notify,
+      prepareTransport(url,init,limits,controller){
+        prepared++;
+        const owned=prepareOriginalUndiciFetch(selected,url,init,limits,controller)!;
+        return {...owned,async cleanup(){
+          physicalCloseCalls++;
+          physicalClosed=await owned.cleanup();
+          await deliveryGate;
+          return physicalClosed;
+        }};
+      },
+      cleanupRaw(){rawCloses++;return true;}
+    });
+    try {
+      const plan=f.port.preflight.advance()._1!;
+      assert.deepEqual([prepared,connections,sends],[1,0,0]);
+      const call=plan.start(f.entry)!;
+      assert.equal(plan.start(f.entry),undefined);
+      let result: Poll | undefined;
+      for (let i=0;i<8;i++) {
+        const ticket=wake.arm();
+        try { result=call.poll();if(result.kind!=='pending')break;await ticket.promise; }
+        finally { ticket.dispose(); }
+      }
+      const complete=mode==='complete';
+      assert.equal(result?.kind,complete?'chat':'unknown');
+      if(complete){
+        assert.deepEqual(f.raw()!.body,bytes);
+        assert.equal(f.raw()!.status,200);
+        assert.equal(f.raw()!.transportComplete,true);
+      }else{
+        assert.equal(f.raw(),undefined);
+      }
+      assert.deepEqual([connections,sends,f.saves()],[1,1,complete?1:0]);
+      assert.equal(result?.ioRetired, false);
+      await until(()=>physicalClosed,value=>value);
+      assert.equal(call.poll().ioRetired, false);
+      assert.deepEqual([physicalCloseCalls,rawCloses],[1,0]);
+      release();
+      const retired = await until(() => call.poll(), value => value.ioRetired === true);
+      assert.equal(retired.kind, complete ? 'chat' : 'unknown');
+      assert.deepEqual([physicalCloseCalls,rawCloses],[1,0]);
+      await finish(f);
+      await until(()=>socketCloses,n=>n===1);
+      assert.deepEqual([sends,physicalCloseCalls,rawCloses],[1,1,complete?1:0]);
+    } finally {
+      release();
+      await finish(f);
+    }
+  });
+}

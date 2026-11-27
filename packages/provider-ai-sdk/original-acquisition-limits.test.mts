@@ -21,8 +21,8 @@ undici.buildConnector = () => (_options, callback) => {
   queueMicrotask(() => callback(null, socket as Socket));
   return socket;
 };
-let physical!: typeof import('./_internal/original-undici-transport.mjs');
-try { physical = await import('./_internal/original-undici-transport.mjs'); }
+let physical!: typeof import('@actql/local-node/_internal/model-http-transport');
+try { physical = await import('@actql/local-node/_internal/model-http-transport'); }
 finally { undici.buildConnector = buildConnector; }
 const endpoint = 'http://fixture.invalid/chat/completions';
 const responseLimits = {maxBytes: 8192, maxChunkBytes: 8192, maxChunks: 32,

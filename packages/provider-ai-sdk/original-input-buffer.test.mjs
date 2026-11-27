@@ -20,7 +20,7 @@ undici.buildConnector = options => {
   };
 };
 let physical;
-try { physical = await import('./_internal/original-undici-transport.mjs'); }
+try { physical = await import('@actql/local-node/_internal/model-http-transport'); }
 finally { undici.buildConnector = originalBuilder; }
 const endpoint = 'http://fixture.invalid/chat/completions';
 const wire = 'HTTP/1.1 200 OK\r\nContent-Length: 1\r\nConnection: close\r\n\r\nA';

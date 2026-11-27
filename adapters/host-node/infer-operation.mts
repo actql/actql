@@ -1495,7 +1495,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           try { original.prepare(); }
           catch (cause) {
             const code = (cause as {code?: unknown} | undefined)?.code;
-            if (code === 'OpenAIProjectCredentialUnavailable' || code === 'ModelProjectCredentialUnavailable') {
+            if (code === 'ModelProjectCredentialUnavailable') {
               throw new ModelCredentialRefusal(code);
             }
             throw cause;

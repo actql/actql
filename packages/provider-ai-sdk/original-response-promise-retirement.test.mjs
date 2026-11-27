@@ -44,7 +44,7 @@ undici.Client = new Proxy(OriginalClient, {construct(target, args) {
   return client;
 }});
 let physical;
-try { physical = await import('./_internal/original-undici-transport.mjs'); }
+try { physical = await import('@actql/local-node/_internal/model-http-transport'); }
 finally { undici.Client = OriginalClient; }
 
 const limits = {maxBytes: 256, maxChunkBytes: 256, maxChunks: 8,

@@ -67,7 +67,7 @@ test('required packed dependency boundaries keep cold approval, locked physical 
   assert.match(source, /await runPackedDependencyBoundaries\(\{\s*prepared,/u);
 });
 
-test('README artifact retains bounded observations and usage receipts without signing originals or application state', async t => {
+test('README artifact retains bounded observations without signing originals or application state', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-readme-upload-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const upload = job.steps.find(step => step.name === 'Preserve actual functional outcomes and failures');
@@ -96,12 +96,6 @@ test('README artifact retains bounded observations and usage receipts without si
     privateFiles.push(...['original.json', 'approval.json', 'state/ledger.sqlite', 'operator-private.fixture']
       .map(path => `${directory}/${path}`));
   }
-  for (const mode of ['reported', 'zero', 'absent']) {
-    const directory = `optional-provider/cases/usage-${mode}/consumer`;
-    expected.push(`${directory}/usage-original.json`, `${directory}/usage-receipt.json`);
-    privateFiles.push(...['original.json', 'operator-private.fixture', 'api-key.fixture', 'provider.key',
-      '.state/private.db', '.state/private.db-wal'].map(path => `${directory}/${path}`));
-  }
   // These are path-selection fixtures, not runtime outcomes or credentials.
   // The real fixture writes only its bounded report to these diagnostic names.
   for (const path of [...expected, ...privateFiles]) {
@@ -111,7 +105,7 @@ test('README artifact retains bounded observations and usage receipts without si
   const selected = [];
   for await (const path of glob(patterns, {cwd: root})) selected.push(path);
   assert.deepEqual(selected.sort(), expected.sort(),
-    'Keep bounded original usage DATA and both sides of FIRST-close without uploading signing originals, keys or Store state');
+    'Keep bounded observations and both sides of FIRST-close without uploading signing originals, keys or Store state');
 });
 
 test('README call bounds come from authored joined rows and declared per-row Tasks rather than prior observations', () => {
@@ -377,11 +371,6 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   assert.equal(input.id, 'client-inputs');
   assert.equal(input.with['artifact-id'], '${{ needs.client-packages.outputs.artifact-id }}');
   assert(job.steps.some(step => step.run === 'node scripts/test-packed-readme-workflows.mjs "$RUNNER_TEMP/client-readme-packed"'));
-  const registered = job.steps.find(step => step.run?.includes('--registered-only'));
-  assert.equal(registered.run, 'node scripts/test-packed-provider-ai-sdk.mjs "$RUNNER_TEMP/client-readme-packed/registered-provider" --registered-only');
-  assert(job.steps.indexOf(input) < job.steps.indexOf(registered));
-  assert.equal(registered.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
-  assert.equal(registered['continue-on-error'], undefined);
   const union = job.steps.find(step => step.id === 'packed-union-budget');
   assert.equal(union.run, 'node scripts/test-packed-public-query.mjs --union-budget-only');
   assert.equal(union.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' }}");
@@ -396,8 +385,6 @@ test('required README job reuses the exact single producer on Node 22 and 24 wit
   const output = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
   assert.equal(output.if, 'always()'); assert.equal(output.with['if-no-files-found'], 'error');
   assert(output.with.path.includes('raw/*')); assert(output.with.path.includes('*.observation.json'));
-  assert(output.with.path.includes('/registered-provider/summary.json'));
-  assert(output.with.path.includes('/registered-provider/raw/*/*'));
   assert(output.with.path.includes('mock-project-*/*.pending.json'));
   assert(output.with.path.includes('collection/*.pending.json'));
   assert(output.with.path.includes('collection/*.progress.json'));

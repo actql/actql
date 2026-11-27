@@ -15,6 +15,7 @@
       "@actql/explorer/browser-source": ["./packages/explorer/browser-source.d.ts"],
       "@actql/explorer/launcher": ["./packages/explorer/launcher.d.ts"],
       "@actql/local-node/_internal/compile-cache": ["./adapters/host-node/compile-cache.mts"],
+      "@actql/local-node/_internal/model-http-transport": ["./adapters/host-node/original-model-http-transport.mts"],
       "@actql/local-node/runtime": ["./scripts/fixtures/installed-common-runtime.d.ts"],
       "@actql/sdk/host-port": ["./packages/sdk/host-port.mts"],
       "elkjs/lib/elk-api.js": ["./packages/explorer-ui/elk-layout-module.d.ts"],

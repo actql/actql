@@ -6,7 +6,7 @@ import test from 'node:test';
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {createOriginalUndiciFetch, prepareOriginalUndiciFetch} from
-  './_internal/original-undici-transport.mjs';
+  '@actql/local-node/_internal/model-http-transport';
 import {readBoundedInferResponse} from './_internal/bounded-response.mjs';
 
 const require = createRequire(import.meta.url);

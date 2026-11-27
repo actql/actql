@@ -16,7 +16,7 @@ undici.buildConnector = options => {
 };
 let physical;
 try {
-  physical = await import('./_internal/original-undici-transport.mjs');
+  physical = await import('@actql/local-node/_internal/model-http-transport');
 } finally {
   undici.buildConnector = originalBuilder;
 }
@@ -39,7 +39,8 @@ test('selected original preparation disables unused TLS session caching before a
   const call = prepared();
   try {
     assert.equal(selections.length, before + 1);
-    const {onread, ...options} = selections[before].options;
+    const {lookup, onread, ...options} = selections[before].options;
+    assert.equal(typeof lookup, 'function');
     assert.deepEqual(options, {allowH2: false, maxCachedSessions: 0});
     assert.equal(onread.buffer.byteLength, 512);
     assert.equal(onread.buffer.buffer.byteLength, 512);

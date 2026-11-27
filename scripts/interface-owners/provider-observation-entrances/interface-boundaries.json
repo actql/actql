@@ -1362,7 +1362,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -1383,13 +1383,12 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "16ce45709612d09324784ec87911e666d1d3f724554001eb4790b49d813bf0a4",
+      "sha256": "d81ab3b4e8e841fd134eef7d0ec4d5fecba2dd8da2c16e5f0d5b72f4d95e1e7c",
       "exports": [
         "bindSdkTransportCredential",
         "cancelSdkPreparation",
         "cleanupSdkPreparation",
         "confirmSavedSdkTransportResponse",
-        "deliverSdkResponse",
         "generateSdkLanguageModel",
         "interceptSdkRequest",
         "pollSdkDecode",
@@ -1402,7 +1401,6 @@
         "sdkOriginalIoObservationAvailable",
         "sdkPreparedRequest",
         "sdkTransportRawObservation",
-        "sdkTransportResponse",
         "startSdkTransport",
         "takeSavedSdkDecodedResult",
         "takeSdkDecodedResult"
@@ -1479,14 +1477,6 @@
             "handle",
             "originalRaw",
             "saved"
-          ],
-          "async": false
-        },
-        {
-          "name": "deliverSdkResponse",
-          "parameters": [
-            "handle",
-            "response"
           ],
           "async": false
         },
@@ -1680,13 +1670,6 @@
           "async": false
         },
         {
-          "name": "sdkTransportResponse",
-          "parameters": [
-            "handle"
-          ],
-          "async": false
-        },
-        {
           "name": "startSdkTransport",
           "parameters": [
             "handle"
@@ -1750,6 +1733,7 @@
             "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup",
             "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#2",
             "advanceOriginalPhysicalCleanup/advanceOriginalPhysicalCleanup#3",
+            "bindSdkTransportCredential",
             "cancelSdkPreparation",
             "cleanupSdkPreparation",
             "cleanupSdkPreparation/cleanupSdkPreparation",
@@ -1757,7 +1741,8 @@
             "cleanupSdkPreparation/cleanupSdkPreparation#3",
             "cleanupSdkPreparation/cleanupSdkPreparation#4",
             "cleanupSdkPreparation/cleanupSdkPreparation#5",
-            "deliverSdkResponse",
+            "confirmSavedSdkTransportResponse",
+            "generateSdkLanguageModel",
             "interceptSdkRequest",
             "interceptSdkRequest/fetch/fetch",
             "interceptSdkRequest/fetch/fetch/fetch",
@@ -1772,6 +1757,8 @@
             "pollSdkDecode",
             "pollSdkPreparation",
             "pollSdkTransport",
+            "prepareRegisteredSdkLanguageModel",
+            "prepareRegisteredSdkLanguageModel/init:runSdk/init:runSdk",
             "prepareSdkTransport",
             "prepareSdkTransport/prepareSdkTransport",
             "progressSdkOriginalIoCleanup",
@@ -1779,43 +1766,35 @@
             "sdkOriginalIoObservationAvailable",
             "sdkPreparedRequest",
             "sdkTransportRawObservation",
-            "sdkTransportResponse",
             "startSdkTransport",
             "startSdkTransport/startSdkTransport",
-            "startSdkTransport/startSdkTransport/startSdkTransport",
             "startSdkTransport/startSdkTransport#2",
             "startSdkTransport/startSdkTransport#3",
             "startSdkTransport/startSdkTransport#4",
-            "takeSdkDecodedResult",
-            "bindSdkTransportCredential",
-            "confirmSavedSdkTransportResponse",
+            "startSdkTransport/startSdkTransport/startSdkTransport",
             "takeSavedSdkDecodedResult",
-            "generateSdkLanguageModel",
-            "prepareRegisteredSdkLanguageModel",
-            "prepareRegisteredSdkLanguageModel/init:runSdk/init:runSdk"
+            "takeSdkDecodedResult"
           ],
           "exports": [
+            "bindSdkTransportCredential",
             "cancelSdkPreparation",
             "cleanupSdkPreparation",
-            "deliverSdkResponse",
+            "confirmSavedSdkTransportResponse",
+            "generateSdkLanguageModel",
             "interceptSdkRequest",
             "pollSdkDecode",
             "pollSdkPreparation",
             "pollSdkTransport",
+            "prepareRegisteredSdkLanguageModel",
             "prepareSdkTransport",
             "progressSdkOriginalIoCleanup",
             "retireSdkDecodedResult",
             "sdkOriginalIoObservationAvailable",
             "sdkPreparedRequest",
             "sdkTransportRawObservation",
-            "sdkTransportResponse",
             "startSdkTransport",
-            "takeSdkDecodedResult",
-            "bindSdkTransportCredential",
-            "confirmSavedSdkTransportResponse",
             "takeSavedSdkDecodedResult",
-            "generateSdkLanguageModel",
-            "prepareRegisteredSdkLanguageModel"
+            "takeSdkDecodedResult"
           ],
           "attributes": {
             "responsibility": [
@@ -1894,7 +1873,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -1904,7 +1883,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -1932,6 +1911,11 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "./bounded-response.mjs",
+        "./original-undici-transport.mjs",
+        "node:crypto"
       ]
     },
     {
@@ -2082,7 +2066,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -2260,7 +2244,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -2293,17 +2277,17 @@
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eeb0eb69050d9d1bf7d9d98f8c02f5faa6c00b677d05ca2bdfb5e1ee777dc413",
+      "sha256": "54b10d16beb9efa537df1fc52fb57ec1c0cefdad382a25314d30115fc5442f01",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
         "openAIChatStaticOriginals",
         "optionNamespace",
         "optionSchema",
-        "prepareOpenAIChatRequest",
         "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
+        "unboundOpenAICredential",
         "verifyRequest"
       ],
       "operations": [
@@ -2314,38 +2298,6 @@
             "modelId",
             "fetch",
             "route"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOpenAIChatRequest",
-          "parameters": [
-            "modelId",
-            "baseURL",
-            "apiKey",
-            "options",
-            "maxRequestBytes",
-            "maxHeaderBytes",
-            "maxHeaders",
-            "signal",
-            "notify",
-            "verifyRequest",
-            "registered"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
-          "parameters": [
-            "fetch"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
-          "parameters": [
-            "fetch",
-            "abortSignal"
           ],
           "async": false
         },
@@ -2381,9 +2333,6 @@
           "operations": [
             "<module>",
             "createLanguageModel",
-            "prepareOpenAIChatRequest",
-            "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
-            "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
             "readReportedResponse",
             "readReportedUsage",
             "verifyRequest"
@@ -2394,10 +2343,10 @@
             "openAIChatStaticOriginals",
             "optionNamespace",
             "optionSchema",
-            "prepareOpenAIChatRequest",
             "readReportedResponse",
             "readReportedUsage",
             "sdkProvider",
+            "unboundOpenAICredential",
             "verifyRequest"
           ],
           "attributes": {
@@ -2414,7 +2363,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "prepareOpenAIChatRequest"
+                "anchor": "export function createLanguageModel"
               }
             ],
             "identity": [
@@ -2439,8 +2388,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "interceptSdkRequest"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "export function prepareRegisteredSdkLanguageModel"
               }
             ],
             "failure": [
@@ -2469,7 +2418,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -2479,7 +2428,7 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -2501,8 +2450,6 @@
         }
       ],
       "imports": [
-        "./intercepted-request.mjs",
-        "./original-undici-transport.mjs",
         "@ai-sdk/openai",
         "@ai-sdk/provider-utils",
         "node:util"
@@ -2513,7 +2460,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/openai-responses.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8ac11cc32fb2aec7a082d1b3a8ec2f9c6bb0f5b094c2793b8510c2404fa9822e",
+      "sha256": "83d0ba9f84227f2bb2c97907640583747545f53a9fb97d279da3ab0c419f27eb",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
@@ -2662,7 +2609,7 @@
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
@@ -2686,7 +2633,7 @@
         }
       ],
       "imports": [
-        "./original-undici-transport.mjs",
+        "./openai-chat.mjs",
         "@ai-sdk/openai",
         "node:util"
       ],
@@ -2694,15 +2641,1239 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+      "module": "packages/provider-ai-sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "dc48f630b585e893ba143cb2241f7421631906a99799a453e82a01ef0f3e9674",
+      "sha256": "622722d6902b888fc7d66bfd799ca88d1fbf7651d7bf6696e7e93b5639a9773b",
+      "exports": [
+        "ConfiguredModelProviderRegistration",
+        "OriginalReadInstallationData",
+        "OriginalReadRecipeData",
+        "PhysicalAcquisitionLimits",
+        "PhysicalTransportTimeouts",
+        "ProjectionLimits",
+        "QuantityCapacity",
+        "RegisteredSdkModelGeneration",
+        "RegisteredSdkProviderOptions",
+        "RequestLimits",
+        "ResponseLimits",
+        "Sha256Cid",
+        "createRegisteredSdkProvider",
+        "createRegisteredSdkProviders"
+      ],
+      "operations": [
+        {
+          "name": "<call>",
+          "parameters": [
+            "runtime: unknown",
+            "context: unknown"
+          ],
+          "result": "Promise<readonly Readonly<Record<string, unknown>>[]>"
+        },
+        {
+          "name": "<call>#2",
+          "parameters": [],
+          "result": "Readonly<{classification: string; region: string;\n    providerRetention: boolean; trainingUse: boolean}>"
+        },
+        {
+          "name": "createRegisteredSdkProvider",
+          "parameters": [
+            "options: RegisteredSdkProviderOptions"
+          ],
+          "result": "ConfiguredModelProviderRegistration"
+        },
+        {
+          "name": "createRegisteredSdkProviders",
+          "parameters": [
+            "options: readonly RegisteredSdkProviderOptions[]"
+          ],
+          "result": "ConfiguredModelProviderRegistration"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<call>",
+            "<call>#2",
+            "<module>",
+            "createRegisteredSdkProvider",
+            "createRegisteredSdkProviders"
+          ],
+          "exports": [
+            "ConfiguredModelProviderRegistration",
+            "OriginalReadInstallationData",
+            "OriginalReadRecipeData",
+            "PhysicalAcquisitionLimits",
+            "PhysicalTransportTimeouts",
+            "ProjectionLimits",
+            "QuantityCapacity",
+            "RegisteredSdkModelGeneration",
+            "RegisteredSdkProviderOptions",
+            "RequestLimits",
+            "ResponseLimits",
+            "Sha256Cid",
+            "createRegisteredSdkProvider",
+            "createRegisteredSdkProviders"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "Sha256Cid"
+              },
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "ModelProviderRegistration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "ConfiguredModelProviderRegistration"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mts",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "ProjectionLimits"
+              },
+              {
+                "path": "packages/provider-ai-sdk/index.d.ts",
+                "anchor": "QuantityCapacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "no success claim"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
+                "anchor": "normal binding profile and original Read recipe consume the same separate SDK R E demand"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": []
+    },
+    {
+      "module": "packages/provider-ai-sdk/index.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "275f36088dde0a835d70b67c94a1e479102ac1de55c55c93466014a1b357b0c1",
+      "exports": [
+        "createRegisteredSdkProvider",
+        "createRegisteredSdkProviders"
+      ],
+      "operations": [],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "createRegisteredSdkProvider",
+            "createRegisteredSdkProviders"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/index.mts",
+                "anchor": "export"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
+              },
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mts",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./_internal/normal-openai-chat.mjs"
+      ]
+    },
+    {
+      "module": "packages/provider-http/_internal/bounded-response.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "0f8cda10a7d04393cb4935de747dcf2dbe0daa7233a358d5a4e0dee6a87641f1",
+      "exports": [
+        "fixedInferResponseLimits",
+        "readBoundedInferResponse"
+      ],
+      "operations": [
+        {
+          "name": "fixedInferResponseLimits",
+          "parameters": [
+            "maxBytes",
+            "maxChunkBytes",
+            "maxChunks",
+            "observedHeaders",
+            "maxHeaderBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedInferResponseLimits/fixedInferResponseLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse",
+          "parameters": [
+            "response",
+            "inputLimits",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "readBoundedInferResponse/abort/abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#2",
+          "parameters": [
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/readBoundedInferResponse#4",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#4",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fixedInferResponseLimits",
+            "fixedInferResponseLimits/fixedInferResponseLimits",
+            "readBoundedInferResponse",
+            "readBoundedInferResponse/abort/abort",
+            "readBoundedInferResponse/readBoundedInferResponse",
+            "readBoundedInferResponse/readBoundedInferResponse#2",
+            "readBoundedInferResponse/readBoundedInferResponse#3",
+            "readBoundedInferResponse/readBoundedInferResponse#4",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#2",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#3",
+            "readBoundedInferResponse/retryReaderRetirement/retryReaderRetirement/retryReaderRetirement#4"
+          ],
+          "exports": [
+            "fixedInferResponseLimits",
+            "readBoundedInferResponse"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "fixedInferResponseLimits"
+              },
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "readBoundedInferResponse"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "cannot change across the body await"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "one byte over the bound"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "maxChunkBytes"
+              },
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "maxHeaderBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "real Response streams"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "cleanup failure retains the same reader"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/index.d.ts",
+      "responsibilityFacet": "primary",
+      "sha256": "9e0151c2cf43466c3a580aa96b0aa0b881b530871d9c402e2d6e7117d2fad24e",
+      "exports": [
+        "HttpChatMaterialsRegistrationOptions",
+        "HttpChatRegistrationOptions",
+        "HttpInstallationData",
+        "HttpOriginalMaterials",
+        "ModelProviderRegistration",
+        "OriginalBody",
+        "OriginalReadInstallationData",
+        "ProjectionLimits",
+        "QuantityCapacity",
+        "RequestLimits",
+        "ResponseLimits",
+        "Sha256Cid",
+        "createInstalledHttpChatRegistration"
+      ],
+      "operations": [
+        {
+          "name": "<call>",
+          "parameters": [
+            "runtime: unknown"
+          ],
+          "result": "readonly Readonly<Record<string, unknown>>[]"
+        },
+        {
+          "name": "<call>#2",
+          "parameters": [],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#3",
+          "parameters": [],
+          "result": "string"
+        },
+        {
+          "name": "<call>#4",
+          "parameters": [
+            "facts: unknown"
+          ],
+          "result": "void"
+        },
+        {
+          "name": "createInstalledHttpChatRegistration",
+          "parameters": [
+            "options: HttpChatRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        },
+        {
+          "name": "createInstalledHttpChatRegistration#2",
+          "parameters": [
+            "options: HttpChatMaterialsRegistrationOptions"
+          ],
+          "result": "ModelProviderRegistration"
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "<call>",
+            "<call>#2",
+            "<call>#3",
+            "<call>#4",
+            "createInstalledHttpChatRegistration",
+            "createInstalledHttpChatRegistration#2"
+          ],
+          "exports": [
+            "HttpChatMaterialsRegistrationOptions",
+            "HttpChatRegistrationOptions",
+            "HttpInstallationData",
+            "HttpOriginalMaterials",
+            "ModelProviderRegistration",
+            "OriginalBody",
+            "OriginalReadInstallationData",
+            "ProjectionLimits",
+            "QuantityCapacity",
+            "RequestLimits",
+            "ResponseLimits",
+            "Sha256Cid",
+            "createInstalledHttpChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "Sha256Cid"
+              },
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "ModelProviderRegistration"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "OriginalBody"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mts",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "ProjectionLimits"
+              },
+              {
+                "path": "packages/provider-http/index.d.ts",
+                "anchor": "QuantityCapacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-http/index.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "2aa708876a7ec9371d3e499bba25889fda40f60b92653c0b7934758239f4e8f3",
+      "exports": [
+        "createInstalledHttpChatRegistration"
+      ],
+      "operations": [],
+      "role": "physical-io",
+      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [
+            "createInstalledHttpChatRegistration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "model_physical_call_for_request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Physical SDK preparation only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-http/index.mts",
+                "anchor": "export"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/physical_call_request.mbt",
+                "anchor": "physical_equal(original.request, request)"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "ForeignSdkPreparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
+              },
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "heldReader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "Only its explicitly installed transport"
+              },
+              {
+                "path": "packages/provider-http/_internal/model-port.mts",
+                "anchor": "No notification, await or request construction is interposed here."
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "response loss after original request is Unknown and not retried"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "permanent preparation violation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
+                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
+              },
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "Promise settles"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "Fund the fixed backing buffer"
+              },
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "these checks cannot fund or bound that first allocator"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "exact installed lock closure"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "options.tools !== undefined"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
+                "anchor": "real pinned SDK captures one exact original request"
+              },
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "actual pinned OpenAI SDK"
+              },
+              {
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
+                "anchor": "no success claim"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "55ecb8c926f4826cb0abdc6b5fff44a8217ec74b5b0c952394c360ed51883b4e",
+      "exports": [
+        "createRegisteredSdkProvider",
+        "createRegisteredSdkProviders"
+      ],
+      "operations": [
+        {
+          "name": "amount/amount",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "configuration/configuration",
+          "parameters": [
+            "ms"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRegisteredSdkProvider",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRegisteredSdkProvider/createRegisteredSdkProvider",
+          "parameters": [
+            "moon",
+            "context"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRegisteredSdkProvider/createRegisteredSdkProvider/createRegisteredSdkProvider",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRegisteredSdkProviders",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders",
+          "parameters": [
+            "moon",
+            "context"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders/batch/batch",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkProviderEntry/createSdkProviderEntry",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkProviderEntry/createSdkProviderEntry/createSdkProviderEntry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkProviderEntry/entries/entries",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "createSdkProviderEntry/entries/entries/physical/physical",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createSdkProviderEntry/entries/entries/rawCaptureSelection/rawCaptureSelection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "data/data",
+          "parameters": [
+            "source",
+            "required",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data/data",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data/data#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "data/data/data#3",
+          "parameters": [
+            "key",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "observation/observation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "observation/observation/fields/fields",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "observation/observation/observation",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "observation/observation/observation#2",
+          "parameters": [
+            "field",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/bindings/bindings",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/bindings/bindings/bindings",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/borrow/borrow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/config/config",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/config/config/validQuote/validQuote/validQuote",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/prepareSdkProvider",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProvider/registeredSdk/registeredSdk",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProviderTasks/profile/profile",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProviderTasks/select/select",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProviderTasks/select/select/select",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSdkProviderTasks/selectedSdk/selectedSdk",
+          "parameters": [
+            "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireConfigurationContext/requireConfigurationContext",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing configured Model Host initial Resource, Common Task originals and per-Run async physical custody",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "amount/amount",
+            "configuration/configuration",
+            "createRegisteredSdkProvider",
+            "createRegisteredSdkProviders",
+            "createRegisteredSdkProviders/createRegisteredSdkProviders",
+            "createRegisteredSdkProviders/createRegisteredSdkProviders/batch/batch",
+            "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
+            "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
+            "createSdkProviderEntry/createSdkProviderEntry",
+            "createSdkProviderEntry/createSdkProviderEntry/createSdkProviderEntry",
+            "createSdkProviderEntry/entries/entries",
+            "createSdkProviderEntry/entries/entries/physical/physical",
+            "createSdkProviderEntry/entries/entries/rawCaptureSelection/rawCaptureSelection",
+            "data/data",
+            "data/data/data",
+            "data/data/data#2",
+            "data/data/data#3",
+            "observation/observation",
+            "observation/observation/fields/fields",
+            "observation/observation/observation",
+            "observation/observation/observation#2",
+            "prepareSdkProvider/bindings/bindings",
+            "prepareSdkProvider/borrow/borrow",
+            "prepareSdkProvider/config/config",
+            "prepareSdkProvider/config/config/validQuote/validQuote/validQuote",
+            "prepareSdkProviderTasks/profile/profile",
+            "prepareSdkProviderTasks/select/select",
+            "prepareSdkProviderTasks/select/select/select",
+            "requireConfigurationContext/requireConfigurationContext",
+            "prepareSdkProvider/bindings/bindings/bindings",
+            "prepareSdkProvider/prepareSdkProvider",
+            "prepareSdkProvider/registeredSdk/registeredSdk",
+            "prepareSdkProviderTasks/selectedSdk/selectedSdk",
+            "createRegisteredSdkProvider/createRegisteredSdkProvider",
+            "createRegisteredSdkProvider/createRegisteredSdkProvider/createRegisteredSdkProvider"
+          ],
+          "exports": [
+            "createRegisteredSdkProvider",
+            "createRegisteredSdkProviders"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mts",
+                "anchor": "export async function installConfiguredModelProviders"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
+                "anchor": "export function createRegisteredSdkProvider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
+                "anchor": "context.prepareBindingOriginals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "snapshotTaskInstallations"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "startSourceFreeSingleUnit"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
+                "anchor": "OpenAIProviderConfigurationReused"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/model_execution/physical_preflight.mbt",
+                "anchor": "cleanup: cursor.cleanup"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-configuration.mts",
+                "anchor": "const nodes = 128n + 2048n"
+              },
+              {
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
+                "anchor": "clientProgramInstalledNodeModelDeadlineCapacity"
+              },
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
+                "anchor": "installed_node_model_sdk_v4_request_capacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model.mts",
+                "anchor": "InstalledModelTaskProfileUnavailable"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/normal-openai-installed.fixture.mjs",
+                "anchor": "if (taskCount === 2 && !capabilities) assert.notDeepEqual(schemas[0], schemas[1]);"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
+                "anchor": "normal deadline missing invalid overflow or over-budget quote refuses before IO"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
+                "anchor": "normal binding profile and original Read recipe"
+              },
+              {
+                "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
+                "anchor": "SDK expected wires remain per row"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
+                "anchor": "an explicit selector binds the resolved Chat model"
+              },
+              {
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
+                "anchor": "one registered batch prepares the original Tasks once with distinct binding originals"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./installed-openai-chat.mjs",
+        "./local-model-http-transport.mjs",
+        "./openai-chat.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/original-model-http-transport.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "0fba07fe25b5ccfbd76f36862a63084b1e82dc08667ff58e45ffc7c9e9248676",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
         "fixedOriginalTransportTimeouts",
-        "prepareOriginalUndiciFetch",
-        "unboundOpenAICredential"
+        "prepareOriginalUndiciFetch"
       ],
       "operations": [
         {
@@ -2725,7 +3896,7 @@
             "responseLimits",
             "physicalAcquisitionLimits",
             "transportTimeouts",
-            "openAICredentialBytes",
+            "openAICredential",
             "registeredCredential"
           ],
           "async": false
@@ -2937,6 +4108,31 @@
           "async": false
         },
         {
+          "name": "prepareOriginalUndiciFetch/lookup/lookup",
+          "parameters": [
+            "hostname",
+            "options",
+            "callback"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/lookup/lookup/lookup",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOriginalUndiciFetch/lookup/lookup/lookup#2",
+          "parameters": [
+            "error",
+            "addresses",
+            "family"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOriginalUndiciFetch/onread/init:callback/init:callback",
           "parameters": [
             "length",
@@ -2973,7 +4169,7 @@
         }
       ],
       "role": "physical-io",
-      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "owner": "Local Host original physical Model HTTP transport, before its Common send gate and through actual retirement",
       "contracts": [
         {
           "operations": [
@@ -3013,6 +4209,9 @@
             "prepareOriginalUndiciFetch/invoke/invoke/response/response/response/response",
             "prepareOriginalUndiciFetch/invoke/invoke/response/response/response#2",
             "prepareOriginalUndiciFetch/invoke/invoke/settled/settled",
+            "prepareOriginalUndiciFetch/lookup/lookup",
+            "prepareOriginalUndiciFetch/lookup/lookup/lookup",
+            "prepareOriginalUndiciFetch/lookup/lookup/lookup#2",
             "prepareOriginalUndiciFetch/onread/init:callback/init:callback",
             "prepareOriginalUndiciFetch/prepareOriginalUndiciFetch",
             "withOriginalCallDeadline/expire/expire",
@@ -3025,8 +4224,7 @@
             "createOriginalUndiciFetch",
             "fixedOriginalAcquisitionLimits",
             "fixedOriginalTransportTimeouts",
-            "prepareOriginalUndiciFetch",
-            "unboundOpenAICredential"
+            "prepareOriginalUndiciFetch"
           ],
           "attributes": {
             "responsibility": [
@@ -3051,19 +4249,19 @@
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "installations.set(fetch, Object.freeze(original))"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "per-call Client/duty"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "before that allocation"
               }
             ],
@@ -3087,17 +4285,17 @@
                 "anchor": "Promise settles"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "controller.abort(reason)"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "maxBorrowedBackingBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "path": "adapters/host-node/original-model-http-transport.mts",
                 "anchor": "does not bound native emission"
               },
               {
@@ -3141,461 +4339,106 @@
         }
       ],
       "imports": [
-        "./bounded-response.mjs",
+        "../host-common/model-response-reader.mjs",
+        "node:dns",
         "node:util",
         "undici"
       ]
     },
     {
-      "module": "packages/provider-ai-sdk/index.d.ts",
+      "module": "packages/provider-ai-sdk/_internal/local-model-http-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ed5a018c1eeb8f7dc6fd0375fa209cec4b59f18618f7b6d9f97f3ee736456541",
+      "sha256": "b246a1c003d0d05a64f065ff82f2c0a563b0ab14bcc0e8a168e080334a26c8a6",
       "exports": [
-        "ConfiguredModelProviderRegistration",
-        "ModelProviderRegistration",
-        "OpenAIChatMaterialsRegistrationOptions",
-        "OpenAIChatProviderOptions",
-        "OpenAIChatRecipeRegistrationOptions",
-        "OpenAIChatRegistrationOptions",
-        "OpenAIInstallationData",
-        "OpenAIOriginalMaterials",
-        "OriginalBody",
-        "OriginalReadInstallationData",
-        "OriginalReadRecipeData",
-        "OriginalStringLimits",
-        "PhysicalAcquisitionLimits",
-        "PhysicalTransportTimeouts",
-        "ProjectOpenAIChatProviderOptions",
-        "ProjectionLimits",
-        "QuantityCapacity",
-        "RegisteredSdkModelGeneration",
-        "RegisteredSdkProviderOptions",
-        "RequestLimits",
-        "ResponseLimits",
-        "Sha256Cid",
-        "UndiciOpenAIChatMaterialsRegistrationOptions",
-        "UndiciOpenAIChatRecipeRegistrationOptions",
-        "UndiciOpenAIChatRegistrationOptions",
-        "createInstalledOpenAIChatRegistration",
-        "createInstalledUndiciOpenAIChatRegistration",
-        "createOpenAIChatProvider",
-        "createProjectOpenAIChatProvider",
-        "createRegisteredSdkProvider",
-        "createRegisteredSdkProviders"
+        "originalLocalModelHttpTransport"
       ],
       "operations": [
         {
-          "name": "<call>",
-          "parameters": [
-            "runtime: unknown"
-          ],
-          "result": "readonly Readonly<Record<string, unknown>>[]"
-        },
-        {
-          "name": "<call>#2",
-          "parameters": [
-            "runtime: unknown",
-            "context: unknown"
-          ],
-          "result": "Promise<readonly Readonly<Record<string, unknown>>[]>"
-        },
-        {
-          "name": "<call>#3",
+          "name": "originalLocalModelHttpTransport",
           "parameters": [],
-          "result": "Readonly<{classification: string; region: string;\n    providerRetention: boolean; trainingUse: boolean}>"
-        },
-        {
-          "name": "<call>#4",
-          "parameters": [],
-          "result": "boolean"
-        },
-        {
-          "name": "<call>#5",
-          "parameters": [],
-          "result": "string"
-        },
-        {
-          "name": "<call>#6",
-          "parameters": [
-            "facts: unknown"
-          ],
-          "result": "void"
-        },
-        {
-          "name": "createInstalledOpenAIChatRegistration",
-          "parameters": [
-            "options: OpenAIChatRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        },
-        {
-          "name": "createInstalledOpenAIChatRegistration#2",
-          "parameters": [
-            "options: OpenAIChatRecipeRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        },
-        {
-          "name": "createInstalledOpenAIChatRegistration#3",
-          "parameters": [
-            "options: OpenAIChatMaterialsRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        },
-        {
-          "name": "createInstalledUndiciOpenAIChatRegistration",
-          "parameters": [
-            "options: UndiciOpenAIChatRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        },
-        {
-          "name": "createInstalledUndiciOpenAIChatRegistration#2",
-          "parameters": [
-            "options: UndiciOpenAIChatRecipeRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        },
-        {
-          "name": "createInstalledUndiciOpenAIChatRegistration#3",
-          "parameters": [
-            "options: UndiciOpenAIChatMaterialsRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        },
-        {
-          "name": "createOpenAIChatProvider",
-          "parameters": [
-            "options: OpenAIChatProviderOptions"
-          ],
-          "result": "ConfiguredModelProviderRegistration"
-        },
-        {
-          "name": "createProjectOpenAIChatProvider",
-          "parameters": [
-            "options: ProjectOpenAIChatProviderOptions"
-          ],
-          "result": "ConfiguredModelProviderRegistration"
-        },
-        {
-          "name": "createRegisteredSdkProvider",
-          "parameters": [
-            "options: RegisteredSdkProviderOptions"
-          ],
-          "result": "ConfiguredModelProviderRegistration"
-        },
-        {
-          "name": "createRegisteredSdkProviders",
-          "parameters": [
-            "options: readonly RegisteredSdkProviderOptions[]"
-          ],
-          "result": "ConfiguredModelProviderRegistration"
+          "async": false
         }
       ],
       "role": "physical-io",
-      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
+      "owner": "Optional SDK consumer of the already selected Local Host physical transport module",
       "contracts": [
         {
           "operations": [
-            "<call>",
-            "<call>#2",
-            "<call>#3",
-            "<call>#4",
-            "<call>#5",
-            "<call>#6",
             "<module>",
-            "createInstalledOpenAIChatRegistration",
-            "createInstalledOpenAIChatRegistration#2",
-            "createInstalledOpenAIChatRegistration#3",
-            "createInstalledUndiciOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration#2",
-            "createInstalledUndiciOpenAIChatRegistration#3",
-            "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider",
-            "createRegisteredSdkProvider",
-            "createRegisteredSdkProviders"
+            "originalLocalModelHttpTransport"
           ],
           "exports": [
-            "ConfiguredModelProviderRegistration",
-            "ModelProviderRegistration",
-            "OpenAIChatMaterialsRegistrationOptions",
-            "OpenAIChatProviderOptions",
-            "OpenAIChatRecipeRegistrationOptions",
-            "OpenAIChatRegistrationOptions",
-            "OpenAIInstallationData",
-            "OpenAIOriginalMaterials",
-            "OriginalBody",
-            "OriginalReadInstallationData",
-            "OriginalReadRecipeData",
-            "OriginalStringLimits",
-            "PhysicalAcquisitionLimits",
-            "PhysicalTransportTimeouts",
-            "ProjectOpenAIChatProviderOptions",
-            "ProjectionLimits",
-            "QuantityCapacity",
-            "RegisteredSdkProviderOptions",
-            "RequestLimits",
-            "ResponseLimits",
-            "Sha256Cid",
-            "UndiciOpenAIChatMaterialsRegistrationOptions",
-            "UndiciOpenAIChatRecipeRegistrationOptions",
-            "UndiciOpenAIChatRegistrationOptions",
-            "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration",
-            "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider",
-            "createRegisteredSdkProvider",
-            "createRegisteredSdkProviders",
-            "RegisteredSdkModelGeneration"
+            "originalLocalModelHttpTransport"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "model_physical_call_for_request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Physical SDK preparation only"
+                "path": "packages/provider-ai-sdk/_internal/local-model-http-transport.mts",
+                "anchor": "export function originalLocalModelHttpTransport"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/index.d.ts",
-                "anchor": "Sha256Cid"
-              },
-              {
-                "path": "packages/provider-ai-sdk/index.d.ts",
-                "anchor": "ModelProviderRegistration"
+                "path": "packages/provider-ai-sdk/_internal/local-model-http-transport.mts",
+                "anchor": "export function originalLocalModelHttpTransport"
               }
             ],
             "identity": [
               {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "physical_equal(original.request, request)"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "ForeignSdkPreparation"
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "a selected ordinary SDK must use the same original Undici root as Local"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/index.d.ts",
-                "anchor": "OriginalBody"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "loader.loadSelectedModule(join(root, transport), source.sha256)"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Only its explicitly installed transport"
-              },
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "No notification, await or request construction is interposed here."
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "loader.loadSelectedModule(join(root, transport), source.sha256)"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "response loss after original request is Unknown and not retried"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "permanent preparation violation"
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "a selected ordinary SDK must use the same original Undici root as Local"
               }
             ],
-            "cancellation": [
-              {
-                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
-                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "Promise settles"
-              }
-            ],
+            "cancellation": {
+              "notApplicable": "This module borrows the selected namespace. The original transport retains cancellation and close."
+            },
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/index.d.ts",
-                "anchor": "ProjectionLimits"
-              },
-              {
-                "path": "packages/provider-ai-sdk/index.d.ts",
-                "anchor": "QuantityCapacity"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "loader.loadSelectedModule(join(root, transport), source.sha256)"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "exact installed lock closure"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "options.tools !== undefined"
+                "path": "packages/provider-ai-sdk/_internal/local-model-http-transport.mts",
+                "anchor": "export function originalLocalModelHttpTransport"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "real pinned SDK captures one exact original request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "actual pinned OpenAI SDK"
-              },
-              {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
-                "anchor": "no success claim"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-materials.test.mjs",
-                "anchor": "recipe binds each original checked Graph through the existing Host owner"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/provider-ai-sdk/index.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "a2d70cb86279738a4c62d22a2bb0d31bdef99bddea4f0cd6813943073a01d12c",
-      "exports": [
-        "createInstalledOpenAIChatRegistration",
-        "createInstalledUndiciOpenAIChatRegistration",
-        "createOpenAIChatProvider",
-        "createProjectOpenAIChatProvider",
-        "createRegisteredSdkProvider",
-        "createRegisteredSdkProviders"
-      ],
-      "operations": [],
-      "role": "physical-io",
-      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
-      "contracts": [
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [
-            "createInstalledOpenAIChatRegistration",
-            "createInstalledUndiciOpenAIChatRegistration",
-            "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider",
-            "createRegisteredSdkProvider",
-            "createRegisteredSdkProviders"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "model_physical_call_for_request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Physical SDK preparation only"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/provider-ai-sdk/index.mts",
-                "anchor": "export"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "physical_equal(original.request, request)"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "ForeignSdkPreparation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "preparations.set(handle, state)"
-              },
-              {
-                "path": "adapters/host-common/model-response-reader.mts",
-                "anchor": "heldReader"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Only its explicitly installed transport"
-              },
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "No notification, await or request construction is interposed here."
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "response loss after original request is Unknown and not retried"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "permanent preparation violation"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
-                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "Promise settles"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/model-response-reader.mts",
-                "anchor": "Fund the fixed backing buffer"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
-                "anchor": "these checks cannot fund or bound that first allocator"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "exact installed lock closure"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "options.tools !== undefined"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "real pinned SDK captures one exact original request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "actual pinned OpenAI SDK"
-              },
-              {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
-                "anchor": "no success claim"
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "a selected ordinary SDK must use the same original Undici root as Local"
               }
             ]
           }
         }
       ],
       "imports": [
-        "./_internal/installed-openai-chat.mjs",
-        "./_internal/normal-openai-chat.mjs"
-      ]
+        "node:module"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
-      "module": "packages/provider-http/_internal/bounded-response.mjs",
+      "module": "adapters/host-common/model-response-reader.mjs",
       "responsibilityFacet": "primary",
       "sha256": "0f8cda10a7d04393cb4935de747dcf2dbe0daa7233a358d5a4e0dee6a87641f1",
       "exports": [
@@ -3800,729 +4643,358 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
-      "module": "packages/provider-http/index.d.ts",
+      "module": "adapters/host-common/model-response-reader.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "9e0151c2cf43466c3a580aa96b0aa0b881b530871d9c402e2d6e7117d2fad24e",
+      "sha256": "084f58d4f9d00ff7f222f3cc01f95f9f19544e98de3c9f876fbcd709b530c966",
       "exports": [
-        "HttpChatMaterialsRegistrationOptions",
-        "HttpChatRegistrationOptions",
-        "HttpInstallationData",
-        "HttpOriginalMaterials",
-        "ModelProviderRegistration",
-        "OriginalBody",
-        "OriginalReadInstallationData",
-        "ProjectionLimits",
-        "QuantityCapacity",
-        "RequestLimits",
-        "ResponseLimits",
-        "Sha256Cid",
-        "createInstalledHttpChatRegistration"
+        "fixedInferResponseLimits",
+        "readBoundedInferResponse"
       ],
       "operations": [
         {
-          "name": "<call>",
+          "name": "fixedInferResponseLimits",
           "parameters": [
-            "runtime: unknown"
+            "{ maxBytes, maxChunkBytes, maxChunks, observedHeaders, maxHeaderBytes, }: ResponseLimits"
           ],
-          "result": "readonly Readonly<Record<string, unknown>>[]"
+          "result": "Readonly<ResponseLimits> & {\n    observedHeaders: readonly string[];\n}"
         },
         {
-          "name": "<call>#2",
-          "parameters": [],
-          "result": "boolean"
-        },
-        {
-          "name": "<call>#3",
-          "parameters": [],
-          "result": "string"
-        },
-        {
-          "name": "<call>#4",
+          "name": "PhysicalResponse/get",
           "parameters": [
-            "facts: unknown"
+            "name: string"
           ],
+          "result": "unknown"
+        },
+        {
+          "name": "PhysicalResponse/getReader",
+          "parameters": [],
+          "result": "ReaderPort"
+        },
+        {
+          "name": "readBoundedInferResponse",
+          "parameters": [
+            "response: PhysicalResponse",
+            "inputLimits: ResponseLimits",
+            "signal?: AbortSignal"
+          ],
+          "result": "Promise<Readonly<{\n    status: number;\n    headers: readonly (readonly [string, string])[];\n    body: Uint8Array<ArrayBuffer>;\n    observedBytes: number | undefined;\n    transportComplete: true;\n    issue: undefined;\n    readerRetirement: Promise<boolean>;\n    retryReaderRetirement: () => Promise<boolean>;\n}> | Readonly<{\n    status: number;\n    headers: readonly (readonly [string, string])[];\n    body: Uint8Array<ArrayBuffer>;\n    observedBytes: number | undefined;\n    transportComplete: false;\n    issue: string;\n    readerRetirement: Promise<boolean>;\n    retryReaderRetirement: () => Promise<boolean>;\n}>>"
+        },
+        {
+          "name": "readBoundedInferResponse/<call>",
+          "parameters": [],
+          "result": "Promise<boolean>"
+        },
+        {
+          "name": "readBoundedInferResponse/<call>#2",
+          "parameters": [],
+          "result": "Promise<boolean>"
+        },
+        {
+          "name": "ReaderPort/cancel",
+          "parameters": [],
+          "result": "unknown"
+        },
+        {
+          "name": "ReaderPort/read",
+          "parameters": [],
+          "result": "{\n        done?: unknown;\n        value?: unknown;\n    } | PromiseLike<{\n        done?: unknown;\n        value?: unknown;\n    }>"
+        },
+        {
+          "name": "ReaderPort/releaseLock",
+          "parameters": [],
+          "result": "void"
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "role": "physical-io",
+      "owner": "Emitted declarations for the checked Local Model physical bounded response reader",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fixedInferResponseLimits",
+            "PhysicalResponse/get",
+            "PhysicalResponse/getReader",
+            "readBoundedInferResponse",
+            "readBoundedInferResponse/<call>",
+            "readBoundedInferResponse/<call>#2",
+            "ReaderPort/cancel",
+            "ReaderPort/read",
+            "ReaderPort/releaseLock"
+          ],
+          "exports": [
+            "fixedInferResponseLimits",
+            "readBoundedInferResponse"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/model-response-reader.mts",
+                "anchor": "export async function readBoundedInferResponse"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/model-response-reader.test.mts",
+                "anchor": "independent physical reader copies remain byte-identical to their single source"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/original-model-http-transport.d.mts",
+      "responsibilityFacet": "primary",
+      "sha256": "766b507d2842bc7c1cfab666ee383b3929fd28a527a9c2c092c0823368e0a22a",
+      "exports": [
+        "createOriginalUndiciFetch",
+        "fixedOriginalAcquisitionLimits",
+        "fixedOriginalTransportTimeouts",
+        "prepareOriginalUndiciFetch"
+      ],
+      "operations": [
+        {
+          "name": "createOriginalUndiciFetch",
+          "parameters": [
+            "{ endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts, openAICredential, registeredCredential }: {\n    endpoint: string;\n    requestLimits: RequestLimits;\n    responseLimits: ResponseLimits;\n    physicalAcquisitionLimits: unknown;\n    transportTimeouts?: unknown;\n    openAICredential?: Readonly<{\n        maxBytes: number;\n        placeholder: string;\n    }>;\n    registeredCredential?: unknown;\n}"
+          ],
+          "result": "() => never"
+        },
+        {
+          "name": "createOriginalUndiciFetch/<call>",
+          "parameters": [],
+          "result": "never"
+        },
+        {
+          "name": "fixedOriginalAcquisitionLimits",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "Readonly<PhysicalAcquisitionLimits>"
+        },
+        {
+          "name": "fixedOriginalTransportTimeouts",
+          "parameters": [
+            "value: unknown"
+          ],
+          "result": "Readonly<PhysicalTransportTimeouts> | undefined"
+        },
+        {
+          "name": "OriginalReader/cancel",
+          "parameters": [],
+          "result": "Promise<void>"
+        },
+        {
+          "name": "OriginalReader/read",
+          "parameters": [],
+          "result": "Promise<IteratorResult<unknown>>"
+        },
+        {
+          "name": "OriginalReader/releaseLock",
+          "parameters": [],
           "result": "void"
         },
         {
-          "name": "createInstalledHttpChatRegistration",
-          "parameters": [
-            "options: HttpChatRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        },
-        {
-          "name": "createInstalledHttpChatRegistration#2",
-          "parameters": [
-            "options: HttpChatMaterialsRegistrationOptions"
-          ],
-          "result": "ModelProviderRegistration"
-        }
-      ],
-      "role": "physical-io",
-      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "<call>",
-            "<call>#2",
-            "<call>#3",
-            "<call>#4",
-            "createInstalledHttpChatRegistration",
-            "createInstalledHttpChatRegistration#2"
-          ],
-          "exports": [
-            "HttpChatMaterialsRegistrationOptions",
-            "HttpChatRegistrationOptions",
-            "HttpInstallationData",
-            "HttpOriginalMaterials",
-            "ModelProviderRegistration",
-            "OriginalBody",
-            "OriginalReadInstallationData",
-            "ProjectionLimits",
-            "QuantityCapacity",
-            "RequestLimits",
-            "ResponseLimits",
-            "Sha256Cid",
-            "createInstalledHttpChatRegistration"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "model_physical_call_for_request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Physical SDK preparation only"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/provider-http/index.d.ts",
-                "anchor": "Sha256Cid"
-              },
-              {
-                "path": "packages/provider-http/index.d.ts",
-                "anchor": "ModelProviderRegistration"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "physical_equal(original.request, request)"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "ForeignSdkPreparation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/provider-http/index.d.ts",
-                "anchor": "OriginalBody"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Only its explicitly installed transport"
-              },
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "No notification, await or request construction is interposed here."
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "response loss after original request is Unknown and not retried"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "permanent preparation violation"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
-                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "Promise settles"
-              }
-            ],
-            "resources": [
-              {
-                "path": "packages/provider-http/index.d.ts",
-                "anchor": "ProjectionLimits"
-              },
-              {
-                "path": "packages/provider-http/index.d.ts",
-                "anchor": "QuantityCapacity"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "exact installed lock closure"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "options.tools !== undefined"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "real pinned SDK captures one exact original request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "actual pinned OpenAI SDK"
-              },
-              {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
-                "anchor": "no success claim"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/provider-http/index.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "2aa708876a7ec9371d3e499bba25889fda40f60b92653c0b7934758239f4e8f3",
-      "exports": [
-        "createInstalledHttpChatRegistration"
-      ],
-      "operations": [],
-      "role": "physical-io",
-      "owner": "Existing Model execution/request Owner and original Node Provider physical custody",
-      "contracts": [
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [
-            "createInstalledHttpChatRegistration"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "model_physical_call_for_request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Physical SDK preparation only"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/provider-http/index.mts",
-                "anchor": "export"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/model_execution/physical_call_request.mbt",
-                "anchor": "physical_equal(original.request, request)"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "ForeignSdkPreparation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "preparations.set(handle, state)"
-              },
-              {
-                "path": "adapters/host-common/model-response-reader.mts",
-                "anchor": "heldReader"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
-                "anchor": "Only its explicitly installed transport"
-              },
-              {
-                "path": "packages/provider-http/_internal/model-port.mts",
-                "anchor": "No notification, await or request construction is interposed here."
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "response loss after original request is Unknown and not retried"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "permanent preparation violation"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "packages/provider-ai-sdk/pending-read-cancel.test.mjs",
-                "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
-              },
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "Promise settles"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/model-response-reader.mts",
-                "anchor": "Fund the fixed backing buffer"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
-                "anchor": "these checks cannot fund or bound that first allocator"
-              }
-            ],
-            "extension": [
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "exact installed lock closure"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "options.tools !== undefined"
-              }
-            ],
-            "verification": [
-              {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
-                "anchor": "real pinned SDK captures one exact original request"
-              },
-              {
-                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
-                "anchor": "actual pinned OpenAI SDK"
-              },
-              {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
-                "anchor": "no success claim"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
-      "responsibilityFacet": "primary",
-      "sha256": "1788ee5f423211f4ffdb3bb9559e438fb97111acc9286b793dd6ad4febfb6169",
-      "exports": [
-        "createOpenAIChatProvider",
-        "createProjectOpenAIChatProvider",
-        "createRegisteredSdkProvider",
-        "createRegisteredSdkProviders"
-      ],
-      "operations": [
-        {
-          "name": "amount/amount",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "configuration/configuration",
-          "parameters": [
-            "ms"
-          ],
-          "async": false
-        },
-        {
-          "name": "configureSdkProvider/configureSdkProvider",
-          "parameters": [
-            "moon",
-            "context"
-          ],
-          "async": true
-        },
-        {
-          "name": "configureSdkProvider/configureSdkProvider/configureSdkProvider",
+          "name": "OriginalResponse/cancel",
           "parameters": [],
-          "async": false
+          "result": "Promise<void>"
         },
         {
-          "name": "createOpenAIChatProvider",
+          "name": "OriginalResponse/get",
           "parameters": [
-            "options"
+            "name: string"
           ],
-          "async": false
+          "result": "string | null"
         },
         {
-          "name": "createProjectOpenAIChatProvider",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRegisteredSdkProvider",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRegisteredSdkProviders",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders",
-          "parameters": [
-            "moon",
-            "context"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders/batch/batch",
+          "name": "OriginalResponse/getReader",
           "parameters": [],
-          "async": false
+          "result": "OriginalReader"
         },
         {
-          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
+          "name": "PhysicalTransport/bindCredential",
           "parameters": [],
-          "async": false
+          "result": "void"
         },
         {
-          "name": "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSdkProviderEntry/createSdkProviderEntry",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSdkProviderEntry/createSdkProviderEntry/createSdkProviderEntry",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSdkProviderEntry/entries/entries",
-          "parameters": [
-            "task"
-          ],
-          "async": false
-        },
-        {
-          "name": "createSdkProviderEntry/entries/entries/physical/physical",
+          "name": "PhysicalTransport/cleanup",
           "parameters": [],
-          "async": false
+          "result": "Promise<boolean>"
         },
         {
-          "name": "createSdkProviderEntry/entries/entries/rawCaptureSelection/rawCaptureSelection",
+          "name": "PhysicalTransport/finishResponse",
           "parameters": [],
-          "async": false
+          "result": "void"
         },
         {
-          "name": "data/data",
-          "parameters": [
-            "source",
-            "required",
-            "optional"
-          ],
-          "async": false
-        },
-        {
-          "name": "data/data/data",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "data/data/data#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "data/data/data#3",
-          "parameters": [
-            "key",
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "observation/observation",
+          "name": "PhysicalTransport/invoke",
           "parameters": [],
-          "async": false
+          "result": "Promise<OriginalResponse>"
         },
         {
-          "name": "observation/observation/fields/fields",
+          "name": "prepareOriginalUndiciFetch",
           "parameters": [
-            "key"
+            "fetch: unknown",
+            "input: unknown",
+            "init: OriginalRequest",
+            "responseLimits: ResponseLimits",
+            "controller?: AbortController"
           ],
-          "async": false
-        },
-        {
-          "name": "observation/observation/observation",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "observation/observation/observation#2",
-          "parameters": [
-            "field",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProvider/bindings/bindings",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProvider/bindings/bindings/bindings",
-          "parameters": [
-            "a",
-            "b"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProvider/borrow/borrow",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProvider/config/config",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProvider/config/config/validQuote/validQuote/validQuote",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProvider/prepareSdkProvider",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProvider/registeredSdk/registeredSdk",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProviderTasks/profile/profile",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProviderTasks/select/select",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProviderTasks/select/select/select",
-          "parameters": [
-            "task"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareSdkProviderTasks/selectedSdk/selectedSdk",
-          "parameters": [
-            "route"
-          ],
-          "async": false
-        },
-        {
-          "name": "requireConfigurationContext/requireConfigurationContext",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        }
-      ],
-      "role": "physical-io",
-      "owner": "Existing configured Model Host initial Resource, Common Task originals and per-Run async physical custody",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "amount/amount",
-            "configuration/configuration",
-            "configureSdkProvider/configureSdkProvider",
-            "configureSdkProvider/configureSdkProvider/configureSdkProvider",
-            "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider",
-            "createRegisteredSdkProvider",
-            "createRegisteredSdkProviders",
-            "createRegisteredSdkProviders/createRegisteredSdkProviders",
-            "createRegisteredSdkProviders/createRegisteredSdkProviders/batch/batch",
-            "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
-            "createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders/createRegisteredSdkProviders",
-            "createSdkProviderEntry/createSdkProviderEntry",
-            "createSdkProviderEntry/createSdkProviderEntry/createSdkProviderEntry",
-            "createSdkProviderEntry/entries/entries",
-            "createSdkProviderEntry/entries/entries/physical/physical",
-            "createSdkProviderEntry/entries/entries/rawCaptureSelection/rawCaptureSelection",
-            "data/data",
-            "data/data/data",
-            "data/data/data#2",
-            "data/data/data#3",
-            "observation/observation",
-            "observation/observation/fields/fields",
-            "observation/observation/observation",
-            "observation/observation/observation#2",
-            "prepareSdkProvider/bindings/bindings",
-            "prepareSdkProvider/borrow/borrow",
-            "prepareSdkProvider/config/config",
-            "prepareSdkProvider/config/config/validQuote/validQuote/validQuote",
-            "prepareSdkProviderTasks/profile/profile",
-            "prepareSdkProviderTasks/select/select",
-            "prepareSdkProviderTasks/select/select/select",
-            "requireConfigurationContext/requireConfigurationContext",
-            "prepareSdkProvider/bindings/bindings/bindings",
-            "prepareSdkProvider/prepareSdkProvider",
-            "prepareSdkProvider/registeredSdk/registeredSdk",
-            "prepareSdkProviderTasks/selectedSdk/selectedSdk"
-          ],
-          "exports": [
-            "createOpenAIChatProvider",
-            "createProjectOpenAIChatProvider",
-            "createRegisteredSdkProvider",
-            "createRegisteredSdkProviders"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-configuration.mts",
-                "anchor": "export async function installConfiguredModelProviders"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
-                "anchor": "export function createOpenAIChatProvider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
-                "anchor": "context.prepareBindingOriginals"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model.mts",
-                "anchor": "snapshotTaskInstallations"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/infer-operation.mts",
-                "anchor": "startSourceFreeSingleUnit"
-              }
-            ],
-            "failure": [
-              {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
-                "anchor": "OpenAIProviderConfigurationReused"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/model_execution/physical_preflight.mbt",
-                "anchor": "cleanup: cursor.cleanup"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-configuration.mts",
-                "anchor": "const nodes = 128n + 2048n"
-              },
-              {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
-                "anchor": "clientProgramInstalledNodeModelDeadlineCapacity"
-              },
-              {
-                "path": "src/client_local_host/model_sdk_v4_request_capacity.mbt",
-                "anchor": "installed_node_model_sdk_v4_request_capacity"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model.mts",
-                "anchor": "InstalledModelTaskProfileUnavailable"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/normal-openai-http.actual.test.mjs",
-                "anchor": "normal OpenAI factory executes two unequal Tasks through actual Host and HTTP"
-              },
-              {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
-                "anchor": "normal deadline missing invalid overflow or over-budget quote refuses before IO"
-              },
-              {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
-                "anchor": "normal binding profile and original Read recipe"
-              },
-              {
-                "path": "src/client_local_host/model_sdk_v4_request_capacity_wbtest.mbt",
-                "anchor": "SDK expected wires remain per row"
-              },
-              {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
-                "anchor": "an explicit selector binds the resolved Chat model"
-              },
-              {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
-                "anchor": "one registered batch prepares the original Tasks once with distinct binding originals"
-              }
-            ]
-          }
+          "result": "Readonly<PhysicalTransport> | undefined"
         }
       ],
       "imports": [
-        "./compiler-binding.generated.mjs",
-        "./installed-openai-chat.mjs",
-        "./original-undici-transport.mjs",
-        "node:util"
+        "../host-common/model-response-reader.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "role": "physical-io",
+      "owner": "Emitted declarations for the checked Local Model physical transport",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createOriginalUndiciFetch",
+            "createOriginalUndiciFetch/<call>",
+            "fixedOriginalAcquisitionLimits",
+            "fixedOriginalTransportTimeouts",
+            "OriginalReader/cancel",
+            "OriginalReader/read",
+            "OriginalReader/releaseLock",
+            "OriginalResponse/cancel",
+            "OriginalResponse/get",
+            "OriginalResponse/getReader",
+            "PhysicalTransport/bindCredential",
+            "PhysicalTransport/cleanup",
+            "PhysicalTransport/finishResponse",
+            "PhysicalTransport/invoke",
+            "prepareOriginalUndiciFetch"
+          ],
+          "exports": [
+            "createOriginalUndiciFetch",
+            "fixedOriginalAcquisitionLimits",
+            "fixedOriginalTransportTimeouts",
+            "prepareOriginalUndiciFetch"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/original-model-http-transport.mts",
+                "anchor": "export function prepareOriginalUndiciFetch"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/provider-ai-sdk/original-undici-transport.test.mjs",
+                "anchor": "original IO retirement keeps raw backing and SDK holding until independent cleanup"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

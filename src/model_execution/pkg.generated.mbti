@@ -109,8 +109,6 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 
 pub fn finish_model_content_bytes(ModelContentByteCheck) -> Result[ModelContentAdmission, ModelContentIssue]
 
-pub fn finish_openai_chat_sdk_v4_projection(OpenAIChatProjection, String, Int) -> Result[(String, String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
-
 pub fn funded_stopped_model_attempt_count(ModelExecution) -> Int?
 
 pub fn grow_original_model_publication_capacity(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope, Int64, Int64) -> Result[Unit, ModelExecutionIssue]
@@ -366,8 +364,6 @@ pub fn project_http_chat_request(AdmittedModelProvider, ModelRequest, String, In
 pub fn project_native_decision_answers(NativeDecisionRequest, AdmittedModelProvider, ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), NativeDecisionAnswerIssue]
 
 pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
-
-pub fn project_openai_chat_sdk_v4_request(AdmittedModelProvider, ModelRequest, String, Int, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
 
 pub fn project_original_model_capture_usage(ModelExecution, OriginalModelPublicationCapacity, VerifiedModelCapture, Int, Int64, Int64, Int) -> Result[(String, Int64, Int64), ModelExecutionIssue]
 

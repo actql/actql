@@ -7,11 +7,6 @@ export type ProjectionLimits = Readonly<{
 export type RequestLimits = Readonly<{
   maxBytes: number; maxHeaderBytes: number; maxHeaders: number;
 }>;
-/** Selected Host originals, measured in JavaScript UTF-16 code units before
- * URL/header/SDK construction. Not wire byte limits, funding or permission. */
-export type OriginalStringLimits = Readonly<{
-  maxApiKeyCodeUnits: number; maxBaseURLCodeUnits: number; maxModelIdCodeUnits: number;
-}>;
 export type ResponseLimits = Readonly<{
   maxBytes: number; maxChunkBytes: number; maxChunks: number;
   maxHeaderBytes: number; observedHeaders?: readonly string[];
@@ -35,66 +30,32 @@ export type QuantityCapacity = Readonly<{
   limits: Readonly<{tokens: bigint; costUnits: bigint; durationMs: bigint}>;
   perAttempt: Readonly<{tokens: bigint; costUnits: bigint; durationMs: bigint}>;
 }>;
-/** The installed Host supplies its actual consuming runtime, not the user. */
-export type ModelProviderRegistration =
-  (runtime: unknown) => readonly Readonly<Record<string, unknown>>[];
 /** One fresh callback per installed Host. The Host supplies both arguments;
  * applications never construct the runtime, configuration context or Resource. */
 export type ConfiguredModelProviderRegistration =
   (runtime: unknown, context: unknown) => Promise<readonly Readonly<Record<string, unknown>>[]>;
 /** Explicit trusted Host selection. Positive finite amounts are checked by
  * Common and the original Resource; these declarations do not grant capacity. */
-export type OpenAIChatProviderOptions = Readonly<{
-  providerId: string;
-  modelId: string;
-  modelSelector?: string;
-  /** Project-relative or absolute file, read through the original bounded
-   * configuration reader. Credentials are not Program or Task input. */
-  apiKeyFile: string;
-  maxSecretBytes?: number;
-  baseURL?: string;
-  /** Opt-in physical settings, fixed in the same original binding. Each must
-   * fit maxDurationMs; that check does not make idle timeouts a whole-call cap. */
-  transportTimeouts?: PhysicalTransportTimeouts;
-  generation: Readonly<{temperature: number; topP: number; maxOutputTokens: number; seed?: number}>;
-  budget: Readonly<{maxCalls: bigint; maxRows: number; maxTokens: bigint;
-    maxCostUnits: bigint; maxDurationMs: bigint}>;
-  /** Reobserved by the existing current egress admission; not an Allow cache. */
-  observeEgress: () => Readonly<{classification: string; region: string;
-    providerRetention: boolean; trainingUse: boolean}>;
-}>;
-/** Builds configured Task-specific originals with the consuming Host's Common
- * constructors and existing initial Resource. Missing backing refuses. */
-export declare function createOpenAIChatProvider(
-  options: OpenAIChatProviderOptions,
-): ConfiguredModelProviderRegistration;
-/** Selects the project's admitted default OpenAI provider and its fixed
- * OPENAI_API_KEY reference. The Host acquires it only for authorized dispatch. */
-export type ProjectOpenAIChatProviderOptions = Omit<OpenAIChatProviderOptions,
-  'providerId' | 'apiKeyFile' | 'baseURL' | 'transportTimeouts'> & Readonly<{
-  providerId?: never;
-  apiKeyFile?: never;
-  baseURL?: never;
-  transportTimeouts: PhysicalTransportTimeouts & Readonly<{callMs: number}>;
-}>;
-export declare function createProjectOpenAIChatProvider(
-  options: ProjectOpenAIChatProviderOptions,
-): ConfiguredModelProviderRegistration;
-/** Trusted generation settings for one admitted SDK route. The checked Task
- * may set max_output_tokens up to taskMaxOutputTokens. */
-export type RegisteredSdkModelGeneration = OpenAIChatProviderOptions['generation'] & Readonly<{
-  selector: string;
-  taskMaxOutputTokens: number;
-}>;
-/** Select a provider from the Host's independently admitted SDK registrations.
- * The registered route supplies its model, endpoint and credential reference. */
-export type RegisteredSdkProviderOptions = Pick<OpenAIChatProviderOptions,
-  'providerId' | 'generation' | 'budget' | 'observeEgress' | 'maxSecretBytes'> & Readonly<{
+export type RegisteredSdkProviderOptions = Readonly<{
   /** Original request_data_handling contract, checked by the same Common owner. */
   dataHandlingContractWire: string;
+  providerId: string;
+  maxSecretBytes?: number;
   /** Frozen per-route settings. Omitted routes use the Provider's defaults. */
   modelGeneration?: readonly RegisteredSdkModelGeneration[];
   transportTimeouts: PhysicalTransportTimeouts & Readonly<{callMs: number}>;
+  generation: Readonly<{temperature: number; topP: number; maxOutputTokens: number; seed?: number}>;
+  budget: Readonly<{maxCalls: bigint; maxRows: number; maxTokens: bigint;
+    maxCostUnits: bigint; maxDurationMs: bigint}>;
+  /** Reobserved by the existing current egress admission. */
+  observeEgress: () => Readonly<{classification: string; region: string;
+    providerRetention: boolean; trainingUse: boolean}>;
+}>;
+/** Trusted generation settings for one admitted SDK route. The checked Task
+ * may set max_output_tokens up to taskMaxOutputTokens. */
+export type RegisteredSdkModelGeneration = RegisteredSdkProviderOptions['generation'] & Readonly<{
+  selector: string;
+  taskMaxOutputTokens: number;
 }>;
 export declare function createRegisteredSdkProvider(
   options: RegisteredSdkProviderOptions,
@@ -104,17 +65,6 @@ export declare function createRegisteredSdkProvider(
 export declare function createRegisteredSdkProviders(
   options: readonly RegisteredSdkProviderOptions[],
 ): ConfiguredModelProviderRegistration;
-/** Original canonical bytes and claimed identity, admitted by Common only. */
-export type OriginalBody = Readonly<{wire: string; cid: Sha256Cid}>;
-/** Closed generation installation DATA. It is not a physical support grant. */
-export type OpenAIInstallationData = Readonly<{
-  builder_id: string; builder_revision: string; codec_id: string; codec_revision: string;
-  build_artifact_cid: Sha256Cid;
-  sdk: Readonly<{package_name: '@ai-sdk/openai'; version: '4.0.91'; interface: 'v4'; lock_artifact_cid: Sha256Cid}>;
-  endpoint: string; http_method: 'POST'; streaming: false;
-  validator_id: string; validator_revision: string; validator_artifact_cid: Sha256Cid;
-  completion_basis: 'generation_finish';
-}>;
 /** Finite Host-selected read declarations, not physical adequacy or loans. */
 export type OriginalReadInstallationData = Readonly<{
   bootstrap: Readonly<{bootstrapRetainedBytes: bigint; bootstrapExecutionBytes: bigint;
@@ -144,80 +94,3 @@ export type OriginalReadRecipeData =
         Readonly<{program_definition_cid?: never; parameter_values_cid?: never; barrier_cid?: never}>;
     }>;
   }>;
-/** Selected once, then admitted only when the actual Host calls registration.
- * This snapshot and its reader workspace need the original Host budget. */
-type OpenAIOriginalMaterialsCommon = Readonly<{
-  responseProfile: OriginalBody;
-  policyOriginals: Readonly<{retention: OriginalBody; metadata: OriginalBody; clock: OriginalBody; data: OriginalBody}>;
-  readerLimits: Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxMembers: number; maxWork: number}>;
-  installation: OpenAIInstallationData;
-  rawCaptureSelection: Readonly<{selectedAt: string; availableUntil: string; deleteBy: string;
-    extensionCeilingAt: string; metadataDeleteBy: string; selectionAvailable: () => boolean}>;
-}>;
-export type OpenAIOriginalMaterials = OpenAIOriginalMaterialsCommon & (
-  Readonly<{originalReadInstallation: OriginalReadInstallationData; originalReadRecipe?: never}> |
-  Readonly<{originalReadRecipe: OriginalReadRecipeData; originalReadInstallation?: never}>
-);
-export type OpenAIChatRegistrationOptions = Readonly<{
-  providerId: string; modelSelector: string; modelId: string;
-  baseURL: string; apiKey: string;
-  originalStringLimits: OriginalStringLimits;
-  taskCid: Sha256Cid; promptCid: Sha256Cid; outputSchemaCid: Sha256Cid;
-  promptPayloadWire: string;
-  /** Already selected original Host/Run installation; never reconstructed
-   * from Program fields, matching CIDs or caller-owned byte declarations. */
-  originalReadInstallation: object;
-  originalReadRecipe?: never;
-  rawCaptureSelection: object;
-  originalMaterials?: never;
-  bindingOriginals: object;
-  quantityCapacity: QuantityCapacity;
-  projectionLimits: ProjectionLimits;
-  requestLimits: RequestLimits;
-  responseLimits: ResponseLimits;
-  /** Explicit trusted physical primitive; not an ambient fallback. */
-  fetch: typeof globalThis.fetch;
-  observeAt: () => string;
-  observeEgress: (facts: unknown) => void;
-}>;
-/** Selects the existing exclusive async registration. Missing originals or
- * runtime refuse before send. No normal profile or live capability is implied. */
-export declare function createInstalledOpenAIChatRegistration(
-  options: OpenAIChatRegistrationOptions,
-): ModelProviderRegistration;
-/** Host-selected recipe; per-Program identities come from the checked Graph. */
-export type OpenAIChatRecipeRegistrationOptions =
-  Omit<OpenAIChatRegistrationOptions, 'originalReadInstallation' | 'originalReadRecipe'> &
-  Readonly<{originalReadRecipe: object; originalReadInstallation?: never}>;
-export declare function createInstalledOpenAIChatRegistration(
-  options: OpenAIChatRecipeRegistrationOptions,
-): ModelProviderRegistration;
-/** Mutually exclusive with already opaque selections. One callback per Host. */
-export type OpenAIChatMaterialsRegistrationOptions =
-  Omit<OpenAIChatRegistrationOptions, 'originalReadInstallation' | 'originalReadRecipe' | 'rawCaptureSelection' | 'originalMaterials'> &
-  Readonly<{originalMaterials: OpenAIOriginalMaterials;
-    originalReadInstallation?: never; originalReadRecipe?: never; rawCaptureSelection?: never}>;
-export declare function createInstalledOpenAIChatRegistration(
-  options: OpenAIChatMaterialsRegistrationOptions,
-): ModelProviderRegistration;
-/** Explicit selected Node22.22/Undici7.30 physical route. Reuses the same
- * original Host admissions; it is not ambient fetch, numerical funding,
- * permission or accepted live/public capability. */
-export type UndiciOpenAIChatRegistrationOptions =
-  Omit<OpenAIChatRegistrationOptions, 'fetch'> &
-  Readonly<{physicalAcquisitionLimits: PhysicalAcquisitionLimits}>;
-export declare function createInstalledUndiciOpenAIChatRegistration(
-  options: UndiciOpenAIChatRegistrationOptions,
-): ModelProviderRegistration;
-export type UndiciOpenAIChatRecipeRegistrationOptions =
-  Omit<OpenAIChatRecipeRegistrationOptions, 'fetch'> &
-  Readonly<{physicalAcquisitionLimits: PhysicalAcquisitionLimits}>;
-export declare function createInstalledUndiciOpenAIChatRegistration(
-  options: UndiciOpenAIChatRecipeRegistrationOptions,
-): ModelProviderRegistration;
-export type UndiciOpenAIChatMaterialsRegistrationOptions =
-  Omit<OpenAIChatMaterialsRegistrationOptions, 'fetch'> &
-  Readonly<{physicalAcquisitionLimits: PhysicalAcquisitionLimits}>;
-export declare function createInstalledUndiciOpenAIChatRegistration(
-  options: UndiciOpenAIChatMaterialsRegistrationOptions,
-): ModelProviderRegistration;
