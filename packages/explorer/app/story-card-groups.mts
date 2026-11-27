@@ -39,7 +39,8 @@ export function storyCardGroups(story: ExplanationStoryModel, context: Context,
     card.members.push(step);
   };
   const create = (kind: Card['kind'], id: string, primary?: Step, item?: Context[number]) => {
-    const card: Card = {kind, id, primary, item, members: []};
+    const card: Card = {kind, id, members: [],
+      ...(primary === undefined ? {} : {primary}), ...(item === undefined ? {} : {item})};
     cards.push(card);
     if (primary) attach(card, primary);
     return card;
@@ -77,8 +78,9 @@ export function storyCardGroups(story: ExplanationStoryModel, context: Context,
       const model = models.get(candidate.sourceStepId);
       if (model?.producer.state !== 'projected' || candidate.sourcePortId !== model.producer.port_id) return false;
       const inputs = incoming.get(candidate.sourceStepId), other = pair[1 - index];
-      return inputs?.length === 1 && inputs[0].sourceStepId === other.sourceStepId &&
-        inputs[0].sourcePortId === other.sourcePortId;
+      const input = inputs?.[0];
+      return inputs?.length === 1 && input !== undefined && other !== undefined &&
+        input.sourceStepId === other.sourceStepId && input.sourcePortId === other.sourcePortId;
     });
   };
   const internal = new Set<string>();

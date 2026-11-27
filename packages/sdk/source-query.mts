@@ -83,13 +83,16 @@ export function sourceQuery(startSource: Client['startSource'], ClientError: typ
     }
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
-    return submit(text, {format, parameters, signal, readOnly: true,
+    const attemptId = options.attemptId;
+    const namedRequestId = options.requestId;
+    const submissionRef = options.submissionRef;
+    const parameterDeclarations = options.parameterDeclarations;
+    const named = namedRequestId === undefined ? {} : {requestId: namedRequestId};
+    const identity = submissionRef === undefined ? named : {...named, submissionRef};
+    return submit(text, {format, parameters, ...(signal === undefined ? {} : {signal}), readOnly: true,
       ...(executionProfile === undefined ? {} : {executionProfile}),
-      ...(options.attemptId === undefined ? {} : {attemptId: options.attemptId}),
-      ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
-      ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),
-      ...(options.parameterDeclarations === undefined ? {} :
-        {parameterDeclarations: options.parameterDeclarations})});
+      ...(attemptId === undefined ? {} : {attemptId}), ...identity,
+      ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})});
   };
   try {
     admission = captureAdmission === undefined ? capture(startSource)
@@ -103,7 +106,7 @@ export function sourceQuery(startSource: Client['startSource'], ClientError: typ
   requestId = retainResult(admission)?.requestId ?? requestId ?? crypto.randomUUID();
   const query = admission.then(async execution => {
     let state;
-    try { state = await execution.wait({until: 'terminal', signal}); }
+    try { state = await execution.wait({until: 'terminal', ...(signal === undefined ? {} : {signal})}); }
     catch (cause) {
       throw executionError(ClientError, retainFailure, 'QueryObservationUnknown', execution,
         requestId!, undefined, cause);
@@ -119,14 +122,16 @@ export function sourceQuery(startSource: Client['startSource'], ClientError: typ
       // success nor permission to poll, resume, or submit another request.
       throw executionError(ClientError, retainFailure, code, execution, requestId!, state);
     }
-    const names = Object.keys(state.result_availability);
+    const availability = state.result_availability;
+    const names = Object.keys(availability);
     const name = selectedResult ?? (names.length === 1 ? names[0] : undefined);
-    if (name === undefined || !Object.hasOwn(state.result_availability, name)) {
+    const selected = name !== undefined && Object.hasOwn(availability, name) ? availability[name] : undefined;
+    if (name === undefined || selected === undefined) {
       throw executionError(ClientError, retainFailure, name === undefined
         ? 'ResultSelectionRequired' : 'UnknownResultName', execution,
       requestId!, state);
     }
-    if (state.result_availability[name].state !== 'available') {
+    if (selected.state !== 'available') {
       throw executionError(ClientError, retainFailure, 'ResultUnavailable', execution,
         requestId!, state);
     }

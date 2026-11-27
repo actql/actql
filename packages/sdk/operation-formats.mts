@@ -8,8 +8,11 @@ const utf8 = new TextEncoder();
 const safeJson = (value: unknown) => JSON.stringify(value).replace(
   /[<>&\u007f-\u009f\u061c\u200e\u200f\u2028-\u202e\u2066-\u2069]/gu,
   (character: string) => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
-const html = (value: string) => value.replace(/[&<>"']/gu, (character: string) =>
-  ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'} as Record<string, string>)[character]);
+const htmlEscapes: Readonly<Partial<Record<string, string>>> = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+};
+const html = (value: string) => value.replace(/[&<>"']/gu, character =>
+  htmlEscapes[character] ?? character);
 
 export function formatOperationExplanation(explanation: unknown, domain: string, options?: OperationFormatOptions): string | undefined {
   if (explanation === undefined) return undefined;
@@ -26,7 +29,7 @@ export function formatOperationExplanation(explanation: unknown, domain: string,
   try { locale = options?.locale; } catch { locale = 'en'; }
   if (!['text', 'html', 'json'].includes(format) || !Number.isSafeInteger(maxBytes) ||
       maxBytes < 1024 || maxBytes > 1048576) return undefined;
-  const presentation = getOperationPresentationInfo({locale});
+  const presentation = getOperationPresentationInfo(locale === undefined ? undefined : {locale});
   const localized = localizeOperation(snapshot, domain, {locale: presentation.locale})!;
   let output;
   if (format === 'json') output = safeJson({domain, explanation: localized, presentation});
