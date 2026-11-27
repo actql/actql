@@ -3178,6 +3178,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/initial-control-package-custody.d.cts
 /adapters/host-node/initial-control-package-custody.test.mjs
 /adapters/host-node/initial-control-package-custody.test.d.mts
+/adapters/host-node/fixtures/ordinary-undici-custody.fixture.mjs
+/adapters/host-node/fixtures/ordinary-undici-custody.fixture.d.mts
 /adapters/host-node/infer-trusted-node-preload.cjs
 /adapters/host-node/infer-trusted-node-preload.d.cts
 /adapters/host-node/infer-trusted-node-startup.test.mjs
