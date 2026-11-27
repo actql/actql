@@ -251,16 +251,24 @@ test "publisher retains original port until both exact cleanup acknowledgements"
   let request = @publication.seal_publication_contract(
     "publication_request",
     "{\"version\":\"actql-publication-request/0.1\",\"namespace_id\":\"local\",\"authority_scope_cid\":\"\{cid}\",\"run_definition_cid\":\"\{cid}\",\"inventory\":[{\"result_name\":\"answer\",\"result_definition_cid\":\"\{cid}\"}],\"publication_policy_cid\":\"\{cid}\",\"publication_target_cid\":\"\{cid}\",\"requested_at\":\"\{date}\"}",
-    4096, 32, 4,
+    4096,
+    32,
+    4,
   ).unwrap()
   let request_cid = @publication.publication_contract_identity(request)
   let attempt = @publication.seal_publication_contract(
     "publication_attempt",
     "{\"version\":\"actql-publication-attempt/0.1\",\"publication_request_cid\":\"\{request_cid}\",\"run_definition_cid\":\"\{cid}\",\"attempt_id\":\"attempt\",\"fence_cid\":\"\{cid}\",\"started_at\":\"\{date}\"}",
-    4096, 32, 4,
+    4096,
+    32,
+    4,
   ).unwrap()
   let port = @publication.install_publication_publisher_port(
-    request, attempt, cid, () => !child.closing, _ => !child.closing,
+    request,
+    attempt,
+    cid,
+    () => !child.closing,
+    _ => !child.closing,
   ).unwrap()
   child.port = Some(port)
   value.publishers[handle] = child

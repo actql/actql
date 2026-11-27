@@ -108,7 +108,9 @@ test "Group normalization retains original argument completion and unsupported r
     _issue_prepared_client_legacy_local_normalization(unsupported_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(unsupported_relation.local_normalization is NormalizationNotIssued)
+  assert_true(
+    unsupported_relation.local_normalization is NormalizationNotIssued,
+  )
 }
 
 ///|

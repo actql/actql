@@ -246,11 +246,12 @@ pub fn close_restoration(nonce : Int64, handle : Int) -> Int {
     return -9
   }
   let program = match record.outcome {
-    Some(Ok(materials)) => Some(
-      @host.client_task_run_materials_retained_program(
-        @host.client_task_run_materials_retained_input(materials),
-      ),
-    )
+    Some(Ok(materials)) =>
+      Some(
+        @host.client_task_run_materials_retained_program(
+          @host.client_task_run_materials_retained_input(materials),
+        ),
+      )
     _ => None
   }
   if program is Some(program) &&

@@ -343,19 +343,27 @@ test "Retire exact issued or restored Local normalization after preparation clea
     assert_false(prepared_client_local_normalization_retirement_matches(copied))
     retire_prepared_client_local_normalization_after_cleanup(copied)
     assert_true(prepared_client_local_normalization_original(copied) is Some(_))
-    assert_true(prepared_client_local_normalization_evidence(owner, original) is Ok(_))
+    assert_true(
+      prepared_client_local_normalization_evidence(owner, original) is Ok(_),
+    )
     assert_true(prepared_client_local_normalization_retirement_matches(owner))
     retire_prepared_client_local_normalization_after_cleanup(owner)
     assert_true(prepared_client_local_normalization_original(owner) is None)
     assert_true(
-      prepared_client_local_normalization_evidence(owner, original) is Err(ForeignPreparation),
-    )
-    assert_true(issue_prepared_client_local_normalization(owner) is Err(ForeignPreparation))
-    assert_true(
-      admit_prepared_client_local_normalization(audit, wire) is Err(ForeignPreparation),
+      prepared_client_local_normalization_evidence(owner, original)
+      is Err(ForeignPreparation),
     )
     assert_true(
-      finish_prepared_client_local_normalization(audit) is Err(ForeignPreparation),
+      issue_prepared_client_local_normalization(owner)
+      is Err(ForeignPreparation),
+    )
+    assert_true(
+      admit_prepared_client_local_normalization(audit, wire)
+      is Err(ForeignPreparation),
+    )
+    assert_true(
+      finish_prepared_client_local_normalization(audit)
+      is Err(ForeignPreparation),
     )
     assert_true(prepared_client_local_normalization_retirement_matches(owner))
     retire_prepared_client_local_normalization_after_cleanup(owner)
