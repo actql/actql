@@ -338,9 +338,9 @@ const mutations = [
     "if (requested === 'ja' || requested === 'ja-JP')\n            locale = 'ja';",
     "locale = 'ja';", 'check-locale-fallback', 'check-locale-fallback'],
   ['check locale reads copied observation fields after locale lookup',
-    "const report = reportExplanation(outcome.report, 'complete');\n        const [summary, hint] = localizeCheck(`completed.${report.verdict}`, explanations[report.verdict], options);",
+    "const report = reportExplanation(outcome.report, 'complete');\n        const [summary, hint] = localizeCheckPair(`completed.${report.verdict}`, explanations[report.verdict], options);",
     "const verdict = outcome.report.verdict;\n" +
-      "    const [summary, hint] = localizeCheck(`completed.${verdict}`,\n" +
+      "    const [summary, hint] = localizeCheckPair(`completed.${verdict}`,\n" +
       "      explanations[verdict], options);\n" +
       "    const report = reportExplanation(outcome.report, 'complete');",
     'check-locale-snapshot', 'check-locale-snapshot', [], 'packages/sdk/check-presentation.mjs'],
