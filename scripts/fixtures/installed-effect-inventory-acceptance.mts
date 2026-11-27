@@ -15,7 +15,7 @@ import {commentSends, graphqlRoute} from
 
 import type {KeyObject} from 'node:crypto';
 import type {AddressInfo} from 'node:net';
-import type {Client, Execution, RunReference, SubmissionReference, connect} from '../../packages/sdk/index.mjs';
+import type {Client, Execution, RunReference, SignedCheckpointAnswer, SubmissionReference, connect} from '../../packages/sdk/index.mjs';
 import type {publishEffect} from '../../packages/local-node/index.js';
 import type {openInstalledRemoteHttpHost} from '../../packages/local-node/http-host.js';
 
@@ -38,12 +38,22 @@ type Installation = Provider & Readonly<{
 type WaitingStatus = Readonly<{status: string; control?: Readonly<{physical_stop?: string}>}>;
 type Phase = 'original' | 'restarted';
 type Close = () => unknown;
-type AcceptanceHost = {as(token?: string): Promise<Client>; close(): Promise<void>};
+type AcceptanceHost = {endpoint: string; as(token?: string): Promise<Client>; close(): Promise<void>};
 type HostOptions = Readonly<{singular?: boolean; directory?: string}>;
 type ReviewRead = Readonly<{client: Client; phase: Phase; original: SavedRun;
   expectedRows: readonly CapturedRow[]; expectedRunId: string}>;
+type CheckpointSummary = Awaited<ReturnType<Client['checkpoints']>>['items'][number];
+type CliHandoff = Readonly<{
+  sign(summary: CheckpointSummary, signer: {keyId: string; reviewerId: string;
+    authorityScopeCid: string; sign(bytes: Uint8Array): Uint8Array}): Promise<SignedCheckpointAnswer>;
+  resolve(options: {endpoint: string; caPath: string; token: string;
+    answer: SignedCheckpointAnswer}): Promise<unknown>;
+  observe(options: {endpoint: string; caPath: string; token: string; runRef: RunReference;
+    operation: 'status' | 'read'}): Promise<unknown>;
+}>;
 type AcceptancePorts = Readonly<{connect: Connect; openInstalledRemoteHttpHost: OpenHost;
-  publishEffect: PublishEffect; profile?: 'inventory' | 'observability' | 'checkpoint-review';
+  publishEffect: PublishEffect; profile?: 'inventory' | 'observability' | 'checkpoint-review' | 'cli-handoff';
+  cliHandoff?: CliHandoff;
   observeWaitingCheckpoint?: (request: ReviewRead) => unknown}>;
 type SecretScope = Readonly<{siteKey: string; resourceOrigin: string;
   namespaceId: string; connectorRegistration: string}>;
@@ -171,11 +181,12 @@ function program(mappings: readonly Mapping[], rows: readonly CapturedRow[]) {
 
 export async function runInstalledEffectInventoryAcceptance({connect,
   openInstalledRemoteHttpHost, publishEffect, profile = 'inventory',
-  observeWaitingCheckpoint}: AcceptancePorts) {
-  assert.ok(['inventory', 'observability', 'checkpoint-review'].includes(profile));
+  observeWaitingCheckpoint, cliHandoff}: AcceptancePorts) {
+  assert.ok(['inventory', 'observability', 'checkpoint-review', 'cli-handoff'].includes(profile));
   if (profile === 'checkpoint-review') {
     assert.equal(typeof observeWaitingCheckpoint, 'function');
   } else assert.equal(observeWaitingCheckpoint, undefined);
+  assert.equal(cliHandoff !== undefined, profile === 'cli-handoff');
   // Telemetry acceptance reuses the real lifecycle without repeating the
   // independent provider-position matrix or legacy installation control.
   const selectedSuccesses = profile === 'inventory' ? successes : [successes[0]];
@@ -280,7 +291,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
         principalId: 'inventory-reviewer-principal', publicKey: pem(reviewerKeys.publicKey)}],
       reviewReaders: ['inventory-reviewer-principal'],
       hostKey: {keyId: 'inventory-host-key', privateKey: pem(hostKeys.privateKey)},
-      leaseMs: 10_000, resumeAfterAnswer: false};
+      leaseMs: 10_000, resumeAfterAnswer: profile === 'cli-handoff'};
     async function openHost(order: readonly number[], {singular = false, directory = hostRoot}: HostOptions = {}): Promise<AcceptanceHost> {
       // The plural fixture always supplies both slots; map preserves their order and count.
       const host = await openInstalledRemoteHttpHost({directory,
@@ -299,9 +310,10 @@ export async function runInstalledEffectInventoryAcceptance({connect,
         await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
       });
       const clients: (() => Promise<void>)[] = [];
-      return {async as(token = 'synthetic-owner-token') {
+      const endpoint = `https://127.0.0.1:${(server.address() as AddressInfo).port}/`;
+      return {endpoint, async as(token = 'synthetic-owner-token') {
         const client = await connect({mode: 'remote', durability: 'durable', token,
-          endpoint: `https://127.0.0.1:${(server.address() as AddressInfo).port}/`});
+          endpoint});
         clients.push(own(() => client.close()));
         return client;
       }, async close() {
@@ -411,6 +423,64 @@ export async function runInstalledEffectInventoryAcceptance({connect,
           waitingRuns: 1, answers: 0, resumes: 0,
           callbackCounts: {dispatch: counts.dispatch, secrets: [...counts.secrets]},
           providerSends: installations.map(item => commentSends(item.api).length)};
+      }
+      if (cliHandoff !== undefined) {
+        const saved = JSON.parse(await readFile(path, 'utf8')) as SavedRun;
+        const execution = await original(await first.as(), saved);
+        const waiting = await waitForInstalledCheckpointPhysicalStop(execution);
+        const token = 'synthetic-reviewer-token';
+        const checkpointId = waiting.checkpoint?.checkpoint_id;
+        assert.ok(checkpointId);
+        const reviewer = await first.as(token);
+        const [checkpoint, ...extras] = (await reviewer.checkpoints({checkpointId})).items;
+        assert.ok(checkpoint);
+        assert.deepEqual(extras, []);
+        assert.equal(checkpoint.kind, 'effect_set');
+        assert.equal(checkpoint.checkpointId, checkpointId);
+        const review = await reviewer.reviewCheckpoint(checkpoint);
+        assert.equal(review.checkpointCid, checkpoint.checkpointCid);
+        assert.equal(review.artifactCid, checkpoint.reviewProjectionCid);
+        assert.match(Buffer.from(review.bytes).toString('utf8'), /alpha forward/u);
+        const observe = {caPath: tls.caPath, token: 'synthetic-owner-token', runRef: saved.runRef};
+        const cliWaiting = await cliHandoff.observe({...observe, endpoint: first.endpoint, operation: 'status'});
+        assert.deepEqual(cliWaiting, waiting);
+        const answer = await cliHandoff.sign(checkpoint,
+          {...signer, authorityScopeCid: saved.runRef.authorityScopeCid});
+        const options = {endpoint: first.endpoint, caPath: tls.caPath, token, answer};
+        const resolution = JSON.parse(answer.resolutionWire);
+        const acknowledged = (status: 'committed' | 'duplicate') => ({results: [{
+          checkpointCid: answer.checkpointCid, resolutionCid: resolution.resolution_cid,
+          decision: 'approved', status,
+        }]});
+        assert.equal((await execution.status()).status, 'waiting_checkpoint');
+        assert.equal(commentSends(selected.api).length, sentBefore);
+        assert.deepEqual(await cliHandoff.resolve(options), acknowledged('committed'));
+        const state = await waitFor(async () => {
+          const current = await execution.status();
+          return terminal.includes(current.status) ? current : undefined;
+        });
+        assert.equal(state.status, 'succeeded', JSON.stringify(state));
+        assert.equal(state.run_id, waiting.run_id);
+        assert.deepEqual(execution.ref, saved.runRef);
+        assert.deepEqual(await execution.result('answer').all(), expected.result);
+        assertCommentTransmission(selected, sentBefore, expected.variables, expected.comment,
+          commentMarkers);
+        assert.deepEqual(await cliHandoff.resolve(options), acknowledged('duplicate'));
+        await first.close();
+        const settled = observation(expected.selected);
+        const repeated = await finishAfterRestart(path, expected.order, 'succeeded');
+        assert.equal(repeated.state.run_id, waiting.run_id);
+        assert.deepEqual(await repeated.execution.result('answer').all(), expected.result);
+        assert.deepEqual(await cliHandoff.observe({...observe,
+          endpoint: repeated.host.endpoint, operation: 'read'}), expected.result);
+        await repeated.host.close();
+        assert.deepEqual(observation(expected.selected), settled);
+        assert.equal(settled.sends - sentBefore, 1, 'the original Effect is sent once');
+        assert.deepEqual(observation(unselected), untouched);
+        return {profile, runId: waiting.run_id, runRef: saved.runRef, submissionRef: saved.submissionRef,
+          checkpointCid: answer.checkpointCid, resolutionCid: resolution.resolution_cid,
+          decisions: ['committed', 'duplicate'], sends: 1, cliStatus: 'waiting_checkpoint', cliColdRead: true,
+          rows: expected.result, hostReopened: true, hostCloseReturned: true};
       }
       await first.close();
       const reversed = [...expected.order].reverse();

@@ -91,8 +91,27 @@ connection, token and mTLS options on each command. See the
    never received the original. Keep the reference and attempt for recovery,
    and use lookup without resending the submission.
 
-To submit a decision that has already been signed for an exact Checkpoint,
-pass its original single signed answer to the same HTTPS Host:
+For a Run started by the Node SDK, save its original `execution.ref` as
+`run.json`. An authorized CLI caller can use `status --ref-file run.json`,
+even while the Run waits at a Checkpoint. The Run ID printed in status is not
+itself a reference file.
+
+From the review application, select the exact Checkpoint with
+`client.checkpoints({checkpointId})` and inspect its bound projection with
+`client.reviewCheckpoint(checkpoint)`. After the reviewer decides, use the
+application's Host-configured reviewer signer:
+
+```js
+import {signCheckpointAnswer} from '@actql/node';
+import {writeFile} from 'node:fs/promises';
+
+const answer = await signCheckpointAnswer(checkpoint, 'approved', signer);
+await writeFile('answer.json', JSON.stringify(answer), {flag: 'wx', mode: 0o600});
+```
+
+The helper signs an answer without sending it or transferring key custody.
+For an Effect approval the signer uses the original Run's authority scope.
+Pass the original single signed answer to the same HTTPS Host:
 
 ```text
 actql --mode remote <Host connection options> resolve --signed-answer-file answer.json

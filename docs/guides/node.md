@@ -194,6 +194,14 @@ A configured application signer can be passed as `{signer}` to
 See [Effects and approvals](effects-and-approvals.md#approving-and-rejecting)
 for the Host policy and signer requirements.
 
+For a review application that delegates delivery to another process,
+`signCheckpointAnswer(checkpoint, decision, signer)` signs the exact listed
+Checkpoint without sending it to any Host. Read the review before signing.
+For an Effect approval pass the original Run's `authorityScopeCid` in the
+signer. Retain the original answer and hand it to the authorized
+[Remote CLI](../cli.md#share-one-authenticated-remote-host) connected to the
+same Host. A local signature alone is not authorization or acceptance.
+
 ## Attaching to a Run
 
 A Run outlives the process that started it. From any process, with the same

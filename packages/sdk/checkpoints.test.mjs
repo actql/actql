@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash, createPrivateKey, generateKeyPairSync, sign, verify} from
   'node:crypto';
 import {readFileSync} from 'node:fs';
-import {connect, ClientError, RequestHeld, getSubmissionInput, explainSubmission} from './index.mjs';
+import {connect, ClientError, RequestHeld, getSubmissionInput, explainSubmission, signCheckpointAnswer} from './index.mjs';
 import {canonicalJson, contentCid, signedAnswer} from './checkpoints.mjs';
 
 const vectors = JSON.parse(readFileSync(new URL(
@@ -70,6 +70,27 @@ test('Client canonical CIDs and signatures follow the pinned vectors',
     assert.equal(canonicalJson({b: 'é', a: [1, true, null]}),
       '{"a":[1,true,null],"b":"é"}');
   });
+
+test('Public sign-only Checkpoint answer never contacts the Host', async t => {
+  t.mock.timers.enable({apis: ['Date'], now: new Date('2026-09-26T12:00:00.000Z')});
+  const fetch = t.mock.method(globalThis, 'fetch', () => {
+    assert.fail('Signing must not initiate any Host operation');
+  });
+  let signatures = 0;
+  const answer = await signCheckpointAnswer(summary, 'rejected', {...signer,
+    sign(bytes) {signatures++; return signer.sign(bytes);}});
+  const resolution = JSON.parse(answer.resolutionWire);
+  assert.equal(answer.checkpointCid, summary.checkpointCid);
+  assert.equal(resolution.decision, 'rejected');
+  assert.equal(resolution.checkpoint_id, summary.checkpointId);
+  assert.equal(signatures, 1);
+  assert(Object.isFrozen(answer));
+  await assert.rejects(signCheckpointAnswer(summary, 'submit', signer),
+    /InvalidCheckpointDecision/);
+  await assert.rejects(signCheckpointAnswer(summary, 'approved', {...signer, sign: () => 'AA=='}),
+    /InvalidCheckpointSignature/);
+  assert.equal(fetch.mock.callCount(), 0);
+});
 
 test('Checkpoint signer output uses canonical Base64 of exactly 64 Ed25519 bytes',
   async () => {
