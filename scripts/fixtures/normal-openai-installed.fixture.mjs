@@ -414,7 +414,18 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   if (!google) assert.equal(body.model, resolvedModelId);
   assert.notEqual(body.stream, true);
   let schema, promptText;
-  if (anthropic) {
+  if (directHttp) {
+    const expectedSchema = {additionalProperties: false, properties: {answer: {type: 'boolean'}},
+      required: ['answer'], type: 'object'};
+    assert.equal(wire, JSON.stringify({max_tokens: 100, messages: [
+      {content: 'Return the exact boolean.', role: 'system'},
+      {content: '{"text":"first"}', role: 'user'},
+    ], model: 'fixture-chat', n: 1, response_format: {
+      json_schema: {name: 'actql_output', schema: expectedSchema, strict: true}, type: 'json_schema',
+    }, stream: false, temperature: 0, top_p: 1}), 'The direct HTTP request must match the canonical Chat profile');
+    schema = body.response_format.json_schema.schema;
+    promptText = body.messages[1].content;
+  } else if (anthropic) {
     assert.equal(body.output_config.format.type, 'json_schema');
     assert.equal(body.output_config.format.schema.properties[index === 0 ? 'answer' : 'label'].type,
       index === 0 ? 'boolean' : 'string');
