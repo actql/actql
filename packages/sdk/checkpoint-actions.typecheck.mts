@@ -1,12 +1,17 @@
-import {connectInProcess as rootConnectInProcess} from '@actql/sdk';
+import {signCheckpointAnswer, connectInProcess as rootConnectInProcess} from '@actql/sdk';
 import {connectInProcess as hostConnectInProcess} from '@actql/sdk/host-port';
-import type {CheckpointSigner, Client, Execution, RunState} from '@actql/sdk';
+import type {CheckpointSigner, CheckpointSummary, SignedCheckpointAnswer, Client, Execution, RunState} from '@actql/sdk';
 import type {InProcessHostPort} from '@actql/sdk/host-port';
 import type {WireRunState} from '@actql/client-wire';
 
 declare const client: Client;
 declare const execution: Execution;
 declare const signer: CheckpointSigner;
+declare const summary: CheckpointSummary;
+const answer: SignedCheckpointAnswer = await signCheckpointAnswer(summary, 'approved', signer);
+void answer;
+// @ts-expect-error The sign-only helper accepts decision values, not operations.
+await signCheckpointAnswer(summary, 'approve', signer);
 const state = await execution.wait();
 if (state.status === 'waiting_checkpoint' && state.checkpoint !== undefined) {
   await client.approve(state.checkpoint.id);

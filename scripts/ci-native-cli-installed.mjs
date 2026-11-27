@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {copyFile, mkdir, readFile, readdir, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildNativeCliArtifact} from './native-cli-artifact.mjs';
 import {prepareNativeCliRelease, verifyNativeCliRelease} from './native-cli-release.mjs';
@@ -162,6 +162,21 @@ export async function acceptInstalledNativeCli(directory) {
       {cwd: host, env: authorizationEnv});
     await run(process.execPath, [join(repository, 'scripts/test-native-client.mjs')],
       {cwd: repository, env: {...env, ACTQL_TEST_NATIVE_CLIENT_BINARY: binary}});
+    // Reuse the same installed SDK, Host and npm launcher. Only synthetic
+    // provider fixtures and signing support cross the checkout boundary.
+    for (const relative of [
+      'scripts/fixtures/packed-native-checkpoint-handoff.mjs',
+      'scripts/fixtures/installed-effect-inventory-acceptance.mjs',
+      'adapters/site-node/https-exchange-fixture.mjs',
+      'adapters/connectors/github/test/github-graphql.fixture.mjs',
+    ]) {
+      const target = join(host, relative);
+      await mkdir(dirname(target), {recursive: true});
+      await copyFile(join(repository, relative), target);
+    }
+    await run(process.execPath, ['scripts/fixtures/packed-native-checkpoint-handoff.mjs', launcher],
+      {cwd: host});
+    const checkpointHandoff = JSON.parse(await readFile(join(host, 'native-checkpoint-handoff.json'), 'utf8'));
     const sharedSource = [];
     for (const scenario of sharedHostSourceScenarios) {
       const outputRoot = join(root, `shared-source-${scenario}`);
@@ -186,11 +201,12 @@ export async function acceptInstalledNativeCli(directory) {
         nodeFreeBinary: JSON.parse(await readFile(join(host, 'native-host-acceptance.json'), 'utf8')),
         npmLauncher: JSON.parse(await readFile(join(launcherHost, 'native-host-acceptance.json'), 'utf8')),
         authorization,
+        checkpointHandoff,
         sharedSource,
       },
       scope: ['fresh npm installation', 'npm launcher Remote real Host', 'finite Account refusals',
         'Node-free installed executable', 'closed state descriptors', 'unavailable Local init leaves no files',
-        'original Native Client mTLS and contract corpus'],
+        'original Native Client mTLS and contract corpus', 'original SDK Checkpoint resolved by installed CLI'],
       unverified: ['Linux Local execution', 'mock workflow execution', 'other platforms']};
   } catch (error) {failure = error; rejected = true;}
   try {await registry.close();}

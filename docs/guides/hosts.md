@@ -100,9 +100,12 @@ application's `.actql-node` independent. Current Local ownership does not
 establish CLI/SDK persistence compatibility, and selecting a directory does
 not convert its format. Connecting multiple clients to one already configured
 Host requires its supported transport and authorization, rather than direct
-directory access. The
-code-started Run to CLI approval workflow remains separate interoperability
-work, tracked in [#3641](https://github.com/actql/actql/issues/3641).
+directory access. For an SDK-started Run, pass its original Run reference to
+the CLI for Remote status or Result reads. To hand off an exact decision
+already signed by an authorized reviewer, use
+[Remote Checkpoint resolution](../cli.md#share-one-authenticated-remote-host).
+This is not approval by a bare Run ID, and neither client opens the other
+client's directory.
 
 ## Connections and credentials
 
