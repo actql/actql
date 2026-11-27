@@ -1383,7 +1383,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d81ab3b4e8e841fd134eef7d0ec4d5fecba2dd8da2c16e5f0d5b72f4d95e1e7c",
+      "sha256": "5270dd4643be4887a01d8a788cb517b2f6d141792cb465648692305caaf4a3fc",
       "exports": [
         "bindSdkTransportCredential",
         "cancelSdkPreparation",
@@ -1914,7 +1914,7 @@
       ],
       "imports": [
         "./bounded-response.mjs",
-        "./original-undici-transport.mjs",
+        "./local-model-http-transport.mjs",
         "node:crypto"
       ]
     },
@@ -2570,7 +2570,7 @@
               },
               {
                 "path": "packages/provider-ai-sdk/_internal/openai-responses.mts",
-                "anchor": "unboundOpenAICredential, fetch"
+                "anchor": "apiKey: credentialBinding.placeholder, fetch"
               }
             ],
             "synchronization": [
@@ -3480,7 +3480,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55ecb8c926f4826cb0abdc6b5fff44a8217ec74b5b0c952394c360ed51883b4e",
+      "sha256": "8ebea6779383548d595dc85d8fa315a30deb95c30570f0e2943acf1686f1d87d",
       "exports": [
         "createRegisteredSdkProvider",
         "createRegisteredSdkProviders"
@@ -3845,7 +3845,7 @@
               },
               {
                 "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
-                "anchor": "an explicit selector binds the resolved Chat model"
+                "anchor": "the same selected Chat alias binds a different physical model in the configuration"
               },
               {
                 "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
@@ -3859,7 +3859,6 @@
         "./compiler-binding.generated.mjs",
         "./installed-openai-chat.mjs",
         "./local-model-http-transport.mjs",
-        "./openai-chat.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -3868,7 +3867,7 @@
     {
       "module": "adapters/host-node/original-model-http-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0fba07fe25b5ccfbd76f36862a63084b1e82dc08667ff58e45ffc7c9e9248676",
+      "sha256": "6db5c7a57a5c4e279b34104e5dddeffd19c9fef04e591b0e71f518e0cb68f226",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
@@ -3896,7 +3895,6 @@
             "responseLimits",
             "physicalAcquisitionLimits",
             "transportTimeouts",
-            "openAICredential",
             "registeredCredential"
           ],
           "async": false
@@ -4309,8 +4307,8 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "options.tools !== undefined"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "options.tools !== undefined || options.toolChoice !== undefined"
               }
             ],
             "verification": [
@@ -4627,8 +4625,8 @@
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
-                "anchor": "options.tools !== undefined"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "options.tools !== undefined || options.toolChoice !== undefined"
               }
             ],
             "verification": [
@@ -4801,7 +4799,7 @@
     {
       "module": "adapters/host-node/original-model-http-transport.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "766b507d2842bc7c1cfab666ee383b3929fd28a527a9c2c092c0823368e0a22a",
+      "sha256": "08ec648cdc51167e5def9429fba394b62b2205c28b97ea631c3892a088f5ea32",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
@@ -4812,7 +4810,7 @@
         {
           "name": "createOriginalUndiciFetch",
           "parameters": [
-            "{ endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts, openAICredential, registeredCredential }: {\n    endpoint: string;\n    requestLimits: RequestLimits;\n    responseLimits: ResponseLimits;\n    physicalAcquisitionLimits: unknown;\n    transportTimeouts?: unknown;\n    openAICredential?: Readonly<{\n        maxBytes: number;\n        placeholder: string;\n    }>;\n    registeredCredential?: unknown;\n}"
+            "{ endpoint, requestLimits, responseLimits, physicalAcquisitionLimits, transportTimeouts, registeredCredential }: {\n    endpoint: string;\n    requestLimits: RequestLimits;\n    responseLimits: ResponseLimits;\n    physicalAcquisitionLimits: unknown;\n    transportTimeouts?: unknown;\n    registeredCredential?: unknown;\n}"
           ],
           "result": "() => never"
         },

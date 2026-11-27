@@ -163,16 +163,24 @@ function directObservation(caseId, phase) {
   const unknown = lost || partial;
   const count = cold ? 0 : 1;
   const resolved = !cold && !lost ? 1 : 0;
+  const originalRunDefinitionCid = 'sha256:' + (lost ? '1' : partial ? '0' : '2').repeat(64);
+  const originalAuthorityScopeCid = 'sha256:' + '3'.repeat(64);
+  const text = {type: 'string', nullable: false};
+  const directResult = {ref: {namespaceId: 'local', authorityScopeCid: originalAuthorityScopeCid,
+    runDefinitionCid: originalRunDefinitionCid}, resultName: 'answer',
+    columns: [{name: 'id', contract: text}, {name: 'outcome', contract: text},
+      {name: 'value', contract: {type: 'object', nullable: true, additional_properties: false,
+        fields: {answer: {type: 'boolean', nullable: false}}}}],
+    rows: [{id: 'original-text', outcome: 'ok', value: {answer: true}}]};
   return {phase, directHttp: true, calls: count, peerTcpAccepts: count, peerTlsHandshakes: count,
     peerSocketCloses: count, modelCredentialReads: count, originalModelStarts: count,
     directDnsStarted: resolved, directDnsCompleted: resolved, peerServerName: resolved === 1 ? 'localhost' : null,
     firstCloseReturned: true, aliveScopedFD0: true,
     directDependencyClosure: {packages: 12, sha256: 'b'.repeat(64)},
-    originalRunDefinitionCid: 'sha256:' + (lost ? '1' : partial ? '0' : '2').repeat(64),
-    originalAuthorityScopeCid: 'sha256:' + '3'.repeat(64),
+    originalRunDefinitionCid, originalAuthorityScopeCid,
     originalTerminalStatus: unknown ? 'needs_reconciliation' : 'succeeded',
     ...(unknown ? {directResultRefusal: 'ResultAccessDenied',
-      ...(!cold ? {directPeerClosedBeforeFirstClose: true} : {})} : {}),
+      ...(!cold ? {directPeerClosedBeforeFirstClose: true} : {})} : {directResult}),
     ...(lost ? {directRawAbsent: true} : {}),
     directJournal: {runId: '98765432-4321-1234-abcd-1234567890ab',
       scopeCid: 'sha256:' + '6'.repeat(64), slotCid: 'sha256:' + '7'.repeat(64),
@@ -267,6 +275,12 @@ test('direct HTTPS evidence refuses missing Raw or retirement, cold credentials 
     ['direct-project', 'direct-project', {peerServerName: null}],
     ['direct-project', 'cold', {modelCredentialReads: 1}],
     ['direct-project', 'cold', {directDnsStarted: 1}],
+    ['direct-project', 'cold', {directResult: undefined}],
+    ['direct-project', 'cold', {directResult: {...directObservation('direct-project', 'cold').directResult,
+      rows: [{id: 'original-text', outcome: 'ok', value: {answer: 'true'}}]}}],
+    ['direct-project', 'cold', {directResult: {...directObservation('direct-project', 'cold').directResult,
+      columns: directObservation('direct-project', 'cold').directResult.columns.toReversed()}}],
+    ['direct-response-loss', 'cold', {directResult: directObservation('direct-project', 'cold').directResult}],
     ['direct-response-loss', 'direct-response-loss', {directDnsStarted: 1}],
     ['direct-response-loss', 'cold', {calls: 1}],
     ['direct-response-loss', 'cold', {originalTerminalStatus: 'succeeded'}],

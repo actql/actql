@@ -1506,7 +1506,7 @@ jobs:
       - name: Test original Model HTTP Common and Saved
         if: ${{ !cancelled() && steps.host-runtime-preparation.outcome == 'success' }}
         run: |
-          npm ci --prefix packages/provider-ai-sdk --ignore-scripts
+          npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps
           node scripts/build-local-node-adapters.mjs --stage-host-model-http-test
           node scripts/local-checks.mjs test node --timeout-seconds 180 --kill-grace-seconds 5 -- adapters/host-node/infer-original-http-common.test.mjs
       - name: Test bounded retained storage and process lifecycle
@@ -1636,7 +1636,7 @@ jobs:
         with:
           python: 'true'
       - name: Prepare the locked optional SDK image for the ordinary producer
-        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
+        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps
       - name: Pack the Client packages once for these jobs
         run: node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"
       - name: Pack the optional provider from the same original source
@@ -1985,7 +1985,7 @@ jobs:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
-        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
+        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps
       # Separate existing commands so ci-evidence/ci-timing can measure each
       # preparation stage. The final default-success step remains the barrier.
       - name: Build source-backed distribution runtime
@@ -2044,7 +2044,7 @@ jobs:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
-        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
+        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps
       # Separate existing commands so ci-evidence/ci-timing can measure each
       # preparation stage. The final default-success step remains the barrier.
       - name: Build source-backed distribution runtime
@@ -2276,7 +2276,7 @@ jobs:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
       - name: Install pinned AI SDK provider test dependencies
-        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
+        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps
       # Separate existing commands so ci-evidence/ci-timing can measure each
       # preparation stage. The final default-success step remains the barrier.
       - name: Build source-backed distribution runtime

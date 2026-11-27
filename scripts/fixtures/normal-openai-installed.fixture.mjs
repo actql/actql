@@ -636,7 +636,8 @@ const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'insta
 const textContract = {type: 'string', nullable: false};
 async function checkResult(run, expected, index, resultName = 'answer') {
   const result = await run.result(resultName);
-  assert.deepEqual(await result.all(), [expected]);
+  const rows = await result.all();
+  assert.deepEqual(rows, [expected]);
   const description = await result.describe();
   assert.deepEqual(description.ref, run.ref);
   assert.equal(description.resultName, resultName);
@@ -646,6 +647,7 @@ async function checkResult(run, expected, index, resultName = 'answer') {
     {name: 'value', contract: {type: 'object', nullable: true, additional_properties: false,
       fields: index === 0 ? {answer: {type: 'boolean', nullable: false}} : {label: textContract}}},
   ]);
+  return {ref: description.ref, resultName: description.resultName, columns: description.columns, rows};
 }
 const mixedCases = [
   {stage: 'first', input: ['model-task:first', 'text', 'first', 'string'],
@@ -665,7 +667,7 @@ async function checkMixedResults(run) {
 // persists only the bounded seven-field projection; it is not the old five-part
 // evidence Sink, an independent Model issuer or physical-cleanup observation.
 let originalRef, usageReceipt, originalRawArtifactCid, originalTerminalStatus;
-let directResultRefusal, directPeerClosedBeforeFirstClose;
+let directResult, directResultRefusal, directPeerClosedBeforeFirstClose;
 async function checkUnpublishedDirectResult(run, state) {
   assert.equal(state.result_available, false);
   await assert.rejects(async () => (await run.result('answer')).all(), error => {
@@ -1140,8 +1142,10 @@ try {
         const recorded = JSON.parse(await readFile('normal-diagnostic-before-assert.json', 'utf8'));
         assert.equal(recorded.dispatchFailures.length, 1);
         assert.equal(recorded.dispatchFailures[0].credentialRefusal, 'ModelProjectCredentialUnavailable');
-      } else if (!unknown) await checkResult(run, expected, index);
-      else {
+      } else if (!unknown) {
+        const observed = await checkResult(run, expected, index);
+        if (directHttp) directResult = observed;
+      } else {
         const current = await run.status();
         assert.equal(current.status, 'needs_reconciliation');
         assert.equal(current.control.cancellation_requested, enteredCancel);
@@ -1197,7 +1201,8 @@ try {
       // The original Saved Result precedes this process's first status read.
       const expected = outcomeFailure !== undefined ? {outcome: 'failed:' + outcomeFailure, value: null}
         : {outcome: 'ok', value: {answer: true}};
-      await checkResult(run, {id: 'original-text', ...expected}, 0);
+      const observed = await checkResult(run, {id: 'original-text', ...expected}, 0);
+      if (directHttp) directResult = observed;
       originalTerminalStatus = (await run.status()).status;
       assert.equal(originalTerminalStatus, 'succeeded');
     } else {
@@ -1344,6 +1349,7 @@ console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedF
     directDnsStarted, directDnsCompleted, peerServerName, originalTerminalStatus, directJournal, directDependencyClosure,
     ...(directRaw === undefined ? {} : {directRaw}),
     ...(directRawAbsent === undefined ? {} : {directRawAbsent}),
+    ...(directResult === undefined ? {} : {directResult}),
     ...(directResultRefusal === undefined ? {} : {directResultRefusal}),
     ...(directPeerClosedBeforeFirstClose === undefined ? {} : {directPeerClosedBeforeFirstClose}),
     originalAuthorityScopeCid: originalRef.authorityScopeCid,

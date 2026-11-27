@@ -260,6 +260,22 @@ export function checkPackedProviderObservation({caseId, phase, pid, originalPid,
     for (const cid of [original.scopeCid, original.slotCid, original.attemptCid]) assert.match(cid, /^sha256:[0-9a-f]{64}$/u);
     assert.equal(original.state, unknown ? 'EnteredUnknown' : 'SavedSuccess');
     assert.equal(value.directResultRefusal, unknown ? 'ResultAccessDenied' : undefined);
+    if (unknown) assert.equal(value.directResult, undefined);
+    else {
+      const result = value.directResult as {ref?: {namespaceId?: unknown}} | undefined;
+      const namespaceId = result?.ref?.namespaceId;
+      assert(typeof namespaceId === 'string' && namespaceId.length > 0);
+      const text = {type: 'string', nullable: false};
+      assert.deepEqual(result, {
+        ref: {namespaceId, authorityScopeCid: value.originalAuthorityScopeCid,
+          runDefinitionCid: value.originalRunDefinitionCid},
+        resultName: 'answer',
+        columns: [{name: 'id', contract: text}, {name: 'outcome', contract: text},
+          {name: 'value', contract: {type: 'object', nullable: true, additional_properties: false,
+            fields: {answer: {type: 'boolean', nullable: false}}}}],
+        rows: [{id: 'original-text', outcome: 'ok', value: {answer: true}}],
+      });
+    }
     assert.equal(value.directPeerClosedBeforeFirstClose, unknown && !cold ? true : undefined);
     assert.equal(value.directRawAbsent, responseLost ? true : undefined);
     if (responseLost) assert.equal(value.directRaw, undefined);
@@ -601,7 +617,7 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
         join(prepared.consumer, 'work-observation.fixture.mjs'));
       let originalPid: number | undefined, originalRunDefinitionCid: unknown, deniedRunDefinitionCid: unknown;
       let originalAuthorityScopeCid: unknown, originalDirectJournal: unknown, originalDirectDependencyClosure: unknown;
-      let originalDirectRaw: unknown;
+      let originalDirectRaw: unknown, originalDirectResult: unknown;
       let interruptionOriginal: Observation | undefined;
       let httpFailureOriginal: Observation | undefined;
       let checkpointOriginal: Observation | undefined;
@@ -669,11 +685,13 @@ export async function runPackedProviderAI(root: string, {repository = fileURLToP
               originalDirectJournal = value.directJournal;
               originalDirectDependencyClosure = value.directDependencyClosure;
               originalDirectRaw = value.directRaw;
+              originalDirectResult = value.directResult;
             } else {
               assert.equal(value.originalAuthorityScopeCid, originalAuthorityScopeCid);
               assert.deepEqual(value.directJournal, originalDirectJournal);
               assert.deepEqual(value.directDependencyClosure, originalDirectDependencyClosure);
               assert.deepEqual(value.directRaw, originalDirectRaw);
+              assert.deepEqual(value.directResult, originalDirectResult);
             }
           }
           if (direct || id === 'registered-mixed' || id === 'registered-mistral' || id === registeredResponsesCase ||

@@ -191,7 +191,7 @@ test('the original Model HTTP Common suite keeps whole-file coverage after the s
   assert.equal(gate['continue-on-error'], undefined);
   assert.equal(steps.filter(step => step.run?.includes('moon build') && step.run.includes('src/connectors_builtin_node')).length, 1);
   const commands = [
-    'npm ci --prefix packages/provider-ai-sdk --ignore-scripts',
+    'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps',
     'node scripts/build-local-node-adapters.mjs --stage-host-model-http-test',
     'node scripts/local-checks.mjs test node --timeout-seconds 180 --kill-grace-seconds 5 -- ' + common,
   ];
@@ -1276,7 +1276,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
   const toolchain = producer.steps.find(step => step.uses === './.github/actions/setup-toolchain');
   const compatTool = producer.steps.find(step => step.with?.['node-version'] === '24.21.0');
   const compat = producer.steps.find(step => step.run?.includes('ACTQL_NODE_ORDINARY_COMPATIBILITY_EXECUTABLE'));
-  const sdk = producer.steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts');
+  const sdk = producer.steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps');
   assert(toolchain && compatTool && compat && sdk);
   assert(producer.steps.indexOf(compatTool) < producer.steps.indexOf(compat));
   assert(producer.steps.indexOf(compat) < producer.steps.indexOf(toolchain));
@@ -1393,7 +1393,7 @@ test('local commands remain available for each independently retryable group', (
     const child = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'run', name, '--dry-run'], {cwd: root, encoding: 'utf8'});
     assert.equal(child.status, 0, child.stderr);
     for (const command of runs(name)) {
-      if (command === 'npm ci' || command === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts') {
+      if (command === 'npm ci' || command === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps') {
         assert(!child.stdout.includes(command), 'Local checks retain installed dependencies');
       } else assert(child.stdout.includes(name === 'client-packed'
         ? command.replace('${{ matrix.query-part }}', 'portable') : command));

@@ -1514,7 +1514,7 @@ test('pipeline evidence aggregates dependency failures but stops on workflow can
   }
 });
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
-  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-composition', 'client-salesforce']],
+  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-model-packed']],
     ['pipeline-evidence', [...Object.values(partJobs), 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
@@ -2114,9 +2114,9 @@ test('distribution isolates pinned provider tests with their required GC recipe'
     assert.equal(selected.length, 1);
     assert.equal(selected[0].if, steps.find(step => step.name === 'Test source-backed distribution contracts').if);
     assert.equal(selected[0]['continue-on-error'], undefined);
-    assert(steps.indexOf(steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts')) < steps.indexOf(selected[0]));
+    assert(steps.indexOf(steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps')) < steps.indexOf(selected[0]));
   }
-  assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts'));
+  assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps'));
   for (const step of steps.filter(step => step.run?.startsWith('node --test '))) {
     assert(!step.run.includes('packages/provider-ai-sdk/*.test.mjs'));
     assert(!step.run.includes('--expose-gc'));

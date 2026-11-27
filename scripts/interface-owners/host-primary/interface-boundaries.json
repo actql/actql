@@ -39053,7 +39053,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "846d49c45918c734e0c271bc4549c856d0f2be62e259eb0bc18b351b035e59df",
+      "sha256": "fb82a565b6467f78090ab6958dbc6a7e42ec3595ca7fe3e1813f5fa74f204fca",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -39777,6 +39777,11 @@
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor/init:project/init:project",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor/init:responseProfileFor#2",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:project/init:project",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration",
+            "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration/init:verifyChatConfiguration#2",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/material/material#2",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/projectData/projectData",
