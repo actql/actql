@@ -165,7 +165,8 @@ try {
         {...permission('fixture-raw', rawDenied ? 'deny' : 'allow', ['model_raw_capture']), principal: {any_of: [userInfo().username]},
           connection: {any_of: [providerId]}, resource: {any_of: [taskCid]}}]}),
     observe(name, detail) {events.push({name, code: detail?.code, primaryCode: detail?.primaryCode,
-      issueTag: detail?.issueTag, nestedIssueTag: detail?.nestedIssueTag});}};
+      issueTag: detail?.issueTag, nestedIssueTag: detail?.nestedIssueTag,
+      ...(name === 'model_resume_failed' ? {ref: detail?.ref} : {})});}};
   const dataHandlingContractWire = JSON.stringify({schema: 'actql.contract/0.1', id: 'openai-public-provider-contract',
     version: '1', kind: 'request_data_handling', body: {accepted_classifications: ['public'], allowed_regions: ['global'],
       retention: 'provider_contract', training_use: 'forbidden'},
