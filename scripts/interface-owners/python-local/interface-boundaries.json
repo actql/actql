@@ -76079,7 +76079,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
-                "anchor": "def test_restoring_schema_cookie_cannot_hide_ddl_from_unchanged_reader("
+                "anchor": "def test_schema_change_before_or_during_check_latches_original_failure("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
@@ -79060,7 +79060,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
-                "anchor": "def test_trace_registration_preserves_tracking_and_user_statements("
+                "anchor": "def test_observation_does_not_require_sqlite_trace("
               },
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",

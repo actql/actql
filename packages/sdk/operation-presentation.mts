@@ -16,6 +16,9 @@ type LookupInput = {lookupContext: LookupContext} & (
 type SubmissionContext = LookupInput & {submissionRef: SubmissionReference};
 type RequestContext = LookupInput & {requestId: string};
 type OwnerView = OwnerObservations['owners'][number];
+type ObservedOwnerView = Extract<OwnerView, {kind: 'observed'}>;
+type UnavailableOwnerView = Extract<OwnerView, {kind: 'unavailable'}>;
+type DisplayAdvice = readonly [string, string];
 type SnapshotProblem = Extract<OwnerView, {snapshotProblem: unknown}>['snapshotProblem'];
 interface CancellationContext {ref: RunReference; cancelRef: CancellationReference}
 type CancellationInvocation = CancellationContext & {
@@ -98,9 +101,11 @@ export function getOperationPresentationInfo(options?: OperationExplanationOptio
 }
 
 export function localizeOperation<T extends DisplayObservation>(explanation: T | undefined, domain: string,
-  options?: OperationExplanationOptions): Localized<T> | undefined {
+  options?: OperationExplanationOptions): Localized<T> | undefined;
+export function localizeOperation(explanation: DisplayObservation | undefined, domain: string,
+  options?: OperationExplanationOptions): DisplayObservation | undefined {
   if (explanation === undefined) return undefined;
-  if (getOperationPresentationInfo(options).locale !== 'ja') return explanation as Localized<T>;
+  if (getOperationPresentationInfo(options).locale !== 'ja') return explanation;
   let key = domain + '.' + (domain === 'observation' ? explanation.problem : explanation.observation);
   if ((domain === 'request' || domain === 'submission') && explanation.observation === 'request_held') {
     key = 'request.request_held.' + explanation.preparationState;
@@ -129,11 +134,11 @@ export function localizeOperation<T extends DisplayObservation>(explanation: T |
     hint = readHint;
   } else if (Object.hasOwn(summaries, key)) summary = summaries[key];
   // Missing translations retain the same safe English observation.
-  if (summary === undefined) return explanation as Localized<T>;
-  return Object.freeze({...explanation, summary, ...(hint === undefined ? {} : {hint})}) as Localized<T>;
+  if (summary === undefined) return explanation;
+  return Object.freeze({...explanation, summary, ...(hint === undefined ? {} : {hint})});
 }
 
-const ownerHistoryAdvice: Readonly<Record<string, readonly [string, string]>> = {
+const ownerHistoryAdvice: Readonly<Record<ObservedOwnerView['history']['kind'], DisplayAdvice>> = {
   not_provided: ['This Owner provides a current view without transition history.',
     'Earlier transitions are not established by the current snapshot.'],
   retention_expired: ['The Owner reports that the requested history is outside retained history.',
@@ -152,7 +157,7 @@ const ownerHistoryAdvice: Readonly<Record<string, readonly [string, string]>> = 
     'The page is not a global event order or an atomic view of other Owners. A returned cursor grants no execution or retry permission.'],
 };
 
-const ownerUnavailableAdvice: Readonly<Record<string, readonly [string, string]>> = {
+const ownerUnavailableAdvice: Readonly<Record<NonNullable<UnavailableOwnerView['problem']>['kind'], DisplayAdvice>> = {
   acquisition_failed: ['The Owner observations could not be acquired.',
     'The acquisition failure establishes no stream identity, absence or earlier outcome.'],
   limit_exceeded: ['The observation budget could not cover this Owner.',
@@ -163,14 +168,14 @@ const ownerUnavailableAdvice: Readonly<Record<string, readonly [string, string]>
     'A mismatch establishes no stream identity, absence or earlier outcome.'],
 };
 
-const ownerSnapshotAdvice: Readonly<Record<string, readonly [string, string]>> = {
+const ownerSnapshotAdvice: Readonly<Record<SnapshotProblem['kind'], DisplayAdvice>> = {
   acquisition_failed: ['The current Owner snapshot could not be acquired.',
     'Available history does not substitute for a current snapshot.'],
   limit_exceeded: ['The current Owner snapshot exceeded the observation budget.',
     'Available history does not establish a complete current view.'],
 };
 
-const advice = <T extends object>(facts: T, messages: readonly string[]) => ({...facts, summary: messages[0], hint: messages[1]});
+const advice = <T extends object>(facts: T, messages: DisplayAdvice) => ({...facts, summary: messages[0], hint: messages[1]});
 
 export const projectOwnerObservations = (answer: OwnerObservations, input: OwnerObservationsExplanation['requested'], lookupContext: LookupContext) => {
   const owners = answer.owners.map((view: OwnerView & {snapshotProblem?: SnapshotProblem}) => {
@@ -195,7 +200,7 @@ export const projectOwnerObservations = (answer: OwnerObservations, input: Owner
 
 export const projectCancellationExplanation = (result: unknown, context: CancellationContext,
   observation: Exclude<CancellationExplanation['observation'], 'refused' | 'conflict'>, revision?: number) => {
-  const summaries: Readonly<Record<string, string>> = {
+  const summaries: Readonly<Record<typeof observation, string>> = {
     accepted: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.',
     already_requested: 'The Host reports an existing Run cancellation request. Refresh Run state for physical stop, Effects and release.',
     already_terminal: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',
@@ -215,18 +220,18 @@ export const projectCancellationAttemptExplanation = (result: WireCancellationAt
     return projectCancellationExplanation(result, context,
       result.cancellation.kind, result.cancellation.revision);
   }
-  const summaries: Readonly<Record<string, string>> = result.kind === 'refused' ? {
+  const summary = result.kind === 'refused' ? ({
     authorization: 'The Host refused this cancellation invocation under current authorization. This invocation committed no cancellation and consumed no operation identity.',
     admission_capacity: 'The Host refused this cancellation invocation because admission capacity was unavailable. This invocation committed no cancellation and consumed no operation identity.',
-  } : {
+  })[result.reason] : ({
     intent: 'The Host reports a conflicting intent for this original cancellation identity.',
     control_revision: 'The Host reports a conflict with the submitted control revision for this cancellation invocation.',
-  };
+  })[result.reason];
   return freezeInput({
     observation: result.kind, reason: result.reason,
     attemptRef: context.attemptRef, cancelRef: context.cancelRef,
     ...(result.kind === 'refused' ? {guarantee: result.guarantee} : {}),
-    summary: summaries[result.reason],
+    summary,
     hint: 'Keep the original cancellation reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s outcome, grant permission to resend, or confirm physical stop, external Effects or resource release.',
     next: {operation: 'lookupCancellation', cancelRef: context.cancelRef},
   });
@@ -235,11 +240,11 @@ export const projectCancellationAttemptExplanation = (result: WireCancellationAt
 export const projectDeliveryExplanation = (answer: DeliveryAttemptLookup, next: ReadFailureExplanation['next']) => {
   const record = answer.kind === 'found' ? answer.record : null;
   const observation = answer.kind === 'not_found' ? 'lookup_unresolved' :
-    record === null ? 'attempt_recorded' : {
+    record === null ? 'attempt_recorded' : ({
       streaming: 'delivery_streaming', succeeded: 'host_delivery_succeeded',
       failed: 'delivery_failed', cancelled: 'delivery_cancelled',
-    }[record.state];
-  const summaries: Readonly<Record<string, string>> = {
+    } as const)[record.state];
+  const summaries: Readonly<Record<typeof observation, string>> = {
     lookup_unresolved: 'This lookup found no DeliveryAttempt; whether the read opened remains unresolved.',
     attempt_recorded: 'The Host recorded this DeliveryAttempt; no delivery outcome is available yet.',
     delivery_streaming: 'The Host reports that this Delivery is streaming; completion is not confirmed.',
@@ -444,17 +449,20 @@ export const projectUnavailableRunObservation = (ref: RunReference, operation: R
     hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
   });
 
+type RejectedRunObservation = Exclude<RunObservationFailureExplanation, {kind: 'unavailable'}>;
+
 export const projectRejectedRunObservation = (ref: RunReference, operation: RunObservationFailureExplanation['operation'],
-  problem: Exclude<RunObservationFailureExplanation['problem'], 'observation_unavailable'>) => {
-  const summaries: Readonly<Record<string, string>> = {
+  problem: RejectedRunObservation['problem']): RejectedRunObservation => {
+  const summaries: Readonly<Record<typeof problem, string>> = {
     unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
     contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
     malformed_response: 'The Run reply violates the registered state contract.',
     stale_observation: 'The Run reply has an older control revision or conflicts with previously observed control facts.',
   };
+  const rejected = problem === 'unknown_state'
+    ? {kind: 'uninterpretable', problem} as const : {kind: 'protocol_failure', problem} as const;
   return freezeInput({
-    kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',
-    problem, operation, summary: summaries[problem],
+    ...rejected, operation, summary: summaries[problem],
     hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
     next: {operation: 'status', ref: {...ref}},
   });
