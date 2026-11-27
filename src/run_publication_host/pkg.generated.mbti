@@ -2792,6 +2792,8 @@ pub fn prepared_client_local_normalization_evidence(PreparedClientProgram, Clien
 
 pub fn prepared_client_local_normalization_original(PreparedClientProgram) -> ClientLocalNormalization?
 
+pub fn prepared_client_local_normalization_retirement_matches(PreparedClientProgram) -> Bool
+
 pub fn prepared_client_model_measurement_storage(PreparedClientProgram, Array[ClientInferPlanGraph], ClientPureCompilationLimits) -> Result[@execution_relation.PreparationRepresentationUnits, ClientValuesExecutablePlanIssue]
 
 pub fn prepared_client_normalization_audit_data(PreparedClientProgram) -> (@lowering_relation.SequencePreparationDemand, Int64, Int)
@@ -2993,6 +2995,8 @@ pub fn retire_client_model_current_state_match(@physical_resources.OriginalCurre
 pub fn retire_client_model_resource_park(@physical_resources.OriginalResourcePark[ClientModelReadOrigin]) -> Result[Unit, ClientModelReadPreparationIssue]
 
 pub fn retire_client_project_profile(ClientProjectProfileSelection) -> Result[Unit, ClientProjectProfileIssue]
+
+pub fn retire_prepared_client_local_normalization_after_cleanup(PreparedClientProgram) -> Unit
 
 pub fn return_client_logical_task_boundary(ClientLogicalTaskBoundary) -> Result[Unit, ClientLogicalTaskBoundaryIssue]
 

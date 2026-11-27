@@ -81093,7 +81093,7 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "650c343f4be10447039ac8e84ff7f7e7ba2af9bcb0362a84781ed75950681e4a",
+      "sha256": "532c7b5814e6164b74279279492340d4ace63de37f530fbf26ab8b2bdde633d6",
       "exports": [],
       "operations": [
         {
@@ -90795,7 +90795,7 @@
           }
         }
       ],
-      "sha256": "51abc5b6e57e43c374483b108d2f26ba2a95a274c5507139dc5f21ddabc6400c",
+      "sha256": "c1ab9c74061dbd3991a182cf5b5523b2f1fd18259bfa835831eda845147b452f",
       "operations": [
         {
           "name": "authorize_publisher",

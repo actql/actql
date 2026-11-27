@@ -98,7 +98,7 @@ test "Group normalization retains original argument completion and unsupported r
     _issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
-  assert_true(implicit_else.local_normalization is None)
+  assert_true(implicit_else.local_normalization is NormalizationNotIssued)
   let unsupported_relation = local_group_original_document(
     (
       #|{"version":"actql/0.1","id":"local.unsupported-cross-join","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":1,"other":2}]},"as":"input"},{"cross_join":{"with":"input","right_rows":"one","max_output_rows":1,"select":{"id":"left.id"}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
@@ -108,7 +108,7 @@ test "Group normalization retains original argument completion and unsupported r
     _issue_prepared_client_legacy_local_normalization(unsupported_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(unsupported_relation.local_normalization is None)
+  assert_true(unsupported_relation.local_normalization is NormalizationNotIssued)
 }
 
 ///|

@@ -222,3 +222,63 @@ test "SDK RunState candidate keeps its original Run and Ledger through close ref
   assert_eq(closed.peak_retention_bytes, charged.peak_retention_bytes)
   sdk_row_original_fixture_close(value, source)
 }
+
+///|
+test "publisher retains original port until both exact cleanup acknowledgements" {
+  let (value, _, input) = sdk_row_original_fixture(33554432L)
+  let handle = 73
+  let output_closed = Ref(false)
+  let input_returned = Ref(false)
+  let output = @buffers.reserve_output_buffer(value.pool, 1, 0L, () => {
+    output_closed.val
+  }).unwrap()
+  let input_borrow = @buffers.borrow_buffer(value.pool, input, () => {
+    input_returned.val
+  }).unwrap()
+  let child : StoredPublisher = {
+    parent: 0,
+    physical: 91,
+    slot: output,
+    borrow: Ok(input_borrow),
+    configuration: 0,
+    store: "",
+    port: None,
+    closing: false,
+    unknown: false,
+  }
+  let cid = "sha256:" + "a".repeat(64)
+  let date = "2026-11-27T00:00:00.000Z"
+  let request = @publication.seal_publication_contract(
+    "publication_request",
+    "{\"version\":\"actql-publication-request/0.1\",\"namespace_id\":\"local\",\"authority_scope_cid\":\"\{cid}\",\"run_definition_cid\":\"\{cid}\",\"inventory\":[{\"result_name\":\"answer\",\"result_definition_cid\":\"\{cid}\"}],\"publication_policy_cid\":\"\{cid}\",\"publication_target_cid\":\"\{cid}\",\"requested_at\":\"\{date}\"}",
+    4096, 32, 4,
+  ).unwrap()
+  let request_cid = @publication.publication_contract_identity(request)
+  let attempt = @publication.seal_publication_contract(
+    "publication_attempt",
+    "{\"version\":\"actql-publication-attempt/0.1\",\"publication_request_cid\":\"\{request_cid}\",\"run_definition_cid\":\"\{cid}\",\"attempt_id\":\"attempt\",\"fence_cid\":\"\{cid}\",\"started_at\":\"\{date}\"}",
+    4096, 32, 4,
+  ).unwrap()
+  let port = @publication.install_publication_publisher_port(
+    request, attempt, cid, () => !child.closing, _ => !child.closing,
+  ).unwrap()
+  child.port = Some(port)
+  value.publishers[handle] = child
+  value.copies[handle] = (output, child.physical)
+  assert_eq(close_publisher(value.nonce, handle + 1), -2)
+  assert_eq(close_publisher(value.nonce, handle), -9)
+  assert_true(physical_equal(value.publishers.get(handle).unwrap(), child))
+  assert_true(physical_equal(child.port.unwrap(), port))
+  assert_true(value.copies.get(handle) is Some(_))
+  output_closed.val = true
+  assert_eq(close_publisher(value.nonce, handle), -9)
+  assert_true(physical_equal(child.port.unwrap(), port))
+  assert_true(value.copies.get(handle) is Some(_))
+  input_returned.val = true
+  assert_eq(close_publisher(value.nonce, handle), 0)
+  assert_true(child.port is None)
+  assert_true(value.publishers.get(handle) is None)
+  assert_true(value.copies.get(handle) is None)
+  assert_eq(close_publisher(value.nonce, handle), -2)
+  sdk_row_original_fixture_close(value, input)
+}

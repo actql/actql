@@ -38,7 +38,7 @@ struct PreparedClientProgram {
   source : @syntax.Program
   local_values_max_rows : Int
   sequence_preparation_demand : @lower.SequencePreparationDemand
-  mut local_normalization : ClientLocalNormalization?
+  mut local_normalization : ClientLocalNormalizationState
   full_sequences : Array[ClientFullSequence]
   task_pipeline_inputs : Array[ClientTaskPipelineRetained]
   mut compiler_contracts : ClientCompilerContracts?
@@ -2455,7 +2455,7 @@ fn compile_effect_free_checked_client_program(
       @checked.checked_environment(checked),
     ),
     source: @checked.checked_source_program(checked),
-    local_normalization: None,
+    local_normalization: NormalizationNotIssued,
     full_sequences: [],
     task_pipeline_inputs: [],
     compiler_contracts: None,

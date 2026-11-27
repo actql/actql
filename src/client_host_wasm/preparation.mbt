@@ -582,8 +582,22 @@ pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
     .any(child => child.failure_preparation == Some(handle)) {
     return -9
   }
+  // Restored preparations borrow the Program owned by the material holder.
+  let program = if record.restoration is None &&
+    record.outcome is Some(Ok(input)) {
+    Some(@preparation.local_prepared_program(input))
+  } else {
+    None
+  }
+  if program is Some(program) &&
+    !@host.prepared_client_local_normalization_retirement_matches(program) {
+    return -9
+  }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
+    if program is Some(program) {
+      @host.retire_prepared_client_local_normalization_after_cleanup(program)
+    }
     value.preparations.remove(handle) |> ignore
   }
   result

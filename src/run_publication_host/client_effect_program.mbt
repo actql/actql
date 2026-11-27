@@ -68,7 +68,7 @@ fn client_effect_program_view(
     sequence_preparation_demand: value.sequence_preparation_demand,
     local_values_max_rows: client_standard_values_sequence_limits().max_rows,
     check_environment_cid: value.check_environment_cid,
-    local_normalization: None,
+    local_normalization: NormalizationNotIssued,
     full_sequences: [],
     task_pipeline_inputs: [],
     compiler_contracts: None,

@@ -245,8 +245,23 @@ pub fn close_restoration(nonce : Int64, handle : Int) -> Int {
     .any(preparation => preparation.restoration == Some(handle)) {
     return -9
   }
+  let program = match record.outcome {
+    Some(Ok(materials)) => Some(
+      @host.client_task_run_materials_retained_program(
+        @host.client_task_run_materials_retained_input(materials),
+      ),
+    )
+    _ => None
+  }
+  if program is Some(program) &&
+    !@host.prepared_client_local_normalization_retirement_matches(program) {
+    return -9
+  }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {
+    if program is Some(program) {
+      @host.retire_prepared_client_local_normalization_after_cleanup(program)
+    }
     value.restorations.remove(handle) |> ignore
   }
   result

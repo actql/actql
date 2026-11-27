@@ -89096,7 +89096,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "bab79694a4b89f8ee7eb57d38116b7a64b04304637c454be9573bc71c06f59d9",
+      "sha256": "bbfd2a0df0db1efd00bd1726d4012933e9359720884d03240ec331267f7f16e3",
       "exports": [],
       "operations": [
         {
@@ -90526,7 +90526,7 @@
           }
         }
       ],
-      "sha256": "0199b66790ddf214c325f44c6b0a02de40a30d00a94149d52d76328c2ca881ed",
+      "sha256": "aefe5b8b2f24d955028f132238b457ba97c1338bedd74aeb9332ef8e526c9852",
       "exports": [],
       "operations": [
         {
@@ -111322,7 +111322,7 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization.mbt",
-      "sha256": "3f905a9af68fc9e23597b96becf0fedeac77665223fd63bd6cb98651facb26d6",
+      "sha256": "8eb7934577e51418bf692d2c86376737ffc66634f0f26ddd5e964a0c8a46db8b",
       "exports": [],
       "operations": [
         {
@@ -111390,8 +111390,16 @@
           "declaration": "prepared_client_local_normalization_evidence ( owner : PreparedClientProgram , value : ClientLocalNormalization , ) - > Result [ @ publication . RunEvidenceValue , ClientLocalNormalizationIssue ]"
         },
         {
+          "name": "prepared_client_local_normalization_retirement_matches",
+          "declaration": "prepared_client_local_normalization_retirement_matches ( owner : PreparedClientProgram , ) - > Bool"
+        },
+        {
           "name": "restore_prepared_client_local_normalization",
           "declaration": "restore_prepared_client_local_normalization ( owner : PreparedClientProgram , original : ClientLocalNormalization , wire : String , catalog_cid : String , ) - > Result [ @ publication . RunEvidenceValue , ClientLocalNormalizationIssue ]"
+        },
+        {
+          "name": "retire_prepared_client_local_normalization_after_cleanup",
+          "declaration": "retire_prepared_client_local_normalization_after_cleanup ( owner : PreparedClientProgram , ) - > Unit"
         }
       ],
       "responsibilityFacet": "primary",
@@ -111417,7 +111425,9 @@
             "local_normalization_inventory_matches",
             "local_unary_timestamp_catalog_cid",
             "prepared_client_local_normalization_evidence",
-            "restore_prepared_client_local_normalization"
+            "prepared_client_local_normalization_retirement_matches",
+            "restore_prepared_client_local_normalization",
+            "retire_prepared_client_local_normalization_after_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -111981,7 +111991,7 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization_preparation.mbt",
-      "sha256": "0760efe9de5498a03e79e95215c93cd98bc5af4db8b9839d965f1f063f1035e2",
+      "sha256": "07a77bc33cd9f0a222be85cb86165ae94cc4cca088fbdd71d50e06e307c9e1e4",
       "exports": [],
       "operations": [
         {

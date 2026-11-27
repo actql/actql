@@ -379,6 +379,9 @@ pub fn close_publisher(nonce : Int64, handle : Int) -> Int {
     Err(_) => 0
   }
   if code == 0 {
+    // The installed port's callbacks retain this child. Cut that back-edge
+    // only after the original output and input borrow have retired.
+    child.port = None
     value.publishers.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore
   }
