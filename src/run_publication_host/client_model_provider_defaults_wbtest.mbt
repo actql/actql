@@ -105,6 +105,43 @@ test "changed default configuration cannot rewrite a retained original profile o
 }
 
 ///|
+test "changing only the per-model Task ceiling changes the canonical provider binding" {
+  let original = installed_defaults_read(
+    installed_defaults_wire().replace(
+      old="\"model\":\"m\"",
+      new="\"max_task_output_tokens\":120,\"model\":\"m\"",
+    ),
+  )
+  let changed = installed_defaults_read(
+    installed_defaults_wire().replace(
+      old="\"model\":\"m\"",
+      new="\"max_task_output_tokens\":121,\"model\":\"m\"",
+    ),
+  )
+  assert_true(
+    @publication.run_evidence_value_identity(original.binding) !=
+    @publication.run_evidence_value_identity(changed.binding),
+  )
+  assert_true(
+    resolve_client_model_provider_defaults(original, None, Some(121L), 1000)
+    is Err(@environment.InvalidTaskOutputTokens),
+  )
+  let selected = resolve_client_model_provider_defaults(
+    changed,
+    None,
+    Some(121L),
+    1000,
+  ).unwrap()
+  assert_eq(
+    client_model_provider_defaults_generation(changed, selected).unwrap().max_output_tokens,
+    121L,
+  )
+  assert_true(
+    client_model_provider_defaults_generation(original, selected) is None,
+  )
+}
+
+///|
 test "legacy no-default binding remains exact and reports profile read work without a selector" {
   let original = installed_defaults_read("{}")
   assert_true(

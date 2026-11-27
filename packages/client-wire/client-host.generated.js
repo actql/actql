@@ -3585,7 +3585,8 @@ const schemas = {
             "enum": [
               "admission_capacity",
               "epoch_expired",
-              "epoch_not_yet_valid"
+              "epoch_not_yet_valid",
+              "model_provider_selection_unavailable"
             ]
           }
         }
@@ -3685,7 +3686,8 @@ const schemas = {
           "reason": {
             "enum": [
               "intent",
-              "restart_decision"
+              "restart_decision",
+              "model_provider_selection"
             ]
           }
         }

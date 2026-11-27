@@ -27,8 +27,10 @@ export type RegisteredRequestOptions = Readonly<{
   temperature?: number; topP?: number; maxOutputTokens?: number; seed?: number;
 }>;
 export type RegisteredRequestRoute = Readonly<{modelId: string; apiMode: string; endpoint: string}>;
+type SdkCapabilitySupport = 'supported' | 'experimental' | 'unsupported' | 'unavailable';
 export type RegisteredSdk = Readonly<{
   route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
+  structuredCapability: Readonly<{operation:'structured_generate'; adapter: SdkCapabilitySupport; model: SdkCapabilitySupport}>;
   sdkPackage: string; sdkVersion: string; lockArtifactCid: string; adapterArtifactCid: string; sdkArtifactCid: string;
   sdkProvider: string; providerOptions: SdkOptions['providerOptions'];
   createLanguageModel: SdkPreparation['createLanguageModel'];

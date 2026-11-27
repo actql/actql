@@ -25,6 +25,7 @@ if (options.commitLoss !== undefined) DatabaseSync.prototype.exec = function(sql
   return (cancellationCommitFault ?? originalSqliteExec).call(this, sql);
 };
 const {connect, RequestHeld} = await import(runtime.client);
+const {getSubmissionAttempt} = await import('@actql/sdk');
 const {openInstalledRemoteHttpHost} = await import(runtime.httpHost);
 const {canonical, cid, configuration} = await import(runtime.inferFixture);
 const {providerBindingOriginals} = await import(runtime.providerFixture);
@@ -273,11 +274,13 @@ async function assertSeparateReviewDisclosure(summary) {
   } finally { await metadata.close(); }
 }
 const deadline = Date.now() + 20_000;
-async function until(check) {
+async function until(check, {allowFailed = false} = {}) {
   do {
     const value = await check();
     if (value) return value;
-    if ((await run?.status())?.status === 'failed') throw new Error(`Unexpected failed Run: ${JSON.stringify(observations)}`);
+    if (!allowFailed && (await run?.status())?.status === 'failed') {
+      throw new Error(`Unexpected failed Run: ${JSON.stringify(observations)}`);
+    }
     await new Promise(resolve => setTimeout(resolve, 20));
   } while (Date.now() < deadline);
   throw new Error(`PublicModelBoundaryTimeout: ${JSON.stringify(observations.slice(-12))}`);
@@ -386,9 +389,20 @@ const execute = async () => { try {
         save('submission-ref.json', client.newSubmission({nonce: 'public-model-resume'}));
       }
       const submissionRef = read('submission-ref.json');
-      run = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss'
-        ? await client.attach(read('run.json'))
-        : await client.start(program, {submissionRef});
+      if (phase === 'approve-replacement-probe') {
+        const original = read('run.json');
+        await assert.rejects(client.start(program, {submissionRef}), error => {
+          assert.equal(error.code, 'SubmissionConflict');
+          const attempt = getSubmissionAttempt(error);
+          assert.equal(attempt?.reason, 'model_provider_selection');
+          assert.deepEqual(attempt?.submissionRef, submissionRef);
+          return true;
+        });
+        const observed = await client.lookupSubmission(submissionRef);
+        assert.equal(observed.kind, 'ready');
+        assert.deepEqual(observed.admission.ref, original);
+        run = await client.attach(original);
+      } else run = lookupOnly ? await client.attach(read('run.json')) : await client.start(program, {submissionRef});
       if (existsSync(path('run.json'))) {
         const original = read('run.json');
         assert.deepEqual(run.ref, original);
@@ -545,6 +559,13 @@ const execute = async () => { try {
           .at(-1)?.detail.retainedInputs === 0);
       }
       output({runId: state.run_id, status: state.status});
+    } else if (phase === 'approve-replacement-probe') {
+      const refusal = await until(() => observations.find(value => value.name === 'model_resume_failed' &&
+        value.detail?.code === 'ClientModelProviderSelectionChanged'), {allowFailed: true});
+      const state = await run.status();
+      assert.equal(state.status, 'failed');
+      assert.equal(refusal.detail.ref.runDefinitionCid, run.ref.runDefinitionCid);
+      output({runId: state.run_id, status: state.status, replayConflict: true, resolution});
     } else if (phase === 'probe' || phase.endsWith('-probe')) {
       await new Promise(resolve => setTimeout(resolve, 250));
       const state = await run.status();

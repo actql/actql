@@ -696,6 +696,46 @@ export async function runNativeNullableMockScenarios<Command extends CommandReco
       const scoped = runState(await invoke(phase + '-read', runInput('read', 'nullable-read.aql')), 'succeeded');
       requireRows(await invoke(phase + '-read-result', resultInput(scoped.run_id, definition.read.resultName)), rows);
     }
+    if (decision === 'approve') {
+      // Check the same valid SET against overbroad and implicit Mapping
+      // declarations in independent original installations. Never edit a
+      // project's adopted Mapping or rewrite its approval scope in place.
+      for (const declaration of ['overbroad', 'implicit'] as const) {
+        const invalidProject = join(root, 'native-nullable-' + declaration);
+        const invalidTarget = join(invalidProject, 'mock/data.json');
+        const invalidCatalog = JSON.parse(files['mock/catalog.json']) as {
+          connections: {salesforce: {writes: Array<{writable_fields: string[]; update_fields?: string[]}>}};
+        };
+        const update = invalidCatalog.connections.salesforce.writes[0];
+        if (declaration === 'overbroad') update.update_fields = [...update.writable_fields];
+        else delete update.update_fields;
+        for (const [name, contents] of Object.entries({...files, ...parameters,
+          'mock/catalog.json': JSON.stringify(invalidCatalog)})) {
+          const path = join(invalidProject, name);
+          await mkdir(dirname(path), {recursive: true, mode: 0o700});
+          await writeFile(path, contents, {flag: 'wx', mode: 0o600});
+        }
+        const invalidBefore = await targetSnapshot(invalidTarget);
+        assert.equal(invalidBefore.bytes, expectedBefore);
+        await invoke(declaration + '-adoption', projectInitialAdoptionArguments({
+          configuration: join(invalidProject, 'actql.config.json'), stateDirectory: join(invalidProject, '.actql'),
+        }), invalidProject);
+        const args = runInput('effect', 'nullable-update.aql', '--stop-before', 'commit');
+        const record = await run(args, invalidProject);
+        commands.push({args, cwd: invalidProject, ...record, workflowPhase: declaration + '-mismatched-set'});
+        assert.equal(record.signal, null);
+        assert.equal(record.code, 1, record.stderr);
+        assert.equal(record.stdout, '');
+        const primary = nativeLauncherEnvelope(record.stderr, launcherTimings).native.split('\n')[0];
+        const response = JSON.parse(primary) as {code: string; message: string};
+        assert.equal(response.code, 'ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH');
+        assert.match(response.message, /match SET to update_fields/);
+        assert.doesNotMatch(response.message, /clear_value|blank_value|omitted_value/);
+        assert.deepEqual(await targetSnapshot(invalidTarget), invalidBefore,
+          'Rejected field set must not replace the file');
+        await assert.rejects(lstat(invalidTarget + '.actql-write.lock'), {code: 'ENOENT'});
+      }
+    }
     const original = runState(await invoke('prepare',
       runInput('effect', 'nullable-update.aql', '--stop-before', 'commit')), 'waiting_checkpoint');
     const runId = original.run_id, checkpoint = checkpointId(original);

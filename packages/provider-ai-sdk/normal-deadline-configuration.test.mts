@@ -58,27 +58,40 @@ test('registered configuration cannot take route or credential values from calle
 test('one registered batch prepares the original Tasks once with distinct binding originals', async () => {
   const {generation, budget, observeEgress} = options();
   const ids = ['first', 'second'];
+  const modelGeneration = Object.freeze([Object.freeze({selector: 'selector-first',
+    temperature: 0.25, topP: 0.5, maxOutputTokens: 2, taskMaxOutputTokens: 3})]);
   const configs = Object.freeze(ids.map(providerId => Object.freeze({providerId, generation, budget, observeEgress,
-    transportTimeouts: settings, dataHandlingContractWire: '{}'})));
+    transportTimeouts: settings, dataHandlingContractWire: '{}',
+    ...(providerId === 'first' ? {modelGeneration} : {})})));
   const moon = {...transfer, clientProgramInstalledNodeModelSdkV4RequestCapacity: () => [100n, 300n],
     clientProgramInstalledNodeModelDeadlineCapacity: () => [456n, 456n]};
   const sdkSelections: string[] = [], originals: object[] = [];
   const fixture = {...context([]), runtimeIdentity: () => 'runtime', artifactIdentity: () => 'layout',
     async prepareRegisteredSdk(id: string) {
       sdkSelections.push(id);
-      return {adapterArtifactCid: 'adapter-' + id, sdkArtifactCid: 'sdk-' + id, lockArtifactCid: 'lock-' + id,
+      return {defaultSelector: 'selector-' + id, routes: [{
+        adapterArtifactCid: 'adapter-' + id, sdkArtifactCid: 'sdk-' + id, lockArtifactCid: 'lock-' + id,
         credential: {profile: {reference: 'FIXTURE_' + id}},
+        structuredCapability: {operation: 'structured_generate', adapter: 'supported',
+          model: id === 'first' ? 'supported' : 'unsupported'},
         route: {selector: 'selector-' + id, modelId: 'model-' + id, apiMode: 'mode-' + id,
-          endpoint: 'https://' + id + '.invalid/generate'}};
+          endpoint: 'https://' + id + '.invalid/generate'}}]};
     },
     async prepareBindingOriginals(project: () => readonly [string, string, string]) {
       const wires = project().map(wire => JSON.parse(wire));
       const id = ids[originals.length];
       assert.equal(wires[0].provider_id, id);
       assert.equal(wires[0].sdk_entry_artifact_cid, 'sdk-' + id);
-      assert.equal(wires[2].model_id, 'model-' + id);
-      assert.equal(wires[2].api_mode, 'mode-' + id);
-      assert.equal(wires[2].credential_reference, 'FIXTURE_' + id);
+      assert.deepEqual(Object.keys(wires[2].structured_routes), ['selector-' + id]);
+      const route = wires[2].structured_routes['selector-' + id];
+      assert.equal(route.model_id, 'model-' + id);
+      assert.equal(route.api_mode, 'mode-' + id);
+      assert.equal(route.registered_credential.reference, 'FIXTURE_' + id);
+      assert.deepEqual(route.structured_capability, {operation: 'structured_generate',
+        adapter: 'supported', model: id === 'first' ? 'supported' : 'unsupported'});
+      assert.deepEqual(wires[2].model_defaults.models, [{model: 'selector-' + id, data_handling: {},
+        ...(id === 'first' ? {generation_config: {temperature: 0.25, top_p: 0.5, max_output_tokens: 2},
+          max_task_output_tokens: 3} : {generation_config: {temperature: 0, top_p: 1, max_output_tokens: 4}})}]);
       const original = Object.freeze({wires});
       originals.push(original);
       return original;
@@ -95,6 +108,15 @@ test('one registered batch prepares the original Tasks once with distinct bindin
     {code: 'InvalidRegisteredSdkProviderConfigurations'});
   assert.deepEqual(sdkSelections, ids);
   assert.equal(originals.length, 2);
+  for (const changed of [{taskMaxOutputTokens: 5}, {topP: 0}, {temperature: 2.1}]) {
+    await assert.rejects(createRegisteredSdkProvider({...configs[0], modelGeneration:
+      Object.freeze([{...modelGeneration[0], ...changed}])})(moon as unknown as Runtime, fixture as unknown as Context),
+    {code: 'InvalidInstalledModelGenerationProfile'});
+  }
+  const inspectBinding = { ...fixture, prepareBindingOriginals(project: () => unknown) { return project(); }};
+  await assert.rejects(createRegisteredSdkProvider({...configs[0], modelGeneration:
+    Object.freeze([{...modelGeneration[0], selector: 'unselected'}])})(moon as unknown as Runtime, inspectBinding as unknown as Context),
+  {code: 'InstalledModelGenerationRouteMismatch'});
 });
 
 test('normal deadline adds only the actual Common R/E quote and preserves unselected profile', async () => {

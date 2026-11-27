@@ -50,12 +50,7 @@ pub fn register_structured_model_capability(
   adapter_supports : Bool,
   model_supports : Bool,
 ) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue] {
-  if !(provider.invocation is AsynchronousPhysical) ||
-    resolved.selector.is_empty() ||
-    resolved.model_id.is_empty() ||
-    resolved.adapter_kind.is_empty() ||
-    resolved.api_mode.is_empty() ||
-    resolved.endpoint.is_empty() {
+  if !structured_model_capability_route_valid(provider, resolved) {
     return Err(InvalidRegistration)
   }
   if !@publication_host.client_model_resolved_configuration_matches(
@@ -71,6 +66,48 @@ pub fn register_structured_model_capability(
     return Err(ForeignConfiguration)
   }
   Ok({ provider, binding, profile, resolved, adapter_supports, model_supports, })
+}
+
+///|
+/// Install the SDK capability from the same canonical configuration and
+/// exact selector/mode already admitted by this Host.
+pub fn register_installed_sdk_structured_model_capability(
+  provider : ModelProvider,
+  binding : @publication.RunEvidenceValue,
+  configuration_wire : String,
+  resolved : ResolvedStructuredModel,
+  profile : @environment.ModelResponseProfile,
+) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue] {
+  if !structured_model_capability_route_valid(provider, resolved) ||
+    resolved.adapter_kind != "ai-sdk" {
+    return Err(InvalidRegistration)
+  }
+  guard @publication_host.client_model_registered_sdk_structured_support(
+      binding,
+      configuration_wire,
+      provider.provider_id,
+      resolved.selector,
+      resolved.model_id,
+      resolved.api_mode,
+      resolved.endpoint,
+    )
+    is Some((adapter_supports, model_supports)) else {
+    return Err(ForeignConfiguration)
+  }
+  Ok({ provider, binding, profile, resolved, adapter_supports, model_supports, })
+}
+
+///|
+fn structured_model_capability_route_valid(
+  provider : ModelProvider,
+  resolved : ResolvedStructuredModel,
+) -> Bool {
+  provider.invocation is AsynchronousPhysical &&
+  !resolved.selector.is_empty() &&
+  !resolved.model_id.is_empty() &&
+  !resolved.adapter_kind.is_empty() &&
+  !resolved.api_mode.is_empty() &&
+  !resolved.endpoint.is_empty()
 }
 
 ///|

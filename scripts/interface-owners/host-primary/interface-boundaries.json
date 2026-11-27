@@ -3154,6 +3154,7 @@
             "authorizeSampleCapture",
             "prepareSampleStart",
             "prepareDebugEntryResume",
+            "assertInstalledModelPreflight",
             "managedComputeRequired",
             "retainedRelationOutput",
             "runPublished"
@@ -5432,7 +5433,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "4045640d5f5d85a8e66e3fa6e790d9a71e56691482af3ed4353de1619e9b6ebf",
+      "sha256": "7aebcc077e53504ab8f87671e50499b21d3f3f41bbb029761afc678afa7adb47",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -12058,7 +12059,6 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
@@ -12073,11 +12073,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
@@ -12113,7 +12109,23 @@
             "publishInstalledEffect",
             "publishInstalledSource",
             "sameEmbeddedInstallation",
-            "sameEmbeddedInstallation/sameEmbeddedInstallation"
+            "sameEmbeddedInstallation/sameEmbeddedInstallation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#12",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelPlanBindingsFor/modelPlanBindingsFor",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retainedModelReplay/retainedModelReplay",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#7",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#8",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/modelResume/modelResume",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#6"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -14578,8 +14590,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
             "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput",
-            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending"
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput",
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#2",
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#3"
           ],
           "exports": [],
           "attributes": {
@@ -20594,14 +20607,14 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#6",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result#2",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
             "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
             "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending"
+            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#5"
           ],
           "exports": [],
           "attributes": {
@@ -28066,6 +28079,11 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
           "parameters": [
             "actual",
             "connection",
@@ -28074,7 +28092,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#12",
           "parameters": [],
           "async": false
         },
@@ -28121,14 +28139,16 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#8",
           "parameters": [
-            "operation",
-            "connection"
+            "prepared"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#9",
-          "parameters": [],
+          "parameters": [
+            "operation",
+            "connection"
+          ],
           "async": false
         },
         {
@@ -28250,6 +28270,15 @@
             "value"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelPlanBindingsFor/modelPlanBindingsFor",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "definition"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
@@ -28813,6 +28842,14 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retainedModelReplay/retainedModelReplay",
+          "parameters": [
+            "actor",
+            "ref"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
           "parameters": [],
           "async": true
@@ -29173,7 +29210,8 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit",
           "parameters": [
-            "submission"
+            "submission",
+            "replayRef"
           ],
           "async": true
         },
@@ -29245,6 +29283,59 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
+          "parameters": [
+            "retainInput"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#2",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#3",
+          "parameters": [
+            "request",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#4",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#5",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/flight#8",
           "parameters": [],
           "async": false
         },
@@ -29289,11 +29380,6 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -29384,19 +29470,46 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
           "parameters": [
-            "component"
+            "retainInput"
           ],
-          "async": false
+          "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/modelResume/modelResume",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "parameters": [
+            "request",
+            "intent",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#3",
+          "parameters": [
+            "request",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#5",
           "parameters": [
             "signal",
             "retainExecution",
@@ -29405,26 +29518,9 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel/runRestoredModel#6",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
-          "parameters": [
-            "slot"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#3",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
@@ -30736,16 +30832,22 @@
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput",
           "parameters": [
-            "terminal"
+            "pending"
           ],
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending",
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:retainEffectRequestInput#3",
           "parameters": [
-            "resolve"
+            "receipt",
+            "terminal"
           ],
           "async": false
         },
@@ -31638,7 +31740,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "adc9d0d4e074a7f283f49cf23c3d82f01e444144d78ad598809df9ee97fa313b"
+      "sha256": "71c52fa0dc845d28b661e554e7aad3f49f5843a60ef1ae8d7c0deab14708c55b"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -38951,7 +39053,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "fea5e02ae972542b5e56ca815d841e61b3138f9886a59b608947899443da9ae5",
+      "sha256": "844a26fa4a5f70f72edb68588b2bff92c14b8b66c3994d6b34b00bf3759e3371",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -39199,17 +39301,32 @@
           "async": false
         },
         {
-          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:createLanguageModel/init:createLanguageModel",
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes/init:createLanguageModel/init:createLanguageModel",
           "parameters": [
             "fetch"
           ],
           "async": false
         },
         {
-          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:verifyRequest/init:verifyRequest",
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes/init:verifyRequest/init:verifyRequest",
           "parameters": [
             "wire",
             "call"
+          ],
+          "async": false
+        },
+        {
+          "name": "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes/routes",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -39551,6 +39668,13 @@
           "async": false
         },
         {
+          "name": "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/prepareSdkCapability",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "installConfiguredModelProviders/providers/providers",
           "parameters": [],
           "async": false
@@ -39653,8 +39777,6 @@
             "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk#4",
             "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project",
             "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/init:project",
-            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:createLanguageModel/init:createLanguageModel",
-            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/registration/init:verifyRequest/init:verifyRequest",
             "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project#2",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks",
@@ -39718,7 +39840,12 @@
             "installConfiguredModelProviders/track/track/track#2",
             "originalSdkRecord/originalSdkRecord",
             "originalSdkRecord/originalSdkRecord#2",
-            "originalSdkRecord/originalSdkRecord#3"
+            "originalSdkRecord/originalSdkRecord#3",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes/init:createLanguageModel/init:createLanguageModel",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes/init:verifyRequest/init:verifyRequest",
+            "installConfiguredModelProviders/context/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:prepareRegisteredSdk/init:project/init:project/routes/routes/routes",
+            "installConfiguredModelProviders/prepareSdkCapability/prepareSdkCapability/prepareSdkCapability"
           ],
           "exports": [
             "installConfiguredModelProviders"

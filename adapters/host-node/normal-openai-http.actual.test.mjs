@@ -411,7 +411,9 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
           const failure=()=>events.find(event=>event.name==='model_resume_failed');
           const deadline=Date.now()+10000;
           while(!failure() && Date.now()<deadline) await pause(20);
-          assert.equal(failure()?.detail.code,'ModelProviderBindingChanged',JSON.stringify(events));
+          const detail=failure()?.detail;
+          assert.equal(detail?.code,'ClientModelProviderSelectionChanged',JSON.stringify(events));
+          assert.deepEqual(detail.ref,ref);
           assert.equal((await run.status()).status,'failed');
         }
         const expected=matching ? 1 : 0;

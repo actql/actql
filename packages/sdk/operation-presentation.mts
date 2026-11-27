@@ -55,6 +55,8 @@ const summaries: Readonly<Record<string, string>> = Object.freeze({
   'submission.refused.epoch_expired': 'Hostは提出したepochが期限切れのため今回の提出呼出しを拒否しました。元の提出結果は確定しません。',
   'submission.refused.epoch_not_yet_valid': 'Hostは提出したepochがまだ有効でないため今回の提出呼出しを拒否しました。元の提出結果は確定しません。',
   'submission.conflict.intent': 'Hostは元の提出identityに対する意図の競合を報告しています。',
+  'submission.refused.model_provider_selection_unavailable': '元のRunに対する現在のモデル選択を確認できません。',
+  'submission.conflict.model_provider_selection': '現在のモデル選択が元のRunの選択と一致しません。',
   'submission.conflict.restart_decision': 'Hostは元の提出identityに対する再開始の判断の競合を報告しています。',
   'request.lookup_unresolved': 'この照会だけでは送信が受理されたか判断できません。',
   'request.lookup_uninterpretable': 'このSDKでは要求の照会応答を解釈できません。受理・実行は未確定です。',
@@ -317,12 +319,14 @@ export const projectSubmissionAttemptExplanation = (result: unknown, attempt: Ex
   // receipt. Keep only the submitted reference, never a conflicting old intent.
   const summaries: Readonly<Record<string, string>> = attempt.kind === 'refused' ? {
     authorization: 'The Host refused this submission invocation under current authorization. This invocation committed no submission and consumed no operation identity.',
+    model_provider_selection_unavailable: 'The Host could not verify the current Model selection against the original Run.',
     admission_capacity: 'The Host refused this submission invocation because admission capacity was unavailable. This invocation committed no submission and consumed no operation identity.',
     epoch_expired: 'The Host refused this submission invocation because its submitted epoch has expired. This does not establish the original submission outcome.',
     epoch_not_yet_valid: 'The Host refused this submission invocation because its submitted epoch is not yet valid. This does not establish the original submission outcome.',
   } : {
     intent: 'The Host reports a conflicting intent for this original submission identity.',
     restart_decision: 'The Host reports a conflicting restart decision for this original submission identity.',
+    model_provider_selection: 'The current Model selection differs from the selection admitted for the original Run.',
   };
   return freezeInput({
     observation: attempt.kind, reason: attempt.reason,

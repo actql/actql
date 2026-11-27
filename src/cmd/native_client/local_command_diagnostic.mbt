@@ -26,6 +26,7 @@ priv enum LocalCommandDiagnosticKind {
   PreparationFailedAuthoringPreparation
   PreparationFailedAuthoring
   ReadOnlyEffect
+  EffectMappingRuleMismatch
   RunObservationFailed
   JournalMaintenanceFailed
   RuntimeSequenceSteps
@@ -132,6 +133,13 @@ fn local_native_preparation_diagnostic_kind(
     Computation(Syntax(_)) => ProgramInvalid
     Computation(Binding(_)) => ParameterBinding
     Computation(_) => PreparationFailedComputation
+    EffectComputation(Static(MappingRules(rule))) =>
+      // The original checker already refused the rule. Retain only a closed
+      // diagnostic tag, not the requested or configured fields.
+      match @stage_results.effect_mapping_rule_issue_kind(rule) {
+        Permission(NoMatchingRule) => EffectMappingRuleMismatch
+        _ => PreparationFailedEffectComputation
+      }
     EffectComputation(_) => PreparationFailedEffectComputation
   }
 }
@@ -160,6 +168,12 @@ fn[T] local_stop_submitted_preparation(
       }
     Request(QuerySyntax(Frontend(issue))) =>
       local_frontend_diagnostic_kind(issue)
+    Request(Preparation(ProgramCheck(EffectCompilation(original)))) =>
+      match
+        local_native_preparation_diagnostic_kind(EffectComputation(original)) {
+        EffectMappingRuleMismatch => EffectMappingRuleMismatch
+        _ => PreparationFailedRequest
+      }
     Request(_) => PreparationFailedRequest
     RequestPreparation(_) => PreparationFailedRequestPreparation
     RequestBranchUnavailable => UnsupportedPreparation
@@ -246,6 +260,10 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
     InputRequired =>
       (
         "ACTQL_E_INPUT_REQUIRED", "The original preparation requires more input.",
+      )
+    EffectMappingRuleMismatch =>
+      (
+        "ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH", "No Mapping permission rule matches the Effect operation, selector and exact write field set. For Mock UPDATE, match SET to update_fields (default: writable_fields).",
       )
     PreparationFailed =>
       (

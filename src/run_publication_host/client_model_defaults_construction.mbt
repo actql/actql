@@ -111,7 +111,8 @@ pub fn client_model_provider_defaults_construction_extent(
   let typed = @shape.collection_construction_extent({
     records: 8L + 7L * n,
     record_references: 12L + 14L * n,
-    record_words: 9L + 8L * n,
+    // Each complete model profile has at least six distinct value nodes.
+    record_words: 9L + 8L * n + n / 6L,
     reference_arrays: 3L + 2L * n,
     reference_items: 6L * n,
     scalar_arrays: 0L,
@@ -200,7 +201,8 @@ pub fn client_model_provider_defaults_retained_bound(
   let typed = @shape.collection_construction_extent({
     records: 8L + 7L * count,
     record_references: 12L + 14L * count,
-    record_words: 9L + 8L * count,
+    // One additional scalar ceiling per complete model profile.
+    record_words: 9L + 8L * count + count / 6L,
     reference_arrays: 3L + 2L * count,
     reference_items: 6L * count,
     scalar_arrays: 0L,

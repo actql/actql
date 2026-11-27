@@ -3069,7 +3069,7 @@
     {
       "module": "packages/node/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a141cd4b25aff67c836f2c214ce826453bab0318ae531292fea2247e9cafd0b7",
+      "sha256": "dba3c3f424725d9b89f5395b52cdd69ade576ec2fd5ad2b1218f2aae4eb747a4",
       "exports": [
         "CalendarArtifactInstallation",
         "CheckpointSigner",
@@ -19683,7 +19683,7 @@
     {
       "module": "packages/sdk/operation-presentation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "75f1a8cdad81454feaccac2f98b6f28c581ea9fd8622fbb5b67b0ab6282a6d38",
+      "sha256": "dba44833e67a0327071c3ec7a5857a6e16c904f1a5d465bd80069d87ebee1071",
       "exports": [
         "getOperationPresentationInfo",
         "localizeOperation",

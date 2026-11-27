@@ -5,7 +5,7 @@
 /// configuration/revision before adopting a normalized public Task.
 struct ModelProviderDefaults {
   default_model : String?
-  models : Array[(String, ModelGeneration, ModelProviderHandling?)]
+  models : Array[(String, ModelGeneration, ModelProviderHandling?, Int64)]
   bytes : Int
   nodes : Int
   work : Int
@@ -53,13 +53,13 @@ fn model_provider_defaults_read(
   // Charge the complete inventory before either collection grows. Unused
   // profiles are checked too; lookup does not excuse a malformed later entry.
   model_task_charge(budget, count, values)
-  let models : Array[(String, ModelGeneration, ModelProviderHandling?)] = []
+  let models : Array[(String, ModelGeneration, ModelProviderHandling?, Int64)] = []
   let names : Map[String, Bool] = Map([])
   for index in 0..<count {
     let value = @decode.element_at(values, index).unwrap()
     let profile = model_task_object(
       value,
-      ["model", "generation_config", "data_handling"],
+      ["model", "generation_config", "data_handling", "max_task_output_tokens"],
       budget,
     )
     let model = model_task_string(profile, "model", value, budget)
@@ -76,7 +76,18 @@ fn model_provider_defaults_read(
       ExplicitNull => model_task_fail(InvalidBody, value)
       Present(original) => Some(model_provider_handling_read(original, budget))
     }
-    models.push((model, generation, handling))
+    let task_ceiling = match @decode.field(profile, "max_task_output_tokens") {
+      Missing => 0L
+      ExplicitNull => model_task_fail(InvalidBody, value)
+      Present(original) => {
+        let ceiling = model_task_integer(original, true, budget)
+        if generation.max_output_tokens > ceiling {
+          model_task_fail(InvalidBody, original)
+        }
+        ceiling
+      }
+    }
+    models.push((model, generation, handling, task_ceiling))
   }
   if default_model is Some(model) && !names.contains(model) {
     model_task_fail(ReferenceMismatch, root)
@@ -174,9 +185,9 @@ pub fn read_model_provider_defaults_configuration(
 
 ///|
 /// Pure selection, not installed support/currentness or request admission.
-/// An explicit Task value replaces a default; it is NOT capped by that default.
-/// Separate Provider/Host/Program ceilings belong to bound execution/request
-/// admission, which may lower but never raise the selected Task limit.
+/// An explicit Task value replaces a default within any independent ceiling
+/// selected on that Host model profile. Execution admission applies its
+/// separate Provider/Host/Program ceilings to the selected Task limit.
 pub fn resolve_model_provider_defaults(
   original : ModelProviderDefaults,
   selected_model : String?,
@@ -199,7 +210,7 @@ pub fn resolve_model_provider_defaults(
       }
   }
   let mut work = 0
-  for (name, generation, handling) in original.models {
+  for (name, generation, handling, task_ceiling) in original.models {
     // Reserve each string comparison before it happens, without Int overflow.
     for charge in [1, name.length(), model.length()] {
       if charge > max_work - work {
@@ -208,13 +219,24 @@ pub fn resolve_model_provider_defaults(
       work += charge
     }
     if name == model {
-      if work == max_work {
+      let selection_work = if task_ceiling != 0L &&
+        task_max_output_tokens is Some(_) {
+        2
+      } else {
+        1
+      }
+      if selection_work > max_work - work {
         return Err(WorkLimit)
       }
-      work += 1
+      work += selection_work
       let selected = match task_max_output_tokens {
         None => generation
-        Some(max_output_tokens) => { ..generation, max_output_tokens, }
+        Some(max_output_tokens) =>
+          if task_ceiling != 0L && max_output_tokens > task_ceiling {
+            return Err(InvalidTaskOutputTokens)
+          } else {
+            { ..generation, max_output_tokens, }
+          }
       }
       return Ok({ original, model: name, generation: selected, handling, work, })
     }

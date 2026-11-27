@@ -198,9 +198,13 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     perAttempt:{tokens:128n,costUnits:0n,durationMs:1000n}};
   const originals=providerBindingOriginals('models/fixture',{selector:task.authored_model_selector,
     endpoint:profileBody.operation.endpoint});
+  const structuredCapability=Object.freeze({
+    operation:'structured_generate',adapter:'supported',model:'supported',
+  });
   if (structuredSdk) {
-    const route={model_id:modelId,adapter_kind:'ai-sdk',api_mode:apiMode};
-    const wire=canonicalText({...JSON.parse(originals.configuration.wire),...route});
+    const route={model_id:modelId,api_mode:apiMode,endpoint:installation.endpoint,structured_capability:structuredCapability};
+    const wire=canonicalText({...JSON.parse(originals.configuration.wire),adapter_kind:'ai-sdk',
+      structured_routes:{[task.authored_model_selector]:route}});
     originals.configuration={wire,cid:hash(wire)};
   }
   let registeredSdk;
@@ -211,7 +215,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     const endpoint=installation.endpoint;
     const route=Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,modelId,apiMode,endpoint});
     const providerOptions=Object.freeze({google:Object.freeze({structuredOutputs:true})});
-    registeredSdk=Object.freeze({route,sdkProvider,sdkPackage:installation.sdk.package_name,
+    registeredSdk=Object.freeze({route,structuredCapability,sdkProvider,sdkPackage:installation.sdk.package_name,
       sdkVersion:installation.sdk.version,lockArtifactCid:installation.sdk.lock_artifact_cid,
       adapterArtifactCid:installation.build_artifact_cid,providerOptions,
       createLanguageModel:fetch=>createGoogle({baseURL:new URL(endpoint).origin+'/v1beta',apiKey:'fixture-only',fetch})(modelId),
@@ -222,7 +226,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
       await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
     const endpoint=installation.endpoint, baseURL=endpoint.slice(0,-'/chat/completions'.length);
     registeredSdk=Object.freeze({route:Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,
-      modelId,apiMode:'chat_completions',endpoint}),sdkProvider:'openai.chat',sdkPackage:installation.sdk.package_name,
+      modelId,apiMode:'chat_completions',endpoint}),structuredCapability,sdkProvider:'openai.chat',sdkPackage:installation.sdk.package_name,
       sdkVersion:installation.sdk.version,lockArtifactCid:installation.sdk.lock_artifact_cid,
       adapterArtifactCid:installation.build_artifact_cid,providerOptions:Object.freeze({}),
       createLanguageModel:fetch=>createOpenAI({baseURL,apiKey:'fixture-only',fetch}).chat(modelId),
@@ -293,9 +297,11 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   const admittedProvider=admitInstalledModelProvider(moon,execution,dependencies,new Map([['models/fixture',registered]]));
   const providerBinding=admitInstalledModelProviderBinding(moon,'models/fixture',registered);
   if (structuredSdk) {
-    structuredAdmission=checked(moon.clientProgramBindAdmittedStructuredModelProvider(
-      registered.provider,admittedProvider,providerBinding.value,originals.configuration.wire,
-      task.authored_model_selector,modelId,'ai-sdk',apiMode,profile,installation,true,true));
+    const capability=checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
+      registered.provider,providerBinding.value,originals.configuration.wire,
+      task.authored_model_selector,modelId,apiMode,installation.endpoint,profile));
+    structuredAdmission=checked(moon.clientProgramAdmitInstalledStructuredSdkCapability(
+      capability,admittedProvider,installation));
   }
   const accountWire=canonicalText({version:'actql-execution-account-config/0.1',account_id:'local',entries:[{
     entry_id:'model',outcome:'allow',principal:{any_of:['owner']},connection:{any_of:['models/fixture']},

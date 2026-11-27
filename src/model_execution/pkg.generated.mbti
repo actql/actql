@@ -383,6 +383,8 @@ pub fn read_portable_model_http_execution_wires(Bytes, @check_environment.Limits
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
+pub fn register_installed_sdk_structured_model_capability(ModelProvider, @run_publication.RunEvidenceValue, String, ResolvedStructuredModel, @check_environment.ModelResponseProfile) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]
+
 pub fn register_model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> ModelPhysicalCall?
 
 pub fn register_structured_model_capability(ModelProvider, @run_publication.RunEvidenceValue, String, ResolvedStructuredModel, @check_environment.ModelResponseProfile, Bool, Bool) -> Result[StructuredModelCapability, StructuredModelCapabilityIssue]

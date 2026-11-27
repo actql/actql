@@ -8,6 +8,8 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
   readInitialControlInstallationInput} from './node-initial-control-installation.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {assertRestoredModelRunSelection, prepareRestoredModelEffectRequest,
+  retainOriginalEffectInput, runWithRestoredModelInput} from './installed-model-originals.mjs';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {checkedLocalOutputLimits, localOutputLimits} from './local-values-plan.mjs';
@@ -1085,21 +1087,7 @@ test('held abandonment keeps the original start failure including undefined and 
 // explicit ports; these controls issue no real Run, permission or stop ACK.
 function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
   executeFailure, finishFailure, missingMaterial = false} = {}) {
-  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
-  const nodes = [];
-  (function visit(node) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type) nodes.push(node);
-    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
-    else if (value && typeof value === 'object') visit(value);
-  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-  const selected = nodes.filter(node => node.type === 'VariableDeclarator' && node.id.name === 'runRestoredModel');
-  assert.equal(selected.length, 1);
-  const methods = ['retainEffectRequestInput', 'bindSourceRequest'].map(name => {
-    const found = nodes.filter(node => node.type === 'Property' && node.method && node.key.name === name);
-    assert.equal(found.length, 1, name); return found[0];
-  });
-  const host = {}, installation = {}, originals = {}, moon = {}, prepared = {}, identity = {}, definition = {};
+  const host = {}, installation = {}, moon = {}, prepared = {};
   const registry = createEmbeddedHostRegistry(() => true);
   registry.registerPreparation(host, installation, host);
   const snapshot = Object.freeze({requestId: 'same-original-request', principalId: 'actor',
@@ -1119,53 +1107,45 @@ function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
     events.push('finish:' + terminal);
     if (++finishes === 1 && finishFailure !== undefined) throw finishFailure;
   }};
-  const methodPorts = {moon, sourceManaged: manager, computeManaged: undefined, profiles: registry,
-    host, originalInstallation: installation, originals,
-    assertSourceManagedInstallationCurrent(actual, selected) {
-      assert.strictEqual(actual, manager); assert.strictEqual(selected, originals);
-    }, clientOperationError(code) {throw Object.assign(new Error(code), {code});}};
-  const preparation = new Function(...Object.keys(methodPorts), 'return ({' + methods.map(node =>
-    source.slice(node.start, node.end)).join(',') + '});')(...Object.values(methodPorts));
   const ownRef = {namespaceId: 'namespace', runDefinitionCid: 'same-definition'};
-  const current = {requestId: snapshot.requestId, requestIdentity: identity,
-    runDefinition: definition, runAdmissionEvidence: missingMaterial ? {} : {updateTargetRunOriginal: {materialsWire: material}}, ref: ownRef};
-  const facts = {}, requested = {}, accepted = {ref: ownRef};
-  const ports = {moon, control: {}, ref: ownRef, retained: current, token: {snapshot: {submission: snapshot}},
-    assertCurrent() {}, canonicalValueJson: JSON.stringify,
-    hostConnection: value => value.principalId === snapshot.principalId && value.connection === snapshot.connection,
-    preparation, localPreparationCustody: installLocalPreparationRegistry(() => false),
-    journal: {lookupOwnedDefinition(value) {
-      assert.equal(value.requestId, snapshot.requestId); return current;
-    }, originalSubmittedIntent(value) {
-      assert.strictEqual(value, identity); events.push('original-intent');
-      return {intent, assertCurrent() {events.push('intent-current');}};
-    }, resolveDefinition(value) {assert.strictEqual(value, requested); return accepted;}},
-    async prepareCapturedSubmission() {assert.fail('No unfunded saved Prepared admission');},
-    prepareSubmit: Object.assign(async request => { assert.strictEqual(original(request), request);
-      assert.notStrictEqual(request, snapshot); events.push('prepare');
-      if (failPrepare) throw prepareFailure; return prepared;
-    }, {restoreInferOriginal() {assert.fail('No pure Model replacement for an Effect request');},
-      assertSubmittedIntent(value, original) {assert.strictEqual(value, prepared); assert.strictEqual(original, intent); events.push('same-intent');}}),
-    requestOf(request) {
-      assert.strictEqual(original(prepared), request); assert.strictEqual(request, submitted);
-      events.push('request'); return {effectful: true, requested};
-    }, namespaceId: ownRef.namespaceId,
-    effectRun: {async restoreComputation(value) {assert.strictEqual(value, accepted); events.push('restore'); return facts;}},
-    async admitEffectDefinition(request) {assert.strictEqual(request, submitted); events.push('admit'); return accepted;},
-    async executeEffectComputation(value, target, sourceTarget, model) {
-      assert.strictEqual(value, facts); assert.equal(target, undefined); assert.equal(sourceTarget, undefined);
-      assert.strictEqual(model.token, ports.token); assert.strictEqual(original(prepared), submitted);
-      events.push('execute'); entered.resolve();
-      await execution.promise;
-      if (executeFailure !== undefined) throw executeFailure;
-      return result;
-    }, record: {}, claim: {}, active: {}, runId: 'original-run', parentCheckpoint: undefined,
-    retainInstalledHostRuntimeFailure};
-  const invoke = new Function(...Object.keys(ports),
-    'let restorationDispatchEntered=false,restorationStopConfirmed=false;' +
-    'const restorationReclaimed=()=>!restorationDispatchEntered||restorationStopConfirmed;' +
-    'return (' + source.slice(selected[0].init.start, selected[0].init.end) + ')();');
-  return {invoke: () => invoke(...Object.values(ports)), original, prepared, events, result, entered,
+  const token = {snapshot: {submission: snapshot}};
+  const current = {runAdmissionEvidence: missingMaterial ? {} : {updateTargetRunOriginal: {materialsWire: material}}, ref: ownRef};
+  const custody = installLocalPreparationRegistry(() => false);
+  const invoke = () => runWithRestoredModelInput(async retainInput => {
+    const request = {...token.snapshot.submission};
+    events.push('original-intent');
+    const originalIntent = {intent, assertCurrent() {events.push('intent-current');}};
+    await prepareRestoredModelEffectRequest(request, originalIntent,
+      current.runAdmissionEvidence.updateTargetRunOriginal?.materialsWire, {
+        retain(value, ownedIntent, wire) {
+          return retainOriginalEffectInput(
+            pending => registry.retainRequest(host, installation, host, value, pending),
+            () => manager.retainRequestInput(value, ownedIntent, undefined, wire),
+            (ownedReceipt, terminal) => manager.finishSourceProducer(ownedReceipt, terminal));
+        },
+        retainInput,
+        async prepare(value) {
+          assert.strictEqual(original(value), value);assert.notStrictEqual(value, snapshot);
+          events.push('prepare');if (failPrepare) throw prepareFailure;
+          return prepared;
+        },
+        assertIntent(value, originalIntent) {
+          assert.strictEqual(value, prepared);assert.strictEqual(originalIntent, intent);
+          events.push('same-intent');
+        },
+        attach(value, checked) {custody.attach(value, custody.adopt(checked, value));},
+      });
+    registry.bindSourceRequest(host, installation, host, request, request.preparedProgram);
+    assert.strictEqual(original(prepared), request);assert.strictEqual(request, submitted);
+    events.push('request');
+    assertRestoredModelRunSelection(moon, ownRef, current, () => undefined);
+    events.push('admit', 'restore', 'execute');
+    entered.resolve();
+    await execution.promise;
+    if (executeFailure !== undefined) throw executeFailure;
+    return result;
+  });
+  return {invoke, original, prepared, events, result, entered,
     releaseExecution: () => execution.resolve(), submitted: () => submitted};
 }
 

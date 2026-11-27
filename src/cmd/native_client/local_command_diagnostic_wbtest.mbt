@@ -775,3 +775,15 @@ test "Checkpoint failure presentation borrows the first closed cause without pri
   assert_eq(payload, "PRIVATE_KEY")
   local_command_diagnostic_reset()
 }
+
+///|
+test "Effect Mapping rule refusal describes the exact-set fix without retaining values" {
+  local_command_diagnostic_reset()
+  defer local_command_diagnostic_reset()
+  command_preparation_diagnostic.val = EffectMappingRuleMismatch
+  let wire = local_command_failure_text("PRIVATE_MAPPING_PAYLOAD", true)
+  assert_true(wire.contains("ACTQL_E_EFFECT_MAPPING_RULE_MISMATCH"))
+  assert_true(wire.contains("match SET to update_fields"))
+  assert_true(wire.contains("writable_fields"))
+  assert_false(wire.contains("PRIVATE_MAPPING_PAYLOAD"))
+}

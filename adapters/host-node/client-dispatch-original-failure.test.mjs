@@ -148,3 +148,45 @@ test('original failure site reaches the ordinary start catch with the same execu
     /^adapters\/host-node\/client-dispatch-original-failure\.test\.mjs:\d+:\d+/u);
   assert.equal(records[0].primaryDiagnostic.message.includes('managed-failure.mjs'), false);
 });
+
+test('ordinary Model capability refusal returns the original unstarted Run before Scope or Entry', async () => {
+  const prepared = {}, identity = {}, ref = {runDefinitionCid: 'original-model-unsupported'};
+  const original = Object.assign(new Error('InstalledModelStructuredModelUnsupported'),
+    {code: 'InstalledModelStructuredModelUnsupported'});
+  const observations = [];
+  const owner = installNodeClientDispatchOwner({
+    startRun: async ({identity: selected}) => {
+      assert.equal(selected, identity); return {kind: 'reserved', ref};
+    },
+    assertInstalledModelPreflight(selected) {
+      assert.equal(selected, prepared);
+      throw original;
+    },
+    planFor: () => ({kind: 'infer'}),
+    runInfer() {assert.fail('No Model Scope or Entry may start');},
+    journal: {
+      reservePhysicalStart() {assert.fail('A capability refusal must precede physical start');},
+      markPreDispatchFailure(selected) {
+        assert.equal(selected, ref);
+        observations.push('pre_dispatch_failure');
+      },
+    },
+    observed(name, detail) {
+      if (name === 'dispatch_failed') {
+        assert.equal(detail.ref, ref);
+        observations.push(detail.primaryCode);
+      }
+    },
+  });
+  const submission = {preparedProgram: prepared, principalId: 'owner', connection: {},
+    requestId: 'original-model-request'};
+  const accepted = {ref, runDefinition: {wire: 'original-model-definition'}, cancellationRequested: false};
+  assert.equal(await owner.start(submission, identity, accepted, {}), 'not_started');
+  await owner.drain();
+  assert.equal(owner.operation(ref), undefined);
+  assert.deepEqual(observations, [original.code, 'pre_dispatch_failure']);
+  // An existing physical-start reservation cannot become a pre-dispatch refusal.
+  assert.equal(await owner.start(submission, identity,
+    {...accepted, dispatchReserved: true, physicalStartReserved: true}, {}), 'not_started');
+  assert.deepEqual(observations, [original.code, 'pre_dispatch_failure']);
+});
