@@ -4310,9 +4310,11 @@ limits are not allocated in advance.
 
 The same Source cursor transfers once from preflight to grammar. The selected
 data-key mode preserves original Unicode and keys; the default scalar, imported
-and Native input paths keep their existing decoder. Original bounded polls
-report their work on the same Root, without changing policy, engine, fuel or
-VM geometry. This does not qualify the later Request/Plan work admission.
+and Native input paths keep their existing decoder. The configured planning
+limit bounds both parser phases together for this original Buffer slot. Each
+poll spends from that single allowance. The installed Host's existing outer
+operation fuel also covers all transfers and resumptions in the operation.
+Transport parsing does not debit the Root's cumulative Run planning usage.
 
 The Buffer slot retains its working claim and any failed/interrupted cursor
 before those constructors can trap. A started failed parser is not replaced

@@ -9,7 +9,8 @@ from actql_sdk._local_core import LocalCore
 
 
 class PlatformInputFixture(PhysicalFixture):
-    def __init__(self, module, nonce):
+    def __init__(self, module, nonce, *, planning_work=None):
+        self.planning_work = planning_work
         self.original = None
         self.platform_calls = []
         super().__init__(module, nonce, capacity=12 * 1024 * 1024, slots=64,
@@ -28,6 +29,9 @@ class PlatformInputFixture(PhysicalFixture):
             core._observe_platform_vm(wasmtime)
             self.original = core
             name = 'open_platform'
+            if self.planning_work is not None:
+                capacity, slots, wire, _, *limits = arguments
+                arguments = (capacity, slots, wire, self.planning_work, *limits)
         return super().call(name, *arguments)
 
     def platform_vm_observation(self, caller, nonce, ordinal):
@@ -113,9 +117,31 @@ if 'refusal' in selected:
         fixture.cleanup_ready = True
         assert fixture.call('close', handle) == 0
         assert fixture.call('allocated') == 0 and fixture.call('reserved') == 0
-        cases.append('original parser refusal keeps failed claim and cannot replace same parser before cleanup')
     finally:
         fixture.close()
+
+    # Four scalar inputs plus preflight EOF, then two grammar transitions.
+    # An exactly funded new original succeeds after the previous one has
+    # consumed its full allowance. A short original keeps its original claim.
+    for nonce, planning_work, expected in ((304, 7, 0), (305, 6, -10)):
+        fixture = PlatformInputFixture(module, nonce, planning_work=planning_work)
+        try:
+            for ticket in (1, 2):
+                handle = fixture.stage(ticket, b'null')
+                result = fixture.call('seal', handle)
+                assert result == expected, (planning_work, ticket, result, expected)
+                if expected != 0:
+                    assert fixture.call('seal', handle) == -5
+                    fixture.cleanup_ready = False
+                    assert fixture.call('close', handle) == -9
+                fixture.cleanup_ready = True
+                assert fixture.call('close', handle) == 0
+                assert ticket not in fixture.inputs
+                assert fixture.call('allocated') == 0 and fixture.call('reserved') == 0
+            assert fixture.call('close_pool') == 0
+        finally:
+            fixture.close()
+    cases.append('exact per-input planning allowance and short original refusal preserve physical retirement')
 
 print(json.dumps({'success': True,
     'module_sha256': hashlib.sha256(module).hexdigest(), 'cases': cases,
