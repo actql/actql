@@ -178,6 +178,7 @@ priv enum ModelPhase {
   PrepareRequests
   PreparePhysicalRequests
   DispatchSlot
+  FailAfterSettlement
   AwaitPhysicalResponse
   DecodePhysicalResponse(
     PreparedModelRequest,
@@ -375,6 +376,18 @@ fn advance_model(
   quantum : Int,
   reader : @bounded.Reader,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  if state.progress.phase is FailAfterSettlement {
+    guard state.progress.settlement is None &&
+      state.progress.call is None &&
+      model_outcome_at(state, state.progress.slot - 1)
+      is Some(NoResponseFailure(failure)) else {
+      return @bounded.Failed(OutputIdentity, 0, 0)
+    }
+    // The failure was already charged when adopted. Fencing the entire
+    // execution here also covers a later cleanup scan of another frame.
+    state.stop_requested = true
+    return @bounded.Failed(Provider(failure), 0, 0)
+  }
   // An asynchronously saved or unconfirmed entry owns the original attempt
   // before any final stop/authority check. A confirmed absence owns no attempt.
   let persistence_issue = model_entry_persistence_issue(state)
@@ -1249,7 +1262,9 @@ fn advance_model_execution_owned(
   quantum : Int,
 ) -> Result[ModelObservation, ModelExecutionIssue] {
   let state = execution.state
-  if !state.reclaimed && !@bounded.session_stopped(execution.session) {
+  if !state.reclaimed &&
+    !@bounded.session_stopped(execution.session) &&
+    !(state.progress.phase is FailAfterSettlement) {
     match select_model_window_progress(state) {
       Err(issue) => return Err(issue)
       Ok(false) => return Ok(AwaitIo(execution.progress, execution.work))
@@ -1333,7 +1348,11 @@ fn advance_model_execution_owned(
       Ok(Completed(bundle, progress, work))
     }
     Ok(@bounded.FailedWith(issue, progress~, work~)) => {
-      finish_model_attempt_failure(execution.state, issue)
+      // Provider failure adoption already recorded its own attempt. The
+      // incremented Slot cursor can now point at an unrelated window peer.
+      if !(issue is Provider(_)) {
+        finish_model_attempt_failure(state, issue)
+      }
       Ok(Failed(issue, progress, work))
     }
     Ok(@bounded.StoppedWith(reason, progress~, work~)) => {
@@ -1353,7 +1372,8 @@ pub fn request_model_cancel(execution : ModelExecution) -> Bool {
     (
       execution.state.progress.observing_response ||
       execution.state.progress.entry is Some(_) ||
-      execution.state.progress.settlement is Some(_)
+      execution.state.progress.settlement is Some(_) ||
+      execution.state.progress.phase is FailAfterSettlement
     ) {
     // Sending is fenced immediately; finishing an already-returned observation
     // is a bounded cleanup duty and does not authorize another provider call.

@@ -1,10 +1,12 @@
+import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {nativeFileSourceQueries, nativeReadonlyMockQueries, nativeInstalledSourceQueries, observeNativeFileSourceQuery,
   nativeFileSourceQueryEnvironment, retainNativeFileCapacityStderr} from './fixtures/native-file-source-queries.mjs';
 import {nativeLocalDefaultAssets} from './native-cli-default-assets.mjs';
-import {verifyIdentity} from './check-canonical-json.mjs';
+import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
+import {prepareControlledNativeFileModelEffect} from './native-cli-model-scenario.mjs';
 import {finishSourceFreeObservations} from './test-native-cli-source-free-install.mjs';
 import {observeFreshSubmissionFailureDiagnostic, preserveOrdinaryFailureWithDiagnostic,
   withInstalledFileCapacityObservations,
@@ -260,12 +262,31 @@ test('missing observations and passing-receipt write failures are not success', 
 });
 
 // Real process-exit ownership tests, not Native execution or package evidence.
-import {mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, readdir, realpath, rm} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {runCleanupConditionedConsumer} from './test-native-cli-source-free-install.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
+
+test('Native terminal Model witness separates the single primary from complete physical diagnostics', async () => {
+  const {nativeModelTerminalCases, requireNativeModelCommandFailure} = await import('./native-cli-model-scenario.mjs');
+  assert.deepEqual(nativeModelTerminalCases.map(({status, items, diagnostic, usage, body}) =>
+    [status, items, diagnostic.code, usage.input_tokens, usage.output_tokens, Buffer.byteLength(body),
+      createHash('sha256').update(body).digest('hex')]), [
+    [429, 2, 'ACTQL_E_MODEL_RATE_LIMIT', null, null, 16, '10b6c9e4ccb319ac7adf935671187200f9535ff30b2968a269280bc243b3eaec'],
+    [401, 1, 'ACTQL_E_MODEL_PROVIDER_ERROR', null, null, 16, '10b6c9e4ccb319ac7adf935671187200f9535ff30b2968a269280bc243b3eaec'],
+    [503, 1, 'ACTQL_E_MODEL_PROVIDER_ERROR', null, null, 16, '10b6c9e4ccb319ac7adf935671187200f9535ff30b2968a269280bc243b3eaec'],
+    [200, 1, 'ACTQL_E_MODEL_SCHEMA_INVALID', 0, null, 200, '1886777e80e474ee2227e09d51f11de1e32874bea644232078551a0c9f5eeeb8'],
+  ]);
+  const {diagnostic} = nativeModelTerminalCases[0];
+  const physical = 'ACTQL_NATIVE_TIMINGS {}\nACTQL_NATIVE_ACCEPTANCE_END {}\n';
+  const primary = JSON.stringify(diagnostic) + '\n';
+  assert.equal(requireNativeModelCommandFailure(primary + physical, diagnostic), physical);
+  assert.throws(() => requireNativeModelCommandFailure(primary + physical, nativeModelTerminalCases[1].diagnostic));
+  assert.throws(() => requireNativeModelCommandFailure(physical, diagnostic), /Missing or competing/u);
+  assert.throws(() => requireNativeModelCommandFailure(primary + primary + physical, diagnostic), /Missing or competing/u);
+});
 
 test('Native numeric oracle checks every row including the tail and rejects incomplete or extra contents', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-native-numeric-oracle-'));
@@ -614,6 +635,59 @@ function numericOperatorInputs() {
     libraries: {sqlite: '/original/installed/sqlite.so', crypto: '/original/installed/crypto.so'},
     runtimeWire: '{"originalManifest":true}\n'};
 }
+
+test('Protected File Model Effect installs the selected Task, policies and signer on its one operator', async t => {
+  const parent = await mkdtemp(join(tmpdir(), 'actql-file-effect-operator-test-'));
+  t.after(() => rm(parent, {recursive: true, force: true}));
+  const project = join(await realpath(parent), 'operator');
+  const inputs = numericOperatorInputs();
+  const taskId = 'model-task:churn-risk.v1';
+  const selected = await prepareControlledNativeFileModelEffect({project, assets: inputs.assets,
+    endpoint: 'https://127.0.0.1:12345/v1/chat/completions', certPath: join(project, 'controlled-ca.pem'),
+    runtimeSha256: 'b'.repeat(64), selection: {prefix: 'model', taskId, model: 'controlled-chat',
+      token: 'synthetic-test-token'},
+    prepareProject: path => prepareNativeNumericOperator({...inputs, project: path, maxRows: 100}),
+  });
+  const read = async file => JSON.parse(await readFile(join(project, file), 'utf8'));
+  assert.deepEqual(selected.configuration, ['--mode', 'local', '--config-root', project,
+    '--config-file', 'operator.json', '--host-config', join(project, 'host.json')]);
+  assert.deepEqual(await read('host.json'), {version: 'actql-host/0.1'});
+  assert.deepEqual(await read('model-tasks.json'), {version: 'actql-model-tasks/0.1', tasks: {}, providers: {}});
+  assert.deepEqual((await read('actql.config.json')).mock.answers, {});
+  await assert.rejects(read('churn-risk.v1.yaml'), {code: 'ENOENT'});
+  const {native: {check_environment, local}} = await read('operator.json');
+  const {evidence_bundle_cid, ...environment} = await read('environment.json');
+  verifyIdentity(environment, evidence_bundle_cid);
+  assert.equal(check_environment.evidence_bundle_cid, evidence_bundle_cid);
+  const [{contract_cid, ...task}] = environment.model_task_contracts;
+  verifyIdentity(task, contract_cid);
+  assert.equal(task.task_id, taskId);
+  assert.equal(selected.original.task, contract_cid);
+  assert.equal(local.state_parent, project);
+  assert.equal(local.state_name, 'host');
+  const {principal, connection} = local;
+  assert.deepEqual(local.initial_host_signing, {principal, connection, resource: 'key/initial-host-attestation'});
+  assert.equal(local.installation_files.filter(name => name === 'host.json').length, 1);
+  const account = await read('account.json');
+  assert.equal(Object.hasOwn(account, 'bootstrap'), false);
+  assert.deepEqual(account.entries.map(entry => [
+    entry.entry_id, entry.outcome, entry.connection.any_of[0], entry.resource.any_of[0], entry.operation.any_of,
+  ]), [
+    ['bounded-effect-file', 'allow', 'drive', 'files', ['read']],
+    ['bounded-effect-result', 'allow', connection, 'result/updates', ['read']],
+    ['bounded-effect-run', 'allow', connection, 'run', ['cancel', 'publish', 'read', 'resolve', 'submit']],
+    ['bounded-effect-signer', 'allow', connection, 'key/initial-host-attestation', ['sign']],
+    ['bounded-effect-target', 'delegate', 'salesforce', 'Opportunity', ['effect']],
+    ['bounded-effect-target-read', 'allow', 'salesforce', 'Opportunity', ['read']],
+    ['bounded-native-model', 'allow', 'models/http', contract_cid, ['infer', 'model_raw_capture']],
+  ]);
+  const {modelRawDataPolicy, finalResultPolicy} = selected.policy;
+  assert.equal(await readFile(join(project, 'model-data.json'), 'utf8'), canonicalText(modelRawDataPolicy));
+  const {native: {result_read}} = await read('read.json');
+  assert.deepEqual(result_read.result_names, ['updates']);
+  assert.equal(result_read.data_policy_cids.length, 1);
+  verifyIdentity(finalResultPolicy, result_read.data_policy_cids[0]);
+});
 
 test('Native numeric operator retains low defaults and authors an explicit finite original before adoption', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'actql-numeric-policy-test-'));

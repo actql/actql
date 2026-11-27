@@ -257,6 +257,17 @@ pub fn check_client_model_raw_capture_current(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  check_client_model_raw_capture_at(value, current, at)
+}
+
+///|
+/// Reuse the original Raw admission with the same Host's freshly observed
+/// Account and clock. This grants neither a Raw read nor a provider entrance.
+pub fn check_client_model_raw_capture_at(
+  value : ClientModelRawCaptureRegistration,
+  current : @authorization.AdmittedAccountConfiguration,
+  at : String,
+) -> Result[Unit, ClientModelRawCaptureIssue] {
   if !@publication.trusted_clock_not_before(Some(value.selected_at), at) ||
     at >= value.available_until ||
     !@publication.run_publication_start_current(

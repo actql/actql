@@ -243,11 +243,12 @@ pub fn NativeClientMockModelWork::observe_step_in_original_read(
 fn NativeClientMockModelWork::observe_model_step_in_original_read(
   self : Self,
   physical~ : Bool,
+  under_advance? : Bool = false,
 ) -> Result[Unit, NativeClientMockModelIssue] {
   try {
     if self.closing ||
       self.closed ||
-      self.advancing ||
+      self.advancing != under_advance ||
       self.entry_issue is Some(_) {
       return Err(ForeignOriginal)
     }
@@ -255,7 +256,7 @@ fn NativeClientMockModelWork::observe_model_step_in_original_read(
     self.observation_time = None
     // The clock may reenter. Observe the physical originals AFTER it returns.
     let at = (self.current_time)()
-    if self.closing || self.closed || self.advancing {
+    if self.closing || self.closed || self.advancing != under_advance {
       return Err(ForeignOriginal)
     }
     let account = mock_model_require(
@@ -295,7 +296,7 @@ fn NativeClientMockModelWork::observe_model_step_in_original_read(
       })
       .map_err(issue => NativeClientMockModelIssue::Original(issue)),
     )
-    if self.closing || self.closed || self.advancing {
+    if self.closing || self.closed || self.advancing != under_advance {
       return Err(ForeignOriginal)
     }
     self.account = Some(account)
@@ -444,8 +445,18 @@ pub fn NativeClientMockModelWork::open(
           ).map_err(issue => NativeClientMockModelIssue::Egress(issue)),
         )
       PortableHttp(work) => {
+        let egress = match work.installation.run_policy.egress {
+          NativeEgressReady(admission) => admission
+          NativeEgressPending(_) => {
+            guard work.dependencies is Some(staged) &&
+              staged.egress is Some(admitted) else {
+              return Err(Egress(UnknownClassification))
+            }
+            admitted
+          }
+        }
         mock_model_require(work.bind_preflight(active))
-        work.installation.run_policy.egress
+        egress
       }
     }
     mock_model_require(
@@ -646,6 +657,9 @@ fn NativeClientMockModelWork::bind_prepared(
         },
       ),
     )
+    mock_model_require(
+      self.bind_model_output_dependency_scope(call_scope, bound),
+    )
     self.scope = Some(bound)
     let admission = mock_model_require(
       @host.issue_client_infer_dispatch_admission(
@@ -655,7 +669,24 @@ fn NativeClientMockModelWork::bind_prepared(
         self.principal,
         at,
         model_scope=Some(bound),
-        observe_current=() => self.current_step(),
+        observe_current=() => {
+          // Entered Raw custody keeps its own current observation after a
+          // successful task retires the staged input. Only dispatch needs
+          // the still-installed Reader.
+          if !self.model_output_dependency_scope_current() {
+            return Err(@host.ForeignRun)
+          }
+          self
+          .current_step()
+          .bind(pair => {
+            let (account, at) = pair
+            if self.model_output_dependency_issuers_current(account, at) {
+              Ok(pair)
+            } else {
+              Err(@host.ForeignRun)
+            }
+          })
+        },
       ).map_err(issue => NativeClientMockModelIssue::Dispatch(issue)),
     )
     self.admission = Some(admission)
@@ -855,9 +886,20 @@ pub fn NativeClientMockModelWork::enter_managed_model_step(
     !self.advancing &&
     self.account is Some(_) &&
     self.observation_time is Some(_) &&
-    self.settlement is None &&
     self.active is Some(original) &&
     physical_equal(original, active) else {
+    return Err(ForeignOriginal)
+  }
+  // This phase is assigned only to the retained original strict settlement
+  // after Store/Journal confirmation and Core ACK. Core still owns its
+  // terminal call retirement in FailAfterSettlement.
+  if self.settlement is Some(saved) &&
+    !(self.provider_role is PortableHttp(_) &&
+    saved.store_phase == ModelStoreAcknowledged &&
+    saved.store_complete &&
+    saved.journal_recorded &&
+    saved.exporter is None &&
+    !@infer.execution_stopped(active)) {
     return Err(ForeignOriginal)
   }
   self.advancing = true
@@ -1053,6 +1095,9 @@ pub fn NativeClientMockModelWork::close(
     }
     match self.active {
       None => {
+        if self.provider_role is PortableHttp(work) {
+          work.dependencies = None
+        }
         self.lookup_entries = None
         self.first_start = None
         self.closed = true
@@ -1061,7 +1106,8 @@ pub fn NativeClientMockModelWork::close(
       Some(active) => {
         if self.settlement is Some(saved) &&
           saved.store_complete &&
-          saved.journal_recorded {
+          saved.journal_recorded &&
+          saved.store_phase != ModelStoreAcknowledged {
           // Actual Store confirmations and the known Journal COMMIT precede
           // this late custody observation. Finish that SAME settlement even
           // when a later Read return/stop sent the caller directly to cleanup.
@@ -1120,6 +1166,7 @@ pub fn NativeClientMockModelWork::close(
             // own edge only after the Model confirms retirement. Any pending
             // Store child still owns its exact registration and cleanup.
             work.registration = None
+            work.dependencies = None
           }
           self.lookup_entries = None
           self.active = None

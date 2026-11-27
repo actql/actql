@@ -268,6 +268,7 @@ fn native_original_saved_response(
   slot : Int,
   body : String,
   eof? : Bool = true,
+  status? : Int = 200,
 ) -> @model.ModelPhysicalChatResponse {
   let bytes = @utf8.encode(body)
   let save = @model.observe_model_raw_capture(
@@ -275,7 +276,7 @@ fn native_original_saved_response(
     fixture.registration,
     "sha256:" + @sha.hex(bytes),
     bytes.length(),
-    200,
+    status,
     eof,
     fixture.now.val,
   ).unwrap()
@@ -365,6 +366,97 @@ test "native original Entry and saved raw advance existing Model to typed result
   assert_true(!cleanup(f.active).unwrap())
   assert_true(cleanup(f.active).unwrap())
   assert_eq(f.sent.val, 2)
+}
+
+///|
+test "native original complete HTTP errors retain status and observed usage" {
+  let plain = "gateway did not return JSON"
+  for
+    (status, body, failure, input_tokens, output_tokens) in [
+      (
+        429,
+        (
+          #|{"model":false,"usage":{"input_tokens":0,"output_tokens":2}}
+        ),
+        "rate_limit",
+        "0",
+        "2",
+      ),
+      (429, plain, "rate_limit", "null", "null"),
+      (
+        401,
+        (
+          #|{"usage":{"output_tokens":0}}
+        ),
+        "provider_error",
+        "null",
+        "0",
+      ),
+      (503, plain, "provider_error", "null", "null"),
+    ] {
+    let f = native_original_call_fixture()
+    let raw = native_original_saved_response(f, 0, body, status~)
+    f.responses[0] = @model.model_physical_saved_native_response(
+      raw,
+      f.views.get(0).unwrap(),
+      f.provider,
+      @environment.initial_jev_decision_profile(),
+    ).unwrap()
+    guard native_original_finish(f.active, f.work) is Settling(0, work~) else {
+      abort("complete original HTTP refusal must await its settlement")
+    }
+    let proof = attempt_evidence(f.active, 0).unwrap()
+    let outcome = @publication.run_evidence_value_json(
+      @model.model_attempt_outcome(proof),
+    )
+    let accounting = @publication.run_evidence_value_json(
+      @model.model_attempt_accounting(proof),
+    )
+    assert_true(
+      outcome.contains("\"failure\":\"" + failure + "\""),
+      msg=outcome,
+    )
+    assert_false(outcome.contains("\"reported_response\""))
+    assert_true(accounting.contains("\"input_tokens\":" + input_tokens))
+    assert_true(accounting.contains("\"output_tokens\":" + output_tokens))
+    assert_true(acquire_output(f.active) is None)
+    assert_true(cancel(f.active))
+    assert_true(
+      @model.acknowledge_model_call_settlement(
+        call_settlement(f.active).unwrap(),
+      ),
+    )
+    f.release.val = true
+    assert_true(native_original_finish(f.active, work) is Stopped(..))
+    assert_false(cleanup(f.active).unwrap())
+    assert_true(cleanup(f.active).unwrap())
+    assert_eq(f.sent.val, 1)
+  }
+}
+
+///|
+test "native original HTTP parser depth exhaustion stays a local limit" {
+  let f = native_original_call_fixture()
+  let depth = @environment.model_response_profile_limits(native_call_profile()).parse_depth +
+    1
+  let body = "{\"opaque\":" + "[".repeat(depth) + "0" + "]".repeat(depth) + "}"
+  let raw = native_original_saved_response(f, 0, body, status=429)
+  f.responses[0] = @model.model_physical_saved_native_response(
+    raw,
+    f.views.get(0).unwrap(),
+    f.provider,
+    @environment.initial_jev_decision_profile(),
+  ).unwrap()
+  assert_true(
+    native_original_finish(f.active, f.work)
+    is Failed(Model(@model.WorkLimit), ..),
+  )
+  assert_true(call_settlement(f.active) is None)
+  assert_true(acquire_output(f.active) is None)
+  f.release.val = true
+  assert_false(cleanup(f.active).unwrap())
+  assert_true(cleanup(f.active).unwrap())
+  assert_eq(f.sent.val, 1)
 }
 
 ///|
@@ -493,6 +585,7 @@ test "native original incomplete raw usage retires before immutable Unknown atte
     0,
     native_original_answer(),
     eof=false,
+    status=429,
   )
   let call = f.calls.get(0).unwrap()
   f.responses[0] = @model.model_physical_saved_native_response(
@@ -506,6 +599,7 @@ test "native original incomplete raw usage retires before immutable Unknown atte
     is Failed(Model(@model.UnknownCalls), ..),
   )
   assert_true(attempt_evidence(f.active, 0) is Err(@model.OutputIdentity))
+  assert_true(call_settlement(f.active) is None)
   let model = f.active.model.unwrap()
   let mut last = 0L
   let mut completed = false

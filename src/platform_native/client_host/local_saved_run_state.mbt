@@ -24,6 +24,7 @@ pub fn NativeClientSavedRunState::control_revision(
 ///|
 pub(all) enum NativeClientSavedRunStateIssue {
   Unavailable
+  ModelProofRequired
   Journal(NativeClientRunJournalIssue)
 }
 
@@ -220,8 +221,17 @@ fn NativeClientRunJournal::retain_run_state_locked(
   manifest : @publication.PublicationContract?,
   current : () -> Bool,
   operations? : NativeClientJournalOperationAccess? = None,
+  model_failure? : @publication.BoundModelHttpFailure? = None,
+  model_unknown? : (String, String)? = None,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
   guard self.transaction_active else { return Err(CustodyLost) }
+  if (manifest is Some(_) && model_failure is Some(_)) ||
+    (
+      model_unknown is Some(_) &&
+      (manifest is Some(_) || model_failure is Some(_))
+    ) {
+    return Err(CustodyLost)
+  }
   guard original.run_state_observation is Some((prior_revision, prior_key)) else {
     // Historical absence is not the original issuance of counter zero.
     return Err(CustodyLost)
@@ -245,17 +255,25 @@ fn NativeClientRunJournal::retain_run_state_locked(
     Ok(value) => value
     Err(_) => return Err(CapacityExceeded)
   }
-  let prepared = match manifest {
-    Some(original) =>
+  let prepared = match (manifest, model_unknown) {
+    (Some(original), None) =>
       @host.prepare_client_run_state_original(
         run.definition,
         original,
         state_wire,
       )
-    None =>
+    (None, Some((attempt, entry_digest))) =>
+      @host.prepare_client_dependent_model_unknown_run_state_original(
+        run.definition,
+        state_wire,
+        attempt,
+        entry_digest,
+      )
+    _ =>
       @host.prepare_client_unpublished_run_state_original(
         run.definition,
         state_wire,
+        model_failure~,
       )
   }
   let state = match prepared {
@@ -412,6 +430,7 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_with_operations(
   now : Double,
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
+  model_store? : (@publication_store.Store, String, NativeLocalStoreOperation)? = None,
 ) -> Result[NativeClientSavedRunState, NativeClientSavedRunStateIssue] {
   let reads = operations.map(value => value.reads)
   let authority = match
@@ -446,11 +465,81 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_with_operations(
       if !authority.current_for(self.journal, request) {
         return Err(AuthorizationDenied)
       }
-      let read : Result[NativeClientSavedRunState?, NativeClientRunJournalIssue] = match
-        self.journal.saved_run_state_locked(reference, request, reads~) {
-        Ok((original, run)) => restore_native_saved_run_state(original, run)
-        Err(issue) => Err(issue)
-      }
+      let read = self.journal
+        .saved_run_state_locked(reference, request, reads~)
+        .bind(saved => {
+          let (submitted, run) = saved
+          guard submitted.restored_state_original is Some(retained) &&
+            retained.requires_model_proof() else {
+            return restore_native_saved_run_state(submitted, run).map(value => {
+              (value, false)
+            })
+          }
+          match (capture, reads, model_store) {
+            (
+              Some(captured),
+              Some(physical),
+              Some((store, namespace_id, operation)),
+            ) => {
+              let failure = Ref(None)
+              let state = if retained.requires_dependent_model_unknown_proof() {
+                let resolve_unknown = (attempt, entry_digest) => {
+                  match
+                    captured.restore_saved_dependent_model_unknown_locked(
+                      authority,
+                      run,
+                      store,
+                      namespace_id,
+                      operation,
+                      (attempt, entry_digest),
+                      physical,
+                    ) {
+                    Ok(_) => true
+                    Err(issue) => {
+                      failure.val = Some(issue)
+                      false
+                    }
+                  }
+                }
+                restore_native_saved_run_state(
+                  submitted,
+                  run,
+                  resolve_dependent_model_unknown=Some(resolve_unknown),
+                )
+              } else {
+                let resolve = (attempt, raw) => {
+                  match
+                    captured.restore_saved_model_failure_locked(
+                      authority,
+                      run,
+                      store,
+                      namespace_id,
+                      operation,
+                      (attempt, raw),
+                      physical,
+                    ) {
+                    Ok(value) => Some(value)
+                    Err(issue) => {
+                      failure.val = Some(issue)
+                      None
+                    }
+                  }
+                }
+                restore_native_saved_run_state(
+                  submitted,
+                  run,
+                  resolve_model_failure=Some(resolve),
+                )
+              }
+              match failure.val {
+                Some(issue) => Err(issue)
+                None => state.map(value => (value, false))
+              }
+            }
+            (_, _, None) => Ok((None, true))
+            _ => Err(CustodyLost)
+          }
+        })
       if !authority.current_for(self.journal, request) {
         return Err(AuthorizationDenied)
       }
@@ -459,10 +548,11 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_with_operations(
     reads~,
   )
   .map_err(issue => NativeClientSavedRunStateIssue::Journal(issue))
-  .bind(value => {
-    match value {
-      Some(value) => Ok(value)
-      None => Err(Unavailable)
+  .bind(result => {
+    match result {
+      (Some(value), _) => Ok(value)
+      (None, true) => Err(ModelProofRequired)
+      (None, false) => Err(Unavailable)
     }
   })
 }

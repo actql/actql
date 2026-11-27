@@ -19,7 +19,7 @@ import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approva
   nativeApprovalObservedCommand, retainNativeApprovalObservation, observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
 import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario, runNativeNullableMockScenarios,
   runNativeFileCreateMockScenarios, runNativeFileNamedResults, runNativeMixedFileMockScenarios, runNativeOrderedFileMockScenarios,
-  runNativeSameResourceMockScenarios, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
+  runNativeModelDeleteMockScenarios, runNativeSameResourceMockScenarios, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
 import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './native-cli-mock-scenario.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {inventory, verifyPackageRelease} from './package-release.mjs';
@@ -251,6 +251,7 @@ export async function runNativeCliMockInstall(input: string, {measureResources =
     let orderedFileMock: {
       caseSha256: string; cases: Awaited<ReturnType<typeof runNativeOrderedFileMockScenarios<CommandRecord>>>;
     } | undefined;
+    let modelBackedDelete: Awaited<ReturnType<typeof runNativeModelDeleteMockScenarios<CommandRecord>>> | undefined;
     if (sharedFileMock) {
       scenarios.push(await observe('shared-file-scenario', () => runNativeSharedFileMockScenario({root,
         launcherTimings: 'required', run: runScenarioCommand})));
@@ -281,6 +282,9 @@ export async function runNativeCliMockInstall(input: string, {measureResources =
         caseSha256: createHash('sha256').update(await readFile(new URL(
           '../adapters/host-node/fixtures/mock-ordered-file.fixture.mjs', import.meta.url))).digest('hex'),
         cases: await runNativeOrderedFileMockScenarios({root, launcherTimings: 'required', run: runScenarioCommand}),
+      }));
+      modelBackedDelete = await observe('model-backed-delete-scenarios', () => runNativeModelDeleteMockScenarios({
+        root, launcherTimings: 'required', run: runScenarioCommand,
       }));
     } else {
       for (const template of mockTemplates) scenarios.push(await observe('scenario', () => runNativeCliMockScenario({
@@ -357,6 +361,7 @@ export async function runNativeCliMockInstall(input: string, {measureResources =
       ...(orderedFileMock === undefined ? {} : {orderedFileMock}),
       ...(sameResourceMock === undefined ? {} : {sameResourceMock}),
       ...(fileNamedResults === undefined ? {} : {fileNamedResults}),
+      ...(modelBackedDelete === undefined ? {} : {modelBackedDelete}),
       ...(projectSequences ? {projectSequences, originalMockRegressions, nodeSourceSha: nodeManifest!.sourceSha,
         nodePackages: nodeManifest!.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity}))} : {}),
       ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,

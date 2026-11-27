@@ -2,7 +2,7 @@
 // Retained on the installed Model in the original command Read. These facts
 // bound work and select evidence. The original Account still authorizes it.
 priv struct NativeModelHttpRunPolicy {
-  egress : @host.ClientInferEgressAdmission
+  egress : NativeModelHttpEgressSelection
   quantities : @model.ModelQuantityCapacity
   raw : NativeClientModelHttpRawOriginals
   ca_path : String
@@ -27,6 +27,7 @@ priv struct NativeModelHttpTransportPolicy {
 ///|
 priv struct NativeModelHttpPolicySelection {
   transport : NativeModelHttpTransportPolicy
+  output_policy : @decode.Cursor?
   retention : String
   metadata : String
   clock : String
@@ -152,7 +153,7 @@ fn native_model_http_run_policy_selection(
       "max_projection_frames", "attempt_tokens", "attempt_cost_units", "input_classification",
       "provider_region", "provider_retention", "provider_training_use", "retention_contract_file",
       "metadata_retention_file", "clock_contract_file", "data_policy_file", "available_until",
-      "delete_by", "extension_ceiling_at", "metadata_delete_by",
+      "delete_by", "extension_ceiling_at", "metadata_delete_by", "upstream_model_outputs",
     ])
     is Ok(fields) &&
     native_model_http_transport_policy(fields) is Some(transport) &&
@@ -175,6 +176,7 @@ fn native_model_http_run_policy_selection(
   }
   Some({
     transport,
+    output_policy: @decode.lookup(fields, "upstream_model_outputs"),
     retention,
     metadata,
     clock,
@@ -260,6 +262,12 @@ fn read_native_model_http_policy_body(
 }
 
 ///|
+priv enum NativeModelHttpPolicyIssue {
+  PolicyOriginal(NativeLocalAdoptionIssue)
+  PolicyEgress(@host.ClientInferEgressIssue)
+}
+
+///|
 priv suberror NativeModelHttpPolicyStop {
   NativeModelHttpPolicyStop(NativeLocalAdoptionIssue)
 }
@@ -279,14 +287,15 @@ fn read_native_model_http_run_policy(
   configuration : NativeModelHttpConfiguration,
   occurrence : @host.ClientInferOccurrence,
   execution : @environment.ModelExecutionContract,
+  binding : @publication.RunEvidenceValue,
   limits : @environment.Limits,
   operations : NativeClientJournalOperationAccess,
-) -> Result[NativeModelHttpRunPolicy, NativeLocalAdoptionIssue] {
+) -> Result[NativeModelHttpRunPolicy, NativeModelHttpPolicyIssue] {
   try {
     guard configuration.policy_file is Some(name) &&
       configuration.settings.files.iter().find_first(file => file.name == name)
       is Some(original) else {
-      return Err(CustodyLost)
+      return Err(PolicyOriginal(CustodyLost))
     }
     let (retained, working) = native_model_http_profile_construction(
       original.body,
@@ -297,7 +306,7 @@ fn read_native_model_http_run_policy(
     )
     guard native_model_http_run_policy_selection(original.body, limits)
       is Some(selected) else {
-      return Err(CustodyLost)
+      return Err(PolicyOriginal(CustodyLost))
     }
     let transport = selected.transport
     let totals : @resources.QuantityAmounts = {
@@ -322,14 +331,49 @@ fn read_native_model_http_run_policy(
     if attempt.tokens > totals.tokens ||
       attempt.cost_units > totals.cost_units ||
       attempt.duration_ms > totals.duration_ms {
-      return Err(ConfigurationLimit)
+      return Err(PolicyOriginal(ConfigurationLimit))
     }
     let observed = transport.observation
-    let egress = require_native_model_http_policy(
-      @host.admit_client_infer_occurrence_egress(occurrence, execution, () => {
+    let egress = match
+      @host.prepare_client_infer_occurrence_egress(occurrence, execution, () => {
         Some(observed)
-      }).map_err(_ => CustodyLost),
-    )
+      }) {
+      Ok(@host.EgressAdmitted(value)) => {
+        if selected.output_policy is Some(_) {
+          return Err(PolicyOriginal(CustodyLost))
+        }
+        NativeEgressReady(value)
+      }
+      Ok(@host.EgressPending(pending)) => {
+        guard selected.output_policy is Some(declared) else {
+          return Err(PolicyEgress(UnknownClassification))
+        }
+        let count = @host.client_infer_pending_egress_result_count(pending).to_int64()
+        let units : @execution.PreparationRepresentationUnits = {
+          record_headers: 4L + count,
+          reference_slots: 10L + 7L * count,
+          scalar_words: 1L + 4L * count,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        }
+        require_native_model_http_policy(
+          fund_native_model_http_configuration(operations, units, units),
+        )
+        guard admit_native_model_http_output_policy(
+            declared,
+            pending,
+            configuration.settings,
+            original,
+            binding,
+            configuration.response,
+          )
+          is Some(policy) else {
+          return Err(PolicyOriginal(CustodyLost))
+        }
+        NativeEgressPending(policy)
+      }
+      Err(issue) => return Err(PolicyEgress(issue))
+    }
     let retention = require_native_model_http_policy(
       read_native_model_http_policy_body(
         configuration,
@@ -386,6 +430,6 @@ fn read_native_model_http_run_policy(
       max_projection_frames: transport.max_projection_frames,
     })
   } catch {
-    NativeModelHttpPolicyStop(issue) => Err(issue)
+    NativeModelHttpPolicyStop(issue) => Err(PolicyOriginal(issue))
   }
 }

@@ -295,6 +295,138 @@ fn static_native_effect_publication(
 }
 
 ///|
+test "static Native DELETE verifies only the visible original scalar Mapping" {
+  // These canonical fixture CIDs cover the substituted DELETE permission.
+  let evidence = "sha256:8f83e17ea5c8c275928f143e5cf51b8472d8cb2461f99931b7e5aaf03f44b5ae"
+  let original_rule =
+    #|{"effect_kind":"update","permissions":["scope:update"],"selector_class":"id","write_fields":["Name"]}
+  let delete_rule =
+    #|{"effect_kind":"delete","permissions":["scope:delete"],"selector_class":"id","write_fields":[]}
+  let environment_wire = source_query_original_environment
+    .replace(old=original_rule, new=delete_rule)
+    .replace(
+      old="sha256:f6a45e666ca86c60fe3ce8ec72cb43dff5757740391cd2e8a883834baa681d1f",
+      new="sha256:8ddc594ef3b5fcea7eaed387560505db4b9a5e74e97fd56fc1814a1e168b752c",
+    )
+    .replace(
+      old="sha256:40c45acbf81bdf192d79b7e8f65a5731ba6065b1d4b8cc7b4cab89ab4ac85c60",
+      new=evidence,
+    )
+  let environment = @publication_host.admit_client_check_environment(
+    environment_wire,
+    evidence,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let (publication, wire) = static_native_effect_publication(environment)
+  let hidden_wire = "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  let document = "SELECT 1 AS id |> RESULT out |> EFFECT DELETE crm.Account FROM RESULT out ID id"
+  for retention in [true, false] {
+    let (parent, input) = native_driver_parent(document)
+    prepare_request_native_document_check(
+      parent,
+      input,
+      document,
+      @frontend.Text,
+      None,
+      None,
+      environment,
+      publication,
+    ).unwrap()
+    let child = parent.program_check.unwrap()
+    let original = child.static_effect_check.unwrap()
+    assert_true(original.result is Some(Ok(_)))
+    let project = fn(publication_wire) {
+      project_request_completed_check_outcome(
+        parent,
+        input,
+        publication_wire,
+        "ctx:" + "a".repeat(64),
+        "text",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+    }
+    let foreign_wire = wire.replace(
+      old="connector://crm/account",
+      new="connector://crm/foreign",
+    )
+    for undisclosed in [hidden_wire, foreign_wire] {
+      let report = project(undisclosed).unwrap().unwrap()
+      assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+      assert_true(!report.contains("mapping:crm.account.v1"), msg=report)
+    }
+
+    let bytes = 448L +
+      request_check_observation_inventory_bytes(wire, 6L, 0L).unwrap()
+    let (r, e) = @resources.preparation_capacity_working_extents(
+      parent.capacity,
+      input,
+    ).unwrap()
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = fn(short) {
+      @resources.reserve_capacity(
+        parent.ledger,
+        if retention {
+          limits.retained_bytes - r - bytes + short
+        } else {
+          0L
+        },
+        if retention {
+          0L
+        } else {
+          limits.execution_bytes - e - bytes + short
+        },
+      ).unwrap()
+    }
+    let one_short = blocker(1L)
+    let refused = project(wire)
+    assert_true(
+      if retention {
+        refused is Err(Capacity(Resource(RetentionLimit)))
+      } else {
+        refused is Err(Capacity(Resource(ExecutionLimit)))
+      },
+    )
+    assert_eq(
+      @resources.preparation_capacity_working_extents(parent.capacity, input),
+      Ok((r, e)),
+    )
+    @resources.settle_capacity(parent.ledger, one_short).unwrap()
+    let exact = blocker(0L)
+    let report = project(wire).unwrap().unwrap()
+    assert_eq(
+      @resources.preparation_capacity_working_extents(parent.capacity, input),
+      Ok((r + bytes, e + bytes)),
+    )
+    @resources.settle_capacity(parent.ledger, exact).unwrap()
+    assert_true(report.contains("\"verdict\":\"verified\""), msg=report)
+    assert_true(
+      report.contains("\"runnable\":{\"reasons\":[],\"verdict\":\"yes\"}"),
+      msg=report,
+    )
+    assert_eq(parent._observed_query_parse_calls, 1L)
+    assert_eq(parent._observed_query_lower_calls, 1L)
+    assert_eq(child._observed_semantic_check_calls, 1L)
+    assert_eq(child._observed_program_compile_calls, 0L)
+    assert_true(
+      parent.submitted_intent is None && parent.compiled_effect is None,
+    )
+    assert_true(physical_equal(child.static_effect_check.unwrap(), original))
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "static Native UPDATE keeps one original semantic check and never compiles or constructs a Run" {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,

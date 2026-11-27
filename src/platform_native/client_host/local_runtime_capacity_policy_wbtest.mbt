@@ -60,22 +60,22 @@ test "configured Runtime binding isolates the adopted Provider declarations from
     ),
   )
   assert_true(
-    local_runtime_configured_model_environment_compatible(
-      selected, installed, "models/http",
-    ),
+    local_runtime_configured_model_environment_compatible(selected, installed, [
+      "models/http",
+    ]),
   )
   assert_false(
     local_runtime_capacity_environment_compatible(selected, installed),
   )
   assert_false(
-    local_runtime_configured_model_environment_compatible(
-      selected, installed, "models/foreign",
-    ),
+    local_runtime_configured_model_environment_compatible(selected, installed, [
+      "models/foreign",
+    ]),
   )
   assert_false(
-    local_runtime_configured_model_environment_compatible(
-      selected, selected, "models/http",
-    ),
+    local_runtime_configured_model_environment_compatible(selected, selected, [
+      "models/http",
+    ]),
   )
   let substituted = runtime_operator_fixture(
     selected.replace(
@@ -85,7 +85,90 @@ test "configured Runtime binding isolates the adopted Provider declarations from
   )
   assert_false(
     local_runtime_configured_model_environment_compatible(
-      substituted, installed, "models/http",
+      substituted,
+      installed,
+      ["models/http"],
+    ),
+  )
+}
+
+///|
+test "configured Runtime binding retains two selected Providers and refuses a foreign declaration" {
+  let installed = @host.client_local_product_assets().environment
+  let original = "\"model_task_contracts\":[]"
+  assert_true(installed.contains(original))
+  let selected = runtime_operator_fixture(
+    installed.replace(
+      old=original,
+      new="\"model_task_contracts\":[{\"connector_id\":\"models/source\"},{\"connector_id\":\"models/derived\"}]",
+    ),
+  )
+  assert_true(
+    local_runtime_configured_model_environment_compatible(selected, installed, [
+      "models/source", "models/derived",
+    ]),
+  )
+  assert_false(
+    local_runtime_configured_model_environment_compatible(selected, installed, [
+      "models/source", "models/foreign",
+    ]),
+  )
+  let foreign = runtime_operator_fixture(
+    selected.replace(old="models/derived", new="models/foreign"),
+  )
+  assert_false(
+    local_runtime_configured_model_environment_compatible(foreign, installed, [
+      "models/source", "models/derived",
+    ]),
+  )
+}
+
+///|
+test "adoption inventory counts distinct Providers and rejects duplicate physical settings" {
+  let selection = fn(
+    provider : String,
+    setting : String,
+  ) -> NativeLocalModelConfigurationSelection {
+    {
+      provider_id: provider,
+      files: {
+        setting,
+        installation_revision: "revision.json",
+        configuration_contract: "contract.json",
+        response_profile: "profile.json",
+      },
+      execution: None,
+      policy: None,
+      limits: { max_bytes: 8192, max_nodes: 16, max_depth: 4, max_members: 16, },
+    }
+  }
+  let original = selection("models/source", "source.json")
+  let distinct = selection("models/derived", "derived.json")
+  let same_provider = selection("models/source", "derived.json")
+  let duplicate = selection("models/derived", "source.json")
+  let names = ["source.json", "derived.json"]
+  assert_true(
+    local_adoption_configuration_count_supported(
+      names,
+      Some([original, distinct]),
+    ),
+  )
+  assert_true(
+    local_adoption_configuration_count_supported(
+      names,
+      Some([original, same_provider]),
+    ),
+  )
+  assert_false(
+    local_adoption_configuration_count_supported(
+      names,
+      Some([original, duplicate]),
+    ),
+  )
+  assert_false(
+    local_adoption_configuration_count_supported(
+      names,
+      Some([original, distinct, selection("models/third", "third.json")]),
     ),
   )
 }

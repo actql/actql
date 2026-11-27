@@ -8,6 +8,7 @@ pub fn validate_original_unpublished_run_state(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  model_failure? : (String, BoundModelHttpFailure)? = None,
 ) -> Result[RunOutcomeStatus, PublicationContractIssue] {
   if definition.name != "run_definition" {
     return Err(InvalidField("run_definition"))
@@ -38,6 +39,25 @@ pub fn validate_original_unpublished_run_state(
   }
   if status == Succeeded || status == WaitingCheckpoint || status == Resuming {
     return Err(InvalidField("status"))
+  }
+  let diagnostic = @json.object_field(value, "terminal_error")
+  let code = diagnostic.bind(body => contract_string_from_value(body, "code"))
+  match model_failure {
+    Some((attempt_cid, failure)) => {
+      let (expected_code, expected_message) = failure.diagnostic
+      if status != Failed ||
+        failure.run_definition_cid != definition.identity ||
+        failure.attempt_cid != attempt_cid ||
+        code != Some(expected_code) ||
+        diagnostic.bind(body => contract_string_from_value(body, "message")) !=
+        Some(expected_message) {
+        return Err(InvalidField("terminal_error"))
+      }
+    }
+    None =>
+      if code is Some(code) && code.has_prefix("ACTQL_E_MODEL_") {
+        return Err(InvalidField("terminal_error"))
+      }
   }
   let names : Array[String] = []
   let observations : Array[ResultAvailability] = []

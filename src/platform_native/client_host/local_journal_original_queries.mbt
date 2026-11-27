@@ -160,6 +160,25 @@ fn NativeLocalJournalReadQueries::access(
         Err(issue) => Err(issue)
       }
     },
+    read_bounded: (table_name, key, maximum) => {
+      let header = match
+        self.query(() => self.database.observe_body_extent(table_name, key)) {
+        Ok(Ok(value)) => value
+        Ok(Err(issue)) | Err(issue) => return Err(issue)
+      }
+      if header.body_bytes <= 0L || header.body_bytes > maximum {
+        return Err(@sqlite.BodyTooLarge)
+      }
+      let (block_header, _, _, _, _) = @bootstrap.native_managed_value_layout()
+      let bytes = block_header + header.body_bytes + 1L
+      if block_header <= 0L ||
+        self.prepare_metadata_construction(bytes, 2L * bytes, bytes) is Err(_) {
+        return Err(@sqlite.Busy)
+      }
+      self
+      .query(() => self.database.read_exact_body_extent(table_name, key, header))
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     observe_scan_body_extent: (table_name, cursor) => {
       self
       .query(() => self.database.observe_scan_body_extent(table_name, cursor))

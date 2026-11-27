@@ -123,12 +123,15 @@ pub fn NativeLocalJournalCapture::lookup_submitted_run_state_by_id_in_original_r
 /// its Run ID again. State is read afresh under current RunRead and the same
 /// original Database operations; the selection is neither permission nor a
 /// substitute for the saved-state custody, epoch, revision and return checks.
+/// ModelProofRequired carries no state. The caller may activate the selected
+/// original observation Store after this Journal transaction has returned.
 pub fn NativeLocalJournalCapture::lookup_submitted_run_state_for_original_in_original_read(
   self : NativeLocalJournalCapture,
   principal : String,
   connection : String,
   original : NativeClientOriginalRunSelection,
   now : Double,
+  model_store? : (@publication_store.Store, String, NativeLocalStoreOperation)? = None,
 ) -> Result[
   Result[NativeClientSavedRunState, NativeClientSavedRunStateIssue],
   NativeLocalAdoptionIssue,
@@ -148,6 +151,7 @@ pub fn NativeLocalJournalCapture::lookup_submitted_run_state_for_original_in_ori
         now,
         operations=Some(operations),
         capture=Some(self),
+        model_store~,
       ),
     )
   })

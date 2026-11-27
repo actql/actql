@@ -10,6 +10,7 @@ struct ClientWholeLocalUnitOriginal {
   results : @strategy.CapturedCompletedUnitResults
   sources : ClientInferComposedSources
   request : ClientRequestIdentity
+  model : ClientWholeModelUnitOriginal?
 }
 
 ///|
@@ -100,6 +101,7 @@ pub fn prepare_client_whole_local_unit_invocation(
     results,
     sources,
     request,
+    model: None,
   }
   if !client_whole_local_unit_original_live(original) ||
     !client_infer_composed_whole_sources_match_run(

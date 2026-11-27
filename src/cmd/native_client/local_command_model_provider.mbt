@@ -21,7 +21,13 @@ fn LocalCommandPreparationOriginal::configured_native_model_provider(
         return Err(@infer.InvalidAdvance)
       }
       let opened = model.open_model_component(
-        index, work, limits, prefix, suffix, inputs,
+        index,
+        work,
+        business.model_work,
+        limits,
+        prefix,
+        suffix,
+        inputs,
       )
       match opened {
         Err(issue) => {
@@ -85,6 +91,7 @@ fn LocalCommandModelRun::open_model_component(
   self : Self,
   index : Int,
   work : @local_host.NativeClientMockModelWork,
+  works : Array[@local_host.NativeClientMockModelWork],
   limits : @infer.Limits,
   prefix : @execution.GeneratedSequence,
   suffix : @execution.GeneratedSequence?,
@@ -103,6 +110,30 @@ fn LocalCommandModelRun::open_model_component(
       original.pending is Some((selected, bindings)) &&
       selected == task &&
       bindings.length() == count else {
+      return Err(ForeignOriginal)
+    }
+    match
+      work.check_model_output_dependency_ports(
+        works,
+        self.completions,
+        bindings,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    // Local supplies its task inputs in the same order checked at staging.
+    // Refuse a different Read before opening the Model child, even when it
+    // was made from the same Result. The completed prefix will still prove
+    // which original input it actually consumed before issuing CallScope.
+    for index, (slot, _, _, position, read) in bindings {
+      guard slot == index &&
+        inputs.get(position) is Some(@local_compute.RelationInput(actual)) &&
+        physical_equal(actual, read) &&
+        @execution.producer_read_available(actual) else {
+        return Err(ForeignOriginal)
+      }
+    }
+    if !self.whole_result_inputs_current(original, task, bindings) {
       return Err(ForeignOriginal)
     }
     Some((original, bindings))
@@ -156,27 +187,38 @@ fn LocalCommandModelRun::open_model_component(
   .bind(_ => work.borrow_opened_original_model())
   .bind(active => {
     if bindings is Some((original, bindings)) {
-      for index, (slot, artifact, manifest) in bindings {
-        if slot != index {
-          return Err(ForeignOriginal)
-        }
+      for (slot, artifact, manifest, _, _) in bindings {
         match
           @infer.bind_whole_result_artifact_input(
-            active, slot, artifact, manifest,
+            active,
+            slot,
+            artifact,
+            manifest,
+            reader=work.model_output_dependency_reader(slot),
           ) {
           Err(issue) => return Err(Model(issue))
           Ok(_) => ()
         }
       }
-      guard self.whole_inputs is Some(current) &&
-        physical_equal(current, original) &&
-        current.pending is Some((selected, retained)) &&
-        selected == task &&
-        physical_equal(retained, bindings) else {
+      if !self.whole_result_inputs_current(original, task, bindings) {
         return Err(ForeignOriginal)
       }
-      current.pending = None
+      original.pending = None
     }
     Ok(active)
   })
+}
+
+///|
+fn LocalCommandModelRun::whole_result_inputs_current(
+  self : Self,
+  original : LocalCommandWholeModelInputs,
+  task : Int,
+  bindings : @local_host.NativeWholeModelResultInputs,
+) -> Bool {
+  self.whole_inputs is Some(current) &&
+  physical_equal(current, original) &&
+  current.pending is Some((selected, retained)) &&
+  selected == task &&
+  physical_equal(retained, bindings)
 }

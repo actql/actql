@@ -890,15 +890,15 @@ fn native_mock_readme_request_payload(
                 )
               }
               assert_true(physical_equal(selected.graph, infers[0]))
+              guard selected.provider is MockModel(profile, provider) else {
+                fail("expected the original Mock provider")
+              }
               assert_true(
-                physical_equal(
-                  selected._retained_profile,
-                  original.model_profile.unwrap(),
-                ),
+                physical_equal(profile, original.model_profile.unwrap()),
               )
               assert_true(
                 physical_equal(
-                  selected._retained_provider,
+                  provider,
                   original
                   .model_provider(
                     @run_host.client_infer_plan_graph_execution_contract(
@@ -1230,15 +1230,23 @@ test "Native Model selection backs all three simultaneous original vectors" {
   // Two occurrences give six vector elements, or 9H/57R/6W under the shared
   // Array convention.
   let later = native_mock_effect_model_selection_storage(0)
-  assert_eq(later.record_headers, 34L)
-  assert_eq(later.reference_slots, 93L)
+  assert_eq(later.record_headers, 35L)
+  assert_eq(later.reference_slots, 94L)
   assert_eq(later.scalar_words, 98L)
   let first = native_mock_effect_model_selection_storage(2)
-  assert_eq(first.record_headers, 47L)
-  assert_eq(first.reference_slots, 162L)
+  assert_eq(first.record_headers, 48L)
+  assert_eq(first.reference_slots, 163L)
   assert_eq(first.scalar_words, 107L)
   assert_eq(first.owned_utf16_units, 0L)
   assert_eq(first.owned_wire_bytes, 0L)
+  // HTTP retains the selected setup on the Request. Its actual Work belongs
+  // to the original Store Read and is charged there after acceptance.
+  let http = native_mock_effect_model_selection_storage(1, mock_work=false)
+  assert_eq(http.record_headers, 35L)
+  assert_eq(http.reference_slots, 96L)
+  assert_eq(http.scalar_words, 87L)
+  assert_eq(http.owned_utf16_units, 0L)
+  assert_eq(http.owned_wire_bytes, 0L)
 }
 
 ///|
@@ -3882,6 +3890,133 @@ test "Native Values CREATE captures its Result dependencies and prepares its ori
   facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
   facility.arena.close_domain_retained_execution(facility.physical).unwrap()
   @local_values.retire_installed_managed_run(run).unwrap()
+  facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
+  facility.arena.try_close().unwrap()
+}
+
+///|
+test "Native leading DELETE compiles with the exact selected File and Model originals" {
+  let project = native_project_mock_model_fixture(
+    "model-leading-delete",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  project.write_installations = Some(
+    local_project_mock_write_installations(
+      project.sources[0],
+      "sha256:" + "d".repeat(64),
+      "sha256:" + "a".repeat(64),
+    ).unwrap(),
+  )
+  let environment = native_shared_file_effect_environment(project)
+  let input : Json = {
+    "kind": "aql",
+    "input": {
+      "format": "aql-text",
+      "text": Json::string(
+        local_project_required_declaration(
+          project._retained_project,
+          Some("churn-risk.aql"),
+        ).unwrap(),
+      ),
+    },
+    "parameters": null,
+    "stopBefore": "commit",
+  }
+  let intent = @run_host.prepare_client_submitted_intent(
+    local_project_mock_relation_wire(input).unwrap(),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let (publication, _) = project
+    .prepare_source_publication(environment)
+    .unwrap()
+  let facility = native_mock_readme_request_facility()
+  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  let (preparation, borrow) = @local_host.prepare_native_client_submitted_request_input(
+    facility.parent,
+    facility.input,
+    intent,
+    environment,
+    publication,
+    verify_request_value_policy=Some(subject => {
+      project.verify_static_request_policy(environment, subject)
+    }),
+  ).native_file_route_value(
+    "prepare leading DELETE on its original Effect Request",
+  )
+  guard @local_host.native_client_submitted_preparation(preparation)
+    is EffectComputation(prepared) else {
+    fail("expected the retained checked Effect")
+  }
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let models = project
+    .prepare_request_models(
+      facility.parent,
+      facility.input,
+      kind=@local_values.Effect,
+      @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap(),
+      environment,
+      contracts,
+    )
+    .unwrap()
+  let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
+    prepared, 1000000,
+  ).unwrap()
+  let sources = project.prepare_effect_sources(prepared, direct)
+  assert_eq(models.length(), 1)
+  assert_eq(sources.length(), 1)
+  let graphs = models.map(model => model.graph)
+  let first = fn(graphs, sources) raise ClientStop {
+    local_effect_first_compilation(
+      preparation,
+      "sha256:" + "a".repeat(64),
+      "sha256:" + "b".repeat(64),
+      "local-test",
+      "model-leading-delete",
+      "2026-10-10T00:00:00.000Z",
+      "2099-01-01T00:00:00.000Z",
+      infers=graphs,
+      models~,
+      source_inputs=sources,
+    )
+  }
+  for (supplied_graphs, supplied_sources) in [(graphs, []), ([], sources)] {
+    try first(supplied_graphs, supplied_sources) catch {
+      ClientStop(reason) =>
+        assert_eq(reason, "LocalEffectNormalizationProfileNotInstalled")
+    } noraise {
+      _ => fail("missing original must refuse before Effect compilation")
+    }
+  }
+  let compiled = first(graphs, sources)
+  assert_true(physical_equal(compiled._retained_models, models))
+  assert_true(physical_equal(compiled._retained_sources, sources))
+  assert_true(
+    physical_equal(
+      @run_host.client_effect_compilation_owner(compiled.allowed.compilation),
+      prepared,
+    ),
+  )
+  assert_true(
+    compiled.model_compiled is Some(model) &&
+    @run_host.check_client_compiled_run_definition(model, compiled.definition)
+    is Ok(_),
+  )
+  @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+  |> ignore
+  ignore(@local_values.abort_request_preparation_after_cleanup(facility.parent))
+  facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+  facility.arena.close_domain_retained_execution(facility.physical).unwrap()
+  @local_values.abort_request_preparation_after_cleanup(facility.parent).unwrap()
   facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
   facility.arena.try_close().unwrap()
 }

@@ -199,3 +199,51 @@ test "Native configured inventory preserves nine explicit installation originals
   }
   assert_eq(refused, "InvalidLocalInstallationSelection")
 }
+
+///|
+test "Native Model installation inventory accepts distinct providers with distinct Task and credential originals" {
+  let first =
+    #|{"task_id":"model-task:producer.v1","provider_id":"models/producer","credential_installation":"a-credential.json","installation_revision":"a-revision.json","configuration_contract":"a-contract.json","response_profile":"a-profile.json","response_profile_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+  let second =
+    #|{"task_id":"model-task:receiver.v1","provider_id":"models/receiver","credential_installation":"b-credential.json","installation_revision":"b-revision.json","configuration_contract":"b-contract.json","response_profile":"b-profile.json","response_profile_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+  let files =
+    #|["a-credential.json","a-revision.json","a-contract.json","a-profile.json","b-credential.json","b-revision.json","b-contract.json","b-profile.json"]
+  let selected = fn(second : String) {
+    local_reviewer_cli_configuration.replace_all(
+      old="[\"reviewer.json\"]",
+      new=files + ",\"model_http_installations\":[" + first + "," + second + "]",
+    )
+  }
+  for provider in ["models/receiver", "models/producer"] {
+    let settings = local_host_settings(
+      selected(second.replace_all(old="models/receiver", new=provider)),
+    )
+    let models = settings.model_http_installations.unwrap()
+    assert_eq(models.length(), 2)
+    assert_eq(
+      (models[0].task_id, models[0].provider_id, models[0].files.setting),
+      ("model-task:producer.v1", "models/producer", "a-credential.json"),
+    )
+    assert_eq(
+      (models[1].task_id, models[1].provider_id, models[1].files.setting),
+      ("model-task:receiver.v1", provider, "b-credential.json"),
+    )
+  }
+  for
+    (original, duplicate) in [
+      ("model-task:receiver.v1", "model-task:producer.v1"),
+      ("b-credential.json", "a-credential.json"),
+    ] {
+    let refused = try {
+      ignore(
+        local_host_settings(
+          selected(second.replace_all(old=original, new=duplicate)),
+        ),
+      )
+      "unexpected acceptance"
+    } catch {
+      ClientStop(issue) => issue
+    }
+    assert_eq(refused, "InvalidLocalModelHttpInstallation")
+  }
+}

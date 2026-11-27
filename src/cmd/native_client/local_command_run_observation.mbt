@@ -301,17 +301,14 @@ fn LocalCommandRunObservationOriginal::close_root_descriptors(
 }
 
 ///|
-// Exact current RunRead selection precedes any Store open. The adopted Runtime
-// and original selected_namespace join this same installed Store; no Result read grant
-// or business installation is selected merely to observe availability.
-fn LocalCommandPreparationOriginal::refresh_run_observation_state(
+// Admit the same adopted Runtime to the current RunRead before any Store open.
+fn LocalCommandPreparationOriginal::bind_run_observation_runtime(
   self : LocalCommandPreparationOriginal,
   host : @local_host.NativeLocalHostConnection,
   capture : @local_host.NativeLocalJournalCapture,
   configuration : LocalCommandConfiguration,
   runtime : LocalPackagedRuntime,
-  id : String,
-) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop {
+) -> String raise ClientStop {
   let settings = configuration.settings
   guard self.journal is Some(actual_capture) &&
     physical_equal(actual_capture, capture) &&
@@ -319,7 +316,7 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     physical_equal(actual_host, host) &&
     self.runtime is Some(actual_runtime) &&
     physical_equal(actual_runtime, runtime.physical) &&
-    self.run_observation is Some(observation) &&
+    self.run_observation is Some(_) &&
     self.saved_observation_business_disjoint() &&
     self.journal_read_open &&
     !self.closing &&
@@ -345,6 +342,91 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     ),
   )
   |> ignore
+  run_file
+}
+
+///|
+// The original selected namespace and operation join the same installed Store.
+fn LocalCommandPreparationOriginal::open_selected_run_observation_store(
+  self : LocalCommandPreparationOriginal,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  run_file : String,
+  namespace_id : String,
+) -> (@local_store.Store, @local_host.NativeLocalStoreOperation) raise ClientStop {
+  guard self.run_observation is Some(observation) else {
+    stop("LocalRunObservationOriginalUnavailable")
+  }
+  let run = configuration.run_installation(
+    run_file,
+    local_host_result(capture.selected_configuration_in_original_read(run_file)),
+  )
+  if run.namespace_id != namespace_id {
+    stop("LocalOriginalRunReferenceMismatch")
+  }
+  let managed = local_host_result(capture.managed_root_path_in_original_read()).unwrap_or_else(() => {
+      stop("LocalManagedRootRequired")
+    },
+  )
+  local_host_result(capture.check_current_in_original_read()) |> ignore
+  guard self.host is Some(physical) && self.pair is Some(pair) else {
+    stop("LocalRunObservationOriginalUnavailable")
+  }
+  let library = physical
+    .borrow_local_host_sqlite(pair)
+    .unwrap_or_else(() => stop("LocalRunObservationOriginalUnavailable"))
+  (
+    self.open_run_observation_store(library, managed, run),
+    observation.operation,
+  )
+}
+
+///|
+fn LocalCommandPreparationOriginal::read_model_terminal_observation_state(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  runtime : LocalPackagedRuntime,
+  original : @local_host.NativeClientOriginalRunSelection,
+  namespace_id : String,
+) -> @local_host.NativeClientSavedRunState raise ClientStop {
+  let settings = configuration.settings
+  let run_file = self.bind_run_observation_runtime(
+    host, capture, configuration, runtime,
+  )
+  let (store, operation) = self.open_selected_run_observation_store(
+    capture, configuration, run_file, namespace_id,
+  )
+  match
+    local_host_result(
+      capture.lookup_submitted_run_state_for_original_in_original_read(
+        settings.principal,
+        settings.connection,
+        original,
+        @env.now().to_double(),
+        model_store=Some((store, namespace_id, operation)),
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+}
+
+///|
+// Exact current ID selection precedes Store open or availability refresh.
+fn LocalCommandPreparationOriginal::refresh_run_observation_state(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  configuration : LocalCommandConfiguration,
+  runtime : LocalPackagedRuntime,
+  id : String,
+) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop {
+  let settings = configuration.settings
+  let run_file = self.bind_run_observation_runtime(
+    host, capture, configuration, runtime,
+  )
   let original = match
     local_host_result(
       capture.lookup_submitted_run_original_by_id_in_original_read(
@@ -367,25 +449,9 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     json_text(fields, "namespaceId") is Some(namespace_id) else {
     stop("LocalOriginalRunUnavailable")
   }
-  let run = configuration.run_installation(
-    run_file,
-    local_host_result(capture.selected_configuration_in_original_read(run_file)),
+  let (store, operation) = self.open_selected_run_observation_store(
+    capture, configuration, run_file, namespace_id,
   )
-  if run.namespace_id != namespace_id {
-    stop("LocalOriginalRunReferenceMismatch")
-  }
-  let managed = local_host_result(capture.managed_root_path_in_original_read()).unwrap_or_else(() => {
-      stop("LocalManagedRootRequired")
-    },
-  )
-  local_host_result(capture.check_current_in_original_read()) |> ignore
-  guard self.host is Some(physical) && self.pair is Some(pair) else {
-    stop("LocalRunObservationOriginalUnavailable")
-  }
-  let library = physical
-    .borrow_local_host_sqlite(pair)
-    .unwrap_or_else(() => stop("LocalRunObservationOriginalUnavailable"))
-  let store = self.open_run_observation_store(library, managed, run)
   let refreshed = local_host_result(
     capture.refresh_original_run_availability_in_original_read(
       settings.principal,
@@ -393,7 +459,7 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
       original,
       store,
       namespace_id,
-      observation.operation,
+      operation,
       local_utc_now(),
       @env.now().to_double(),
     ),

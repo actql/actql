@@ -104,7 +104,9 @@ function requireSealedContract(value, version, identity) {
   return cid;
 }
 
-export function requireNativeJoinedDelivery({report, runReceipt, payload, path, rows, policyCid, custody}) {
+export function requireNativeJoinedDelivery({
+  report, runReceipt, payload, path, rows, policyCid, custody, failedModelTask = null,
+}) {
   assert.equal(report.version, 'actql-cli-run-response/0.1');
   assert.equal(report.run.run_id, custody.runId);
   assert.equal(report.run.status, 'succeeded');
@@ -138,10 +140,16 @@ export function requireNativeJoinedDelivery({report, runReceipt, payload, path, 
   assert.equal(artifact.actual_row_count, rows.length);
   assert.equal(artifact.actual_completeness, 'complete');
 
-  const expectedModels = custody.observed.map(call => {
+  if (failedModelTask !== null) assert.equal(custody.observed.filter(call => call.task === failedModelTask).length, 1);
+  const expectedModels = custody.observed.flatMap(call => {
     const evidence = call.evidence.filter(value => value.role === 'model_invocation_evidence');
+    if (call.task === failedModelTask) {
+      assert.equal(evidence.length, 0, 'A failed Model cannot contribute successful invocation evidence');
+      assert.equal(call.evidence.filter(value => value.role === 'model_raw_response').length, 1);
+      return [];
+    }
     assert.equal(evidence.length, 1);
-    return evidence[0].evidenceCid;
+    return [evidence[0].evidenceCid];
   });
   const models = runReceipt.external_observation_evidence.filter(value => value.kind === 'model_invocation');
   assert.deepEqual(models.map(value => value.evidence_cid).sort(), expectedModels.sort());

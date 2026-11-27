@@ -827,7 +827,8 @@ fn whole_source_result_publication_fixture(
               @strategy.retain_captured_completed_unit_result_input(
                 handoff, 0, 1000, 20000,
               )
-              is Ok(_) else {
+              is Ok((_, reader)) &&
+              @execution.producer_read_has_cell_access(reader) else {
               return Err(MissingOutput)
             }
           }

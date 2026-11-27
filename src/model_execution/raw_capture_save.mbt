@@ -173,6 +173,105 @@ pub fn model_raw_capture_save_binding(
 }
 
 ///|
+/// Borrow the policy-bound Raw accepted by the pending failure settlement.
+/// The published Run still requires the original Store/Journal confirmation
+/// and physical retirement. An independently captured or bare rejection
+/// cannot supply this observation.
+pub fn model_call_settlement_failure_raw(
+  value : ModelCallSettlement,
+) -> @publication.BoundModelRawResponse? {
+  guard model_call_settlement_slot(value) is Some(slot) &&
+    model_outcome_at(value.owner.state, slot) is Some(NoResponseFailure(_)) else {
+    return None
+  }
+  model_call_settlement_complete_raw(value, slot)
+}
+
+///|
+/// A dependent consumer can retain only the complete, saved Raw from the
+/// same successful, still-unacknowledged physical attempt. Borrowing it
+/// establishes neither Journal settlement nor eligibility of any consumer.
+pub fn model_call_settlement_success_raw(
+  value : ModelCallSettlement,
+) -> @publication.BoundModelRawResponse? {
+  guard model_call_settlement_slot(value) is Some(slot) &&
+    model_outcome_at(value.owner.state, slot) is Some(Success(_)) &&
+    model_call_settlement_complete_raw(value, slot) is Some(raw) else {
+    return None
+  }
+  let (status, _, _) = @publication.model_raw_response_transport_facts(raw)
+  if status >= 200 && status < 300 {
+    Some(raw)
+  } else {
+    None
+  }
+}
+
+///|
+fn model_call_settlement_complete_raw(
+  value : ModelCallSettlement,
+  slot : Int,
+) -> @publication.BoundModelRawResponse? {
+  let state = value.owner.state
+  guard value.progress.call is Some(call) &&
+    !call.retired &&
+    !call.settlement_acknowledged &&
+    call.entry is Some(entry) &&
+    entry.slot == slot &&
+    entry.send_started &&
+    physical_equal(entry.progress, value.progress) &&
+    physical_equal(entry.prepared.owner, value.owner) &&
+    state.attempts.get(slot) is Some(trace) &&
+    physical_equal(trace, entry.trace) &&
+    call.raw_capture is Some(raw) &&
+    physical_equal(raw.call, call) &&
+    raw.saved is Some(saved) &&
+    physical_equal(saved.original, raw) else {
+    return None
+  }
+  let accepted : ModelSavedRawReceipt = match call.terminal {
+    Some(PhysicalChatResponse(response)) => response.saved_raw
+    Some(PhysicalNativeResponse(response)) => response.raw.saved_raw
+    Some(PhysicalSavedStructuredResponse(response)) => response.receipt
+    Some(PhysicalMeasuredHttp(receipt, _, _, PhysicalRejected(_, _))) => receipt
+    _ => return None
+  }
+  guard physical_equal(accepted, saved) else { return None }
+  let (_, eof, _) = @publication.model_raw_response_transport_facts(
+    raw.response,
+  )
+  if eof {
+    Some(raw.response)
+  } else {
+    None
+  }
+}
+
+///|
+/// Before ACK, retain the exact failure Raw only for the strict path that
+/// will stop on this original attempt.
+pub fn model_call_settlement_retains_strict_failure(
+  value : ModelCallSettlement,
+) -> Bool {
+  value.progress.phase is FailAfterSettlement &&
+  model_call_settlement_failure_raw(value) is Some(_)
+}
+
+///|
+/// Read the same held strict slot after its original ACK and physical return.
+/// The caller must have retained the token before acknowledging it. A call's
+/// slot loses its physical reference only after its cleanup and holding ACKs.
+pub fn model_call_settlement_strict_failure_retired(
+  value : ModelCallSettlement,
+) -> Bool {
+  value.progress.phase is FailAfterSettlement &&
+  value.progress.slot == value.slot + 1 &&
+  value.progress.settlement is None &&
+  value.progress.call is None &&
+  model_outcome_at(value.owner.state, value.slot) is Some(NoResponseFailure(_))
+}
+
+///|
 /// Keep the trusted Store adapter on the exact compiled Run of this Call.
 /// Neither a copied descriptor nor a matching public Run CID can replace it.
 pub fn model_raw_capture_save_matches_run(
@@ -280,6 +379,7 @@ pub fn model_saved_raw_chat_response(
     observed_at,
     provider_metadata,
     saved_raw: receipt,
+    failure_observation: None,
   })
 }
 

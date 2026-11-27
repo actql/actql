@@ -8,7 +8,7 @@ pub struct ClientSavedSubmissionSnapshot {
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
   inspection : ClientRunJournalInspection?
-  state_original : ClientRunStateOriginal?
+  state_original : ClientRetainedRunStateOriginal?
   task_materials : String?
 }
 
@@ -52,12 +52,11 @@ pub fn client_saved_submission_run_row(
 }
 
 ///|
-/// The original observed metadata already restored by this same snapshot.
-/// Historical absence stays absent. This supplies no current availability,
-/// authority, physical acknowledgement or permission to dispatch again.
-pub fn client_saved_submission_state_original(
+/// The authenticated metadata from this snapshot, with its Model failure
+/// locator still opaque. Only the current Read can resolve an exact proof.
+pub fn client_saved_submission_retained_state_original(
   value : ClientSavedSubmissionSnapshot,
-) -> ClientRunStateOriginal? {
+) -> ClientRetainedRunStateOriginal? {
   value.state_original
 }
 
@@ -245,11 +244,18 @@ fn[Plan, E] read_decoded_client_saved_submission_row(
           }
           None
         }
-        Some(_) =>
-          match restore_client_run_state_original(original.definition, wire) {
+        Some((revision, Some(key))) =>
+          match
+            admit_client_retained_run_state_original(
+              original.definition,
+              wire,
+              revision,
+              key,
+            ) {
             Ok(state) => Some(state)
             Err(_) => return Err(custody_lost)
           }
+        Some((_, None)) => return Err(custody_lost)
       }
     }
   }

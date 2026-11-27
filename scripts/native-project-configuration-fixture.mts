@@ -21,6 +21,24 @@ type DealReviewData = {
   drive: {files: {rows: {id: string; content_utf8: string}[]}};
 };
 
+// Same authored churn-risk Project and exact correlated DELETE from the
+// installed Model/DELETE oracle. No answer, target row or grant is synthesized.
+export function nativeModelLeadingDeleteFiles() {
+  const files: Record<string, string> = {...projectTemplateFiles('churn-risk-mock')};
+  const catalog = JSON.parse(files['mock/catalog.json']) as {connections: Record<string, MockConnection>};
+  const account = catalog.connections.salesforce;
+  const [original] = account.writes;
+  const {writable_fields, ...write} = original;
+  assert.deepEqual(writable_fields, ['Churn_Risk__c', 'Risk_Reason__c']);
+  account.writes = [{...write, operation: 'delete', permission: 'salesforce:record:delete'}];
+  files['mock/catalog.json'] = JSON.stringify(catalog, null, 2) + '\n';
+  const program = files['churn-risk.aql'].split('|> RESULT updates\n');
+  assert.equal(program.length, 2);
+  files['churn-risk.aql'] = program[0] +
+    "|> WHERE id = '001Acme'\n|> SELECT id\n|> RESULT updates\n|> EFFECT DELETE salesforce.Account ID id;\n";
+  return files;
+}
+
 export function nativeProjectConfigurationFixture(namespace: string) {
   const root = join(namespace, 'project-configuration');
   mkdirSync(root, {mode: 0o700});
@@ -162,6 +180,30 @@ export function nativeProjectConfigurationFixture(namespace: string) {
       write(path, relative, body);
     }
   }
+  for (const [name, readSide] of [['typed-file-effect', true], ['write-only-file-effect', false]] as const) {
+    const path = directory(name);
+    const base = projectTemplateFiles('deal-review-mock');
+    const connectors = JSON.parse(base['connectors.json']) as {connections: Record<string, unknown>};
+    const catalog = JSON.parse(base['mock/catalog.json']) as {connections: Record<string, MockConnection>};
+    if (readSide) {
+      const id = {type: 'string', nullable: false};
+      catalog.connections.drive = {
+        views: [{resource: 'files', resource_kind: 'record', data_classification: 'internal',
+          schema: {id, note: id}, facts: {relation_keys: {candidate_keys: [['id']]}}}],
+        query_aliases: [{name: 'drive.files', resource: 'files'}],
+        data: [{resource: 'files', primary_identity: 'id',
+          items_path: ['drive', 'files', 'rows'], key_path: ['drive', 'files', 'key']}],
+        writes: [],
+      };
+    } else {
+      delete connectors.connections.drive;
+      delete catalog.connections.drive;
+    }
+    mkdirSync(join(path, 'mock'), {mode: 0o700});
+    write(path, 'connectors.json', JSON.stringify(connectors));
+    write(path, 'mock/catalog.json', JSON.stringify(catalog));
+    write(path, 'model-tasks.json', models);
+  }
   const sharedProject = threeWriteMockProject(), sharedFile: Readonly<Record<string, string>> = sharedProject.files;
   const modelFixture = projectTemplateFiles('deal-review-mock');
   for (const name of ['shared-file-empty-models', 'shared-file-missing-answers']) {
@@ -181,6 +223,7 @@ export function nativeProjectConfigurationFixture(namespace: string) {
     }
   }
   for (const [name, project] of [
+    ['model-leading-delete', {files: nativeModelLeadingDeleteFiles()}],
     ['shared-file-mixed-delete-update', mixedDeleteUpdateMockProject()],
     ['same-resource-mixed-delete-update', sameResourceMixedMockProject()],
   ] as const) {

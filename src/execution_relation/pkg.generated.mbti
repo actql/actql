@@ -504,7 +504,11 @@ pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
 pub fn[T] close_managed_publication_bridge(ManagedPublicationBridge[T]) -> Unit
 
+pub fn complete_bound_infer_outcome_port(InferOutcomePort, InferOutcomeBinding) -> Result[CompletedOutput, TrustedOutputIssue]
+
 pub fn[P] complete_carrier_managed_output(CarrierManagedCompletionPort[P], P) -> Result[CarrierManagedCompletedOutput, TrustedOutputIssue]
+
+pub fn complete_infer_outcome_port(InferOutcomePort) -> Result[CompletedOutput, TrustedOutputIssue]
 
 pub fn[P, T] complete_managed_output(ManagedCompletionPort[P, T], P) -> Result[ManagedCompletedOutput[T], TrustedOutputIssue]
 
@@ -604,6 +608,8 @@ pub fn completed_relation_export_has_output_identity(CompletedRelationExportRece
 
 pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> LogicalRelationIdentity
 
+pub fn completed_relation_export_is_unprojected(CompletedRelationExportReceipt) -> Bool
+
 pub fn completed_relation_export_matches_output(CompletedRelationExportReceipt, CompletedOutput) -> Bool
 
 pub fn completed_relation_export_measurement(CompletedRelationExportReceipt) -> CompletedRelationExportMeasurement
@@ -663,6 +669,8 @@ pub fn completed_row_count(CompletedOutput) -> Int
 pub fn completed_segment_inputs_construction_inventory(Int) -> PreparationRepresentationUnits?
 
 pub fn completed_segment_inputs_has_exact_pipeline_input(CompletedSegmentInputs, @lowering_relation.BoundPrepared, Int, CompletedOutput) -> Bool
+
+pub fn completed_segment_inputs_has_exact_pipeline_reader(CompletedSegmentInputs, @lowering_relation.BoundPrepared, Int, ProducerRead) -> Bool
 
 pub fn completed_segment_inputs_has_original_pipeline_input(CompletedSegmentInputs, @lowering_relation.BoundPrepared, Int, CompletedOutput) -> Bool
 
@@ -1196,6 +1204,8 @@ pub fn prepare_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typin
 
 pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, RowWireLimits, Int, capture_value_measurement? : Bool) -> Result[AdmittedOutputStream, OutputStreamIssue]
 
+pub fn prepare_bound_infer_outcome_port(InferOutcomeIssuer, CompletionPreparation, PreparedInferRows, AdmittedOutputPreparation, () -> Bool) -> Result[InferOutcomePort, TrustedOutputIssue]
+
 pub fn prepare_bounded_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
 pub fn prepare_bounded_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
@@ -1235,6 +1245,10 @@ pub fn prepare_fixed_producer_measurement(Array[ProducerRead], @pipeline_typing.
 pub fn prepare_generated_sequence(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[FragmentRuntimeContext], Array[String], Int, Int) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn prepare_infer_completion(GeneratedSequence, PreparedInferRows, Int) -> CompletionPreparation?
+
+pub fn prepare_infer_outcome_handoff(PreparedInferRows) -> (InferOutcomeBinding, InferOutcomeIssuer)
+
+pub fn prepare_infer_outcome_port(CompletionPreparation, PreparedInferRows, AdmittedOutputPreparation, () -> Bool) -> Result[InferOutcomePort, TrustedOutputIssue]
 
 pub fn prepare_local_compute_attempt(GeneratedSequence, Array[BoundProducerInput], Int) -> Result[LocalComputeAttempt, LocalComputeIssue]
 
@@ -2319,6 +2333,12 @@ pub enum IndependentRowCopyPoll {
   RowCopyFailed(ManagedIndependentOutputIssue, progress~ : Int64, work~ : Int64)
   RowCopyStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
+
+type InferOutcomeBinding
+
+type InferOutcomeIssuer
+
+type InferOutcomePort
 
 pub(all) enum InferPreparationIssue {
   InvalidLimits

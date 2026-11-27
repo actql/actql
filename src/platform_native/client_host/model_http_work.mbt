@@ -22,15 +22,16 @@ priv struct NativeClientModelHttpWork {
   installation : NativeModelHttpInstallation
   store : @publication_store.Store
   plans : Array[NativeClientModelHttpPlan?]
+  output_used : Bool
   mut registration : @host.ClientModelRawCaptureRegistration?
+  mut dependencies : NativeRetainedModelDependencies?
 }
 
 ///|
-/// Reuse the original Native Work for a trusted installed HTTP provider.
-/// The constructor reserves its extra controls before retaining the slot
-/// index. The existing Model owns preflight buffers and physical limits.
+/// Attach one HTTP Work to the admitted Run and its already bound Store.
+/// The existing Model owns preflight buffers and physical limits.
 pub fn prepare_native_client_model_http_work(
-  capture : NativeLocalJournalCapture,
+  operation : NativeLocalStoreOperation,
   request : @host.ClientRequestIdentity,
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
@@ -39,9 +40,12 @@ pub fn prepare_native_client_model_http_work(
   store : @publication_store.Store,
   limits : @infer.Limits,
   principal : String,
+  connection : String,
   namespace_id : String,
   current_time : () -> String,
+  output_receivers? : Array[NativeModelHttpInstallation]? = None,
 ) -> Result[NativeClientMockModelWork, NativeClientMockModelIssue] {
+  let capture = operation.receiver.capture
   let execution = @host.client_infer_plan_graph_execution_contract(graph)
   let policy = installation.run_policy
   guard physical_equal(installation.capture, capture) &&
@@ -50,8 +54,64 @@ pub fn prepare_native_client_model_http_work(
     @host.client_compiled_run_infer_observation_policy(compiled)
     is Some(data_cid) &&
     @publication.captured_effect_dependency_body_cid(policy.raw.data) ==
-    data_cid else {
+    data_cid &&
+    @infer.check_original_composed_preparation(
+      compiled,
+      definition,
+      graph.occurrence,
+      graph,
+    )
+    is Ok(_) &&
+    operation.sqlite_original() is Ok(original) &&
+    store.matches_original_operation(original) else {
     return Err(ForeignOriginal)
+  }
+  match store.retained_data_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(Store(issue))
+  }
+  // The existing canonical Store location writer is temporary on this Read.
+  // Verify it against the admitted row before allocating or returning Work.
+  match capture.prepare_model_entry_construction(Some(4096), nodes=8, depth=2) {
+    Ok(_) => ()
+    Err(issue) => return Err(Original(issue))
+  }
+  let binding = match run_observation_store_binding(store, namespace_id) {
+    Ok(value) => value
+    Err(issue) => return Err(Original(Journal(issue)))
+  }
+  let effect = compiled.compilation is @host.Effects(_)
+  match
+    capture.with_local_effect_start_authority(
+      request,
+      principal,
+      connection,
+      () => true,
+      None,
+      (journal, operations, current) => {
+        journal
+        .require_unstarted_model_work_run(
+          request,
+          definition,
+          binding,
+          effect,
+          operations.reads,
+          current,
+        )
+        .map_err(issue => Journal(issue))
+      },
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Original(issue))
+  }
+  guard operation.sqlite_original() is Ok(current) &&
+    physical_equal(original, current) &&
+    store.matches_original_operation(current) else {
+    return Err(ForeignOriginal)
+  }
+  match store.retained_data_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(Store(issue))
   }
   guard @execution.preparation_array_representation(
       1L,
@@ -64,7 +124,8 @@ pub fn prepare_native_client_model_http_work(
       {
         ..array,
         record_headers: array.record_headers + 1L,
-        reference_slots: array.reference_slots + 4L,
+        reference_slots: array.reference_slots + 5L,
+        scalar_words: array.scalar_words + 1L,
       },
     ])
     is Some(controls) &&
@@ -96,12 +157,53 @@ pub fn prepare_native_client_model_http_work(
     installation,
     store,
     plans: Array::make(limits.model.max_items, None),
+    output_used: output_receivers
+    .map(receivers => {
+      native_model_http_output_is_used(installation, graph, receivers)
+    })
+    .unwrap_or(false),
     registration: None,
+    dependencies: None,
   })
   prepare_native_client_model_work(
     capture, request, compiled, definition, graph, role, provider, limits, principal,
     namespace_id, current_time,
   )
+}
+
+///|
+// Compare the actual retained Run under its original Submit Read. Even a
+// same-authority Store at a different physical location cannot attach Work.
+fn NativeClientRunJournal::require_unstarted_model_work_run(
+  self : Self,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  binding : String,
+  effect : Bool,
+  reads : NativeClientJournalReadAccess,
+  current : () -> Bool,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if !current() {
+    return Err(AuthorizationDenied)
+  }
+  let run = match self.retained(request, reads=Some(reads)) {
+    Ok(Some(record)) => record
+    Ok(None) => return Err(ForeignRun)
+    Err(issue) => return Err(issue)
+  }
+  guard !run.physical_start_claimed &&
+    !run.cancellation_requested &&
+    run.checkpoint is None &&
+    run.publication_binding == Some(binding) &&
+    (run.effect_material_originals is Some(_)) == effect &&
+    @publication.publication_contract_identity(run.definition) ==
+    @publication.publication_contract_identity(definition) else {
+    return Err(ForeignRun)
+  }
+  if !current() {
+    return Err(AuthorizationDenied)
+  }
+  self.recheck_model_run_cut(request, reads)
 }
 
 ///|
@@ -209,8 +311,10 @@ fn NativeClientMockModelWork::prepare_http_entry_in_original_read(
   .observe_model_step_in_original_read(physical=true)
   .bind(_ => {
     self.with_observed_step(_ => {
-      guard self.account is Some(account) &&
+      guard self.model_output_dependency_scope_current() &&
+        self.account is Some(account) &&
         self.observation_time is Some(at) &&
+        self.model_output_dependency_issuers_current(account, at) &&
         self.scope is Some(scope) &&
         @model.model_call_entry_persistence_originals(entry, prepared, dispatch)
         is Some((_, slot, _, _, _, original_scope)) &&

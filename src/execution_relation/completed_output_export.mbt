@@ -2,7 +2,7 @@
 /// Bounded serialization of an existing immutable cell representation. This is
 /// conversion, never execution or a way to admit caller-supplied output values.
 struct CompletedOutputExport {
-  export_identity : Ref[Unit]
+  export_identity : Ref[Bool]
   mut source : CompletedOutput?
   rows : CompletedExportRows
   order : RowWireOrder
@@ -51,7 +51,7 @@ struct CompletedResultRelationExportPreparation {
 ///|
 /// One exact export, consumable only with storage bound to its content receipt.
 struct CompletedOutputExportReceipt {
-  export_identity : Ref[Unit]
+  export_identity : Ref[Bool]
   mut source : CompletedOutput?
   content : AdmittedOutputStreamReceipt
   mut binding : Bool
@@ -1091,6 +1091,16 @@ pub fn completed_relation_export_identity(
   receipt : CompletedRelationExportReceipt,
 ) -> LogicalRelationIdentity {
   receipt.logical
+}
+
+///|
+/// The same nominal export identity records whether the writer traversed the
+/// whole original Relation directly. A checked Result view is distinct even
+/// when it retains all rows and fields and happens to hash to the same value.
+pub fn completed_relation_export_is_unprojected(
+  receipt : CompletedRelationExportReceipt,
+) -> Bool {
+  receipt.rows.export_identity.val
 }
 
 ///|

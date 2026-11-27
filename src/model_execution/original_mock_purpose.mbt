@@ -10,6 +10,10 @@ priv struct OriginalMockPurpose {
   mut publication_retained : Int64
   mut publication_execution : Int64
   mut publication_planning : Int
+  outcome : (
+    @publication_host.ClientWholeModelOutcomeRecorder,
+    @relation.InferOutcomeIssuer,
+  )?
 }
 
 ///|
@@ -63,8 +67,8 @@ pub fn prepare_original_model_provider_consumer_startup(
     execution_bytes > limits.ledger.execution_bytes {
     return Err(@publication_host.ForeignInput)
   }
-  let (ledger, capacity) = match
-    @publication_host.handoff_client_model_read_consumer_input_capacity(
+  let (ledger, capacity, outcome) = match
+    @publication_host.handoff_original_provider_input_capacity(
       consumer, compiled, definition, plan, scope, rows, retained_bytes, execution_bytes,
     ) {
     Err(issue) => return Err(issue)
@@ -85,6 +89,7 @@ pub fn prepare_original_model_provider_consumer_startup(
       publication_retained: 0L,
       publication_execution: 0L,
       publication_planning: 0,
+      outcome,
     }),
     used: false,
   })

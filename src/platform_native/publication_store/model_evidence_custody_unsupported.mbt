@@ -38,6 +38,29 @@ pub fn ModelEvidenceCustody::reconcile_original_store_return(
 }
 
 ///|
+type ModelEnteredRawReadExtent
+
+///|
+pub fn Store::model_entered_raw_read_construction(
+  _self : Store,
+  _raw : @publication.BoundModelRawResponse,
+) -> Result[
+  (ModelEnteredRawReadExtent, PrivateEvidenceCustodyConstruction),
+  NativePublicationStoreIssue,
+] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ModelEnteredRawReadExtent::verify_original(
+  _self : ModelEnteredRawReadExtent,
+  _crypto : @signature.Library,
+  _key : Bytes,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Store::prepare_model_evidence_custody(
   _self : Store,
   _definition : @publication.PublicationContract,
@@ -47,7 +70,37 @@ pub fn Store::prepare_model_evidence_custody(
   _original : @publication.RunEvidenceValue,
   _crypto : @signature.Library,
   _key : Bytes,
+  raw_descriptor? : @publication.BoundModelRawResponse? = None,
 ) -> Result[ModelEvidenceCustody, NativePublicationStoreIssue] {
+  ignore(raw_descriptor)
+  Err(UnsupportedTarget)
+}
+
+///|
+type ModelSettlementReadExtent
+
+///|
+pub fn Store::model_settlement_restore_construction(
+  _self : Store,
+  _definition : @publication.PublicationContract,
+  _scope_cid : String,
+  _slot_cid : String,
+  _attempt_cid : String,
+  _role : ModelSettlementReadRole,
+  _evidence_cid : String,
+) -> Result[
+  (ModelSettlementReadExtent, PrivateEvidenceCustodyConstruction),
+  NativePublicationStoreIssue,
+] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn ModelSettlementReadExtent::read_original_wire(
+  _self : ModelSettlementReadExtent,
+  _crypto : @signature.Library,
+  _key : Bytes,
+) -> Result[String, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
 }
 

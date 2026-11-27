@@ -421,25 +421,21 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
         return Err(FileWorkSourceBinding)
       }
       let mut imports = 0L
-      let mut result_count = 0
       for plan in graphs {
         imports += @host.client_infer_occurrence_result_import_count(
           plan.occurrence,
         ).to_int64()
-        if @host.client_infer_occurrence_result_import_at(plan.occurrence, 0)
-          is Some((unit, _)) &&
-          @checked.unit_publication_count(@strategy.graph_program(graph), unit)
-          is Some(count) {
-          result_count = Int::max(result_count, count)
-        }
       }
       if imports > 0L {
+        let units = @checked.unit_count(@strategy.graph_program(graph))
         guard sources.length() == graphs.length() &&
-          result_count > 0 &&
+          units > 0 &&
+          units <= entries &&
+          imports <= entries.to_int64() &&
           native_whole_result_controls(
             @strategy.graph_task_count(@strategy.captured_dag_graph(run)),
             originals.length(),
-            result_count,
+            units,
             imports,
           )
           is Some(controls) &&
@@ -447,7 +443,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
           is Some(funding) else {
           return Err(model_failure.val.unwrap_or(FileWorkControlQuote))
         }
-        let cached = Ref(None)
+        let cached = FixedArray::make(units, None)
         prepare_task = Some((task, selection) => {
           match
             owner.stage_whole_model_results(
@@ -463,7 +459,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
             Ok(_) => Ok(())
           }
         })
-        retire_producer = Some(() => retire_native_whole_model_producer(cached))
+        retire_producer = Some(() => retire_native_whole_model_producers(cached))
       }
       Ok(())
     })

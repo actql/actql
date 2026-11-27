@@ -146,6 +146,60 @@ pub fn handoff_client_model_read_consumer_input_capacity(
 }
 
 ///|
+/// The physical provider consumes the same one-shot Read. Only a fresh Whole
+/// CallScope receives the sole outcome recorder from this admission.
+pub fn handoff_original_provider_input_capacity(
+  value : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  scope : ClientInferCallScope,
+  rows : @execution.PreparedInferRows,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  (
+    @resources.Ledger,
+    @resources.CapacityReservation,
+    (ClientWholeModelOutcomeRecorder, @execution.InferOutcomeIssuer)?,
+  ),
+  ClientModelInputCapacityIssue,
+] {
+  let whole = match scope.custody {
+    PendingWholeOutcome => {
+      scope.custody = HandingOffWholeOutcome
+      true
+    }
+    HandingOffWholeOutcome
+    | ArmedWholeOutcome
+    | CompletingWholeOutcome
+    | WholeOutcome(_) => return Err(ForeignInput)
+    LiveInput | SavedInput(_) => false
+  }
+  let handed = handoff_client_model_read_consumer_input_capacity(
+    value, compiled, definition, plan, scope, rows, retained_bytes, execution_bytes,
+  )
+  match handed {
+    Err(issue) => {
+      if whole {
+        scope.custody = PendingWholeOutcome
+      }
+      Err(issue)
+    }
+    Ok((ledger, capacity)) => {
+      let recorder = if whole {
+        let (binding, issuer) = @execution.prepare_infer_outcome_handoff(rows)
+        scope.custody = ArmedWholeOutcome
+        Some(({ scope, consumer: value, binding, }, issuer))
+      } else {
+        None
+      }
+      Ok((ledger, capacity, recorder))
+    }
+  }
+}
+
+///|
 pub fn stop_client_model_read_consumer(
   value : ClientModelReadConsumer,
 ) -> Result[Unit, ClientModelReadPreparationIssue] {

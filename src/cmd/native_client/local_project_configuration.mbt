@@ -166,7 +166,8 @@ fn local_project_explicit_operator_selected(
   required(matches, "mode") == "local" &&
   matches.sources.get("config-file") is Some(@argparse.Argv) &&
   matches.sources.get("config-root") is Some(@argparse.Argv) &&
-  matches.subcommand is Some(("check" | "run" | "result" | "status", _))
+  matches.subcommand
+  is Some(("check" | "run" | "result" | "status" | "approve" | "reject", _))
 }
 
 ///|
@@ -521,12 +522,15 @@ fn local_project_apply_selection(
       matches.values["mode"] = ["local"]
     }
     if local_project_explicit_operator_selected(matches) {
-      guard project.profile is None &&
+      let model_project = project.profile is None &&
+        operation != "approve" &&
+        operation != "reject" &&
         project.metadata.model_tasks_file() is Some(_) &&
         (
           !local_project_execution_operation(operation) ||
           project.portable_model is Some(_)
-        ) else {
+        )
+      guard model_project || project.selects_operator_file_effect(operation) else {
         stop("ConflictingLocalProjectSelection")
       }
     } else {
@@ -542,6 +546,52 @@ fn local_project_apply_selection(
     // Saved operands only restore that original Host. Explicit Remote and
     // connection choices never enter this branch.
     matches.values["mode"] = ["local"]
+  }
+}
+
+///|
+// The Project supplies only existing File declarations. Protected Model
+// selection and every Account decision remain with the adopted operator Host.
+fn LocalProjectConfiguration::selects_operator_file_effect(
+  self : Self,
+  operation : String,
+) -> Bool {
+  let metadata = self.metadata
+  guard self.profile == Some("mock") &&
+    metadata.lock_file() is None &&
+    metadata.connectors_file() is Some(_) &&
+    metadata.mock_catalog_file() is Some(_) &&
+    metadata.mock_data_file() is Some(_) &&
+    metadata.mock_answer_count() == 0 else {
+    return false
+  }
+  match operation {
+    // Historical observation keeps the current read path and never loads
+    // Project Source or Model declarations for this result.
+    "result" | "status" => true
+    _ => {
+      guard self.mock_declarations is Some(file) &&
+        file.sources.any(source => !source._retained_writes.is_empty()) else {
+        return false
+      }
+      match operation {
+        "approve" | "reject" => file._retained_registry is None
+        "check" | "run" =>
+          file._retained_registry is Some(registry) &&
+          registry.task_count() == 0 &&
+          file.sources.any(source => {
+            // Typed File rows use their authenticated Relation selector.
+            // A write target alone does not supply the read-side original.
+            !source._retained_files.is_empty() ||
+            source._retained_rows.any(row => {
+              !source._retained_writes.any(write => {
+                write.mapping.resource == row.view.resource
+              })
+            })
+          })
+        _ => false
+      }
+    }
   }
 }
 

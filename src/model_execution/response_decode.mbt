@@ -85,7 +85,8 @@ fn begin_encoded_model_response(
       data_keys=true,
     ) {
     Ok(parse) => parse
-    Err(_) => return @bounded.Failed(OutputValue, 1, 1)
+    Err(issue) =>
+      return @bounded.Failed(model_response_source_issue(issue.issue), 1, 1)
   }
   state.progress.phase = DecodePhysicalResponse(prepared, physical, {
     phase: ParseAnswer(parse),
@@ -132,12 +133,8 @@ fn advance_encoded_model_response(
       @environment.model_task_output(state.task),
       state.limits.value_limits,
     ) {
-    Err(OutputValue) if state.progress.call is Some(call) &&
-      call.terminal is Some(PhysicalSavedStructuredResponse(saved)) &&
-      model_saved_structured_response_original(saved, call) => {
-      cancel_model_response_decode(cursor)
-      accept_structured_model_failure(state, SchemaInvalid)
-    }
+    Err(Provider(SchemaInvalid)) =>
+      adopt_invalid_saved_model_answer(state, cursor)
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => @bounded.Continue(1, 1)
     Ok(Some(checked)) => {
@@ -274,14 +271,20 @@ fn advance_model_response_decode(
               max_total_string_bytes: cursor.limits.response_bytes,
             }) {
             Ok(admission) => admission
-            Err(_) => return Err(OutputValue)
+            Err(issue) =>
+              return Err(
+                model_answer_decode_issue(
+                  model_response_admission_issue(issue.kind),
+                ),
+              )
           }
           cursor.phase = AdmitAnswer(admission)
         }
-        _ => {
-          cancel_model_response_decode(cursor)
-          return Err(OutputValue)
-        }
+        Ok(@source.JsonParseFailed(issue, ..)) =>
+          return Err(
+            model_answer_decode_issue(model_response_source_issue(issue.issue)),
+          )
+        Err(_) => return Err(OutputIdentity)
       }
     AdmitAnswer(admission) =>
       match @decode.advance_admission(admission, 1) {
@@ -290,14 +293,17 @@ fn advance_model_response_decode(
           let typed = match
             @admitted.start_typed_admission(output, source, value_limits) {
             Ok(typed) => typed
-            Err(_) => return Err(OutputValue)
+            Err(issue) => return Err(model_answer_typed_issue(issue))
           }
           cursor.phase = TypeAnswer(typed)
         }
-        _ => {
-          cancel_model_response_decode(cursor)
-          return Err(OutputValue)
-        }
+        Ok(@decode.AdmissionFailed(issue, ..)) =>
+          return Err(
+            model_answer_decode_issue(
+              model_response_admission_issue(issue.kind),
+            ),
+          )
+        Err(_) => return Err(OutputIdentity)
       }
     TypeAnswer(typed) =>
       match @admitted.advance_typed_admission(typed) {
@@ -308,12 +314,98 @@ fn advance_model_response_decode(
           cancel_model_response_decode(cursor, preserve_observation=true)
           return Ok(Some(checked))
         }
-        _ => {
-          cancel_model_response_decode(cursor)
-          return Err(OutputValue)
-        }
+        @admitted.TypedAdmissionFailed(issue) =>
+          return Err(model_answer_typed_issue(issue))
+        @admitted.TypedAdmissionTerminal => return Err(OutputIdentity)
       }
     DecodeReclaimed => return Err(OutputIdentity)
   }
   Ok(None)
+}
+
+///|
+// Bounded usage readers share the same source and admission owners. An
+// exhausted budget or a noncurrent cursor cannot make a provider failure.
+fn model_response_source_issue(
+  issue : @source.ParseIssue,
+) -> ModelExecutionIssue {
+  match issue {
+    @source.InvalidLimits => InvalidLimits
+    @source.InputLimit | @source.NodeLimit | @source.DepthLimit => WorkLimit
+    _ => OutputValue
+  }
+}
+
+///|
+fn model_response_admission_issue(
+  issue : @decode.IssueKind,
+) -> ModelExecutionIssue {
+  match issue {
+    @decode.InvalidLimits => InvalidLimits
+    @decode.BudgetExceeded => WorkLimit
+    _ => OutputValue
+  }
+}
+
+///|
+// Use this internal classification only for an actual structural failure.
+// Whether it is a provider outcome is decided by the original carrier.
+fn model_answer_decode_issue(
+  issue : ModelExecutionIssue,
+) -> ModelExecutionIssue {
+  match issue {
+    OutputValue => Provider(SchemaInvalid)
+    _ => issue
+  }
+}
+
+///|
+fn model_answer_typed_issue(issue : @admitted.Issue) -> ModelExecutionIssue {
+  match issue {
+    @admitted.Decode(issue) =>
+      model_answer_decode_issue(model_response_admission_issue(issue.kind))
+    @admitted.ValueIssue(InvalidLimits, ..) => InvalidLimits
+    @admitted.ValueIssue(BudgetExceeded, ..) => WorkLimit
+    @admitted.ValueIssue(
+      UnsupportedReference
+      | InvalidReference
+      | UnauthorizedReference,
+      ..
+    ) => OutputIdentity
+    @admitted.ValueIssue(_, ..) => Provider(SchemaInvalid)
+  }
+}
+
+///|
+fn adopt_invalid_saved_model_answer(
+  state : ModelState,
+  cursor : ModelResponseDecode,
+) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  let invalid = @bounded.Failed(OutputIdentity, 1, 1)
+  guard state.progress.call is Some(call) else { return invalid }
+  match (call.terminal, cursor.raw_chat) {
+    (Some(PhysicalSavedStructuredResponse(saved)), None) if model_saved_structured_response_original(
+        saved, call,
+      ) => ()
+    (Some(PhysicalChatResponse(original)), Some(raw)) if physical_equal(
+        original, raw,
+      ) &&
+      model_chat_response_original(raw, call) &&
+      raw.transport_eof &&
+      raw.status >= 200 &&
+      raw.status < 300 => {
+      guard cursor.observation is Some(observation) &&
+        state.physical_plans.get(state.progress.slot) is Some(plan) &&
+        plan.response_profile is Some(profile) else {
+        return invalid
+      }
+      retain_chat_failure_observation(raw, observation, profile)
+    }
+    _ => {
+      cancel_model_response_decode(cursor)
+      return @bounded.Failed(OutputValue, 1, 1)
+    }
+  }
+  cancel_model_response_decode(cursor)
+  accept_structured_model_failure(state, SchemaInvalid)
 }

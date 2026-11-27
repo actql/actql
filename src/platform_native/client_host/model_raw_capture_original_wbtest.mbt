@@ -1,4 +1,83 @@
 ///|
+test "Native HTTP Work attachment observes the accepted original Store before first start" {
+  let name = "model-http-work-attachment"
+  let host = policy_host_fixture(name)
+  let scope = host
+    .authority_scope_cid("operator", "cli", epoch_test_crypto())
+    .unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "attachment-request",
+    "attachment-run",
+    scope~,
+  )
+  let (_, _, _, foreign_definition) = journal_test_run(
+    "attachment-other-request",
+    "attachment-other-run",
+    scope~,
+  )
+  let journal = host.journal
+  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  let base = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let parent = @filesystem.open_private_root(base).unwrap()
+  parent.create_directory(name).unwrap() |> ignore
+  parent.create_directory(name + "-foreign").unwrap() |> ignore
+  let library = local_journal_test_library()
+  let authority = "sha256:" + "c".repeat(64)
+  let store = @publication_store.open_store(
+    library,
+    base + "/" + name,
+    authority,
+    65536L,
+    8L,
+    131072L,
+  ).unwrap()
+  let foreign = @publication_store.open_store(
+    library,
+    base + "/" + name + "-foreign",
+    authority,
+    65536L,
+    8L,
+    131072L,
+  ).unwrap()
+  let reads = journal_test_read_access(host.database, [])
+  let binding = run_observation_store_binding(store, name).unwrap()
+  let replacement = run_observation_store_binding(foreign, name).unwrap()
+  let check = (selected_definition, selected_store, current) => {
+    journal.require_unstarted_model_work_run(
+      request, selected_definition, selected_store, false, reads, current,
+    )
+  }
+  assert_true(check(definition, binding, () => true) is Err(ForeignRun))
+  let publication = install_native_client_cancellation_publication(
+    store, name, 65536, 8192, 64,
+  ).unwrap()
+  journal.bind_installed_publication(request, publication, () => true).unwrap()
+  let accepted = journal.retained(request).unwrap().unwrap()
+  assert_true(check(definition, binding, () => true) is Ok(_))
+  assert_true(check(definition, replacement, () => true) is Err(ForeignRun))
+  assert_true(check(foreign_definition, binding, () => true) is Err(ForeignRun))
+  let current_checks = Ref(0)
+  assert_true(
+    check(definition, binding, () => {
+      current_checks.val += 1
+      current_checks.val == 1
+    })
+    is Err(AuthorizationDenied),
+  )
+  let retained = journal.retained(request).unwrap().unwrap()
+  assert_eq(retained.revision, accepted.revision)
+  assert_false(retained.dispatch_reserved)
+  assert_false(retained.physical_start_claimed)
+  journal.reserve_dispatch(request, true).unwrap() |> ignore
+  assert_true(journal.claim_physical_start(request, true).unwrap())
+  assert_true(check(definition, binding, () => true) is Err(ForeignRun))
+  assert_true(foreign.close() is Ok(true))
+  assert_true(store.close() is Ok(true))
+  host.close().unwrap()
+}
+
+///|
 // Actual Native Journal rows and retained reads. Synthetic publication
 // location facts exercise the comparison without opening a provider or Store.
 test "Native Raw save requires the claimed uncancelled Run and its original Store binding" {

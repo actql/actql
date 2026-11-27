@@ -471,7 +471,6 @@ fn native_mock_effect_managed_plan(
   mock : LocalProjectMockDeclarations,
   contracts : @local_values.ClientInstalledSequenceContracts,
   provider : @local_compute.ManagedProvider,
-  publication : @execution.ExecutionCapacity,
   record_bytes : Int,
   capture_recipes? : Array[Array[@execution.ExecutionCapacity]] = [],
 ) -> @local_values.ClientInstalledEffectManagedPlan raise ClientStop {
@@ -488,6 +487,11 @@ fn native_mock_effect_managed_plan(
   // no Node-specific physical layout or spare Model allowance is inferred.
   let retained = limits.mapping.logical.max_live_value_bytes
   let execution = limits.identity.wire.max_bytes.to_int64()
+  let publication = @local_host.native_client_effect_model_publication_capacity(
+    limits,
+  ).unwrap_or_else(() => {
+    stop("LocalOriginalModelPublicationCapacityUnavailable")
+  })
   let suffix = @local_values.retained_effect_local_tasks_control_capacity(
     @strategy.checked_effect_computation_graph(
       @run_host.prepared_client_effect_computation_graph(prepared),
@@ -611,7 +615,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     @initial_resources.preparation_body_borrow_value(borrow) is Some(prepared) &&
     business.request_run is None &&
     business.effect_model is None &&
-    first._retained_models.length() == business.model_work.length() &&
+    first.matches_model_work_before_store(business.model_work) &&
     (
       first._retained_models.length() == 1 ||
       (
@@ -671,7 +675,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     } else {
       let selected = first._retained_models[0]
       let limits = selected._retained_limits
-      let work = business.model_work[0]
       let provider = @infer.composed_local_provider(
         selected.graph.occurrence,
         limits,
@@ -696,16 +699,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
         mock,
         self.installed_contracts,
         provider,
-        work
-        .observation_capacity(
-          first.request,
-          first.model_compiled.unwrap(),
-          first.definition,
-          selected.graph,
-        )
-        .unwrap_or_else(() => {
-          stop("LocalOriginalModelPublicationCapacityUnavailable")
-        }),
         native_mock_effect_record_bytes(installation),
         capture_recipes~,
       )
@@ -722,10 +715,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     )
     |> ignore
     business.request_body = None
-    if !first._retained_models.is_empty() {
+    if first._retained_models is [selected] {
+      let quantities = match selected.provider {
+        MockModel(_, _) => None
+        HttpModel(_) => Some(native_model_plan_quantities([selected.graph]))
+      }
       state.scope = Some(
         @local_values.prepare_request_effect_model_read_scope(
-          parent, input, plan,
+          parent,
+          input,
+          plan,
+          quantity_limits=quantities,
         ).unwrap_or_else(() => stop("LocalOriginalModelScopeUnavailable")),
       )
     }

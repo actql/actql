@@ -82,14 +82,15 @@ enum ResultArtifactSelection {
   WholeResult(
     Int,
     @publication_host.ClientWholeLocalResultArtifact,
-    @publication_host.ClientWholeLocalResultManifest
+    @publication_host.ClientWholeLocalResultManifest,
+    @publication_host.ClientInferWholeResultReaderOriginal?
   )
 }
 
 ///|
 fn result_artifact_selection_index(value : ResultArtifactSelection) -> Int {
   match value {
-    EffectResult(index, _, _) | WholeResult(index, _, _) => index
+    EffectResult(index, _, _) | WholeResult(index, _, _, _) => index
   }
 }
 
@@ -110,6 +111,7 @@ pub struct Execution {
   mut identity : @relation.CompletedRelationIdentityScan?
   mut identity_body : OriginalInferIdentityBody?
   mut call_scope : @publication_host.ClientInferCallScope?
+  priv mut whole_terminal : @publication_host.ClientWholeModelTerminalRecorder?
   result_artifacts : Array[ResultArtifactSelection]
   mut saved_call_scope : @publication_host.ClientInferSavedCallScope?
   mut model : @model.ModelExecution?
@@ -775,6 +777,7 @@ fn start_occurrence(
     identity: None,
     identity_body: None,
     call_scope: None,
+    whole_terminal: None,
     result_artifacts: [],
     saved_call_scope: None,
     model: None,
@@ -965,6 +968,7 @@ pub fn bind_whole_result_artifact_input(
   import_index : Int,
   artifact : @publication_host.ClientWholeLocalResultArtifact,
   manifest : @publication_host.ClientWholeLocalResultManifest,
+  reader? : @publication_host.ClientInferWholeResultReaderOriginal? = None,
 ) -> Result[Unit, Issue] {
   guard active.saved_call_scope is None &&
     active.composed_sources is Some(sources) &&
@@ -979,7 +983,7 @@ pub fn bind_whole_result_artifact_input(
   }
   bind_original_result_artifact_input(
     active,
-    WholeResult(import_index, artifact, manifest),
+    WholeResult(import_index, artifact, manifest, reader),
   )
 }
 
@@ -1054,13 +1058,23 @@ pub fn bind_compute_suffix(
 }
 
 ///|
+fn retire_whole_model_terminal(active : Execution) -> Unit {
+  if active.whole_terminal is Some(recorder) {
+    @publication_host.retire_original_whole_model_terminal(recorder)
+    active.whole_terminal = None
+  }
+}
+
+///|
 fn fail(active : Execution, issue : Issue) -> Poll {
+  retire_whole_model_terminal(active)
   active.phase = Terminal
   Failed(issue, work=active.work)
 }
 
 ///|
 fn stopped(active : Execution) -> Poll {
+  retire_whole_model_terminal(active)
   active.phase = Terminal
   active.completed = None
   Stopped(work=active.work)
@@ -1370,7 +1384,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               artifact,
               manifest,
             )
-          WholeResult(index, artifact, manifest) =>
+          WholeResult(index, artifact, manifest, reader) =>
             @input.client_infer_completed_whole_result_artifact_input(
               active.input,
               active.occurrence,
@@ -1378,6 +1392,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
               index,
               artifact,
               manifest,
+              reader~,
             )
         }
         match input {
@@ -1405,9 +1420,20 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             result_inputs~,
           )
       }
-      active.call_scope = match scoped {
-        Ok(value) => Some(value)
+      let scope = match scoped {
+        Ok(value) => value
         Err(issue) => return fail(active, CallScope(issue))
+      }
+      active.call_scope = Some(scope)
+      if active.source is Physical(_) &&
+        active.original_preparation is Some(original) &&
+        original.shared_mock &&
+        active.saved_call_scope is None {
+        active.whole_terminal = match
+          @publication_host.claim_original_whole_model_terminal(scope) {
+          Ok(value) => value
+          Err(issue) => return fail(active, CallScope(issue))
+        }
       }
       begin_model(active)
     }
@@ -1592,6 +1618,34 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
       }
       guard active.completed is Some(completed) else {
         return fail(active, InvalidAdvance)
+      }
+      if active.whole_terminal is Some(recorder) {
+        // The original Compute branch retained this child's real completion.
+        // The Model output preparation returns its already completed Outcome.
+        guard active.output is Some(preparation) &&
+          @model.complete_model_output(preparation) is Ok(outcome) &&
+          active.call_scope is Some(scope) &&
+          @publication_host.record_original_whole_model_terminal(
+            recorder,
+            outcome,
+            completed,
+            () => {
+              !active.cancelled &&
+              !active.reclaimed &&
+              active.phase is Handoff &&
+              (
+                active.call_scope is Some(current) &&
+                physical_equal(current, scope)
+              ) &&
+              active.completed is Some(current) &&
+              physical_equal(current, completed)
+            },
+          ) else {
+          if active.cancelled {
+            return stopped(active)
+          }
+          return fail(active, CallScope(@publication_host.ForeignInput))
+        }
       }
       active.phase = Terminal
       Complete(completed, work=active.work)
@@ -2030,6 +2084,7 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
         @model.release_model_slot_replay(read) |> ignore
       }
       active.rows = None
+      retire_whole_model_terminal(active)
       active.call_scope = None
       active.result_artifacts.clear()
       active.acquired_input = None

@@ -58,10 +58,18 @@ test "saved snapshot retains one restored state and its same original Manifest" 
     true,
   )
   let snapshot = saved_state_snapshot_read(body, validations).unwrap().unwrap()
-  let first = client_saved_submission_state_original(snapshot).unwrap()
-  let second = client_saved_submission_state_original(snapshot).unwrap()
+  let first = client_saved_submission_retained_state_original(snapshot)
+    .unwrap()
+    .resolve()
+    .unwrap()
+  let second = client_saved_submission_retained_state_original(snapshot)
+    .unwrap()
+    .resolve()
+    .unwrap()
   assert_true(physical_equal(first, second))
-  assert_true(physical_equal(first, snapshot.state_original.unwrap()))
+  assert_true(
+    physical_equal(first, snapshot.state_original.unwrap().resolve().unwrap()),
+  )
   assert_true(
     physical_equal(
       first.original_manifest().unwrap(),
@@ -86,7 +94,9 @@ test "saved snapshot keeps historical and absent state metadata unavailable" {
     let snapshot = saved_state_snapshot_read(body, validations)
       .unwrap()
       .unwrap()
-    assert_true(client_saved_submission_state_original(snapshot) is None)
+    assert_true(
+      client_saved_submission_retained_state_original(snapshot) is None,
+    )
     assert_eq(
       client_saved_submission_record(snapshot).run_state_original,
       original,

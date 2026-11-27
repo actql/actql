@@ -67,6 +67,14 @@ test "Native status retains authenticated reference grammar and typed Unknown" {
     ),
     "LocalRunStateLookupUnknown",
   )
+  assert_eq(
+    local_saved_state_issue(@local_host.ModelProofRequired),
+    "LocalOriginalRunStateCustodyUnavailable",
+  )
+  assert_eq(
+    local_saved_state_issue(@local_host.Journal(@local_host.ForeignRun)),
+    "LocalOriginalRunReferenceMismatch",
+  )
 }
 
 ///|

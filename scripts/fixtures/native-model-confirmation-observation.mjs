@@ -96,7 +96,7 @@ export function requireNativeRawReceipts(observed, custody, selectedByTask) {
   const byAttempt = new Map(observed.map(row => [row.attempt, row]));
   assert.equal(byAttempt.size, observed.length, 'Repeated Native Raw receipt');
   assert.equal(new Set(observed.map(row => row.capturePolicy)).size, observed.length, 'Repeated Native Raw capture policy');
-  return custody.observed.map(({attempt, task, slot, scope, rawHolding}) => {
+  return custody.observed.map(({attempt, task, slot, scope, rawHolding, evidence}) => {
     const row = byAttempt.get(attempt);
     assert(row, 'Missing Native Raw receipt for the original attempt');
     assert.equal(row.slot, slot);
@@ -104,6 +104,9 @@ export function requireNativeRawReceipts(observed, custody, selectedByTask) {
     assert.equal(row.definition, custody.definition);
     assert.equal(row.authority, custody.authority);
     assert.equal(row.effectivePolicy, custody.policy.policyCid);
+    const descriptor = evidence.find(({role}) => role === 'model_raw_response');
+    if (custody.terminalRun) assert(descriptor, 'Missing committed terminal Raw descriptor');
+    if (descriptor) assert.equal(row.identity, descriptor.evidenceCid);
     const response = {profile: row.profile, content: row.content, bytes: row.bytes, status: row.status, eof: row.eof};
     assert.deepEqual(response, selectedByTask.get(task));
     return {attempt, task, evidenceCid: row.identity, holding: rawHolding, ...response};

@@ -1,9 +1,10 @@
 ///|
 /// The selected Native Model consumer keeps the adopted retention and the
-/// first source-bearing Model's original Read. Each receiver accepts only its
+/// exact selected Model Reads and completed outputs. Each receiver accepts only its
 /// own view of the already issued producer Result.
 pub(all) struct NativeWholeModelResults {
-  scope : @host.ClientModelReadScope
+  scope : (Int) -> @host.ClientModelReadScope?
+  completed : (Int) -> @infer.OutputUse?
   retention : @publication.PublicationContract
   retain : (Int, NativeWholeModelResultInputs) -> Bool
 }
@@ -14,14 +15,16 @@ pub type NativeWholeModelResultInputs = Array[
     Int,
     @host.ClientWholeLocalResultArtifact,
     @host.ClientWholeLocalResultManifest,
+    Int,
+    @execution.ProducerRead,
   ),
 ]
 
 ///|
 priv struct NativeWholeModelProducer {
-  unit : Int
   pins : @strategy.CapturedCompletedUnitResults
   results : Array[@local.LocalWholeUnitResultExport]
+  mut outcome : @execution.CompletedRelationExportReceipt?
   mut issued : (
     Array[@host.ClientWholeLocalResultArtifact],
     @host.ClientWholeLocalResultManifest,
@@ -31,21 +34,35 @@ priv struct NativeWholeModelProducer {
 ///|
 // All Local consumers have returned before this closes the shared views.
 // There is no new attempt, storage transaction or public Result here.
-fn retire_native_whole_model_producer(
-  value : Ref[NativeWholeModelProducer?],
+fn retire_native_whole_model_producers(
+  values : FixedArray[NativeWholeModelProducer?],
 ) -> Bool {
-  guard value.val is Some(producer) else { return true }
-  producer.issued = None
-  for result in producer.results {
-    result.close()
+  // Checked imports only point to earlier Units. Retire each borrower before
+  // releasing the earlier producer whose Manifest it can still reference.
+  for index = values.length() - 1; index >= 0; index = index - 1 {
+    guard values[index] is Some(producer) else { continue }
+    producer.issued = None
+    if producer.outcome is Some(receipt) {
+      @execution.cancel_completed_relation_export_receipt(receipt)
+      producer.outcome = None
+    }
+    for result in producer.results {
+      result.close()
+    }
+    producer.results.clear()
+    producer.results.shrink_to_fit()
+    if !@strategy.release_captured_completed_unit_results(producer.pins) {
+      return false
+    }
+    values[index] = None
   }
-  producer.results.clear()
-  producer.results.shrink_to_fit()
-  if !@strategy.release_captured_completed_unit_results(producer.pins) {
-    return false
-  }
-  value.val = None
   true
+}
+
+///|
+priv struct NativeWholeModelProducerFunding {
+  retain : (@execution.ExecutionCapacity) -> Bool
+  cover : (@execution.ExecutionCapacity) -> Bool
 }
 
 ///|
@@ -57,7 +74,7 @@ fn NativeClientRelationFileWork::whole_model_producer_funding(
   managed : @local.ClientInstalledManagedRun,
   failure : Ref[NativeClientSourceWorkIssue?],
   initial : @execution.ExecutionCapacity,
-) -> ((@execution.ExecutionCapacity) -> Bool)? {
+) -> NativeWholeModelProducerFunding? {
   guard @local.installed_managed_preparation_admission_original(
       managed,
       self.prepared,
@@ -101,8 +118,9 @@ fn NativeClientRelationFileWork::whole_model_producer_funding(
     Ok(_) => ()
   }
   let held = Ref(controls)
-  let peak = Ref(initial_e)
-  Some(capacity => {
+  let retained_peak = Ref(initial_r)
+  let execution_peak = Ref(initial_e)
+  let reserve = (capacity, keep) => {
     if failure.val is Some(_) {
       return false
     }
@@ -132,23 +150,29 @@ fn NativeClientRelationFileWork::whole_model_producer_funding(
       failure.val = Some(Configuration)
       return false
     }
-    let executing = Int64::max(peak.val, executing)
-    match
-      @resources.grow_prepared_run_native_work_capacity(
-        admission,
-        self.prepared,
-        ledger,
-        retained,
-        executing,
-      ) {
-      Err(issue) => {
-        failure.val = Some(InstalledRun(@local.Resource(issue)))
-        return false
+    let retained = Int64::max(retained_peak.val, retained)
+    let executing = Int64::max(execution_peak.val, executing)
+    if retained > retained_peak.val || executing > execution_peak.val {
+      match
+        @resources.grow_prepared_run_native_work_capacity(
+          admission,
+          self.prepared,
+          ledger,
+          retained,
+          executing,
+        ) {
+        Err(issue) => {
+          failure.val = Some(InstalledRun(@local.Resource(issue)))
+          return false
+        }
+        Ok(_) => ()
       }
-      Ok(_) => ()
     }
-    held.val = next
-    peak.val = executing
+    if keep {
+      held.val = next
+    }
+    retained_peak.val = retained
+    execution_peak.val = executing
     match self.require_current() {
       Err(issue) => {
         failure.val = Some(issue)
@@ -156,6 +180,10 @@ fn NativeClientRelationFileWork::whole_model_producer_funding(
       }
       Ok(_) => true
     }
+  }
+  Some({
+    retain: value => reserve(value, true),
+    cover: value => reserve(value, false),
   })
 }
 
@@ -163,31 +191,42 @@ fn NativeClientRelationFileWork::whole_model_producer_funding(
 fn native_whole_result_controls(
   tasks : Int,
   sources : Int,
-  results : Int,
+  units : Int,
   imports : Int64,
 ) -> @execution.ExecutionCapacity? {
   let tasks = tasks.to_int64()
   let sources = sources.to_int64()
-  let results = results.to_int64()
+  let units = units.to_int64()
   // The Local next-task observation, exact pin and export wrappers,
   // retained vectors and Scope inputs coexist with the Source and Manifest.
-  guard @execution.checked_preparation_add_product(
-      sources + results,
-      imports,
-      1L,
-    )
+  // Each import also carries the task input position and the exact staged
+  // Read. The retained and completed Scope variants each reserve a Reader
+  // reference for dependent Model inputs.
+  guard @execution.checked_preparation_add_product(sources, imports, 1L)
     is Some(items) &&
-    @execution.checked_preparation_add_product(32L + tasks, items, 16L)
+    @execution.checked_preparation_add_product(
+      32L + tasks + imports,
+      items,
+      16L,
+    )
     is Some(headers) &&
-    @execution.checked_preparation_add_product(56L + 3L * tasks, items, 36L)
+    @execution.checked_preparation_add_product(
+      56L + 3L * tasks + 4L * imports,
+      items,
+      36L,
+    )
     is Some(references) &&
-    @execution.checked_preparation_add_product(36L + tasks, items, 24L)
+    @execution.checked_preparation_add_product(
+      36L + tasks + 2L * imports,
+      items,
+      24L,
+    )
     is Some(words) &&
     @execution.preparation_representation_cost({
       record_headers: headers,
-      reference_slots: references,
+      reference_slots: references + units,
       scalar_words: words,
-      owned_utf16_units: 71L * (2L + sources + 2L * results),
+      owned_utf16_units: 71L * (2L + sources),
       owned_wire_bytes: 0L,
     })
     is Some(bytes) else {
@@ -197,63 +236,302 @@ fn native_whole_result_controls(
 }
 
 ///|
+fn native_whole_producer_controls(count : Int) -> @execution.ExecutionCapacity? {
+  let count = count.to_int64()
+  @execution.preparation_representation_cost({
+    record_headers: 2L + 16L * count,
+    reference_slots: 9L + 36L * count,
+    scalar_words: 4L + 24L * count,
+    owned_utf16_units: 142L * count,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => @execution.execution_capacity(bytes, bytes))
+}
+
+///|
+fn NativeClientRelationFileWork::whole_model_outcome(
+  self : Self,
+  producer : NativeWholeModelProducer,
+  held : @infer.OutputUse,
+  plan : @host.ClientInferPlanGraph,
+  quantum : Int,
+  max_rounds : Int,
+  funding : NativeWholeModelProducerFunding,
+) -> Result[
+  @execution.CompletedRelationExportReceipt,
+  NativeClientSourceWorkIssue,
+] {
+  guard @infer.preconsumer_model_unit_identity_start_capacity(
+      held,
+      self.compiled,
+      self.definition,
+      plan,
+      retain_body=false,
+    )
+    is Some(start) &&
+    (funding.cover)(start) else {
+    return Err(FileWorkControlQuote)
+  }
+  let scan = match
+    @infer.start_preconsumer_model_unit_identity(
+      held,
+      self.compiled,
+      self.definition,
+      plan,
+      retain_body=false,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(WholeModelOutcomeExport(issue))
+  }
+  defer @execution.cancel_completed_relation_identity_scan(scan) |> ignore
+  for _ in 0..<max_rounds {
+    guard @execution.completed_relation_identity_scan_next_construction_capacity(
+        scan,
+      )
+      is Some(frame) &&
+      (funding.cover)(frame) else {
+      return Err(FileWorkControlQuote)
+    }
+    let finished = match
+      @execution.advance_completed_relation_identity_scan(
+        scan,
+        quantum,
+        construction_capacity=Some(frame),
+      ) {
+      Ok((value, _)) => value
+      Err(issue) => return Err(WholeModelOutcomeExport(issue))
+    }
+    if finished {
+      guard @execution.completed_relation_identity_scan_next_construction_capacity(
+          scan,
+        )
+        is Some(finish) &&
+        (funding.cover)(finish) else {
+        return Err(FileWorkControlQuote)
+      }
+      let receipt = match
+        @execution.finish_completed_relation_identity_scan(scan) {
+        Ok(value) => value
+        Err(issue) => return Err(WholeModelOutcomeExport(issue))
+      }
+      producer.outcome = Some(receipt)
+      guard @execution.completed_relation_export_retained_capacity(receipt)
+        is Some(capacity) &&
+        (funding.retain)(capacity) else {
+        return Err(FileWorkControlQuote)
+      }
+      return Ok(receipt)
+    }
+  }
+  Err(WholeModelOutcomeExport(NotFinished))
+}
+
+///|
+fn NativeClientRelationFileWork::materialize_whole_model_invocation(
+  self : Self,
+  producer : NativeWholeModelProducer,
+  held : @infer.OutputUse,
+  plan : @host.ClientInferPlanGraph,
+  scope : @host.ClientModelReadScope,
+  quantum : Int,
+  max_rounds : Int,
+  funding : NativeWholeModelProducerFunding,
+  fund_original : (Int) -> Bool,
+  fund_body : (String, @encode.EncodingConstructionGeometry) -> Bool,
+) -> Result[@host.ClientWholeLocalUnitInvocation, NativeClientSourceWorkIssue] {
+  guard @infer.borrow_original_live_host_output(
+      held,
+      self.compiled,
+      self.definition,
+      plan,
+    )
+    is Some((output, _)) else {
+    return Err(FileWorkSourceBinding)
+  }
+  let (task, unit, _) = @host.client_infer_occurrence_coordinates(
+    plan.occurrence,
+  )
+  let mut selected = None
+  for index, result in producer.results {
+    guard result.handoff() is Some(handoff) else {
+      return Err(FileWorkSourceBinding)
+    }
+    if @strategy.captured_completed_unit_result_export_matches_output(
+        handoff,
+        self.run,
+        unit,
+        task,
+        output,
+      ) {
+      selected = Some((index, handoff))
+      break
+    }
+  }
+  guard selected is Some((index, handoff)) else {
+    return Err(FileWorkSourceBinding)
+  }
+  self
+  .whole_model_outcome(producer, held, plan, quantum, max_rounds, funding)
+  .bind(receipt => {
+    @infer.issue_original_whole_model_unit_invocation(
+      held,
+      self.compiled,
+      self.definition,
+      plan,
+      scope,
+      self.start.request,
+      self.run,
+      producer.pins,
+      index,
+      handoff,
+      receipt,
+      65536,
+      8192,
+      64,
+      funding.retain,
+      fund_original,
+      fund_body,
+    ).map_err(_ => FileWorkSourceBinding)
+  })
+}
+
+///|
 fn NativeClientRelationFileWork::issue_whole_model_producer(
   self : Self,
   managed : @local.ClientInstalledManagedRun,
   selected : @local.LocalWholeTaskPreparation,
   configuration : NativeWholeModelResults,
+  plans : Array[@host.ClientInferPlanGraph],
   sources : @host.ClientInferComposedSources,
+  receiver : Int,
   unit : Int,
   count : Int,
-  cached : Ref[NativeWholeModelProducer?],
+  cached : FixedArray[NativeWholeModelProducer?],
   quantum : Int,
   max_rounds : Int,
-  fund : (@execution.ExecutionCapacity) -> Bool,
+  funding : NativeWholeModelProducerFunding,
 ) -> Result[NativeWholeModelProducer, NativeClientSourceWorkIssue] {
-  guard cached.val is None &&
+  let mut modeled = None
+  for index, plan in plans {
+    if @host.client_infer_occurrence_coordinates(plan.occurrence).1 == unit {
+      guard modeled is None else { return Err(FileWorkSourceBinding) }
+      modeled = Some(index)
+    }
+  }
+  guard cached[unit] is None &&
+    (configuration.scope)(modeled.unwrap_or(receiver)) is Some(scope) &&
+    native_whole_producer_controls(count) is Some(controls) &&
+    (funding.retain)(controls) &&
     @strategy.pin_captured_completed_unit_results(self.run, unit, count, 100000)
     is Ok(pins) else {
     return Err(FileWorkSourceBinding)
   }
   let producer : NativeWholeModelProducer = {
-    unit,
     pins,
     results: Array(capacity=count),
+    outcome: None,
     issued: None,
   }
   // Record the root before any publication or conversion callback can fail.
-  cached.val = Some(producer)
-  let original_cid = @publication.publication_contract_identity(self.definition)
-  let fund_body = (
-    name : String,
-    geometry : @encode.EncodingConstructionGeometry,
-  ) => {
-    @local.installed_effect_imported_model_evidence_body_capacity(
-      name, geometry, original_cid, 0L,
+  cached[unit] = Some(producer)
+  let prepare_export = index => {
+    @local.prepare_local_whole_unit_result_export(
+      selected,
+      managed,
+      self.prepared,
+      self.start.request,
+      unit,
+      pins,
+      index,
+      quantum,
+      max_rounds,
+      funding.retain,
     )
-    .map(fund)
+    .map(value => {
+      producer.results.push(value)
+      value
+    })
+    .map_err(issue => WholeModelProducerExport(issue))
+  }
+  let original_cid = @publication.publication_contract_identity(self.definition)
+  let workspace : Ref[Int64?] = Ref(None)
+  let fund_body = (name, geometry) => {
+    @local.installed_effect_imported_model_evidence_body_capacity(
+      name,
+      geometry,
+      original_cid,
+      workspace.val.unwrap_or(0L),
+    )
+    .map(funding.retain)
     .unwrap_or(false)
   }
   let fund_sources = (length : Int) => {
-    length > 0 && self.require_current() is Ok(_)
+    if length <= 0 || self.require_current() is Err(_) {
+      return false
+    }
+    if modeled is Some(_) && workspace.val is None {
+      // Each original scope is drawn from this same bounded Source inventory.
+      // Price duplicate scope entries as well as the canonical output keys.
+      let entries = Int64::min(8192L, length.to_int64() * length.to_int64()).to_int()
+      guard @local.installed_effect_imported_model_evidence_frame_capacity(
+          length.to_int64(),
+          entries,
+          64,
+        )
+        is Some(frame) &&
+        (funding.retain)(frame) else {
+        return false
+      }
+      workspace.val = Some(
+        @execution.execution_capacity_execution_bytes(frame) -
+        @execution.execution_capacity_retained_bytes(frame),
+      )
+    }
+    true
   }
-  let invocation = match
-    @host.prepare_client_whole_local_unit_invocation(
-      configuration.scope,
-      self.definition,
-      self.start.request,
-      self.run,
-      pins,
-      sources,
-      unit,
-      65536,
-      8192,
-      64,
-      fund_sources,
-      fund_body,
-    ) {
+  let invocation = match modeled {
+    None =>
+      @host.prepare_client_whole_local_unit_invocation(
+        scope,
+        self.definition,
+        self.start.request,
+        self.run,
+        pins,
+        sources,
+        unit,
+        65536,
+        8192,
+        64,
+        fund_sources,
+        fund_body,
+      ).map_err(_ => FileWorkSourceBinding)
+    Some(model) => {
+      guard (configuration.completed)(model) is Some(held) else {
+        return Err(FileWorkSourceBinding)
+      }
+      // The actual terminal export supplies the one checked Model occurrence
+      // required by the shared issuer. Each declared view is constructed once.
+      for index in 0..<count {
+        match prepare_export(index) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      self.materialize_whole_model_invocation(
+        producer,
+        held,
+        plans[model],
+        scope,
+        quantum,
+        max_rounds,
+        funding,
+        fund_sources,
+        fund_body,
+      )
+    }
+  }
+  let invocation = match invocation {
     Ok(value) => value
-    Err(_) => return Err(FileWorkSourceBinding)
+    Err(issue) => return Err(issue)
   }
   let publication = match
     @host.prepare_client_whole_local_unit_publication(
@@ -268,25 +546,17 @@ fn NativeClientRelationFileWork::issue_whole_model_producer(
     Ok(value) => value
     Err(_) => return Err(FileWorkSourceBinding)
   }
+  workspace.val = None
   let artifacts = Array(capacity=count)
   for index in 0..<count {
-    let result = match
-      @local.prepare_local_whole_unit_result_export(
-        selected,
-        managed,
-        self.prepared,
-        self.start.request,
-        unit,
-        pins,
-        index,
-        quantum,
-        max_rounds,
-        fund,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(WholeModelProducerExport(issue))
+    let result = match producer.results.get(index) {
+      Some(value) => value
+      None =>
+        match prepare_export(index) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
     }
-    producer.results.push(result)
     guard result.handoff() is Some(handoff) else {
       return Err(FileWorkSourceBinding)
     }
@@ -332,73 +602,72 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
   plans : Array[@host.ClientInferPlanGraph],
   sources : Array[@host.ClientInferComposedSources],
   configuration : NativeWholeModelResults,
-  cached : Ref[NativeWholeModelProducer?],
+  cached : FixedArray[NativeWholeModelProducer?],
   quantum : Int,
   max_rounds : Int,
   max_entries : Int,
-  funding : (@execution.ExecutionCapacity) -> Bool,
+  funding : NativeWholeModelProducerFunding,
 ) -> Result[Unit, NativeClientSourceWorkIssue] {
   guard @local.local_whole_task_preparation_matches(selected, self.run, task) &&
     self.require_current() is Ok(_) else {
     return Err(OriginalRunNotCurrent)
   }
   let mut matching = None
-  for plan in plans {
+  for receiver, plan in plans {
     if @host.client_infer_occurrence_coordinates(plan.occurrence).0 == task {
       if matching is Some(_) {
         return Err(FileWorkSourceBinding)
       }
-      matching = Some(plan)
+      matching = Some((receiver, plan))
     }
   }
-  guard matching is Some(plan) else { return Ok(()) }
+  guard matching is Some((receiver, plan)) else { return Ok(()) }
   let count = @host.client_infer_occurrence_result_import_count(plan.occurrence)
   if count == 0 {
     return Ok(())
   }
   let graph = @strategy.captured_dag_graph(self.run)
-  guard @host.client_infer_occurrence_result_import_at(plan.occurrence, 0)
-    is Some((unit, _)) &&
-    unit >= 0 &&
-    @checked.unit_publication_count(@strategy.graph_program(graph), unit)
-    is Some(result_count) &&
-    result_count > 0 &&
-    result_count <= max_entries else {
-    return Err(FileWorkSourceBinding)
-  }
-  for index in 1..<count {
-    guard @host.client_infer_occurrence_result_import_at(plan.occurrence, index)
-      is Some((same, _)) &&
-      same == unit else {
-      return Err(FileWorkSourceBinding)
-    }
-  }
-  let producer = match cached.val {
-    Some(value) if value.unit == unit => value
-    Some(_) => return Err(FileWorkSourceBinding)
-    None =>
-      match
-        self.issue_whole_model_producer(
-          managed,
-          selected,
-          configuration,
-          sources[0],
-          unit,
-          result_count,
-          cached,
-          quantum,
-          max_rounds,
-          funding,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-  }
-  guard producer.issued is Some((artifacts, manifest)) else {
-    return Err(FileWorkSourceBinding)
-  }
+  let program = @strategy.graph_program(graph)
   let selected_results : NativeWholeModelResultInputs = Array(capacity=count)
   for index in 0..<count {
+    guard @host.client_infer_occurrence_result_import_at(plan.occurrence, index)
+      is Some((unit, _)) &&
+      unit >= 0 &&
+      unit < cached.length() else {
+      return Err(FileWorkSourceBinding)
+    }
+    let producer = match cached[unit] {
+      Some(value) => value
+      None => {
+        guard @checked.unit_publication_count(program, unit)
+          is Some(result_count) &&
+          result_count > 0 &&
+          result_count <= max_entries else {
+          return Err(FileWorkSourceBinding)
+        }
+        match
+          self.issue_whole_model_producer(
+            managed,
+            selected,
+            configuration,
+            plans,
+            sources[receiver],
+            receiver,
+            unit,
+            result_count,
+            cached,
+            quantum,
+            max_rounds,
+            funding,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+      }
+    }
+    guard producer.issued is Some((artifacts, manifest)) else {
+      return Err(FileWorkSourceBinding)
+    }
     let mut matched = None
     for result_index, original in producer.results {
       guard original.handoff() is Some(handoff) &&
@@ -425,10 +694,12 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
       @strategy.retain_captured_completed_unit_result_input(
         handoff, edge, max_entries, 65536,
       )
-      is Ok(_) else {
+      is Ok((position, read)) else {
       return Err(FileWorkSourceBinding)
     }
-    selected_results.push((index, artifacts[result_index], manifest))
+    selected_results.push(
+      (index, artifacts[result_index], manifest, position, read),
+    )
   }
   self
   .require_current()

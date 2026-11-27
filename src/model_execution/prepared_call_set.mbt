@@ -309,6 +309,7 @@ pub fn model_call_entry_current(
   let state = prepared.owner.state
   physical_equal(entry.prepared, prepared) &&
   prepared_model_current(prepared) &&
+  !(state.progress.phase is FailAfterSettlement) &&
   model_slot_progress_owned(state, entry.progress) &&
   entry.progress.phase is DispatchSlot &&
   entry.progress.slot == entry.slot &&

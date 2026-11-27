@@ -9,6 +9,7 @@ fn LocalCommandBusinessPreparation::prepare_configured_model_works(
   store : @local_store.Store,
 ) -> Unit raise ClientStop {
   guard !business.active &&
+    business.operation is Some(operation) &&
     business.request_run is Some(_) &&
     business.model_run is Some(model) &&
     self.model_compilation is Some(selection) &&
@@ -19,7 +20,7 @@ fn LocalCommandBusinessPreparation::prepare_configured_model_works(
   for index, graph in model.graphs {
     match
       @local_host.prepare_native_client_model_http_work(
-        self.capture,
+        operation,
         request,
         model.compiled,
         model.definition,
@@ -28,8 +29,10 @@ fn LocalCommandBusinessPreparation::prepare_configured_model_works(
         store,
         selection.bounds[index],
         self.principal,
+        self.connection,
         run.namespace_id,
         local_utc_now,
+        output_receivers=Some(selection.installations),
       ) {
       Err(issue) => {
         self.original.retain_primary(CommandBusinessModel(issue))
@@ -79,6 +82,45 @@ fn[T] LocalCommandBusinessPreparation::with_model_driver_read(
 }
 
 ///|
+// A dependent task's actual Readers are already staged, and its own
+// compute registration and Model Read have not yet opened.
+fn LocalCommandBusinessPreparation::retain_model_output_dependencies(
+  self : Self,
+  business : LocalCommandBusinessOriginal,
+  model : LocalCommandModelRun,
+  task : Int,
+  inputs : @local_host.NativeWholeModelResultInputs,
+) -> Bool {
+  for index, graph in model.graphs {
+    if @run_host.client_infer_occurrence_coordinates(graph.occurrence).0 != task {
+      continue
+    }
+    guard business.model_work.get(index) is Some(work) else { return false }
+    if !work.requires_model_output_dependencies() {
+      return true
+    }
+    try {
+      self.with_model_driver_read(business, () => {
+        self.original.require_model_step(
+          work.read_model_output_dependencies_in_original_read(
+            business.model_work,
+            model.completions,
+            inputs,
+          ),
+        )
+      })
+      return true
+    } catch {
+      ClientStop(message) => {
+        self.original.retain_primary(CommandApplication(message))
+        return false
+      }
+    }
+  }
+  false
+}
+
+///|
 // The Common loop still selects, starts and finalizes its task. This driver
 // advances the selected Model only, between reads of the same Run, and
 // services exactly the physical pauses reported by that original component.
@@ -118,25 +160,35 @@ fn LocalCommandBusinessPreparation::drive_configured_model_task(
       let progress = match (operations.advance)(31) {
         Ok(value) => value
         Err(issue) => {
-          if work.closed_http_unknown_observed() &&
+          let unknown = work.closed_http_unknown_observed()
+          if (unknown || work.closed_http_failure_observed()) &&
             business.publication_publisher is Some(publisher) {
-            self.original.retain_primary(
-              CommandBusinessModel(Model(@infer.Model(@model.UnknownCalls))),
-            )
+            if unknown {
+              self.original.retain_primary(
+                CommandBusinessModel(Model(@infer.Model(@model.UnknownCalls))),
+              )
+            }
             // A failed metadata save cannot replace the original driver
             // failure or discharge the existing scope/Journal cleanup.
-            self.with_model_driver_read(business, () => {
-              local_host_result(
-                work.retain_http_unknown_in_original_read(
+            let proof = self.with_model_driver_read(business, () => {
+              match
+                work.retain_http_terminal_in_original_read(
                   publisher,
                   reference,
                   self.connection,
                   local_utc_now(),
                   @env.now().to_double(),
-                ),
-              )
+                ) {
+                Ok(value) => value
+                Err(_) => None
+              }
             }) catch {
-              ClientStop(_) => ()
+              ClientStop(_) => None
+            }
+            if proof is Some(verified) {
+              command_preparation_diagnostic.val = RuntimeModelTerminalFailure(
+                verified,
+              )
             }
           }
           return Err(Driver(issue))

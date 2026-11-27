@@ -46,6 +46,55 @@ fn LocalCommandPreparationOriginal::read_model_http_configurations(
 }
 
 ///|
+// Select the exact Task before the original Read binds its execution. A
+// repeated occurrence borrows only its selected configuration's first
+// execution, with the original owner and contract checked by the Read.
+fn LocalCommandPreparationOriginal::select_model_http_execution_in_original_read(
+  self : Self,
+  capture : @local_host.NativeLocalJournalCapture,
+  occurrence : @run_host.ClientInferOccurrence,
+  configurations : Array[@local_host.NativeModelHttpConfiguration],
+  original_executions : Array[@local_host.NativeModelHttpExecution?],
+  limits : @compiler_environment.ModelTaskLimits,
+) -> @local_host.NativeModelHttpExecution raise ClientStop {
+  guard @run_host.client_infer_occurrence_model_task_cid(occurrence)
+    is Some(task_cid) else {
+    stop("LocalOriginalModelUnavailable")
+  }
+  let mut binding = None
+  for position, candidate in configurations {
+    if candidate.task_cid() == task_cid {
+      if binding is Some(_) {
+        self.retain_primary(CommandBusinessModelHttp(ForeignOriginal))
+        stop("LocalModelHttpInstallationRefused")
+      }
+      binding = Some(position)
+    }
+  }
+  let binding = binding.unwrap_or_else(() => {
+    self.retain_primary(CommandBusinessModelHttp(ForeignOriginal))
+    stop("LocalModelHttpInstallationRefused")
+  })
+  let execution = match
+    capture.prepare_model_http_execution_in_original_read(
+      configurations[binding],
+      occurrence,
+      limits,
+      original=original_executions[binding],
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      self.retain_primary(CommandBusinessModelHttp(issue))
+      stop("LocalModelHttpExecutionRefused")
+    }
+  }
+  if original_executions[binding] is None {
+    original_executions[binding] = Some(execution)
+  }
+  execution
+}
+
+///|
 fn LocalCommandPreparationOriginal::prepare_model_compilation(
   self : Self,
   capture : @local_host.NativeLocalJournalCapture,
@@ -122,40 +171,9 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
     None,
   )
   for index, occurrence in occurrences {
-    guard @run_host.client_infer_occurrence_model_task_cid(occurrence)
-      is Some(task_cid) else {
-      stop("LocalOriginalModelUnavailable")
-    }
-    let mut binding = None
-    for position, candidate in configurations {
-      if candidate.task_cid() == task_cid {
-        if binding is Some(_) {
-          self.retain_primary(CommandBusinessModelHttp(ForeignOriginal))
-          stop("LocalModelHttpInstallationRefused")
-        }
-        binding = Some(position)
-      }
-    }
-    let binding = binding.unwrap_or_else(() => {
-      self.retain_primary(CommandBusinessModelHttp(ForeignOriginal))
-      stop("LocalModelHttpInstallationRefused")
-    })
-    let execution = match
-      capture.prepare_model_http_execution_in_original_read(
-        configurations[binding],
-        occurrence,
-        limits,
-        original=original_executions[binding],
-      ) {
-      Ok(value) => value
-      Err(issue) => {
-        self.retain_primary(CommandBusinessModelHttp(issue))
-        stop("LocalModelHttpExecutionRefused")
-      }
-    }
-    if original_executions[binding] is None {
-      original_executions[binding] = Some(execution)
-    }
+    let execution = self.select_model_http_execution_in_original_read(
+      capture, occurrence, configurations, original_executions, limits,
+    )
     let installed = match
       capture.admit_model_http_installation_in_original_read(
         runtime.physical,
@@ -167,7 +185,13 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
       Ok(value) => value
       Err(issue) => {
         self.retain_primary(CommandBusinessModelHttp(issue))
-        stop("LocalModelHttpInstallationRefused")
+        match issue {
+          Egress(ClassificationDenied) =>
+            stop("LocalModelHttpEgressClassificationDenied")
+          Egress(UnknownClassification) =>
+            stop("LocalModelHttpEgressUnknownClassification")
+          _ => stop("LocalModelHttpInstallationRefused")
+        }
       }
     }
     self.with_business_request(capture, () => {
@@ -217,6 +241,12 @@ fn LocalCommandPreparationOriginal::prepare_model_compilation(
   }
   let (graphs, providers, bounds) = selected.unwrap()
   self.with_business_request(capture, () => {
+    if !@local_host.native_model_http_output_policies_match(
+        capture, providers, graphs,
+      ) {
+      self.retain_primary(CommandBusinessModelHttp(ForeignOriginal))
+      stop("LocalModelHttpInstallationRefused")
+    }
     let result = if count == 1 {
       @local_values.prepare_request_model_compilation(
         parent,

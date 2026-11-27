@@ -89,7 +89,7 @@ pub fn bind_result_artifact_input(Execution, Int, @run_publication_host.ClientLo
 
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
 
-pub fn bind_whole_result_artifact_input(Execution, Int, @run_publication_host.ClientLocalResultArtifact[@run_publication_host.ClientWholeLocalUnitOriginal, @run_publication_host.ClientLocalUnitResultDefinition[@run_publication_host.ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff], @run_publication_host.ClientWholeLocalResultManifest) -> Result[Unit, Issue]
+pub fn bind_whole_result_artifact_input(Execution, Int, @run_publication_host.ClientLocalResultArtifact[@run_publication_host.ClientWholeLocalUnitOriginal, @run_publication_host.ClientLocalUnitResultDefinition[@run_publication_host.ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff], @run_publication_host.ClientWholeLocalResultManifest, reader? : @run_publication_host.ClientInferWholeResultReaderOriginal?) -> Result[Unit, Issue]
 
 pub fn borrow_original_live_host_output(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> (@execution_relation.CompletedOutput, @model_execution.ModelExecution)?
 
@@ -181,6 +181,8 @@ pub fn issue_original_local_model_observation(OutputUse, ObservationIssuance, @e
 
 pub fn issue_original_local_model_observation_from_scope(OutputUse, ObservationIssuance, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
 
+pub fn issue_original_whole_model_unit_invocation(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientModelReadScope, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedDAG, @physical_strategy_host.CapturedCompletedUnitResults, Int, @physical_strategy_host.CapturedCompletedUnitResultHandoff, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int, (@execution_relation.ExecutionCapacity) -> Bool, (Int) -> Bool, (String, @encode_core.EncodingConstructionGeometry) -> Bool) -> Result[@run_publication_host.ClientLocalUnitInvocation[@run_publication_host.ClientWholeLocalUnitOriginal], @run_publication_host.ClientEffectLocalInvocationIssue]
+
 pub fn issue_preconsumer_original_model_acquired_evidence(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, Int, Int, Int, imports? : @run_publication_host.ClientEffectImportedEvidence?, source_originals? : Array[@run_publication_host.ClientEffectAcquiredEvidence], before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?, parent_ledger? : @physical_resources.Ledger?) -> Result[PreconsumerModelUnitEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_preconsumer_original_model_unit_artifact(PreconsumerModelUnitEvidence, @run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectLocalUnitInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientLocalUnitResultDefinition[@run_publication_host.PreparedClientEffectComputation], @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, Int, Int, Int) -> Result[@run_publication_host.ClientLocalResultArtifact[@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalRelationSource, @run_publication_host.ClientEffectLocalArtifactCustody], @run_publication_host.ClientEffectLocalResultArtifactIssue]
@@ -218,6 +220,8 @@ pub fn original_infer_usage_item(OriginalInferUsagePublication, Int) -> (Int, @m
 pub fn original_infer_usage_item_attempt(OriginalInferUsagePublication, Int) -> String?
 
 pub fn original_infer_usage_item_count(OriginalInferUsagePublication) -> Int
+
+pub fn original_live_whole_model_egress(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientLocalResultArtifact[@run_publication_host.ClientWholeLocalUnitOriginal, @run_publication_host.ClientLocalUnitResultDefinition[@run_publication_host.ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff], @run_publication_host.ClientWholeLocalResultManifest) -> Result[@run_publication_host.ClientWholeModelEgressOriginal, @run_publication_host.ClientInferEgressIssue]
 
 pub fn original_local_model_observation_body(LocalModelObservation) -> @run_publication.CapturedEffectDependencyBody?
 
@@ -261,7 +265,7 @@ pub fn preconsumer_model_unit_acquired_evidence(PreconsumerModelUnitEvidence) ->
 
 pub fn preconsumer_model_unit_dependency_bodies(PreconsumerModelUnitEvidence) -> Array[(String, String, String)]?
 
-pub fn preconsumer_model_unit_identity_start_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> @execution_relation.ExecutionCapacity?
+pub fn preconsumer_model_unit_identity_start_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, retain_body? : Bool) -> @execution_relation.ExecutionCapacity?
 
 pub fn preconsumer_model_unit_observation_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, Int) -> @execution_relation.ExecutionCapacity?
 
@@ -272,6 +276,8 @@ pub fn prepare_original_model_current_state_writer(Execution, @run_publication_h
 pub fn prepare_original_restored_send_mask(Execution) -> Result[Int, Issue]
 
 pub fn prepare_preconsumer_model_unit_observation(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> @run_publication.CapturedEffectDependencyBody?
+
+pub fn prepare_preconsumer_whole_model_unit_observation(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @physical_strategy_host.CapturedDAG, @physical_strategy_host.CapturedCompletedUnitResultHandoff, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> @run_publication.CapturedEffectDependencyBody?
 
 pub fn prepared_call_set(Execution) -> @model_execution.ModelPreparedCallSet?
 
@@ -353,7 +359,7 @@ pub fn start_original_observation_issuance(Execution, @model_execution.OriginalM
 
 pub fn start_original_restored_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, reference_issuer? : @value_admission.ReferenceIssuer, input_body_read? : @run_publication_host.ClientModelReadPreparation?) -> Result[Execution, Issue]
 
-pub fn start_preconsumer_model_unit_identity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph) -> Result[@execution_relation.CompletedRelationIdentityScan, @execution_relation.CompletedExportIssue]
+pub fn start_preconsumer_model_unit_identity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, retain_body? : Bool) -> Result[@execution_relation.CompletedRelationIdentityScan, @execution_relation.CompletedExportIssue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
