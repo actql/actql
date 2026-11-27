@@ -89,8 +89,6 @@ function deliveryFixture({includeReview = false, aliasesAnswer = false} = {}) {
   const definition = identity('original definition');
   const invocation = identity('original invocation');
   const policyCid = identity(finalResultPolicy);
-  const path = '/original/results-outside-host.jsonl';
-  const payload = Buffer.from(rows.map(row => JSON.stringify(row) + '\n').join(''));
   const artifact = seal({version: 'actql-result-artifact/0.1', invocation_cid: invocation,
     actual_completeness: 'complete', actual_row_count: 1, effective_data_policy_cid: policyCid,
     result_schema_cid: identity('joined Result schema'),
@@ -116,38 +114,80 @@ function deliveryFixture({includeReview = false, aliasesAnswer = false} = {}) {
       ...sourceEvidence.map(evidence_cid => ({kind: 'source_lookup', evidence_cid})),
       ...modelEvidence.map(evidence_cid => ({kind: 'model_invocation', evidence_cid})),
     ]}, 'receipt_identity_cid');
-  const receipt = seal({version: 'actql-result-delivery-receipt/0.1', run_definition_cid: definition,
-    invocation_cid: invocation, result_artifact_cid: artifact.result_artifact_cid,
-    result_manifest_cid: manifest.result_manifest_cid, result_name: 'answer',
-    delivered_byte_count: payload.length, delivered_sha256: hash(payload)}, 'result_delivery_receipt_cid');
+  const expectedResults = {answer: rows, ...additionalResults};
+  const outputs = Object.fromEntries(names.map(name => [name, {
+    path: `/original/${name}-outside-host.jsonl`,
+    payload: Buffer.from(expectedResults[name].map(row => JSON.stringify(row) + '\n').join('')),
+  }]));
+  const deliveries = names.map(name => {
+    const {path, payload} = outputs[name];
+    const resultCid = results[name].result_artifact_cid;
+    const receipt = seal({version: 'actql-result-delivery-receipt/0.1', run_definition_cid: definition,
+      invocation_cid: invocation, result_artifact_cid: resultCid,
+      result_manifest_cid: manifest.result_manifest_cid, result_name: name,
+      delivered_byte_count: payload.length, delivered_sha256: hash(payload)}, 'result_delivery_receipt_cid');
+    return {run_id: runId, status: 'delivered', receipt,
+      request: {result: name, result_cid: resultCid, format: 'jsonl', path}};
+  });
   const now = '2026-11-26T04:59:44.607Z';
   const report = {version: 'actql-cli-run-response/0.1', delivery_status: 'delivered',
     run: {run_id: runId, status: 'succeeded', updated_at: now, result_available: false,
       next_action: {kind: 'refresh_availability', results: names},
       result_availability: Object.fromEntries(names.map(name =>
         [name, {state: 'unknown', reason: 'verification_pending', observed_at: now}]))},
-    deliveries: [{run_id: runId, status: 'delivered', receipt,
-      request: {result: 'answer', result_cid: artifact.result_artifact_cid, format: 'jsonl', path}}]};
+    deliveries};
   const custody = {definition, runId, observed: modelEvidence.map(evidenceCid =>
     ({evidence: [{role: 'model_invocation_evidence', evidenceCid}]}))};
-  return {report, runReceipt, payload, path, rows, policyCid, custody, additionalResults};
+  return {report, runReceipt, outputs, rows, policyCid, custody, additionalResults};
 }
 
 test('Native JOIN delivery verifies the typed file independently of the saved Run availability projection', () => {
   const fixture = deliveryFixture();
   const result = requireNativeJoinedDelivery(fixture);
-  assert.equal(result.bytes, fixture.payload.length);
-  assert.equal(result.sha256, hash(fixture.payload));
+  assert.equal(result.bytes, fixture.outputs.answer.payload.length);
+  assert.equal(result.sha256, hash(fixture.outputs.answer.payload));
   assert.equal(result.runReceiptCid, fixture.runReceipt.receipt_identity_cid);
 });
 
 test('Native JOIN delivery requires the complete named inventory and refuses a reused Artifact', () => {
   const fixture = deliveryFixture({includeReview: true});
-  assert.equal(requireNativeJoinedDelivery(fixture).manifestCid, fixture.runReceipt.result_manifest_cid);
+  const proof = requireNativeJoinedDelivery(fixture);
+  assert.equal(proof.manifestCid, fixture.runReceipt.result_manifest_cid);
+  assert.deepEqual(Object.keys(proof.namedDeliveries), ['answer', 'review']);
+  for (const [name, {resultCid, sha256}] of Object.entries(proof.namedDeliveries)) {
+    assert.equal(resultCid, fixture.runReceipt.result_manifest.results[name].result_artifact_cid);
+    assert.equal(sha256, hash(fixture.outputs[name].payload));
+  }
   assert.throws(() => requireNativeJoinedDelivery({...fixture, additionalResults: {}}),
     {code: 'ERR_ASSERTION'});
   assert.throws(() => requireNativeJoinedDelivery(deliveryFixture({includeReview: true, aliasesAnswer: true})),
     {code: 'ERR_ASSERTION'});
+});
+
+test('Native named JOIN delivery refuses an omitted, swapped or copied delivery', () => {
+  const fixture = deliveryFixture({includeReview: true});
+  const {report, outputs} = fixture;
+  const [answer, review] = report.deliveries;
+  for (const deliveries of [[answer], [answer, answer], [answer, {...review, receipt: answer.receipt}]]) {
+    assert.throws(() => requireNativeJoinedDelivery({...fixture, report: {...report, deliveries}}),
+      {code: 'ERR_ASSERTION'});
+  }
+  for (const altered of [
+    {answer: outputs.answer},
+    {answer: outputs.answer, review: {...outputs.review, path: outputs.answer.path}},
+    {answer: outputs.answer, review: {...outputs.review, payload: outputs.answer.payload}},
+  ]) {
+    assert.throws(() => requireNativeJoinedDelivery({...fixture, outputs: altered}), {code: 'ERR_ASSERTION'});
+  }
+  const payload = Buffer.from(outputs.review.payload.toString('utf8').replace('"low"', '"bad"'));
+  assert.equal(payload.length, outputs.review.payload.length);
+  const {result_delivery_receipt_cid: previous, ...receiptBody} = review.receipt;
+  const receipt = seal({...receiptBody, delivered_sha256: hash(payload)}, 'result_delivery_receipt_cid');
+  assert.notEqual(receipt.result_delivery_receipt_cid, previous);
+  assert.throws(() => requireNativeJoinedDelivery({
+    ...fixture, outputs: {...outputs, review: {...outputs.review, payload}},
+    report: {...report, deliveries: [answer, {...review, receipt}]},
+  }), {code: 'ERR_ASSERTION'});
 });
 
 test('Native JOIN delivery refuses unsupported availability or unconfirmed delivery', () => {
@@ -175,12 +215,14 @@ test('Native JOIN delivery refuses foreign originals and matching-size changes',
     'result_delivery_receipt_cid');
   const foreign = {...fixture.report, deliveries: [{...delivery, receipt: foreignReceipt}]};
   assert.throws(() => requireNativeJoinedDelivery({...fixture, report: foreign}), {code: 'ERR_ASSERTION'});
-  const changed = Buffer.from(fixture.payload.toString('utf8').replace('joined-1', 'joined-2'));
-  assert.equal(changed.length, fixture.payload.length);
-  assert.throws(() => requireNativeJoinedDelivery({...fixture, payload: changed}), {code: 'ERR_ASSERTION'});
+  const {payload, path} = fixture.outputs.answer;
+  const changed = Buffer.from(payload.toString('utf8').replace('joined-1', 'joined-2'));
+  assert.equal(changed.length, payload.length);
+  const outputs = {answer: {path, payload: changed}};
+  assert.throws(() => requireNativeJoinedDelivery({...fixture, outputs}), {code: 'ERR_ASSERTION'});
   const wrongRowsReceipt = seal({...oldReceipt, delivered_sha256: hash(changed)}, 'result_delivery_receipt_cid');
   const wrongRows = {...fixture.report, deliveries: [{...delivery, receipt: wrongRowsReceipt}]};
-  assert.throws(() => requireNativeJoinedDelivery({...fixture, payload: changed, report: wrongRows}),
+  assert.throws(() => requireNativeJoinedDelivery({...fixture, outputs, report: wrongRows}),
     {code: 'ERR_ASSERTION'});
   assert.throws(() => requireNativeJoinedDelivery({...fixture, policyCid: identity('source-free policy')}),
     {code: 'ERR_ASSERTION'});

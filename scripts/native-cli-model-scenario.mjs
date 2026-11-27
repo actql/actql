@@ -424,9 +424,13 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       assert.equal(check.report.runnable.verdict, 'yes');
       assert.deepEqual(checked.events, []);
       requireSends(sends);
-      const deliveryPath = join(root, 'joined-answer.jsonl');
       const runReceiptPath = join(root, 'joined-run-receipt.json');
-      const presentation = joined ? ['--deliver', `answer=jsonl:${deliveryPath}`, '--receipt', runReceiptPath] : [];
+      const outputs = joined ? Object.fromEntries(Object.keys(joined.program.results).map(name =>
+        [name, {path: join(root, `joined-${name}.jsonl`)}])) : {};
+      const presentation = joined ? [
+        ...Object.entries(outputs).flatMap(([name, {path}]) => ['--deliver', `${name}=jsonl:${path}`]),
+        '--receipt', runReceiptPath,
+      ] : [];
       const started = await cli(`run-${n}`, ['run', file, '--format', 'json', ...presentation, '--json']);
       const report = JSON.parse(started.stdout);
       const state = joined ? report.run : report;
@@ -435,9 +439,11 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       const attempts = requireModelAttempts(started.events, scenario.sends);
       sends += scenario.sends;
       requireSends(sends);
-      let runReceipt, delivered, publicationContracts;
+      let runReceipt, publicationContracts;
       if (joined) {
-        delivered = await readJoinedOutput(deliveryPath);
+        for (const output of Object.values(outputs)) {
+          output.payload = await readJoinedOutput(output.path);
+        }
         const runReceiptWire = new TextDecoder('utf-8', {fatal: true}).decode(await readJoinedOutput(runReceiptPath));
         runReceipt = JSON.parse(runReceiptWire);
         assert.equal(canonicalText(runReceipt), runReceiptWire, 'Run receipt export changed the original canonical bytes');
@@ -458,8 +464,8 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
         new Map(tasks.map((task, index) => [task, joinedUsage[index]]))) : null;
       const raw = custody ? requireNativeRawReceipts(started.raw, custody,
         new Map(originals.map(({task, profile}, index) => [task, {profile, ...fixtures.get(selections[index].model)}]))) : null;
-      const delivery = joined ? requireNativeJoinedDelivery({report, runReceipt, payload: delivered,
-        path: deliveryPath, rows: scenario.rows, policyCid: cid(joined.finalResultPolicy), custody,
+      const delivery = joined ? requireNativeJoinedDelivery({report, runReceipt, outputs,
+        rows: scenario.rows, policyCid: cid(joined.finalResultPolicy), custody,
         additionalResults: joined.additionalResults}) : null;
       if (joined) {
         const dataPath = join(project, 'source-data.json');
@@ -476,17 +482,21 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       requireSends(sends);
       const additionalSaved = {};
       if (joined) {
-        assert.deepEqual(Buffer.from(saved.stdout, 'utf8'), delivered, 'Cold Saved returned different physical JSONL');
-        assert.deepEqual(await readJoinedOutput(deliveryPath), delivered, 'Cold Saved changed the delivered file');
+        assert.deepEqual(Buffer.from(saved.stdout, 'utf8'), outputs.answer.payload, 'Cold Saved returned different answer JSONL');
         for (const [name, expected] of Object.entries(joined.additionalResults)) {
           const observed = await cli(`saved-${n}-${name}`,
             ['result', state.run_id, '--result', name, '--format', 'jsonl']);
           const rows = observed.stdout.trim().split('\n').map(line => JSON.parse(line));
           assert.deepEqual(rows, expected);
+          assert.deepEqual(Buffer.from(observed.stdout, 'utf8'), outputs[name].payload,
+            'Cold Saved returned different named Result JSONL');
           assert.deepEqual(observed.events, []);
           requireSends(sends);
           additionalSaved[name] = {pid: observed.pid, rows,
             artifactCid: runReceipt.result_manifest.results[name].result_artifact_cid};
+        }
+        for (const {path, payload} of Object.values(outputs)) {
+          assert.deepEqual(await readJoinedOutput(path), payload, 'Cold Saved changed the delivered file');
         }
         assert.deepEqual(await observeCustody(), custody, 'Cold Saved changed the original publication or Model custody');
       }

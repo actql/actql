@@ -114,7 +114,7 @@ function requireSealedContract(value, version, identity) {
   return cid;
 }
 
-export function requireNativeJoinedDelivery({report, runReceipt, payload, path, rows, policyCid, custody,
+export function requireNativeJoinedDelivery({report, runReceipt, outputs, rows, policyCid, custody,
   additionalResults = {}}) {
   assert.equal(report.version, 'actql-cli-run-response/0.1');
   assert.equal(report.run.run_id, custody.runId);
@@ -131,10 +131,9 @@ export function requireNativeJoinedDelivery({report, runReceipt, payload, path, 
   }])));
   assert.deepEqual(report.run.next_action, {kind: 'refresh_availability', results: names});
   assert.equal(report.delivery_status, 'delivered');
-  assert.equal(report.deliveries.length, 1);
-  const [delivery] = report.deliveries;
-  assert.equal(delivery.run_id, custody.runId);
-  assert.equal(delivery.status, 'delivered');
+  assert.deepEqual(Object.keys(outputs).sort(), names);
+  assert.deepEqual(report.deliveries.map(delivery => delivery.request.result).sort(), names);
+  assert.equal(new Set(names.map(name => outputs[name].path)).size, names.length);
 
   const runReceiptCid = requireSealedContract(runReceipt, 'actql-run-receipt/0.1', 'receipt_identity_cid');
   const manifest = runReceipt.result_manifest;
@@ -161,7 +160,6 @@ export function requireNativeJoinedDelivery({report, runReceipt, payload, path, 
       assert.equal(new Set(originals).size, names.length);
     }
   }
-  const resultCid = resultCids.answer;
 
   const expectedModels = custody.observed.map(call => {
     const evidence = call.evidence.filter(value => value.role === 'model_invocation_evidence');
@@ -174,22 +172,31 @@ export function requireNativeJoinedDelivery({report, runReceipt, payload, path, 
   assert.equal(new Set(runReceipt.source_evidence_cids).size, 2);
   assert.deepEqual(sources.map(value => value.evidence_cid), runReceipt.source_evidence_cids);
 
-  const {receipt} = delivery;
-  const deliveryReceiptCid = requireSealedContract(receipt, 'actql-result-delivery-receipt/0.1',
-    'result_delivery_receipt_cid');
-  assert.deepEqual(delivery.request, {result: 'answer', result_cid: resultCid, format: 'jsonl', path});
-  assert.equal(receipt.result_name, 'answer');
-  assert.equal(receipt.run_definition_cid, custody.definition);
-  assert.equal(receipt.invocation_cid, manifest.invocation_cid);
-  assert.equal(receipt.result_manifest_cid, manifestCid);
-  assert.equal(receipt.result_artifact_cid, resultCid);
-
-  const sha256 = createHash('sha256').update(payload).digest('hex');
-  assert.equal(receipt.delivered_byte_count, payload.length);
-  assert.equal(receipt.delivered_sha256, sha256);
-  const text = new TextDecoder('utf-8', {fatal: true}).decode(payload);
-  const lines = text.split('\n');
-  assert.equal(lines.pop(), '');
-  assert.deepEqual(lines.map(line => JSON.parse(line)), rows);
-  return {runReceiptCid, manifestCid, resultCid, deliveryReceiptCid, bytes: payload.length, sha256};
+  const evidence = {};
+  for (const delivery of report.deliveries) {
+    const name = delivery.request.result;
+    const resultCid = resultCids[name];
+    const {path, payload} = outputs[name];
+    assert.equal(delivery.run_id, custody.runId);
+    assert.equal(delivery.status, 'delivered');
+    assert.deepEqual(delivery.request, {result: name, result_cid: resultCid, format: 'jsonl', path});
+    const {receipt} = delivery;
+    const deliveryReceiptCid = requireSealedContract(receipt, 'actql-result-delivery-receipt/0.1',
+      'result_delivery_receipt_cid');
+    assert.equal(receipt.result_name, name);
+    assert.equal(receipt.run_definition_cid, custody.definition);
+    assert.equal(receipt.invocation_cid, manifest.invocation_cid);
+    assert.equal(receipt.result_manifest_cid, manifestCid);
+    assert.equal(receipt.result_artifact_cid, resultCid);
+    const sha256 = createHash('sha256').update(payload).digest('hex');
+    assert.equal(receipt.delivered_byte_count, payload.length);
+    assert.equal(receipt.delivered_sha256, sha256);
+    const text = new TextDecoder('utf-8', {fatal: true}).decode(payload);
+    const lines = text.split('\n');
+    assert.equal(lines.pop(), '');
+    assert.deepEqual(lines.map(line => JSON.parse(line)), expectedResults[name]);
+    evidence[name] = {resultCid, deliveryReceiptCid, bytes: payload.length, sha256};
+  }
+  return {runReceiptCid, manifestCid, ...evidence.answer,
+    ...(names.length > 1 ? {namedDeliveries: evidence} : {})};
 }
