@@ -400,12 +400,13 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   if (directHttp) {
     assert.equal(request.method, 'POST');
     assert.equal(request.headers.host, directPeerHost + ':' + server.address().port);
-    assert.equal(request.socket.remoteAddress, '127.0.0.1');
+    assert.equal(request.socket.servername || null, directResponseLoss ? null : directPeerHost);
+  } else {
+    assert.equal(request.headers.host, officialHost);
+    assert.equal(request.socket.servername, officialHost);
   }
   assert(request.headers[credentialHeader] === credentialPrefix + credentialValue(original),
     'Unexpected synthetic credential');
-  if (!directHttp) assert.equal(request.headers.host, officialHost);
-  assert.equal(request.socket.servername, officialHost);
   assert.equal(request.socket.remoteAddress, '127.0.0.1');
   let wire = '';
   for await (const chunk of request) {wire += chunk; assert(wire.length <= 32768);}
