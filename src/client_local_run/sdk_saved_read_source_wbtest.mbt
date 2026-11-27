@@ -613,7 +613,7 @@ test "saved SDK source reaches existing payload codecs and terminal observation"
     is Ok(_),
   )
   assert_true(
-    @publication.publication_contract_json(terminal.receipt).contains(
+    @publication.publication_contract_json(terminal.receipt.unwrap()).contains(
       sdk_payload_expected_delivery_hash,
     ),
   )

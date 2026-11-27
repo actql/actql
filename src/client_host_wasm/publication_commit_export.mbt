@@ -17,7 +17,7 @@ priv enum PublicationCommitExportProjection {
   SDKLiveReturnControl(Int)
   SDKPayloadChunk(Int, Int, Int)
   SDKPayloadReceipt(Int)
-  SDKTerminalStorage(Int, SDKTerminalPhase)
+  SDKTerminalStorage(Int, Bool, SDKTerminalPhase)
   InspectedReference(Int)
 } derive(Eq)
 

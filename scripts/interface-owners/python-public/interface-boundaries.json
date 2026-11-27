@@ -6779,169 +6779,176 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
-          "async": false,
           "name": "AsyncReader",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/__aenter__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncReader/__aexit__",
           "parameters": [
             "self",
             "_type",
             "failure",
             "_traceback"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/__aiter__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/__anext__",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/__init__",
           "parameters": [
             "self",
             "result",
             "limits",
             "validate"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
+          "name": "AsyncReader/_close_reader",
+          "parameters": [
+            "self",
+            "cancel_delivery"
+          ],
+          "async": true
+        },
+        {
           "name": "AsyncReader/_iterate",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncReader/_next_value",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncReader/_release",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncReader/_return_row",
           "parameters": [
             "self",
             "row"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/_verify_terminal",
           "parameters": [
             "self",
             "aggregate"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/aclose",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/attempt_id",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncReader/delivery_attempt",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncReader/rows_yielded",
           "parameters": [
             "self"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "AsyncResult",
-          "parameters": []
+          "parameters": [],
+          "async": false
         },
         {
-          "async": false,
           "name": "AsyncResult/__init__",
           "parameters": [
             "self",
             "run",
             "name"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncResult/_all",
           "parameters": [
             "self",
             "rows",
             "size",
             "captured"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncResult/_valid_delivery",
           "parameters": [
             "self",
             "value",
             "attempt_id"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": true,
           "name": "AsyncResult/all",
           "parameters": [
             "self",
             "max_rows",
             "max_retained_value_bytes",
             "**read_options"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": true,
           "name": "AsyncResult/delivery_attempt",
           "parameters": [
             "self",
             "attempt_id"
-          ]
+          ],
+          "async": true
         },
         {
-          "async": false,
           "name": "AsyncResult/rows",
           "parameters": [
             "self",
@@ -6949,10 +6956,10 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_capture_rows",
           "parameters": [
             "profile",
@@ -6960,25 +6967,26 @@
             "max_wire_bytes",
             "max_row_wire_bytes",
             "max_row_retained_value_bytes"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "_row_validator",
           "parameters": [
             "schema"
-          ]
+          ],
+          "async": false
         },
         {
-          "async": false,
           "name": "tighter",
           "parameters": [
             "value",
             "maximum"
-          ]
+          ],
+          "async": false
         }
       ],
-      "sha256": "b8fd96ab0cf721543941116a3fca614f875101ab9e202f47b0ea41ef486ffa2c",
+      "sha256": "1b74d5c124cd381e5923d6bac8cef2e43598ebd47437db6c4051498c5e5e0898",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -6992,6 +7000,7 @@
             "AsyncReader/__aiter__",
             "AsyncReader/__anext__",
             "AsyncReader/__init__",
+            "AsyncReader/_close_reader",
             "AsyncReader/_iterate",
             "AsyncReader/_next_value",
             "AsyncReader/_release",

@@ -1809,6 +1809,7 @@ pub fn DeliverySinkProgress::fail_chunk(Self, Int) -> Result[Int64, DeliverySink
 pub fn DeliverySinkProgress::observe_empty_output(Self) -> Result[Int64, DeliverySinkProgressIssue]
 pub fn DeliverySinkProgress::offer(Self, Bytes, Bool) -> Result[Unit, DeliverySinkProgressIssue]
 pub fn DeliverySinkProgress::prepare_next(Self) -> Result[Unit, DeliverySinkProgressIssue]
+pub fn DeliverySinkProgress::stop_unaccepted_offer(Self) -> Result[(Int64, Int?), DeliverySinkProgressIssue]
 
 pub(all) enum DeliverySinkProgressIssue {
   DeliverySinkInvalidLimit

@@ -171,6 +171,21 @@ pub fn DeliverySinkProgress::fail(
 }
 
 ///|
+/// Stop after the physical reader has retired. Keep the confirmed prefix
+/// and report the one outstanding offer's maximum exposure to the caller.
+/// Those outstanding bytes are not a sink confirmation.
+pub fn DeliverySinkProgress::stop_unaccepted_offer(
+  self : DeliverySinkProgress,
+) -> Result[(Int64, Int?), DeliverySinkProgressIssue] {
+  if self.has_outstanding {
+    let maximum = self.outstanding.length()
+    self.fail_chunk(0).map(confirmed => (confirmed, Some(maximum)))
+  } else {
+    self.fail().map(confirmed => (confirmed, None))
+  }
+}
+
+///|
 /// Confirm the sink's explicit successful end operation. This call is
 /// required even when an empty representation produced no write calls.
 pub fn DeliverySinkProgress::confirm_finished(

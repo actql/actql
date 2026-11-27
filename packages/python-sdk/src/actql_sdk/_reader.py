@@ -131,7 +131,7 @@ class AsyncReader:
 
     async def __aexit__(self, _type, failure, _traceback):
         try:
-            await self.aclose()
+            await self._close_reader(cancel_delivery=failure is None)
         except ClientError as cleanup:
             if failure is None:
                 raise
@@ -202,7 +202,7 @@ class AsyncReader:
                     failure = ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id,
                                           rows_yielded=self.rows_yielded)
                     try:
-                        await self.aclose()
+                        await self._close_reader(cancel_delivery=False)
                     except ClientError as cleanup:
                         failure.cleanup_error = cleanup
                     raise failure from None
@@ -210,6 +210,16 @@ class AsyncReader:
         return row
 
     async def aclose(self):
+        await self._close_reader(cancel_delivery=True)
+
+    async def _close_reader(self, *, cancel_delivery):
+        if cancel_delivery and not self._closed and self._response is not None:
+            client = self._result._run._client
+            if client._local_host is not None:
+                from ._local_sdk_response import OriginalLocalSDKResponseStream
+                stream = self._response.stream
+                if type(stream) is OriginalLocalSDKResponseStream:
+                    stream._request_reader_cancellation()
         self._closed = True
         if self._advance is not None and self._advance is not asyncio.current_task():
             pending = not self._advance.done()

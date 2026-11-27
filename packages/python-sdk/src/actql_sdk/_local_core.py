@@ -4133,7 +4133,8 @@ class LocalCore:
 
     def produce_publication_sdk_terminal_storage(self, value: _Output, first: _Output,
                                                  clock: _Input,
-                                                 current_configuration: int) -> None:
+                                                 current_configuration: int, *,
+                                                 cancelled: bool = False) -> None:
         """Project the original successor CAS; no physical COMMIT ACK occurs."""
         with self._lock:
             self._owned_output(value, 'publication_commit_export')
@@ -4142,11 +4143,11 @@ class LocalCore:
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             if (value is first or type(current_configuration) is not int
-                    or not 0 < current_configuration < 2**31):
+                    or not 0 < current_configuration < 2**31 or type(cancelled) is not bool):
                 raise ValueError('Invalid original SDK terminal projection')
             code = self._call('publication_commit_export', 'produce_sdk_terminal_storage',
                               value.handle, first.handle, clock.handle,
-                              current_configuration)
+                              current_configuration, int(cancelled))
             if type(code) is not int:
                 raise RuntimeError('Invalid Local Core terminal status')
             if code != 0:

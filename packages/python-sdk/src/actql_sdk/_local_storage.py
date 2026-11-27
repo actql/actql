@@ -2400,7 +2400,7 @@ class LocalByteStore:
         """
         if not callable(inspect) or not callable(current):
             raise ValueError('Invalid Local projected CAS inspection')
-        if _sdk_terminal_precommit and (not _sdk_delivery_prewrite or count != 3):
+        if _sdk_terminal_precommit and (not _sdk_delivery_prewrite or count not in (2, 3)):
             raise ValueError('Invalid Local Saved terminal Store projection')
         if _sdk_first_evidence and (count != 7 or _sdk_terminal_precommit):
             raise ValueError('Invalid Local SDK first delivery projection')

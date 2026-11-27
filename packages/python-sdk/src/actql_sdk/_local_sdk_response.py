@@ -10,6 +10,7 @@ import httpx
 
 from ._local_core import _Input
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader
+from ._local_storage import LocalStorageCommitUnknown
 
 if TYPE_CHECKING:
     from ._local_product import InstalledLocalHost
@@ -52,6 +53,8 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         self._operation: Callable[[], AbstractContextManager[None]] | None = None
         self._terminal_current: Callable[[], None] | None = None
         self._payload_closed = False
+        self._terminal_started = False
+        self._reader_cancel_requested = False
         self._clock: _Input | None = None
         self._iterator: AsyncGenerator[bytes, None] | None = None
         self._closing = self._reading = self._attached = False
@@ -165,6 +168,7 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
                     break
             clock = self._new_clock()
             storage = self._reader._storage
+            self._terminal_started = True
             storage.persist_original_terminal(self._reader._request, clock)
             if self._closing:
                 raise RuntimeError('Original Local SDK response is closing')
@@ -174,7 +178,42 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         finally:
             self._reading = False
 
+    def _request_reader_cancellation(self) -> None:
+        self._nominal()
+        if self._operation is not None and not self._closed and not self._terminal_started:
+            self._reader_cancel_requested = True
+
+    def _cancel_original_delivery(self) -> bool:
+        # Stop the exact physical reader and return its unconfirmed offer
+        # before opening the current terminal Store transaction.
+        operation = self._operation
+        if operation is None:
+            raise RuntimeError('Original delivery cancellation has no operation')
+        with self._host._core._host_cleanup():
+            self._closing = True
+            if self._reading:
+                return False
+            if self._saved_read is not None and not self._saved_read._begin_terminal_cleanup():
+                return False
+            if not self._reader.close() or not self._close_clock():
+                return False
+        self._terminal_started = True
+        with operation():
+            clock = self._new_clock()
+            storage, request = self._reader._storage, self._reader._request
+            try:
+                storage.persist_original_terminal(request, clock, cancelled=True)
+            except LocalStorageCommitUnknown as primary:
+                try:
+                    storage.observe_original_terminal(request, clock)
+                except Exception as failed_lookup:
+                    raise primary from failed_lookup
+        return True
+
     def _close(self) -> bool:
+        if (self._reader_cancel_requested and not self._terminal_started
+                and not self._cancel_original_delivery()):
+            return False
         with self._host._core._host_cleanup():
             return self._close_original()
 

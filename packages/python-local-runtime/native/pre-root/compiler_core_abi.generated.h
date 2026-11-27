@@ -3,7 +3,7 @@
 #define ACTQL_COMPILER_CORE_ABI_H
 #include <stddef.h>
 typedef struct { const char *name; const char *parameters; const char *result; } actql_compiler_signature;
-#define ACTQL_COMPILER_CORE_ABI 101
+#define ACTQL_COMPILER_CORE_ABI 102
 static const actql_compiler_signature actql_compiler_imports[] = {
     {"execution_child_admit", "i64", "i32"},
     {"execution_child_capacity", "i64 i32", "i64"},
@@ -196,7 +196,7 @@ static const actql_compiler_signature actql_compiler_exports[] = {
     {"actql_publication_commit_export_produce_sdk_read_evidence_decision", "i64 i32 i32 i32 i32", "i32"},
     {"actql_publication_commit_export_produce_sdk_read_grant", "i64 i32 i32 i32 i32 i32", "i32"},
     {"actql_publication_commit_export_produce_sdk_read_original", "i64 i32 i32 i32 i32 i32 i32", "i32"},
-    {"actql_publication_commit_export_produce_sdk_terminal_storage", "i64 i32 i32 i32 i32", "i32"},
+    {"actql_publication_commit_export_produce_sdk_terminal_storage", "i64 i32 i32 i32 i32 i32", "i32"},
     {"actql_publication_commit_export_reserve", "i64 i32 i32 i64", "i32"},
     {"actql_publication_commit_export_reserve_bounded", "i64 i32 i32 i32 i64", "i32"},
     {"actql_publication_commit_export_result_count", "i64 i32 i32", "i32"},

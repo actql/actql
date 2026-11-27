@@ -25,8 +25,11 @@ def _physical_plan(raw: bytes) -> tuple[ByteWrite, ...]:
         ('absent', 'absent', 'absent', 'absent', 'absent', 'usage', 'absent'))
 
 
-def _physical_terminal_plan(raw: bytes) -> tuple[ByteWrite, ...]:
-    """Transport Core's receipt/record/head proposal, never terminal evidence."""
+def _physical_terminal_plan(raw: bytes, *, cancelled: bool = False) -> tuple[ByteWrite, ...]:
+    """Transport Core's exact terminal proposal, never terminal evidence."""
+    if cancelled:
+        return _physical_cas_plan(raw, ('publication_contract', 'delivery_record_head'),
+                                  ('absent', 'successor'))
     return _physical_cas_plan(raw,
         ('publication_contract', 'publication_contract', 'delivery_record_head'),
         ('absent', 'absent', 'successor'))
@@ -427,8 +430,9 @@ class OriginalSDKDeliveryStore:
             self._core.observe_publication_sdk_terminal(first, configuration),
             original=self._payload_binding_originals.get(request.ticket))
 
-    def persist_original_terminal(self, request: _Input, clock: _Input) -> None:
-        """Apply Core's original three-row successor CAS exactly once.
+    def persist_original_terminal(self, request: _Input, clock: _Input, *,
+                                  cancelled: bool = False) -> None:
+        """Apply Core's original terminal successor CAS exactly once.
 
         Core validates the actual rows before COMMIT. A confirmed COMMIT
         completes that exact proposal. An Unknown uses explicit lookup of
@@ -449,13 +453,15 @@ class OriginalSDKDeliveryStore:
             original = self._payload_binding_originals.get(request.ticket)
             fact = self._bound_payload_fact(request, first, original)
             self._terminal_attempted.add(request.ticket)
+            expected_generations = (0, 1) if cancelled else (0, 0, 1)
+            count = len(expected_generations)
             self._active = True
             writes: tuple[ByteWrite, ...] = ()
             output: _Output | None = None
             try:
                 with observation._serialized_facts(), binding.fenced() as fences:
                     def project(ordinal: int, consume: Callable[[ByteWrite], None]) -> None:
-                        if len(writes) != 3 or not 0 <= ordinal < 3:
+                        if len(writes) != count or not 0 <= ordinal < count:
                             raise ValueError('Incomplete original SDK terminal material')
                         # Fixed rows from one funded Core output. Physical CAS
                         # validates each generation; facts bracket the group.
@@ -468,7 +474,8 @@ class OriginalSDKDeliveryStore:
                         else:
                             self._observe_bound_material(request, first, fact, original)
                         self._core.produce_publication_sdk_terminal_storage(
-                            output, first, clock, observation._projection._configuration)
+                            output, first, clock, observation._projection._configuration,
+                            cancelled=cancelled)
                         observation._validate_facts()
                         self._core._owned_output(output, 'publication_commit_export')
                         self._core._owned_output(first, 'publication_commit_export')
@@ -481,10 +488,11 @@ class OriginalSDKDeliveryStore:
                             observation._before_lookup()
                             output = self._reserve_payload_output(request)
                             self._core.produce_publication_sdk_terminal_storage(
-                                output, first, clock, observation._projection._configuration)
+                                output, first, clock, observation._projection._configuration,
+                                cancelled=cancelled)
                             writes = _physical_terminal_plan(
-                                self._core.read_publication_commit_material(output))
-                            head_key = writes[2].key
+                                self._core.read_publication_commit_material(output), cancelled=cancelled)
+                            head_key = writes[-1].key
                             if head_key in self._terminal_keys_attempted:
                                 raise LocalStorageError('Original terminal key requires lookup; replay is unavailable')
                             self._terminal_keys_attempted.add(head_key)
@@ -494,13 +502,13 @@ class OriginalSDKDeliveryStore:
                             take()
                         binding.inspect_reader(reader, prepare)
                     generations = observation._store.compare_exchange_projected_inspected(
-                        3, project, observation._originals, fences, inspect=inspect,
+                        count, project, observation._originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
                         _sdk_delivery_prewrite=observation._projection._saved,
                         _sdk_terminal_precommit=observation._projection._saved)
                 if generations is None:
                     raise LocalStorageError('Original terminal CAS conflicted; lookup is required')
-                if output is None or generations != (0, 0, 1):
+                if output is None or generations != expected_generations:
                     raise LocalStorageError('Original terminal commit confirmation changed')
                 self._core.confirm_publication_sdk_terminal_commit(output, first)
             except BaseException:

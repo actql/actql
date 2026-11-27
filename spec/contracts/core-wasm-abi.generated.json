@@ -1,5 +1,5 @@
 {
-  "abi_version": 101,
+  "abi_version": 102,
   "import_module": "actql_host",
   "imports": [
     {
@@ -4805,6 +4805,11 @@
           "name": "current_configuration",
           "type": "i32",
           "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_terminal_storage.current_configuration"
+        },
+        {
+          "name": "mode",
+          "type": "i32",
+          "unit": "closed selector/flag of actql_publication_commit_export_produce_sdk_terminal_storage; unknown refused by original Owner"
         }
       ],
       "result": "i32",
