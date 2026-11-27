@@ -4,7 +4,7 @@ import test from 'node:test';
 
 // Separate test process; count the original constructor without changing its
 // newTarget/layout. No invoke, TCP, SDK, Core grant or Store is exercised.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici') as typeof import('undici');
 const OriginalClient = undici.Client;
 let constructions = 0;

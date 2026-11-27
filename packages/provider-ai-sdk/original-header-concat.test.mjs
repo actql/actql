@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import {createOriginalUndiciFetch, prepareOriginalUndiciFetch} from
   '@actql/local-node/_internal/model-http-transport';
 
-const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 
 test('original fragmented header concat precedes overflow refusal and same socket cleanup', async t => {
   assert.equal(process.versions.node, '22.22.0');

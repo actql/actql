@@ -9,7 +9,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 // Delay each SAME original _destroy, not a synthetic close callback/event.
 // Entry, saved receipt and Common projection below are explicit doubles.
 // This verifies physical ordering, not numerical capacity or public adoption.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const OriginalClient = undici.Client;
 const bodies = [];

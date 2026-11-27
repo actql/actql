@@ -5,7 +5,7 @@ import test from 'node:test';
 
 // Separate Node test-file process. Retain the actual pinned CJS implementation
 // while observing the selected options before its ESM consumer is loaded.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const originalBuilder = undici.buildConnector;
 const selections = [];

@@ -6,7 +6,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 
 // Actual pinned Undici/parser and Node queue; the connector/socket producer
 // is a controlled physical double. This is not original Host funding or TLS.
-const require=createRequire(import.meta.url);
+const require=createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici=require('undici'),originalConnector=undici.buildConnector;
 let selectedSocket,connections=0;
 undici.buildConnector=()=> (_options,callback)=>{

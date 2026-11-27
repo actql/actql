@@ -9,7 +9,7 @@ import {readBoundedInferResponse} from './_internal/bounded-response.mjs';
 
 // Delegating observations of the actual pinned Client and original Socket.
 // WeakRef checks alias reachability, not heap bytes, GC completion or an ACK.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const OriginalClient = undici.Client;
 const headerRefs = [];
