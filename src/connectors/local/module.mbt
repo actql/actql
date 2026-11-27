@@ -91,10 +91,11 @@ pub fn local_module_provider_field_inventory(
 ///|
 // Eleven added provider fields plus the callback/merged capacity results:
 // each result is a two-word capacity record and its Some (2H/1R/2W).
+// The Relation and Group candidates also hold one Numeric start record each.
 // Runtime row chains reserve this transient peak once, not once per child.
 let local_provider_selection_recipe_field_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 4L,
-    reference_slots: 13L,
+    record_headers: 4L + 2L,
+    reference_slots: 13L + 2L,
     scalar_words: 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,

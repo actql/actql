@@ -535,12 +535,15 @@ fn run_journal_custody(
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
   let legacy = native_legacy_cancellation_read(database, max_records, reads)
   let mut expected_entries = 0L
-  let inventory = @host.inspect_client_run_journal_inventory(
+  let task_original : @host.ClientTaskMaterialsOriginal[Unit]? = None
+  let inventory = @host.inspect_client_run_journal_inventory_with_task_original(
     max_records,
-    (table_name, cursor) => {
-      client_journal_scan(database, table_name, cursor, reads~)
+    (table, cursor) => {
+      scan_native_cancellation_inventory(database, table, cursor, reads)
     },
-    (table_name, key) => client_journal_read(database, table_name, key, reads~),
+    (table, key) => {
+      read_native_cancellation_inventory(database, table, key, reads)
+    },
     row => {
       let record = match
         read_run_record(
@@ -579,13 +582,12 @@ fn run_journal_custody(
         task_materials_cid: record.task_materials_cid,
       })
     },
-    () => {
-      cancellation_custody(database, max_records, reads~, legacy=Some(legacy)).map(_ => {
-          ()
-        },
-      )
-    },
+    () => Err(CustodyLost),
     CustodyLost,
+    task_original,
+    validate_cancellation_run=Some((row, identity) => {
+      validate_native_cancellation_inventory_run(row, identity, legacy)
+    }),
   )
   match inventory {
     Err(issue) => Err(issue)

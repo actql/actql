@@ -1,6 +1,6 @@
 {
   "source": "a84580b5a0b383c6cc066d32ee5a9da64313239b",
-  "syntaxProjectionSha256": "f86c27711d468cfcd7944d31a35ac726a213c64a6b8f3e0f6a65a2e49e214c56",
+  "syntaxProjectionSha256": "ea1d3de8984acad8996ce5021d67cc9f4b44891852166315333e5a0c44a20311",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -102242,7 +102242,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "7ca57f04c9b26d55720f1fb17b71ef59a3dc4d4675c5397a88ca258db0e12c88",
+      "sha256": "2c10cfeeee76048fb94da22e461819e48b5890ffef1a469b45a5869d9a111731",
       "exports": [],
       "operations": [
         {
@@ -102914,7 +102914,10 @@
             "native_client_cancellation_revision",
             "read_cancellation",
             "native_legacy_cancellation_read",
-            "NativeLegacyCancellationRead::select"
+            "NativeLegacyCancellationRead::select",
+            "read_native_cancellation_inventory",
+            "scan_native_cancellation_inventory",
+            "validate_native_cancellation_inventory_run"
           ],
           "exports": [],
           "attributes": {
@@ -103017,7 +103020,7 @@
           }
         }
       ],
-      "sha256": "b329415fc55d28997f7386dd87e56c602212a48dcf2f93bdbc51df0640afa9f3",
+      "sha256": "45187c4d4e91e41fd42ef5012a0c467920de412c989151835fb5f856798da9e8",
       "exports": [],
       "operations": [
         {
@@ -103053,6 +103056,10 @@
           "declaration": "native_client_cancellation_revision ( value : NativeClientCancellationRecord , ) - > Int64"
         },
         {
+          "name": "native_legacy_cancellation_read",
+          "declaration": "native_legacy_cancellation_read ( database : @ sqlite . Database , max_records : Int , reads : NativeClientJournalReadAccess ? , ) - > NativeLegacyCancellationRead"
+        },
+        {
           "name": "NativeClientRunJournal::cancel_operation",
           "declaration": "NativeClientRunJournal : : cancel_operation ( self : NativeClientRunJournal , request : @ host . ClientRequestIdentity , namespace_id : String , cancel_id : String , expected_revision : Int , current : ( ) - > Bool , publication : NativeClientCancellationPublication , ) - > Result [ NativeClientCancellationRecord , NativeClientRunJournalIssue ]"
         },
@@ -103073,16 +103080,24 @@
           "declaration": "NativeClientRunJournal : : lookup_cancellation_with_reads ( self : NativeClientRunJournal , request : @ host . ClientRequestIdentity , namespace_id : String , cancel_id : String , expected_revision : Int , current : ( ) - > Bool , reads ? : NativeClientJournalReadAccess ?"
         },
         {
+          "name": "NativeLegacyCancellationRead::select",
+          "declaration": "NativeLegacyCancellationRead : : select ( self : Self , request : @ host . ClientRequestIdentity , definition : @ publication . PublicationContract , revision : Int64 , ) - > Result [ @ host . ClientAcceptedCancellationHead , NativeClientRunJournalIssue ]"
+        },
+        {
           "name": "read_cancellation",
           "declaration": "read_cancellation ( row : @ sqlite . NativeJournalValue , ) - > Result [ NativeClientCancellationRecord , NativeClientRunJournalIssue ]"
         },
         {
-          "name": "native_legacy_cancellation_read",
-          "declaration": "native_legacy_cancellation_read ( database : @ sqlite . Database , max_records : Int , reads : NativeClientJournalReadAccess ? , ) - > NativeLegacyCancellationRead"
+          "name": "read_native_cancellation_inventory",
+          "declaration": "read_native_cancellation_inventory ( database : @ sqlite . Database , table : String , key : String , reads : NativeClientJournalReadAccess ? , ) - > Result [ @ host . ClientJournalPhysicalRow ? , NativeClientRunJournalIssue ]"
         },
         {
-          "name": "NativeLegacyCancellationRead::select",
-          "declaration": "NativeLegacyCancellationRead : : select ( self : Self , request : @ host . ClientRequestIdentity , definition : @ publication . PublicationContract , revision : Int64 , ) - > Result [ @ host . ClientAcceptedCancellationHead , NativeClientRunJournalIssue ]"
+          "name": "scan_native_cancellation_inventory",
+          "declaration": "scan_native_cancellation_inventory ( database : @ sqlite . Database , table : String , cursor : String , reads : NativeClientJournalReadAccess ? , ) - > Result [ @ host . ClientJournalPhysicalRow ? , NativeClientRunJournalIssue ]"
+        },
+        {
+          "name": "validate_native_cancellation_inventory_run",
+          "declaration": "validate_native_cancellation_inventory_run ( row : @ host . ClientJournalPhysicalRow , identity : ( @ host . ClientRequestIdentity , @ publication . PublicationContract ) ? , legacy : NativeLegacyCancellationRead , ) - > Result [ @ host . ClientCancellationRunJournalInspection , NativeClientRunJournalIssue , ]"
         }
       ]
     },
@@ -104962,7 +104977,7 @@
     },
     {
       "module": "src/run_publication_host/client_journal_inventory.mbt",
-      "sha256": "f9c7c28510711480f7e67a5d41ff60d976782449128480e682aed4045fb9deda",
+      "sha256": "4f35b661d3b8587df962fc88935b9428612e770a4a02ead92817eb642f15f801",
       "exports": [],
       "operations": [
         {
@@ -105760,7 +105775,7 @@
           "declaration": "client_run_journal_append_rows ( value : ClientRunJournalAppend , ) - > ( String , Bytes , Int64 , Bytes )"
         }
       ],
-      "sha256": "991f0238b9d997fcc1799e187eaf8f05b5d1b38e842f6ce2a01cbd24a7484e44",
+      "sha256": "d42ea23b3953aaea025b4fbd77044976f8209d37d3f9ec7ab9533f7e0cb718e0",
       "contracts": [
         {
           "operations": [

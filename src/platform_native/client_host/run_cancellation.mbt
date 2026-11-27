@@ -110,6 +110,65 @@ fn NativeLegacyCancellationRead::select(
 }
 
 ///|
+fn scan_native_cancellation_inventory(
+  database : @sqlite.Database,
+  table : String,
+  cursor : String,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[@host.ClientJournalPhysicalRow?, NativeClientRunJournalIssue] {
+  match client_journal_scan(database, table, cursor, reads~) {
+    Err(_) if table == "client_cancel_custody" => Err(CustodyLost)
+    result => result
+  }
+}
+
+///|
+fn read_native_cancellation_inventory(
+  database : @sqlite.Database,
+  table : String,
+  key : String,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[@host.ClientJournalPhysicalRow?, NativeClientRunJournalIssue] {
+  match client_journal_read(database, table, key, reads~) {
+    Err(_) if table == "client_cancel_originals" || table == "client_runs" =>
+      Err(CustodyLost)
+    result => result
+  }
+}
+
+///|
+fn validate_native_cancellation_inventory_run(
+  row : @host.ClientJournalPhysicalRow,
+  identity : (@host.ClientRequestIdentity, @publication.PublicationContract)?,
+  legacy : NativeLegacyCancellationRead,
+) -> Result[
+  @host.ClientCancellationRunJournalInspection,
+  NativeClientRunJournalIssue,
+] {
+  let { database, reads, .. } = legacy
+  // Keep the complete forward Run validation, including the original funded
+  // constructors, before comparing this cancellation with its current Run.
+  match
+    read_run_record_in_mode(
+      { body: row.body, revision: row.revision, },
+      ValidatePublication,
+      identity~,
+      legacy=Some(legacy),
+      companion_read=Some((database, reads)),
+      before_construction=run_decode_construction(database, reads),
+      before_metadata_construction=run_metadata_construction(database, reads),
+    ) {
+    Ok(run) =>
+      Ok({
+        request: run.request,
+        definition: run.definition,
+        cancellation_head: run.cancellation_head,
+      })
+    Err(_) => Err(CustodyLost)
+  }
+}
+
+///|
 /// Retained issuance witness detects missing operations independently of Run
 /// flags. Missing feature custody cannot be initialized or interpreted as an
 /// empty cancellation history by any public operation.
@@ -117,55 +176,18 @@ fn cancellation_custody(
   database : @sqlite.Database,
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
-  legacy? : NativeLegacyCancellationRead? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
-  let legacy = legacy.unwrap_or(
-    native_legacy_cancellation_read(database, max_records, reads),
-  )
+  let legacy = native_legacy_cancellation_read(database, max_records, reads)
   @host.inspect_client_cancellation_journal_inventory_with_run_identity(
     max_records,
     (table, cursor) => {
-      match scan_client_journal_value(database, table, cursor, reads) {
-        Ok(row) =>
-          Ok(Some({ key: row.key, body: row.body, revision: row.revision, }))
-        Err(@sqlite.NotFound) => Ok(None)
-        // Preserve this Native Owner's original marker-query disposition.
-        Err(_) if table == "client_cancel_custody" => Err(CustodyLost)
-        Err(issue) => Err(Physical(issue))
-      }
+      scan_native_cancellation_inventory(database, table, cursor, reads)
     },
     (table, key) => {
-      match read_client_journal_value(database, table, key, reads) {
-        Ok(row) => Ok(Some({ key, body: row.body, revision: row.revision, }))
-        Err(@sqlite.NotFound) => Ok(None)
-        Err(_) if table == "client_cancel_originals" || table == "client_runs" =>
-          Err(CustodyLost)
-        Err(issue) => Err(Physical(issue))
-      }
+      read_native_cancellation_inventory(database, table, key, reads)
     },
     (row, identity) => {
-      // The original nested/current metadata validators and their funded
-      // constructors stay with this same Native Journal, before projection.
-      match
-        read_run_record_in_mode(
-          { body: row.body, revision: row.revision, },
-          ValidatePublication,
-          identity~,
-          legacy=Some(legacy),
-          companion_read=Some((database, reads)),
-          before_construction=run_decode_construction(database, reads),
-          before_metadata_construction=run_metadata_construction(
-            database, reads,
-          ),
-        ) {
-        Ok(run) =>
-          Ok({
-            request: run.request,
-            definition: run.definition,
-            cancellation_head: run.cancellation_head,
-          })
-        Err(_) => Err(CustodyLost)
-      }
+      validate_native_cancellation_inventory_run(row, identity, legacy)
     },
     CustodyLost,
   )

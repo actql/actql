@@ -74,8 +74,13 @@ function constructionBound(read, retained) {
         'Candidate wrapper must not own a bound Infer tuple');
     }
     const model = reviewedFunction(managed, 'managed_provider_with_infer_relation_prefix');
-    assert(model.includes('infer_relation_prefix: Some((prefix, boundary_step, execution, measurement))'),
+    const prefix = cleanConstruction(model).replace(/\s+/gu, ' ');
+    assert(prefix.includes('infer_relation_prefix: Some( match metered_output_start { Some(start) => Metered(prefix, boundary_step, execution, measurement, start) None => Prepaid(prefix, boundary_step, execution, measurement) }, ),'),
       'Model recipe ownership changed');
+    const workspace = cleanConstruction(currentFactoryDeclaration(managed, 'managed_provider_with_task_workspace'))
+      .replace(/\s+/gu, ' ');
+    assert(workspace.includes('start_extension: Some(TaskWorkspace(start)),'),
+      'Changed separately owned Model start extension');
     for (const provider of sourceProfile.providers) {
       assert(!reviewedFunction(read(provider.path).toString(), provider.name)
         .includes('managed_provider_with_infer_relation_prefix'), 'Model tuple entered candidate census');
@@ -105,15 +110,22 @@ function constructionBound(read, retained) {
   const callback = 8 + fieldLayout(Array(4).fill('ref')).payloadBytes;
   const candidates = 24 + 8 + 8 * profile.bounds.candidateArraySlots;
   const family = 24; // Array owner; its zero-length backing is process-static.
-  const bytes = profile.bounds.providerRecords * (record + 4 * callback) + candidates + family;
-  assert.equal(bytes, retained ? 2344 : 2520);
+  const componentBytes = profile.bounds.providerRecords * (record + 4 * callback) + candidates + family;
+  const numericStartExtensions = retained ? 0 : sourceReview.numericCandidateOrdinals.length;
+  // The pinned Native tagged value owns a header and one callback reference.
+  // Its callback is already in the existing identity union.
+  const numericStartExtensionBytes = numericStartExtensions *
+    (8 + fieldLayout(Array(profile.startExtension.numericPayloadReferences).fill('ref')).payloadBytes);
+  const bytes = componentBytes + numericStartExtensionBytes;
+  assert.equal(bytes, retained ? 2344 : 2552);
   return { subject: profile.scope, sourceReview, providerCount: 11, recordBytes: record, callbackBytes: callback,
-    callbackCount: 44, recordFieldCount, candidateContainerBytes: candidates, defaultFamilyBytes: family, bytes,
-    layoutRevision: retained ? 'retained-four-field' : 'current-six-field',
+    callbackCount: 44, recordFieldCount, candidateContainerBytes: candidates, defaultFamilyBytes: family,
+    numericStartExtensions, numericStartExtensionBytes, bytes,
+    layoutRevision: retained ? 'retained-four-field' : 'current-six-field-tagged-start',
     modelPrefixTuple: {included: false, reason: 'Separate Model-bound family owner; tuple and borrowed recipe lifetime are not established by this eleven-candidate component'},
     unit: 'conditional pinned native requested header and payload bytes',
     premises: [retained ? 'four historical pointer-sized ManagedProvider fields'
-      : 'six current pointer-sized ManagedProvider fields; all eleven candidate bounded quote and Infer prefix slots are None',
+      : 'six current pointer-sized ManagedProvider fields; all eleven candidate bounded quote and Infer prefix slots are None, with two owned Numeric start tags',
       'at most four source/compatibility callbacks per provider, each with code pointer and at most three reference captures',
       'dynamic scalar callbacks have code-pointer-only payloads; native GC descriptors alone do not prove this request extent',
       'optional callback is nullable, without a separate option wrapper',
@@ -168,6 +180,17 @@ function checkCurrentConstructionSources(read) {
   // Every admitted slot is a nullable/reference ABI word. A tuple referent
   // would have its own obligation; all current candidates keep that slot None.
   assert.equal(fields.length, 6);
+  const extensions = [...managed.matchAll(/^priv enum ManagedProviderStartExtension \{/gm)];
+  assert.equal(extensions.length, 1, 'Changed current start extension declaration');
+  const start = extensions[0].index;
+  const end = managed.indexOf('\n}', start);
+  assert(end >= 0, 'Missing current start extension declaration');
+  assert.equal(currentDeclarationAttributes(managed, start), '', 'Changed current start extension representation');
+  const extension = cleanConstruction(managed.slice(start, end + 2)).replace(/\s+/gu, ' ');
+  assert.equal(extension, profile.startExtension.declaration, 'Changed current start extension declaration');
+  const numericCandidateOrdinals = profile.providers.flatMap((provider, index) =>
+    provider.binding === 'managed_provider_with_numeric' ? [index] : []);
+  assert.deepEqual(numericCandidateOrdinals, profile.startExtension.numericCandidateOrdinals);
   const bindings = ['managed_provider', 'managed_provider_with_inputs', 'managed_provider_with_numeric'];
   const wrappers = Object.fromEntries(bindings.map(name => [name, constructionBody(managed, name)]));
   const adapter = wrappers.managed_provider.body;
@@ -192,8 +215,8 @@ function checkCurrentConstructionSources(read) {
     assert.equal(slots.infer_relation_prefix, 'infer_relation_prefix: None', 'Candidate wrapper must not own a bound Infer tuple');
     assert.equal(slots.bounded_relation_capacity, name === 'managed_provider_with_inputs'
       ? 'bounded_relation_capacity' : 'bounded_relation_capacity: None', 'Changed current candidate construction wrapper quote');
-    assert.equal(slots.start_numeric, name === 'managed_provider_with_inputs'
-      ? 'start_numeric: None' : 'start_numeric: Some(start)', 'Changed current candidate construction wrapper capture');
+    assert.equal(slots.start_extension, name === 'managed_provider_with_inputs'
+      ? 'start_extension: None' : 'start_extension: Some(Numeric(start))', 'Changed current candidate construction wrapper capture');
   }
   const constructors = [];
   for (const provider of profile.providers) {
@@ -219,6 +242,7 @@ function checkCurrentConstructionSources(read) {
   assert(!/\blet\s+\w+\s*=\s*\[/u.test(selector.slice(0, list.index)),
     'Unreviewed current constructor source allocation before candidate list');
   return {recipeDigest: hash(recipe), recordFieldCount: fields.length, fields, constructors,
+    numericCandidateOrdinals,
     selectedDigest: hash(read('src/connectors/local/selected_relation_provider.mbt')),
     managedDigest: hash(managed), generatedDigest: hash(read('src/execution_relation/generated_sequence.mbt')),
     scope: profile.scope, completeConstructorByteCorrespondence: false,
@@ -286,8 +310,15 @@ export function inspectProviderConstruction(facts, read, target, {retained = fal
     assert(Number.isSafeInteger(f.callbacks) && f.callbacks >= 0 && f.callbacks <= 44);
     assert(Number.isSafeInteger(f.defaultArrays) && f.defaultArrays >= 0 && f.defaultArrays <= 1);
     assert.equal(f.unclassifiedCaptures, 0, 'Unaccounted provider callback capture');
-    assert(Number.isSafeInteger(f.indexedBytes) && f.indexedBytes >=
-      11 * bound.recordBytes + bound.candidateContainerBytes, 'Missing candidate container or record bytes');
+    if (!retained) {
+      assert.equal(f.numericStartExtensions, bound.numericStartExtensions, 'Missing current Numeric start extent evidence');
+      assert.equal(f.numericStartExtensionBytes, bound.numericStartExtensionBytes, 'Changed current Numeric start extent');
+    }
+    const candidateBytes = 11 * bound.recordBytes + bound.candidateContainerBytes;
+    assert(Number.isSafeInteger(f.indexedBytes) && f.indexedBytes >= candidateBytes,
+      'Missing candidate container or record bytes');
+    assert(f.indexedBytes >= candidateBytes + bound.numericStartExtensionBytes,
+      'Missing candidate Numeric start bytes from measured union');
     assert(Number.isSafeInteger(f.scalarDynamicCallbacks) && f.scalarDynamicCallbacks >= 0 &&
       f.callbacks + f.scalarDynamicCallbacks <= bound.callbackCount, 'Too many constructor callbacks');
     assert(f.indexedBytes <= bound.bytes, 'Actual provider construction exceeds source-derived envelope');

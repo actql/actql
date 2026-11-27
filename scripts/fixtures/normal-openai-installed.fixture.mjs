@@ -755,7 +755,7 @@ try {
       [1, ['model-task:second', 'quantity', 7, 'number'], {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}],
     ];
     cases.length = taskCount;
-    if (selection.rateLimit) cases[0][2] = {id: 'original-text', outcome: 'failed:provider_error', value: null};
+    if (selection.rateLimit) cases[0][2] = {id: 'original-text', outcome: 'failed:rate_limit', value: null};
     if (failedAnswer !== undefined) cases[0][2] = {id: 'original-text', outcome: 'failed:' + failedAnswer, value: null};
     for (const [index, args, expected] of cases) {
       const submissionRef = client.newSubmission({nonce: 'installed-' + index});
@@ -827,7 +827,7 @@ try {
     } else if (timeoutMode === undefined) {
       // The original Saved Result precedes this process's first status read.
       const expected = failedAnswer !== undefined ? {outcome: 'failed:' + failedAnswer, value: null}
-        : selection.rateLimit ? {outcome: 'failed:provider_error', value: null}
+        : selection.rateLimit ? {outcome: 'failed:rate_limit', value: null}
         : {outcome: 'ok', value: {answer: true}};
       await checkResult(run, {id: 'original-text', ...expected}, 0);
       assert.equal((await run.status()).status, 'succeeded');

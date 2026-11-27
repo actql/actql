@@ -589,11 +589,20 @@ test "shared Run census verifies accepted cancellation reverse coverage once" {
       () => Err("separate reverse census must not run"),
       "custody",
       original,
-      validate_cancellation_run=Some(row => {
-        run(row).map(value => {
-          request: value.request,
-          definition: value.definition,
-          cancellation_head: value.cancellation_head,
+      validate_cancellation_run=Some((row, original) => {
+        run(row).bind(value => {
+          guard original is Some((request, definition)) &&
+            client_request_identity_relation(request, value.request)
+            is SameRequest &&
+            @publication.publication_contract_identity(definition) ==
+            @publication.publication_contract_identity(value.definition) else {
+            return Err("missing original cancellation identity")
+          }
+          Ok({
+            request: value.request,
+            definition: value.definition,
+            cancellation_head: value.cancellation_head,
+          })
         })
       }),
     )

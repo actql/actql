@@ -18,7 +18,7 @@ fn request_model_module_container_bytes(
   // A captured Stage can also own the serialized Model continuation. Its
   // Compute tail is then empty, but the module's fixed containers still exist.
   guard tasks > 0 &&
-    tasks >= captures &&
+    (whole_inputs || tasks >= captures) &&
     captures >= 0 &&
     installed_providers >= 0 &&
     provider_captures >= 0 &&
@@ -268,7 +268,14 @@ fn[I] begin_request_model_module(
     return Err(Preparation(Policy))
   }
   let portable_invocation = owner.phase is PortableModelMetadataIssued(_)
-  guard @strategy.graph_captured_prefix(dag) == captures &&
+  let captured_tasks = @strategy.graph_captured_prefix(dag)
+  // Whole inputs can supply distinct original ports of the same checked
+  // task. Query captures still occupy one task each.
+  guard (if whole_inputs {
+      captured_tasks > 0 && captured_tasks <= captures
+    } else {
+      captured_tasks == captures
+    }) &&
     (captures == 0 || captures == 1 || captures == 2) &&
     owner.program_plan_quote is Some((quoted_r, quoted_e)) &&
     request_model_module_container_bytes(
@@ -977,21 +984,34 @@ pub fn[I] prepare_request_model_capture_module(
         guard @publication_host.client_direct_acquisition_occurrence_at(
             direct, index,
           )
-          is Some((stage, source_input, task)) &&
-          task == index else {
+          is Some((stage, source_input, task)) else {
           return Err(Installed(ForeignOriginal))
         }
         if whole {
           let source = whole_sources[index]
-          if !@publication_host.client_source_acquisition_matches_program(
+          // The ordered occurrence owns the authored input and its receiving
+          // task. The installed capture constructor binds the exact port and
+          // checks it against the other supplied ports and data edges.
+          guard @publication_host.client_source_acquisition_matches_program(
               prepared,
               stage,
               source_input,
               source.original,
-            ) {
+            ) &&
+            @sourceviews.source_acquisition_input(source.original)
+            is @pipeline.Input(_) &&
+            @strategy.graph_stage_operation_task(
+              @publication_host.prepared_client_graph(prepared),
+              stage,
+              0,
+            ) ==
+            Some(task) else {
             return Err(Installed(ForeignOriginal))
           }
           continue
+        }
+        if task != index {
+          return Err(Installed(ForeignOriginal))
         }
         let requirement = match
           (match query_time {

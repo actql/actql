@@ -106,10 +106,10 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
   custody_lost : E,
   original : ClientTaskMaterialsOriginal[Plan]?,
   task_material_count? : ((Int) -> Result[Bool?, E])? = None,
-  validate_cancellation_run? : ((ClientJournalPhysicalRow) -> Result[
-    ClientCancellationRunJournalInspection,
-    E,
-  ])? = None,
+  validate_cancellation_run? : ((
+    ClientJournalPhysicalRow,
+    (ClientRequestIdentity, @publication.PublicationContract)?,
+  ) -> Result[ClientCancellationRunJournalInspection, E])? = None,
 ) -> Result[(Int, Int64), E] {
   inspect_client_run_journal_inventory_with_index_funding(
     max_records,
@@ -161,7 +161,7 @@ pub fn[E] capture_client_sdk_run_journal_inventory(
     custody_lost,
     task_original,
     task_material_count=Some(task_material_count),
-    validate_cancellation_run=Some(validate_cancellation_run),
+    validate_cancellation_run=Some((row, _) => validate_cancellation_run(row)),
   ).map(pair => { count: pair.0, revision: pair.1, maximum: max_records, })
 }
 
@@ -200,10 +200,10 @@ fn[Plan, E] inspect_client_run_journal_inventory_with_index_funding(
   fund_task_indexes : ((Int64) -> Result[Unit, E])?,
   fund_task_read : ((Int64) -> Result[Unit, E])?,
   task_material_count? : ((Int) -> Result[Bool?, E])? = None,
-  validate_cancellation_run? : ((ClientJournalPhysicalRow) -> Result[
-    ClientCancellationRunJournalInspection,
-    E,
-  ])? = None,
+  validate_cancellation_run? : ((
+    ClientJournalPhysicalRow,
+    (ClientRequestIdentity, @publication.PublicationContract)?,
+  ) -> Result[ClientCancellationRunJournalInspection, E])? = None,
 ) -> Result[(Int, Int64), E] {
   let (count, revision) = match
     journal_inventory_count(
@@ -405,7 +405,7 @@ fn[Plan, E] inspect_client_run_journal_inventory_with_index_funding(
         max_records,
         scan,
         read,
-        (row, _) => validate(row),
+        validate,
         custody_lost,
         None,
         Some((observed, revision, cancellation_heads)),

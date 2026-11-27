@@ -73,7 +73,7 @@ test "Take condition reporting refuses omission and foreign complete-template me
     parameters_bytes: 0,
   }
   let report = check_outcome_attempt(
-    findings, stop, "ctx:condition", "corr:condition", documents, 0,
+    findings, stop, "ctx:condition", "corr:condition", documents, 0, true,
   ).unwrap()
   assert_true(report.contains("reporting_budget_exhausted"), msg=report)
   assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
@@ -81,7 +81,7 @@ test "Take condition reporting refuses omission and foreign complete-template me
   let (foreign, _) = prepare()
   assert_true(
     check_outcome_attempt(
-      foreign, stop, "ctx:condition", "corr:condition", documents, 128,
+      foreign, stop, "ctx:condition", "corr:condition", documents, 128, true,
     )
     is None,
   )

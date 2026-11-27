@@ -826,7 +826,9 @@ fn[E] observe_client_first_run_append_issuance(
           fund_task_indexes,
           fund_task_read,
           task_material_count~,
-          validate_cancellation_run~,
+          validate_cancellation_run=validate_cancellation_run.map(validate => {
+            (row, _) => validate(row)
+          }),
         ) {
         Ok(value) => value
         Err(issue) => return Err(Observation(issue))

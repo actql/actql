@@ -3793,7 +3793,7 @@
     },
     {
       "module": "src/check_environment/public_model_task_normalization.mbt",
-      "sha256": "3c809ba68be38d292291f60d69effbf9c3b8358982ba568531b42814d4cd4b30",
+      "sha256": "c65b430a86a4497d5493ad5031668a5e276ef510697a256bf8eea866a1e02500",
       "exports": [],
       "operations": [
         {
@@ -3821,8 +3821,16 @@
           "declaration": "normalize_public_model_task_selected ( declaration : PublicModelTaskDeclaration , defaults : ModelProviderDefaults , resolved : ResolvedModelProviderDefaults , provider : String , limits : ModelTaskLimits , mock_profile : ModelMockProfile ? , ) - > Result [ NormalizedPublicModelTask , ModelTaskIssue ]"
         },
         {
+          "name": "normalized_public_model_task_connector",
+          "declaration": "normalized_public_model_task_connector ( value : NormalizedPublicModelTask , ) - > String"
+        },
+        {
           "name": "normalized_public_model_task_materials",
           "declaration": "normalized_public_model_task_materials ( value : NormalizedPublicModelTask , ) - > ( String , String , String , String )"
+        },
+        {
+          "name": "normalized_public_model_task_model_selector",
+          "declaration": "normalized_public_model_task_model_selector ( value : NormalizedPublicModelTask , ) - > String"
         },
         {
           "name": "normalized_public_model_task_original_for",
@@ -3853,7 +3861,9 @@
             "normalized_public_model_task_materials",
             "normalized_public_model_task_original_for",
             "normalized_public_model_task_usage",
-            "public_task_emission_writer"
+            "public_task_emission_writer",
+            "normalized_public_model_task_connector",
+            "normalized_public_model_task_model_selector"
           ],
           "exports": [],
           "attributes": {
@@ -3879,6 +3889,14 @@
               {
                 "path": "src/check_environment/model_mock_execution.mbt",
                 "anchor": "pub fn model_mock_execution_materials("
+              },
+              {
+                "path": "src/check_environment/public_model_task_normalization.mbt",
+                "anchor": "pub fn normalized_public_model_task_model_selector("
+              },
+              {
+                "path": "src/check_environment/public_model_task_normalization.mbt",
+                "anchor": "pub fn normalized_public_model_task_connector("
               }
             ],
             "identity": [
@@ -4985,7 +5003,7 @@
     },
     {
       "module": "src/run_publication_host/client_infer_call_scope.mbt",
-      "sha256": "2d9aae3df8cb571e958b9c7eca4c1b47620a5b0719bc9319bbd9f43cb15dc11a",
+      "sha256": "9e6c7325002931d3236604d0d1ce91264d697b1b9077c92dc5b939d3f647a084",
       "exports": [],
       "operations": [
         {
@@ -5017,8 +5035,16 @@
           "declaration": "client_infer_call_scope_matches_rows ( value : ClientInferCallScope , rows : @ execution . PreparedInferRows , fixed_request_cid : String , ) - > Bool"
         },
         {
+          "name": "client_infer_call_scope_matches_whole_result_reader",
+          "declaration": "client_infer_call_scope_matches_whole_result_reader ( scope : ClientInferCallScope , reader : ClientInferWholeResultReaderOriginal , ) - > Bool"
+        },
+        {
           "name": "client_infer_call_scope_model_execution",
           "declaration": "client_infer_call_scope_model_execution ( original : ClientInferCallScope , ) - > @ environment . ModelExecutionContract"
+        },
+        {
+          "name": "client_infer_call_scope_saved_input",
+          "declaration": "client_infer_call_scope_saved_input ( value : ClientInferCallScope , ) - > ClientInferSavedCallScope ?"
         },
         {
           "name": "client_infer_call_scope_snapshot",
@@ -5133,7 +5159,9 @@
             "issue_client_infer_occurrence_call_scope",
             "issue_prepared_client_infer_call_scope",
             "read_client_infer_saved_call_scope",
-            "restore_client_infer_call_scope"
+            "restore_client_infer_call_scope",
+            "client_infer_call_scope_matches_whole_result_reader",
+            "client_infer_call_scope_saved_input"
           ],
           "exports": [],
           "attributes": {
@@ -5165,6 +5193,14 @@
               {
                 "path": "src/model_execution/mock_installation.mbt",
                 "anchor": "fn original_mock_scope_matches("
+              },
+              {
+                "path": "src/run_publication_host/client_infer_call_scope.mbt",
+                "anchor": "fn client_infer_call_scope_saved_input("
+              },
+              {
+                "path": "src/run_publication_host/client_infer_call_scope.mbt",
+                "anchor": "pub fn client_infer_call_scope_matches_whole_result_reader("
               }
             ],
             "ownership": [

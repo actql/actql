@@ -55,16 +55,17 @@ fn local_effect_request_identity(
   preparation : @local_host.NativeClientSubmittedPreparation,
   scope : String,
   request_id : String,
+  submitted_input_cid? : String? = None,
 ) -> @run_host.ClientRequestIdentity raise ClientStop {
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
     stop("LocalEffectPreparationRequired")
   }
-  @run_host.prepare_client_effect_request_identity(
+  @run_host.prepare_client_original_effect_request_identity(
     prepared,
     scope,
     request_id,
-    @run_host.source_free_caller_input_intent_cid(),
+    submitted_input_cid~,
   ).unwrap_or_else(() => stop("LocalEffectRequestIdentityUnavailable"))
 }
 
@@ -186,10 +187,26 @@ fn local_effect_prepare_start(
   crypto : @local_crypto.Library,
   preparation : @local_host.NativeClientSubmittedPreparation,
   reference : @local_host.NativeClientSubmissionReference,
+  submitted : @local_host.NativeClientSubmittedIntentRecord,
   run : LocalRunInstallation,
   scope : String,
   business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
+  let submitted_cid = @run_host.client_submitted_intent_cid(
+    @local_host.native_client_submitted_intent(submitted),
+  )
+  let submitted_reference = @local_host.native_client_submitted_intent_reference(
+    submitted,
+  )
+  if submitted_cid !=
+    @local_host.native_client_submitted_preparation_intent_cid(preparation) ||
+    @local_host.native_client_submission_reference_wire(submitted_reference) !=
+    @local_host.native_client_submission_reference_wire(reference) {
+    stop("LocalEffectRequestIdentityUnavailable")
+  }
+  // The owned Request checker retains this Submission input in the Effect.
+  // Direct setup prepares its body without that checked input binding.
+  let submitted_input_cid = business.map(_ => submitted_cid)
   local_effect_prepare_start_with_clocks(
     host,
     settings,
@@ -201,6 +218,7 @@ fn local_effect_prepare_start(
     local_utc_now,
     () => @env.now().to_double(),
     business~,
+    submitted_input_cid~,
   )
 }
 
@@ -218,12 +236,18 @@ fn local_effect_prepare_start_with_clocks(
   utc_now : () -> String,
   epoch_now : () -> Double,
   business? : LocalCommandBusinessPreparation? = None,
+  submitted_input_cid? : String? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope, business~) {
     stop("LocalSubmissionAuthorizationDenied")
   }
   let request_id = @local_host.native_client_submission_request_id(reference)
-  let request = local_effect_request_identity(preparation, scope, request_id)
+  let request = local_effect_request_identity(
+    preparation,
+    scope,
+    request_id,
+    submitted_input_cid~,
+  )
   let observed_at = utc_now()
   // The existing Owner looks up this exact request before issuing a Policy.
   // A concurrent accepted request selects its saved original, not this clock.

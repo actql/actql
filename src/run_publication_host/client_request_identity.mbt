@@ -212,6 +212,26 @@ pub fn prepare_client_effect_request_identity(
 }
 
 ///|
+/// Derive the Request from the original input retained by this checked Effect.
+/// A caller with an authenticated Submission also supplies its expected input
+/// CID. Only the same retained input can satisfy that expectation.
+pub fn prepare_client_original_effect_request_identity(
+  prepared : PreparedClientEffectComputation,
+  authority_scope_cid : String,
+  caller_request_id : String,
+  submitted_input_cid? : String? = None,
+) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue] {
+  let input = client_effect_original_input_intent_cid(prepared)
+  if submitted_input_cid is Some(expected) &&
+    !(prepared.source_intent is Some(_) && input == expected) {
+    return Err(IdentityMismatch)
+  }
+  prepare_client_effect_request_identity(
+    prepared, authority_scope_cid, caller_request_id, input,
+  )
+}
+
+///|
 /// Readmission checks stored identity components against both claimed CIDs.
 /// It verifies identity, not the storage provenance or current authorization.
 pub fn admit_client_request_identity_record(

@@ -184,8 +184,8 @@
       "record_sites": 2,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "83b11a0ff70e2b8d10c38f652819fcec7ad057e311023ec299f41df4d2aefdd5",
-      "body_sha256": "febafd3c93ffa7f2c886fe710a8f4f289e5284b46a7054e96e57cab20816a192"
+      "source_sha256": "f34a00636854b5b234086e1b5b424d5d74a7abb6020b01e544e6609e3dde534b",
+      "body_sha256": "35a4b678da2d7c73b6bd81d2166c268f9538197fe0c8f2e7f6790c2d42f4cd3e"
     },
     {
       "path": "src/decode_shape/collection_construction.mbt",

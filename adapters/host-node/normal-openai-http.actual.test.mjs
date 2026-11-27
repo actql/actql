@@ -217,10 +217,11 @@ async function normalHttpFixture({coldSaved = false, httpStatus = 200, transport
       const cases=[
         [0,['model-task:first','text','first','string'],{id:'original-text',outcome:'ok',value:{answer:true}}],
         [1,['model-task:second','quantity',7,'number'],{id:'original-quantity',outcome:'ok',value:{label:'exact-label'}}]];
-      // Common's original raw non-2xx classification is provider_error for
-      // each status. The SDK's rejected decoded projection cannot override it.
+      // The original Raw status controls the failure. The SDK's rejected
+      // decoded projection cannot override it.
       if (${httpStatus} !== 200) {
-        cases.length=1;cases[0][2]={id:'original-text',outcome:'failed:provider_error',value:null};
+        const outcome=${httpStatus} === 429 ? 'failed:rate_limit' : 'failed:provider_error';
+        cases.length=1;cases[0][2]={id:'original-text',outcome,value:null};
       }
       if (${unknown}) cases.length=1;
       cases.length=${count};
