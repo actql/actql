@@ -1065,12 +1065,19 @@ fn run_local_managed_group_case(
       is Err(ForeignCandidate),
     )
     assert_false(@strategy.captured_next_task_has_prepared_input(run, 0))
-    @strategy.retain_captured_completed_unit_result_input(
+    let (first_input, first_read) = @strategy.retain_captured_completed_unit_result_input(
       handoff, first, 16, 1024,
     ).unwrap()
-    @strategy.retain_captured_completed_unit_result_input(
+    let (same_input, same_read) = @strategy.retain_captured_completed_unit_result_input(
       handoff, first, 16, 1024,
     ).unwrap()
+    assert_eq(same_input, first_input)
+    assert_true(physical_equal(same_read, first_read))
+    assert_true(
+      @strategy.captured_completed_unit_result_input_matches(
+        handoff, first, first_read,
+      ),
+    )
     // Re-admit equal bytes independently for the negative control. That
     // conversion cannot replace the one already attached to this receiver.
     let (foreign_bridge, foreign_preparation, foreign_receipt) = convert()
@@ -1136,11 +1143,16 @@ fn run_local_managed_group_case(
   assert_eq(local_managed_test_rows(first_ops), group_rows)
 
   if retained is Some((_, _, _, handoff, edge, original)) {
-    @strategy.retain_captured_completed_unit_result_input(
+    let (input, reader) = @strategy.retain_captured_completed_unit_result_input(
       handoff, edge, 16, 1024,
     ).unwrap()
+    assert_true(
+      @strategy.captured_completed_unit_result_input_matches(
+        handoff, edge, reader,
+      ),
+    )
     let received = @strategy.captured_pending_task_input_output(
-      run, second_task, 0,
+      run, second_task, input,
     ).unwrap()
     assert_true(physical_equal(original, received))
   }
