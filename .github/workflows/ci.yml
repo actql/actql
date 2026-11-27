@@ -186,6 +186,8 @@ jobs:
           # Keep this fixed workflow checker independent of optional unpinned external tools.
           "$tool/actionlint" -oneline -shellcheck= -pyflakes=
       - run: npm ci
+      - name: Check tracked JavaScript source exceptions
+        run: npm run check:javascript-sources
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
       - name: Check Native diagnostic counter assignments before fan-out
@@ -320,7 +322,7 @@ jobs:
         run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
       - name: Test ordinary artifact reuse and controlled performance gate
         if: needs.select-targets.outputs.profile != 'documentation'
-        run: node --test scripts/ordinary-operation-packages.test.mjs scripts/packed-provider-ai-sdk.test.mjs scripts/typescript-packaging.test.mjs scripts/typescript-bootstrap.test.mjs
+        run: node --test scripts/ordinary-operation-packages.test.mjs scripts/packed-provider-ai-sdk.test.mjs scripts/typescript-packaging.test.mjs scripts/typescript-bootstrap.test.mjs scripts/javascript-source-inventory.test.mjs
       - name: Test Client CI partition and aggregate requirements
         if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs

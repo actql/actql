@@ -6,7 +6,18 @@ import {join} from 'node:path';
 
 // This generator only copies fixed reference payloads into target tests. It
 // never invokes ActQL or calculates rounding results from the implementation.
-export function generateRoundPrecisionReference(corpus) {
+export type RoundPrecisionCorpus = {
+  format: string;
+  reference_commit: string;
+  reference_sha256: string;
+  rows: [input: string, spelling: string, digits: number, rounded: string, truncated: string, category: string][];
+  vector_count: number;
+  operation_count: number;
+  round_overflow_count: number;
+  power_pairs: [power: number, high: string, low: string][];
+};
+
+export function generateRoundPrecisionReference(corpus: RoundPrecisionCorpus) {
   assert.equal(corpus.format, 'actql-round-trunc-reference-vectors/0.1');
   assert.equal(corpus.reference_commit, '81c15b796138185c046aefe852321011fdf96615');
   assert.equal(corpus.reference_sha256, 'cea59c46644f894fc204d434b7f56f65501b103fdd1f3a81c99304343bdee78d');
@@ -14,7 +25,7 @@ export function generateRoundPrecisionReference(corpus) {
   assert.equal(corpus.vector_count, corpus.rows.length);
   assert.equal(corpus.operation_count, 2 * corpus.rows.length);
   assert.equal(corpus.power_pairs.length, 647);
-  const hex = value => {
+  const hex = (value: string) => {
     assert.match(value, /^[0-9a-f]{16}$/u);
     assert.notEqual((BigInt('0x' + value) >> 52n) & 0x7ffn, 0x7ffn, 'finite expected payload');
     return '0x' + value + 'UL';
@@ -65,11 +76,11 @@ export function generateRoundPrecisionReference(corpus) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const corpus = JSON.parse(readFileSync('portability/corpus/round-precision-reference.json', 'utf8'));
+  const corpus: RoundPrecisionCorpus = JSON.parse(readFileSync('portability/corpus/round-precision-reference.json', 'utf8'));
   const outputs = generateRoundPrecisionReference(corpus);
   const formatter = process.env.MOON_HOME
     ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
-  for (const [key, name] of [['vectors', 'round_precision_reference'], ['powers', 'round_precision_powers']]) {
+  for (const [key, name] of [['vectors', 'round_precision_reference'], ['powers', 'round_precision_powers']] as const) {
     const path = `src/execution_relation/${name}.generated_wbtest.mbt`;
     const source = execFileSync(formatter, ['-'], {input: outputs[key], encoding: 'utf8'});
     if (process.argv.includes('--write')) writeFileSync(path, source);

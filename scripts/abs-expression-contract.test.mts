@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {absLaw, updateAbsContracts} from './abs-expression-contract.mjs';
 
-function bodies() {
+import type {ArtifactRegistry, ExpressionRegistry} from './abs-expression-contract.mjs';
+
+type Branches = {oneOf: {type: string; required: string[]; additionalProperties: boolean;
+  properties: Record<string, {type?: string; $ref?: string; const?: string}>}[]};
+type ExpressionFixture = ExpressionRegistry & {schemas: {source: Branches; node: Branches}};
+
+function bodies(): [ExpressionFixture, ArtifactRegistry] {
   const source = {oneOf: [{type: 'object', additionalProperties: false,
     required: ['sqrt'], properties: {sqrt: {$ref: '#/$defs/source_expression'}}}]};
   const node = {oneOf: [{type: 'object', additionalProperties: false,
@@ -35,14 +41,15 @@ test('ABS schemas retain one child and each embedding reference without changing
 });
 
 test('ABS verification rejects stale laws, schema shapes, grammar and artifact pins', () => {
-  for (const mutate of [
-    expression => { expression.laws.abs.value = 'approximation'; },
+  const mutations: ((expression: ExpressionFixture, protocol: ArtifactRegistry) => void)[] = [
+    expression => { expression.laws.abs!.value = 'approximation'; },
     expression => { expression.schemas.source.oneOf[1].additionalProperties = true; },
     expression => { expression.schemas.node.oneOf[1].properties.body = {type: 'array'}; },
     expression => { expression.grammar_sha256 = '0'.repeat(64); },
     (_, protocol) => { protocol.artifact_registry_cid = 'sha256:' + '0'.repeat(64); },
     (_, protocol) => { protocol.artifact_schema_cids.program = 'sha256:' + '0'.repeat(64); },
-  ]) {
+  ];
+  for (const mutate of mutations) {
     const [expression, protocol] = bodies();
     updateAbsContracts(expression, protocol, grammar, true);
     mutate(expression, protocol);

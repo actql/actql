@@ -3,7 +3,7 @@
 import type {WireCheckpointSummary, WireResolveItem} from '@actql/client-wire';
 import type {CheckpointAnswerContract, CheckpointAnswerFieldRule} from '../checkpoint-answer-wire.mjs';
 
-/* @checkpoint-answer-bindings */
+/* @wire-bindings */
 
 // These names brand only the opaque objects held by the two private WeakMaps.
 declare const candidateStage: unique symbol;

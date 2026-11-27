@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {generateRoundPrecisionReference} from './round-precision-reference.mjs';
-const corpus=()=>JSON.parse(readFileSync('portability/corpus/round-precision-reference.json','utf8'));
+import type {RoundPrecisionCorpus} from './round-precision-reference.mjs';
+
+const corpus=(): RoundPrecisionCorpus =>JSON.parse(readFileSync('portability/corpus/round-precision-reference.json','utf8'));
 test('precision reference generation preserves independently fixed source payloads',()=>{
   const original=corpus(),before=structuredClone(original);
   const result=generateRoundPrecisionReference(original);
@@ -23,5 +25,5 @@ test('precision reference generator refuses stale provenance shape and nonfinite
     c=>c.reference_commit='0'.repeat(40),c=>c.rows.pop(),c=>c.rows[1]=c.rows[0],
     c=>c.rows[0][2]=1.5,c=>c.rows[0][4]='7ff0000000000000',c=>c.power_pairs.pop(),
     c=>c.power_pairs[0][0]=-324,c=>c.round_overflow_count++,
-  ]){const c=corpus();change(c);assert.throws(()=>generateRoundPrecisionReference(c));}
+  ] satisfies ((value: RoundPrecisionCorpus) => unknown)[]){const c=corpus();change(c);assert.throws(()=>generateRoundPrecisionReference(c));}
 });

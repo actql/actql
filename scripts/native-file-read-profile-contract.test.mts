@@ -67,11 +67,12 @@ test('installed row Source profile has one closed typed-array binding and indepe
   verifyIdentity(vector.input, vector.expected_cid, vector.expected_json);
   assert.equal(vector.expected_cid, 'sha256:92b44ed3a4f91fc60952e0028330b871325be1f73cad930dcd8f4a6858f6a169');
   const profile = {...vector.input, transport_cid: vector.expected_cid} as Record<string, string>;
-  const {project, structuralValidatorSource} = await import('./generate-client-publication-wire.mjs');
-  const source = 'const schemas={profile:' + JSON.stringify(project(schema)) + '};\n' +
-    structuralValidatorSource({extended: true}) +
-    'export const check=value=>valid(value,schemas.profile);';
-  const {check} = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+  const {project} = await import('./generate-client-publication-wire.mjs');
+  const {compileWireTemplate} = await import('./wire-template-compiler.mjs');
+  const {module} = compileWireTemplate('interactive-control-wire',
+    'const schemas: Readonly<Record<string, WireSchema>> = {profile:' + JSON.stringify(project(schema)) + '};', '',
+    [{name: 'check', type: 'unknown', schema: 'profile'}]);
+  const {check} = await import('data:text/javascript;base64,' + Buffer.from(module).toString('base64'));
   assert.equal(check(profile), true);
   for (const field of schema.required) {
     const missing = {...profile}; delete missing[field];
