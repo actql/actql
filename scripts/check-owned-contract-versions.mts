@@ -23,7 +23,11 @@ const tokens = new RegExp([
 ].join('|'), 'g');
 
 function registryPackageVersionEnd(text: SourceText, start: number) {
-  if (start < 0 || (start > 0 && !/[\s"'`<>()]/u.test(text[start - 1]))) return -1;
+  if (start < 0) return -1;
+  if (start > 0) {
+    const previous = text[start - 1];
+    if (previous === undefined || !/[\s"'`<>()]/u.test(previous)) return -1;
+  }
   const raw = /^[^\s"'`<>()]+/u.exec(text.slice(start))?.[0];
   if (!raw) return -1;
   let url;

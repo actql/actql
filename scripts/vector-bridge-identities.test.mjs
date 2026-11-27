@@ -4,7 +4,8 @@ import {gunzipSync} from 'node:zlib';
 import test from 'node:test';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import {vectorSchemas} from './vector-schema.mjs';
-import {project, structuralValidatorSource} from './generate-client-publication-wire.mjs';
+import {project} from './generate-client-publication-wire.mjs';
+import {structuralWireValidator} from './templates/structural-wire-validator.mjs';
 const read = path => JSON.parse(readFileSync(path,'utf8'));
 const historical = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/composite-vector-bridge/identities.json.gz')));
 const vector = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/composite-vector-bridge/signed64-identities.json.gz')));
@@ -48,7 +49,7 @@ test('composite Bridge manifest retains every prior role except exact source gra
 });
 
 test('actual generated structural validator retains ordered composite roles without claiming Carrier admission', () => {
-  const validate=new Function(structuralValidatorSource({extended:true})+'return valid;')();
+  const validate=structuralWireValidator({extended: true});
   const schema=project(vector.grammar);
   for(const id of ['tenant',['tenant'],['product_id','tenant'],['tenant','product_id']]) {
     assert(validate({id,vector:'embedding'},schema));

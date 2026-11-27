@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "8cb924989b413ee1d34ee50b9adbca291ddbe931404cb237d35acf2e697d533c",
+      "sha256": "121292f95be9e91be802714f78791a1add832a88117ea88e01d94ef861032633",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -61,7 +61,7 @@
       ],
       "operations": [
         {
-          "name": "clientHostRequestKeys/clientHostRequestKeys",
+          "name": "clientHostRequestKeys",
           "parameters": [
             "operation",
             "body"
@@ -69,56 +69,108 @@
           "async": false
         },
         {
-          "name": "clientHostRequestKeys/clientHostRequestKeys/clientHostRequestKeys",
+          "name": "clientHostRequestKeys/clientHostRequestKeys",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "matchesConnection/matchesConnection",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "matchesConnection/matchesConnection#2",
+          "parameters": [
+            "field",
+            "required"
+          ],
+          "async": false
+        },
+        {
+          "name": "matchesRequest/matchesRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid",
+          "name": "structuralWireValidator/valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#2",
+          "name": "structuralWireValidator/valid/valid#2",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#3",
+          "name": "structuralWireValidator/valid/valid#3",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid#4",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#4",
+          "name": "structuralWireValidator/valid/valid#5",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#5",
+          "name": "structuralWireValidator/valid/valid#6",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#6",
+          "name": "structuralWireValidator/valid/valid#7",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#7",
+          "name": "structuralWireValidator/valid/valid#8",
           "parameters": [
             "key",
             "item"
@@ -126,7 +178,7 @@
           "async": false
         },
         {
-          "name": "valid/valid#8",
+          "name": "structuralWireValidator/valid/valid#9",
           "parameters": [
             "key",
             "field"
@@ -134,7 +186,7 @@
           "async": false
         },
         {
-          "name": "validAdmissionContract/validAdmissionContract",
+          "name": "validAdmissionContract",
           "parameters": [
             "value",
             "selected"
@@ -142,91 +194,91 @@
           "async": false
         },
         {
-          "name": "validAdmissionShape/validAdmissionShape",
+          "name": "validAdmissionShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validCancellationAttemptShape/validCancellationAttemptShape",
+          "name": "validCancellationAttemptShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validCancellationLookupShape/validCancellationLookupShape",
+          "name": "validCancellationLookupShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validCancellationRefShape/validCancellationRefShape",
+          "name": "validCancellationRefShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validCancellationShape/validCancellationShape",
+          "name": "validCancellationShape",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validCheckOutcomeContract",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validCheckOutcomeContract/documents/documents",
+          "parameters": [
+            "input"
           ],
           "async": false
         },
         {
           "name": "validCheckOutcomeContract/validCheckOutcomeContract",
           "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "validCheckOutcomeContract/validCheckOutcomeContract/documents/documents",
-          "parameters": [
             "input"
           ],
           "async": false
         },
         {
-          "name": "validCheckOutcomeContract/validCheckOutcomeContract/validCheckOutcomeContract",
-          "parameters": [
-            "input"
-          ],
-          "async": false
-        },
-        {
-          "name": "validCheckOutcomeContract/validCheckOutcomeContract/validCheckOutcomeContract#2",
+          "name": "validCheckOutcomeContract/validCheckOutcomeContract#2",
           "parameters": [
             "edit"
           ],
           "async": false
         },
         {
-          "name": "validCheckOutcomeShape/validCheckOutcomeShape",
+          "name": "validCheckOutcomeShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validCheckpointReviewShape/validCheckpointReviewShape",
+          "name": "validCheckpointReviewShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validCheckpointSummaryShape/validCheckpointSummaryShape",
+          "name": "validCheckpointSummaryShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validClientRequestOptionalFields/validClientRequestOptionalFields",
+          "name": "validClientRequestOptionalFields",
           "parameters": [
             "operation",
             "body"
@@ -234,7 +286,7 @@
           "async": false
         },
         {
-          "name": "validClientRequestOptionalFields/validClientRequestOptionalFields/validClientRequestOptionalFields",
+          "name": "validClientRequestOptionalFields/validClientRequestOptionalFields",
           "parameters": [
             "key",
             "schema"
@@ -242,14 +294,14 @@
           "async": false
         },
         {
-          "name": "validConnectionShape/validConnectionShape",
+          "name": "validConnectionShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validHeldContract/validHeldContract",
+          "name": "validHeldContract",
           "parameters": [
             "value",
             "expected"
@@ -257,70 +309,70 @@
           "async": false
         },
         {
-          "name": "validHeldShape/validHeldShape",
+          "name": "validHeldShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validLookupFoundShape/validLookupFoundShape",
+          "name": "validLookupFoundShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validLookupNotFoundShape/validLookupNotFoundShape",
+          "name": "validLookupNotFoundShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validLookupUnknownShape/validLookupUnknownShape",
+          "name": "validLookupUnknownShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validNamedSubmissionAttemptShape/validNamedSubmissionAttemptShape",
+          "name": "validNamedSubmissionAttemptShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validOperationAttemptRefShape/validOperationAttemptRefShape",
+          "name": "validOperationAttemptRefShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validOwnerCursorShape/validOwnerCursorShape",
+          "name": "validOwnerCursorShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validOwnerObservationsShape/validOwnerObservationsShape",
+          "name": "validOwnerObservationsShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validOwnerRefShape/validOwnerRefShape",
+          "name": "validOwnerRefShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validProfileContract/validProfileContract",
+          "name": "validProfileContract",
           "parameters": [
             "value",
             "selected"
@@ -328,21 +380,21 @@
           "async": false
         },
         {
-          "name": "validProfileShape/validProfileShape",
+          "name": "validProfileShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validRequestCancellationShape/validRequestCancellationShape",
+          "name": "validRequestCancellationShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validRequestLookupContract/validRequestLookupContract",
+          "name": "validRequestLookupContract",
           "parameters": [
             "value",
             "expected"
@@ -350,63 +402,63 @@
           "async": false
         },
         {
-          "name": "validResolveItemShape/validResolveItemShape",
+          "name": "validResolveItemShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validResolveResultShape/validResolveResultShape",
+          "name": "validResolveResultShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validResourceInspectionShape/validResourceInspectionShape",
+          "name": "validResourceInspectionShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validResourceListingShape/validResourceListingShape",
+          "name": "validResourceListingShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validResourcePeekShape/validResourcePeekShape",
+          "name": "validResourcePeekShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validResultDescriptionShape/validResultDescriptionShape",
+          "name": "validResultDescriptionShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validRunRefShape/validRunRefShape",
+          "name": "validRunRefShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validRunStateShape/validRunStateShape",
+          "name": "validRunStateShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validRunWaitContract/validRunWaitContract",
+          "name": "validRunWaitContract",
           "parameters": [
             "value",
             "since"
@@ -414,56 +466,56 @@
           "async": false
         },
         {
-          "name": "validSubmissionAttemptShape/validSubmissionAttemptShape",
+          "name": "validSubmissionAttemptShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validSubmissionEpochShape/validSubmissionEpochShape",
+          "name": "validSubmissionEpochShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validSubmissionLookupShape/validSubmissionLookupShape",
+          "name": "validSubmissionLookupShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validSubmissionNameShape/validSubmissionNameShape",
+          "name": "validSubmissionNameShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validSubmissionOutcomeShape/validSubmissionOutcomeShape",
+          "name": "validSubmissionOutcomeShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validSubmissionRefShape/validSubmissionRefShape",
+          "name": "validSubmissionRefShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validSubmissionRestartShape/validSubmissionRestartShape",
+          "name": "validSubmissionRestartShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validSubmitPreparationErrorShape/validSubmitPreparationErrorShape",
+          "name": "validSubmitPreparationErrorShape",
           "parameters": [
             "value"
           ],
@@ -572,7 +624,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -592,14 +644,18 @@
         },
         {
           "operations": [
-            "valid/valid",
-            "valid/valid#2",
-            "valid/valid#3",
-            "valid/valid#4",
-            "valid/valid#5",
-            "valid/valid#6",
-            "valid/valid#7",
-            "valid/valid#8"
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "structuralWireValidator/valid",
+            "structuralWireValidator/valid/valid",
+            "structuralWireValidator/valid/valid#2",
+            "structuralWireValidator/valid/valid#3",
+            "structuralWireValidator/valid/valid#4",
+            "structuralWireValidator/valid/valid#5",
+            "structuralWireValidator/valid/valid#6",
+            "structuralWireValidator/valid/valid#7",
+            "structuralWireValidator/valid/valid#8",
+            "structuralWireValidator/valid/valid#9"
           ],
           "exports": [],
           "attributes": {
@@ -609,8 +665,8 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mts",
-                "anchor": "structuralValidatorSource"
+                "path": "scripts/templates/structural-wire-validator.mts",
+                "anchor": "function structuralWireValidator"
               },
               {
                 "path": "docs/reviews/2026-10-04-native-wire-contract.md",
@@ -683,7 +739,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -699,8 +755,10 @@
         },
         {
           "operations": [
-            "validAdmissionContract/validAdmissionContract",
-            "validProfileContract/validProfileContract"
+            "matchesConnection/matchesConnection",
+            "matchesConnection/matchesConnection#2",
+            "validAdmissionContract",
+            "validProfileContract"
           ],
           "exports": [
             "validAdmissionContract",
@@ -717,8 +775,8 @@
                 "anchor": "\"response_rules\""
               },
               {
-                "path": "scripts/generate-native-client-wire.mts",
-                "anchor": "jsResponseRules"
+                "path": "scripts/templates/client-host-wire.mts",
+                "anchor": "function matchesConnection"
               }
             ],
             "inputsOutputs": [
@@ -787,7 +845,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -803,8 +861,9 @@
         },
         {
           "operations": [
-            "validHeldContract/validHeldContract",
-            "validRequestLookupContract/validRequestLookupContract"
+            "matchesRequest/matchesRequest",
+            "validHeldContract",
+            "validRequestLookupContract"
           ],
           "exports": [
             "validHeldContract",
@@ -821,8 +880,8 @@
                 "anchor": "\"request_response_rules\""
               },
               {
-                "path": "scripts/generate-native-client-wire.mts",
-                "anchor": "jsRequestResponseRules"
+                "path": "scripts/templates/client-host-wire.mts",
+                "anchor": "function matchesRequest"
               }
             ],
             "inputsOutputs": [
@@ -891,7 +950,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -908,10 +967,10 @@
         {
           "operations": [
             "validCheckOutcomeContract/validCheckOutcomeContract",
-            "validCheckOutcomeContract/validCheckOutcomeContract/documents/documents",
-            "validCheckOutcomeContract/validCheckOutcomeContract/validCheckOutcomeContract",
-            "validCheckOutcomeContract/validCheckOutcomeContract/validCheckOutcomeContract#2",
-            "validCheckOutcomeShape/validCheckOutcomeShape"
+            "validCheckOutcomeContract",
+            "validCheckOutcomeContract/documents/documents",
+            "validCheckOutcomeContract/validCheckOutcomeContract#2",
+            "validCheckOutcomeShape"
           ],
           "exports": [
             "validCheckOutcomeContract",
@@ -928,8 +987,8 @@
                 "anchor": "\"check_report_rules\""
               },
               {
-                "path": "scripts/client-check-report-rules.mts",
-                "anchor": "jsCheckReportRules"
+                "path": "scripts/templates/client-host-wire.mts",
+                "anchor": "export function validCheckOutcomeContract"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -1038,7 +1097,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1058,7 +1117,7 @@
                 "anchor": "test('Take binding conditions are closed template Requirements"
               },
               {
-                "path": "packages/sdk/domain-carrier-presentation.test.mjs",
+                "path": "packages/sdk/domain-carrier-presentation.test.mts",
                 "anchor": "test('closed operand and carrier facts give immutable specific English and Japanese advice'"
               }
             ]
@@ -1067,9 +1126,9 @@
         {
           "operations": [
             "clientHostRequestKeys/clientHostRequestKeys",
-            "clientHostRequestKeys/clientHostRequestKeys/clientHostRequestKeys",
             "validClientRequestOptionalFields/validClientRequestOptionalFields",
-            "validClientRequestOptionalFields/validClientRequestOptionalFields/validClientRequestOptionalFields"
+            "clientHostRequestKeys",
+            "validClientRequestOptionalFields"
           ],
           "exports": [
             "clientHostRequestKeys",
@@ -1224,7 +1283,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1256,39 +1315,39 @@
         },
         {
           "operations": [
-            "validAdmissionShape/validAdmissionShape",
-            "validCancellationAttemptShape/validCancellationAttemptShape",
-            "validCancellationLookupShape/validCancellationLookupShape",
-            "validCancellationRefShape/validCancellationRefShape",
-            "validCancellationShape/validCancellationShape",
-            "validCheckpointReviewShape/validCheckpointReviewShape",
-            "validCheckpointSummaryShape/validCheckpointSummaryShape",
-            "validConnectionShape/validConnectionShape",
-            "validHeldShape/validHeldShape",
-            "validLookupFoundShape/validLookupFoundShape",
-            "validLookupNotFoundShape/validLookupNotFoundShape",
-            "validLookupUnknownShape/validLookupUnknownShape",
-            "validOperationAttemptRefShape/validOperationAttemptRefShape",
-            "validOwnerCursorShape/validOwnerCursorShape",
-            "validOwnerObservationsShape/validOwnerObservationsShape",
-            "validOwnerRefShape/validOwnerRefShape",
-            "validProfileShape/validProfileShape",
-            "validRequestCancellationShape/validRequestCancellationShape",
-            "validResolveItemShape/validResolveItemShape",
-            "validResolveResultShape/validResolveResultShape",
-            "validResourceInspectionShape/validResourceInspectionShape",
-            "validResourceListingShape/validResourceListingShape",
-            "validResourcePeekShape/validResourcePeekShape",
-            "validResultDescriptionShape/validResultDescriptionShape",
-            "validRunRefShape/validRunRefShape",
-            "validRunStateShape/validRunStateShape",
-            "validSubmissionAttemptShape/validSubmissionAttemptShape",
-            "validSubmissionEpochShape/validSubmissionEpochShape",
-            "validSubmissionLookupShape/validSubmissionLookupShape",
-            "validSubmissionOutcomeShape/validSubmissionOutcomeShape",
-            "validSubmissionRefShape/validSubmissionRefShape",
-            "validSubmissionRestartShape/validSubmissionRestartShape",
-            "validSubmitPreparationErrorShape/validSubmitPreparationErrorShape"
+            "validAdmissionShape",
+            "validCancellationAttemptShape",
+            "validCancellationLookupShape",
+            "validCancellationRefShape",
+            "validCancellationShape",
+            "validCheckpointReviewShape",
+            "validCheckpointSummaryShape",
+            "validConnectionShape",
+            "validHeldShape",
+            "validLookupFoundShape",
+            "validLookupNotFoundShape",
+            "validLookupUnknownShape",
+            "validOperationAttemptRefShape",
+            "validOwnerCursorShape",
+            "validOwnerObservationsShape",
+            "validOwnerRefShape",
+            "validProfileShape",
+            "validRequestCancellationShape",
+            "validResolveItemShape",
+            "validResolveResultShape",
+            "validResourceInspectionShape",
+            "validResourceListingShape",
+            "validResourcePeekShape",
+            "validResultDescriptionShape",
+            "validRunRefShape",
+            "validRunStateShape",
+            "validSubmissionAttemptShape",
+            "validSubmissionEpochShape",
+            "validSubmissionLookupShape",
+            "validSubmissionOutcomeShape",
+            "validSubmissionRefShape",
+            "validSubmissionRestartShape",
+            "validSubmitPreparationErrorShape"
           ],
           "exports": [
             "validAdmissionShape",
@@ -1414,7 +1473,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1612,7 +1671,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -1644,7 +1703,7 @@
         },
         {
           "operations": [
-            "validRunWaitContract/validRunWaitContract"
+            "validRunWaitContract"
           ],
           "exports": [
             "validRunWaitContract"
@@ -1722,8 +1781,8 @@
         },
         {
           "operations": [
-            "validNamedSubmissionAttemptShape/validNamedSubmissionAttemptShape",
-            "validSubmissionNameShape/validSubmissionNameShape"
+            "validNamedSubmissionAttemptShape",
+            "validSubmissionNameShape"
           ],
           "exports": [
             "validNamedSubmissionAttemptShape",
@@ -1836,12 +1895,19 @@
             ]
           }
         }
+      ],
+      "privateOperations": [
+        "matchesConnection",
+        "matchesRequest",
+        "sameConstant",
+        "structuralWireValidator",
+        "wireObject"
       ]
     },
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "88cad7ce9418fdedf63d015d9e0b5919aff4be0a13fb6cb298f477ddd2a0b9cd",
+      "sha256": "b3a896c40634a02b40786f074e95bc5e84b7dab6529adf71b0ce89ee471f1cc6",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",
@@ -1895,56 +1961,79 @@
       ],
       "operations": [
         {
-          "name": "valid/valid",
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#2",
+          "name": "structuralWireValidator/valid/valid#2",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#3",
+          "name": "structuralWireValidator/valid/valid#3",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#4",
+          "name": "structuralWireValidator/valid/valid#4",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#5",
+          "name": "structuralWireValidator/valid/valid#5",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#6",
+          "name": "structuralWireValidator/valid/valid#6",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#7",
+          "name": "structuralWireValidator/valid/valid#7",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#8",
+          "name": "structuralWireValidator/valid/valid#8",
           "parameters": [
             "key",
             "item"
@@ -1952,7 +2041,7 @@
           "async": false
         },
         {
-          "name": "valid/valid#9",
+          "name": "structuralWireValidator/valid/valid#9",
           "parameters": [
             "key",
             "field"
@@ -1960,329 +2049,329 @@
           "async": false
         },
         {
-          "name": "validWireControlAdmissionShape/validWireControlAdmissionShape",
+          "name": "validWireControlAdmissionShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlCommandShape/validWireControlCommandShape",
+          "name": "validWireControlCommandShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlGuardsShape/validWireControlGuardsShape",
+          "name": "validWireControlGuardsShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlIntervalShape/validWireControlIntervalShape",
+          "name": "validWireControlIntervalShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlledRunStateShape/validWireControlledRunStateShape",
+          "name": "validWireControlledRunStateShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlMoneyShape/validWireControlMoneyShape",
+          "name": "validWireControlMoneyShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlOperationLookupShape/validWireControlOperationLookupShape",
+          "name": "validWireControlOperationLookupShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlOperationObservationShape/validWireControlOperationObservationShape",
+          "name": "validWireControlOperationObservationShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlOperationQueryShape/validWireControlOperationQueryShape",
+          "name": "validWireControlOperationQueryShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlOperationReceiptShape/validWireControlOperationReceiptShape",
+          "name": "validWireControlOperationReceiptShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlOperationRefShape/validWireControlOperationRefShape",
+          "name": "validWireControlOperationRefShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlProfileShape/validWireControlProfileShape",
+          "name": "validWireControlProfileShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlQuantityShape/validWireControlQuantityShape",
+          "name": "validWireControlQuantityShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlRequestIntentShape/validWireControlRequestIntentShape",
+          "name": "validWireControlRequestIntentShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireControlResumeOriginShape/validWireControlResumeOriginShape",
+          "name": "validWireControlResumeOriginShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireEffectfulStaticPlanViewShape/validWireEffectfulStaticPlanViewShape",
+          "name": "validWireEffectfulStaticPlanViewShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationContextShape/validWireExplanationContextShape",
+          "name": "validWireExplanationContextShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationExpressionNodeShape/validWireExplanationExpressionNodeShape",
+          "name": "validWireExplanationExpressionNodeShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationFactsShape/validWireExplanationFactsShape",
+          "name": "validWireExplanationFactsShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationMeaningShape/validWireExplanationMeaningShape",
+          "name": "validWireExplanationMeaningShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationPredicateShape/validWireExplanationPredicateShape",
+          "name": "validWireExplanationPredicateShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationSchemaShape/validWireExplanationSchemaShape",
+          "name": "validWireExplanationSchemaShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationStepShape/validWireExplanationStepShape",
+          "name": "validWireExplanationStepShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireExplanationTypeShape/validWireExplanationTypeShape",
+          "name": "validWireExplanationTypeShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireLogicalMapShape/validWireLogicalMapShape",
+          "name": "validWireLogicalMapShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireLogicalPortKeyShape/validWireLogicalPortKeyShape",
+          "name": "validWireLogicalPortKeyShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireLogicalPortShape/validWireLogicalPortShape",
+          "name": "validWireLogicalPortShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireLogicalSourceLocatorShape/validWireLogicalSourceLocatorShape",
+          "name": "validWireLogicalSourceLocatorShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireLogicalStepKeyShape/validWireLogicalStepKeyShape",
+          "name": "validWireLogicalStepKeyShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireLogicalStepShape/validWireLogicalStepShape",
+          "name": "validWireLogicalStepShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWirePlanViewShape/validWirePlanViewShape",
+          "name": "validWirePlanViewShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireResolvedControlProfileShape/validWireResolvedControlProfileShape",
+          "name": "validWireResolvedControlProfileShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireRunControlCapabilitiesShape/validWireRunControlCapabilitiesShape",
+          "name": "validWireRunControlCapabilitiesShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireRunExplanationContextViewShape/validWireRunExplanationContextViewShape",
+          "name": "validWireRunExplanationContextViewShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireRunExplanationViewShape/validWireRunExplanationViewShape",
+          "name": "validWireRunExplanationViewShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireRunPlanViewShape/validWireRunPlanViewShape",
+          "name": "validWireRunPlanViewShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireRunSampleShape/validWireRunSampleShape",
+          "name": "validWireRunSampleShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireRunViewShape/validWireRunViewShape",
+          "name": "validWireRunViewShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleCaptureShape/validWireSampleCaptureShape",
+          "name": "validWireSampleCaptureShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleCellShape/validWireSampleCellShape",
+          "name": "validWireSampleCellShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleEventsShape/validWireSampleEventsShape",
+          "name": "validWireSampleEventsShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleGraphShape/validWireSampleGraphShape",
+          "name": "validWireSampleGraphShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleRelationShape/validWireSampleRelationShape",
+          "name": "validWireSampleRelationShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleSelectorShape/validWireSampleSelectorShape",
+          "name": "validWireSampleSelectorShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleSourceShape/validWireSampleSourceShape",
+          "name": "validWireSampleSourceShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireSampleVectorsShape/validWireSampleVectorsShape",
+          "name": "validWireSampleVectorsShape",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validWireStaticExplanationViewShape/validWireStaticExplanationViewShape",
+          "name": "validWireStaticExplanationViewShape",
           "parameters": [
             "value"
           ],
@@ -2379,7 +2468,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2395,15 +2484,18 @@
         },
         {
           "operations": [
-            "valid/valid",
-            "valid/valid#2",
-            "valid/valid#3",
-            "valid/valid#4",
-            "valid/valid#5",
-            "valid/valid#6",
-            "valid/valid#7",
-            "valid/valid#8",
-            "valid/valid#9"
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "structuralWireValidator/valid",
+            "structuralWireValidator/valid/valid",
+            "structuralWireValidator/valid/valid#2",
+            "structuralWireValidator/valid/valid#3",
+            "structuralWireValidator/valid/valid#4",
+            "structuralWireValidator/valid/valid#5",
+            "structuralWireValidator/valid/valid#6",
+            "structuralWireValidator/valid/valid#7",
+            "structuralWireValidator/valid/valid#8",
+            "structuralWireValidator/valid/valid#9"
           ],
           "exports": [],
           "attributes": {
@@ -2413,8 +2505,8 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mts",
-                "anchor": "structuralValidatorSource"
+                "path": "scripts/templates/structural-wire-validator.mts",
+                "anchor": "function structuralWireValidator"
               },
               {
                 "path": "docs/reviews/2026-10-04-native-wire-contract.md",
@@ -2487,7 +2579,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2503,53 +2595,53 @@
         },
         {
           "operations": [
-            "validWireControlAdmissionShape/validWireControlAdmissionShape",
-            "validWireControlCommandShape/validWireControlCommandShape",
-            "validWireControlGuardsShape/validWireControlGuardsShape",
-            "validWireControlIntervalShape/validWireControlIntervalShape",
-            "validWireControlledRunStateShape/validWireControlledRunStateShape",
-            "validWireControlMoneyShape/validWireControlMoneyShape",
-            "validWireControlOperationLookupShape/validWireControlOperationLookupShape",
-            "validWireControlOperationObservationShape/validWireControlOperationObservationShape",
-            "validWireControlOperationQueryShape/validWireControlOperationQueryShape",
-            "validWireControlOperationReceiptShape/validWireControlOperationReceiptShape",
-            "validWireControlOperationRefShape/validWireControlOperationRefShape",
-            "validWireControlProfileShape/validWireControlProfileShape",
-            "validWireControlQuantityShape/validWireControlQuantityShape",
-            "validWireControlRequestIntentShape/validWireControlRequestIntentShape",
-            "validWireControlResumeOriginShape/validWireControlResumeOriginShape",
-            "validWireEffectfulStaticPlanViewShape/validWireEffectfulStaticPlanViewShape",
-            "validWireExplanationExpressionNodeShape/validWireExplanationExpressionNodeShape",
-            "validWireExplanationContextShape/validWireExplanationContextShape",
-            "validWireExplanationFactsShape/validWireExplanationFactsShape",
-            "validWireExplanationMeaningShape/validWireExplanationMeaningShape",
-            "validWireExplanationPredicateShape/validWireExplanationPredicateShape",
-            "validWireExplanationSchemaShape/validWireExplanationSchemaShape",
-            "validWireExplanationStepShape/validWireExplanationStepShape",
-            "validWireExplanationTypeShape/validWireExplanationTypeShape",
-            "validWireLogicalMapShape/validWireLogicalMapShape",
-            "validWireLogicalPortKeyShape/validWireLogicalPortKeyShape",
-            "validWireLogicalPortShape/validWireLogicalPortShape",
-            "validWireLogicalSourceLocatorShape/validWireLogicalSourceLocatorShape",
-            "validWireLogicalStepKeyShape/validWireLogicalStepKeyShape",
-            "validWireLogicalStepShape/validWireLogicalStepShape",
-            "validWirePlanViewShape/validWirePlanViewShape",
-            "validWireResolvedControlProfileShape/validWireResolvedControlProfileShape",
-            "validWireRunControlCapabilitiesShape/validWireRunControlCapabilitiesShape",
-            "validWireRunExplanationViewShape/validWireRunExplanationViewShape",
-            "validWireRunPlanViewShape/validWireRunPlanViewShape",
-            "validWireRunSampleShape/validWireRunSampleShape",
-            "validWireRunViewShape/validWireRunViewShape",
-            "validWireSampleCaptureShape/validWireSampleCaptureShape",
-            "validWireSampleCellShape/validWireSampleCellShape",
-            "validWireSampleEventsShape/validWireSampleEventsShape",
-            "validWireSampleGraphShape/validWireSampleGraphShape",
-            "validWireSampleRelationShape/validWireSampleRelationShape",
-            "validWireSampleSelectorShape/validWireSampleSelectorShape",
-            "validWireSampleSourceShape/validWireSampleSourceShape",
-            "validWireSampleVectorsShape/validWireSampleVectorsShape",
-            "validWireStaticExplanationViewShape/validWireStaticExplanationViewShape",
-            "validWireRunExplanationContextViewShape/validWireRunExplanationContextViewShape"
+            "validWireControlAdmissionShape",
+            "validWireControlCommandShape",
+            "validWireControlGuardsShape",
+            "validWireControlIntervalShape",
+            "validWireControlledRunStateShape",
+            "validWireControlMoneyShape",
+            "validWireControlOperationLookupShape",
+            "validWireControlOperationObservationShape",
+            "validWireControlOperationQueryShape",
+            "validWireControlOperationReceiptShape",
+            "validWireControlOperationRefShape",
+            "validWireControlProfileShape",
+            "validWireControlQuantityShape",
+            "validWireControlRequestIntentShape",
+            "validWireControlResumeOriginShape",
+            "validWireEffectfulStaticPlanViewShape",
+            "validWireExplanationContextShape",
+            "validWireExplanationExpressionNodeShape",
+            "validWireExplanationFactsShape",
+            "validWireExplanationMeaningShape",
+            "validWireExplanationPredicateShape",
+            "validWireExplanationSchemaShape",
+            "validWireExplanationStepShape",
+            "validWireExplanationTypeShape",
+            "validWireLogicalMapShape",
+            "validWireLogicalPortKeyShape",
+            "validWireLogicalPortShape",
+            "validWireLogicalSourceLocatorShape",
+            "validWireLogicalStepKeyShape",
+            "validWireLogicalStepShape",
+            "validWirePlanViewShape",
+            "validWireResolvedControlProfileShape",
+            "validWireRunControlCapabilitiesShape",
+            "validWireRunExplanationContextViewShape",
+            "validWireRunExplanationViewShape",
+            "validWireRunPlanViewShape",
+            "validWireRunSampleShape",
+            "validWireRunViewShape",
+            "validWireSampleCaptureShape",
+            "validWireSampleCellShape",
+            "validWireSampleEventsShape",
+            "validWireSampleGraphShape",
+            "validWireSampleRelationShape",
+            "validWireSampleSelectorShape",
+            "validWireSampleSourceShape",
+            "validWireSampleVectorsShape",
+            "validWireStaticExplanationViewShape"
           ],
           "exports": [
             "validWireControlAdmissionShape",
@@ -2611,8 +2703,8 @@
                 "anchor": "generateControlWire"
               },
               {
-                "path": "scripts/generate-interactive-run-control-wire.mts",
-                "anchor": "structuralValidatorSource({extended: true})"
+                "path": "scripts/templates/interactive-control-wire.mts",
+                "anchor": "structuralWireValidator({schemas, extended: true})"
               }
             ],
             "inputsOutputs": [
@@ -2689,7 +2781,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2808,7 +2900,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -2822,12 +2914,17 @@
             ]
           }
         }
+      ],
+      "privateOperations": [
+        "sameConstant",
+        "structuralWireValidator",
+        "wireObject"
       ]
     },
     {
       "module": "packages/client-wire/publication.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "36811fd3a5f3130485117e9d2d62eaa980c7b81dc51421c89e35f6e5d347c101",
+      "sha256": "c30183307563f1480967275ee856ebbf2421a477ee00d0ab1a64b1f608f3e479",
       "exports": [
         "validDeliveryAttempt",
         "validDeliveryRecord",
@@ -2835,49 +2932,79 @@
       ],
       "operations": [
         {
-          "name": "valid/valid",
+          "name": "sameConstant/sameConstant",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameConstant/sameConstant#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid",
+          "parameters": [
+            "value",
+            "schema"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#2",
+          "name": "structuralWireValidator/valid/valid#2",
           "parameters": [
             "rule"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#3",
+          "name": "structuralWireValidator/valid/valid#3",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "structuralWireValidator/valid/valid#4",
           "parameters": [
             "item"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#4",
+          "name": "structuralWireValidator/valid/valid#5",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#5",
+          "name": "structuralWireValidator/valid/valid#6",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#6",
+          "name": "structuralWireValidator/valid/valid#7",
           "parameters": [
             "key"
           ],
           "async": false
         },
         {
-          "name": "valid/valid#7",
+          "name": "structuralWireValidator/valid/valid#8",
           "parameters": [
             "key",
             "item"
@@ -2885,7 +3012,7 @@
           "async": false
         },
         {
-          "name": "valid/valid#8",
+          "name": "structuralWireValidator/valid/valid#9",
           "parameters": [
             "key",
             "field"
@@ -2893,21 +3020,21 @@
           "async": false
         },
         {
-          "name": "validDeliveryAttempt/validDeliveryAttempt",
+          "name": "validDeliveryAttempt",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validDeliveryRecord/validDeliveryRecord",
+          "name": "validDeliveryRecord",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "validHostReleaseReceipt/validHostReleaseReceipt",
+          "name": "validHostReleaseReceipt",
           "parameters": [
             "value"
           ],
@@ -3004,7 +3131,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3020,14 +3147,18 @@
         },
         {
           "operations": [
-            "valid/valid",
-            "valid/valid#2",
-            "valid/valid#3",
-            "valid/valid#4",
-            "valid/valid#5",
-            "valid/valid#6",
-            "valid/valid#7",
-            "valid/valid#8"
+            "sameConstant/sameConstant",
+            "sameConstant/sameConstant#2",
+            "structuralWireValidator/valid",
+            "structuralWireValidator/valid/valid",
+            "structuralWireValidator/valid/valid#2",
+            "structuralWireValidator/valid/valid#3",
+            "structuralWireValidator/valid/valid#4",
+            "structuralWireValidator/valid/valid#5",
+            "structuralWireValidator/valid/valid#6",
+            "structuralWireValidator/valid/valid#7",
+            "structuralWireValidator/valid/valid#8",
+            "structuralWireValidator/valid/valid#9"
           ],
           "exports": [],
           "attributes": {
@@ -3037,8 +3168,8 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mts",
-                "anchor": "structuralValidatorSource"
+                "path": "scripts/templates/structural-wire-validator.mts",
+                "anchor": "function structuralWireValidator"
               },
               {
                 "path": "docs/reviews/2026-10-04-native-wire-contract.md",
@@ -3111,7 +3242,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3127,9 +3258,9 @@
         },
         {
           "operations": [
-            "validDeliveryAttempt/validDeliveryAttempt",
-            "validDeliveryRecord/validDeliveryRecord",
-            "validHostReleaseReceipt/validHostReleaseReceipt"
+            "validDeliveryAttempt",
+            "validDeliveryRecord",
+            "validHostReleaseReceipt"
           ],
           "exports": [
             "validDeliveryAttempt",
@@ -3217,7 +3348,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3244,7 +3375,7 @@
               },
               {
                 "path": "scripts/generate-client-publication-wire.mts",
-                "anchor": "const schemas ="
+                "anchor": "const schemas: Readonly<Record<string, WireSchema>>"
               }
             ],
             "inputsOutputs": [
@@ -3313,7 +3444,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3327,6 +3458,11 @@
             ]
           }
         }
+      ],
+      "privateOperations": [
+        "sameConstant",
+        "structuralWireValidator",
+        "wireObject"
       ]
     },
     {
@@ -3517,7 +3653,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3549,8 +3685,8 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mts",
-                "anchor": "structuralValidatorSource"
+                "path": "scripts/templates/structural-wire-validator.mts",
+                "anchor": "function structuralWireValidator"
               },
               {
                 "path": "docs/reviews/2026-10-04-native-wire-contract.md",
@@ -3631,7 +3767,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3729,7 +3865,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3827,7 +3963,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -3929,7 +4065,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4037,7 +4173,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4312,8 +4448,8 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mts",
-                "anchor": "structuralValidatorSource"
+                "path": "scripts/templates/structural-wire-validator.mts",
+                "anchor": "function structuralWireValidator"
               },
               {
                 "path": "docs/reviews/2026-10-04-native-wire-contract.md",
@@ -4386,7 +4522,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4495,7 +4631,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4601,7 +4737,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4707,7 +4843,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4809,7 +4945,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -4911,7 +5047,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {
@@ -5017,7 +5153,7 @@
                 "anchor": "| verification |"
               },
               {
-                "path": "scripts/check-public-wire-codecs.mjs",
+                "path": "scripts/check-public-wire-codecs.mts",
                 "anchor": "Actual Native production codec vectors"
               },
               {

@@ -59,15 +59,19 @@ test('metadata updates report changes, clear evidence and preserve explicit IDs'
   const d = { spec_id: 'actql.test', path: 'test.md' };
   const source = '<a id="rule"></a>\n\n<!-- requirement-block: rule -->\nThe input MUST be finite.\n';
   const first = updateRequirements(d, source, { requirements: [] as Registry['requirements'] });
-  assert.equal(first.changes[0].change, 'added');
-  first.registry.requirements[0].status = 'verified';
-  (first.registry.requirements[0] as RequirementWithEvidence).evidence = ['unrelated-proof'];
+  assert.equal(first.changes[0]?.change, 'added');
+  const [verified] = first.registry.requirements as RequirementWithEvidence[];
+  assert.ok(verified);
+  verified.status = 'verified';
+  verified.evidence = ['unrelated-proof'];
   assert.equal(updateRequirements(d, source, first.registry).changes.length, 0);
   const changed = updateRequirements(d, source.replace('finite', 'nonempty'), first.registry);
-  assert.equal(changed.registry.requirements[0].status, 'pending');
-  assert.equal((changed.registry.requirements[0] as RequirementWithEvidence).evidence, undefined);
-  assert.equal(changed.registry.requirements[0].requirement_id, 'actql.test/rule');
-  assert.equal(updateRequirements(d, '', first.registry).changes[0].change, 'removed');
+  const [pending] = changed.registry.requirements as RequirementWithEvidence[];
+  assert.ok(pending);
+  assert.equal(pending.status, 'pending');
+  assert.equal(pending.evidence, undefined);
+  assert.equal(pending.requirement_id, 'actql.test/rule');
+  assert.equal(updateRequirements(d, '', first.registry).changes[0]?.change, 'removed');
   assert.throws(() => updateRequirements(d, 'An input MUST be finite.', first.registry), /Unmarked/);
 });
 
@@ -91,7 +95,8 @@ test('broken local links fail', () => {
 });
 test('broken local anchors fail and existing anchors pass', () => {
   assert.throws(() => validateLocalLinks('README.md', '[missing](README.md#not-an-existing-anchor)'), /Broken anchor/);
-  const heading = [...anchors(markdown(readFileSync('README.md', 'utf8')))][0];
+  const [heading] = anchors(markdown(readFileSync('README.md', 'utf8')));
+  assert.ok(heading);
   assert.equal(validateLocalLinks('README.md', `[home](README.md#${encodeURIComponent(heading)})`), 1);
 });
 
@@ -101,7 +106,7 @@ test('YAML decoding rejects duplicate keys and malformed syntax', () => {
 });
 test('Unicode business values and quoted version fields are accepted', () => {
   const p = programs('version: "actql/0.1"\nid: demo\nvalue: 日本語', 'demo.aql');
-  assert.equal(p[0].value, '\u65e5\u672c\u8a9e');
+  assert.equal(p[0]?.value, '\u65e5\u672c\u8a9e');
 });
 test('Development Graph excerpt uses the current independent public Program', () => {
   const readme = readFileSync('docs/development.md', 'utf8');
@@ -109,13 +114,15 @@ test('Development Graph excerpt uses the current independent public Program', ()
   assert.ok(section, 'the current Graph example is present');
   const blocks = nodes(markdown(section)).filter(node => node.type === 'code');
   assert.equal(blocks.length, 1);
-  assert.equal(blocks[0].lang, 'yaml');
+  const [block] = blocks;
+  assert.ok(block);
+  assert.equal(block.lang, 'yaml');
   const fixturePath = 'scripts/fixtures/graph-parallel.program.json';
   const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
   // This hand-authored fixture already has independent Local/HTTPS Result,
   // identity, snapshot and refusal checks. Do not generate it from a compiler
   // or replace those execution checks with this documentation comparison.
-  assert.deepEqual(decodeYaml(blocks[0].value, 'README Graph'),
+  assert.deepEqual(decodeYaml(block.value, 'README Graph'),
     fixture.stages[0].steps.slice(2));
   assert.ok(section.includes(`](../${fixturePath})`));
   assert.ok(section.includes("format: 'json'"));
@@ -132,6 +139,8 @@ test('acceptance definitions can grow; duplicates and missing references fail', 
   const cases = { cases: ['a', 'b', 'c'].map(case_id => ({ case_id, given: 'input', when: 'action', then: 'expectation' })) };
   const trace = { decisions: [{ acceptance_cases: ['a'] }], maintained: [] };
   assert.equal(validateCases(cases, trace), 3);
-  assert.throws(() => validateCases({ cases: [...cases.cases, cases.cases[0]] }, trace));
+  const [duplicate] = cases.cases;
+  assert.ok(duplicate);
+  assert.throws(() => validateCases({ cases: [...cases.cases, duplicate] }, trace));
   assert.throws(() => validateCases(cases, { ...trace, additional_questions: [{ case_ids: ['missing'] }] }));
 });

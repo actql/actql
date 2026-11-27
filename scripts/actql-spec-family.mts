@@ -30,11 +30,13 @@ export const documentCid = (source: BinaryLike) => 'sha256:'+createHash('sha256'
 /** Check both directions: validating registered bodies alone misses new markers. */
 export function validateMachineImports(documents: readonly MachineDocument[]) {
   for (const d of documents) {
-    const explicit = [...d.source.matchAll(/<!-- machine-import: ([^\n]+) -->/gu)].map(m => m[1]);
-    const markers = explicit.map(marker => {
-      const parsed = /^(\S+)#(\S*) (sha256:[0-9a-f]{64})$/u.exec(marker);
-      if (!parsed) throw new Error(`invalid machine import ${d.path}: ${marker}`);
-      return `${resolve(dirname(d.path), parsed[1])}#${parsed[2]} ${parsed[3]}`;
+    const explicit = d.source.matchAll(/<!-- machine-import: ([^\n]+) -->/gu);
+    const markers = Array.from(explicit, ([, marker]) => {
+      const [, file, pointer, cid] = marker === undefined ? [] : /^(\S+)#(\S*) (sha256:[0-9a-f]{64})$/u.exec(marker) ?? [];
+      if (file === undefined || pointer === undefined || cid === undefined) {
+        throw new Error(`invalid machine import ${d.path}: ${marker}`);
+      }
+      return `${resolve(dirname(d.path), file)}#${pointer} ${cid}`;
     });
     if (new Set(markers).size !== markers.length) throw new Error(`duplicate machine import ${d.path}`);
     const registered = (d.machine_contracts ?? []).map(ref => `${resolve(ref.path)}#${ref.pointer} ${ref.cid}`);
@@ -82,7 +84,7 @@ export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
   documents.forEach(d => visit(d.document_id));
   const documentImports = validateNormativeImports(documents);
   validateMachineImports(documents);
-  const forbidden=[['language','execution'],['language','contracts'],['language','artifacts'],['language','run'],['language','conformance'],['discovery','collection'],['discovery','run'],['collection','run-graph'],['artifacts','run']];
+  const forbidden=[['language','execution'],['language','contracts'],['language','artifacts'],['language','run'],['language','conformance'],['discovery','collection'],['discovery','run'],['collection','run-graph'],['artifacts','run']] as const;
   for(const [from,to] of forbidden)if(documents.find(d=>d.document_id===from)?.normative_dependencies.includes(to))throw new Error(`forbidden normative dependency ${from} -> ${to}`);
   const entries = [], requirements = [], seen = new Set();
   const machineOwners = new Set();
@@ -107,10 +109,12 @@ export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
     const marks=[...body.matchAll(/^<!-- requirement-block: ([^\n]+) -->$/gmu)];
     const marked=new Set();
     for(const [i,m] of marks.entries()) {
-      const keys=m[1].split(' ').map(k=>d.spec_id+'/'+k);
+      const names=m[1];
+      if (names === undefined) throw new Error(`invalid requirement block ${d.spec_id}`);
+      const keys=names.split(' ').map(k=>d.spec_id+'/'+k);
       const actual=normalizedParagraphs(body.slice(m.index+m[0].length,marks[i+1]?.index ?? body.length))
         .map(e=>byHash.get(fingerprint(e))?.requirement_id);
-      if(JSON.stringify(actual)!==JSON.stringify(keys))throw new Error(`requirement block mismatch ${d.spec_id}: ${m[1]}`);
+      if(JSON.stringify(actual)!==JSON.stringify(keys))throw new Error(`requirement block mismatch ${d.spec_id}: ${names}`);
       keys.forEach(k=>{if(marked.has(k))throw new Error(`duplicate requirement block ${k}`);marked.add(k);});
     }
     if(marked.size!==extracted.length)throw new Error(`unmarked normative requirement in ${d.path}`);
@@ -133,7 +137,9 @@ export function loadSpecFamily(manifestPath = 'spec/spec-family.json') {
     if(source.laws && !machineOwners.has(file+'#/laws'))throw new Error(`unowned machine laws ${file}`);
   }
   const informativeReferences = documents.flatMap(d=>[...d.source.matchAll(/\]\(([^)]+)\)/gu)].flatMap(([,target])=> {
-    const other=documents.find(t=>resolve(t.path)===resolve(dirname(d.path),target.split('#')[0]));
+    if (target === undefined) return [];
+    const [file = ''] = target.split('#');
+    const other=documents.find(t=>resolve(t.path)===resolve(dirname(d.path),file));
     return other && other.spec_id!==d.spec_id && !d.normative_dependencies.includes(other.document_id) ? [{from:d.spec_id,to:other.spec_id,target}] : [];
   }));
   return {manifest,documents,entries,reference_audit:{document_imports:documentImports,
@@ -148,7 +154,7 @@ export function validateFamilyLinks(family: {documents: readonly Pick<FamilyDocu
     if(new Set(anchors).size!==anchors.length) throw new Error(`duplicate anchor in ${d.path}`);
     if(/^#{1,6} (?:\d+\.|Appendix [A-Z]\.)|§\d/mu.test(d.source)) throw new Error(`global numbering in owner ${d.path}`);
     for(const [,target] of d.source.matchAll(/\]\(([^)]+)\)/gu)) {
-      if(/^[a-z]+:/u.test(target)) continue;
+      if(target === undefined || /^[a-z]+:/u.test(target)) continue;
       const [file,anchor]=target.split('#'), absolute=resolve(dirname(d.path),file||relative(dirname(d.path),d.path));
       if(!existsSync(absolute)) throw new Error(`broken file link ${d.path}: ${target}`);
       const other=byPath.get(absolute);

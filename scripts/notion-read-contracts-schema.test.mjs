@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {checkNotionReadDeclarationSchema,notionReadDeclarationSchema,notionReadDeclarationsSchema,notionPublicConnectionSchema} from './notion-read-contracts-schema.mjs';
-import {project,structuralValidatorSource} from './generate-client-publication-wire.mjs';
+import {project} from './generate-client-publication-wire.mjs';
+import {structuralWireValidator} from './templates/structural-wire-validator.mjs';
 import {verifyIdentity} from './check-canonical-json.mjs';
 import {createHash} from 'node:crypto';
 
@@ -11,11 +12,11 @@ const declaration={id:'db',data_source_id:'source',read_contracts:{'n%3Ax':[
   {column:'amount',projection:'value',contract:{type:'decimal',nullable:false,precision:20,scale:2}},
 ]}};
 
-test('public Notion connection is closed and keeps credential references separate from admitted databases',async()=>{
+test('public Notion connection is closed and keeps credential references separate from admitted databases',()=>{
   const {$defs,...schema}=notionPublicConnectionSchema(protocol);
-  const source='const schemas='+JSON.stringify({connection:project(schema),value_contract:project($defs.value_contract)})+';\n'+
-    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.connection);';
-  const reader=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const schemas={connection:project(schema),value_contract:project($defs.value_contract)};
+  const valid=structuralWireValidator({extended:true,schemas});
+  const reader={check:value=>valid(value,schemas.connection)};
   const vectors=JSON.parse(readFileSync('spec/contracts/fixtures/notion-public-connection-vectors.json','utf8')).vectors;
   for(const vector of vectors)assert.equal(reader.check(JSON.parse(vector.source)),true);
   const original={connector:'notion',databases:{tasks:declaration},credentials:{integration_token:{env:'NOTION_TOKEN'}}};
@@ -58,7 +59,7 @@ test('independent public connection SOURCE vectors preserve reference spelling a
   }
 });
 
-test('public database map reuses complete declaration grammar and rejects an invalid unused alias',async()=>{
+test('public database map reuses complete declaration grammar and rejects an invalid unused alias',()=>{
   const schema=notionReadDeclarationsSchema(protocol);
   const {$schema,$defs,...declarationSchema}=notionReadDeclarationSchema(protocol);
   assert.deepEqual(schema.additionalProperties,declarationSchema);
@@ -67,9 +68,8 @@ test('public database map reuses complete declaration grammar and rejects an inv
   const { $defs:mapDefinitions, ...mapBody }=schema;
   assert.deepEqual(mapDefinitions,$defs);
   const projected={aliases:project(mapBody),value_contract:project($defs.value_contract)};
-  const source='const schemas='+JSON.stringify(projected)+';\n'+
-    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.aliases);';
-  const reader=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const valid=structuralWireValidator({extended:true,schemas:projected});
+  const reader={check:value=>valid(value,projected.aliases)};
   for(const value of [{},{tasks:'db',accounts:declaration},{'é':'db','é':'db2'}])assert.equal(reader.check(value),true);
   for(const value of [null,[], 'db',{'':'db'},{tasks:'db',unused:null},
     {tasks:'db',unused:{id:'db2',read_contracts:{p:[{column:'x',projection:'value',contract:{type:'bad',nullable:false}}]}}}]){
@@ -115,12 +115,11 @@ test('Notion structural declaration reuses the complete checked owner and regist
   }
 });
 
-test('existing generated structural reader checks closed configuration without minting original evidence',async()=>{
+test('existing generated structural reader checks closed configuration without minting original evidence',()=>{
   const {$defs,...body}=protocol.schemas.notion_database_read_declaration;
   const schemas={notion:project(body),value_contract:project($defs.value_contract)};
-  const source='const schemas='+JSON.stringify(schemas)+';\n'+
-    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.notion);';
-  const generated=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const valid=structuralWireValidator({extended:true,schemas});
+  const generated={check:value=>valid(value,schemas.notion)};
   for(const original of ['db',{id:'db'},{id:'db',unique:'key',marker:'marker'},declaration,
     {id:'db',read_contracts:{}},
     {id:'db',read_contracts:{date:[{column:'start',projection:'start',contract:{type:'date',nullable:false}},
@@ -155,15 +154,15 @@ test('independent declaration preimages preserve old absence and exact checked-c
   }
 });
 
-test('saved Notion read snapshot pins a closed representation without admitting its embedded originals',async()=>{
+test('saved Notion read snapshot pins a closed representation without admitting its embedded originals',()=>{
   checkNotionReadDeclarationSchema(protocol);
   const schema=protocol.schemas.notion_database_read_snapshot;
   assert.deepEqual(schema.required,['database_response','declaration_source','schema_cid','schema_wire',
     'selected_data_source_response','system_columns','version']);
   assert.equal(schema.additionalProperties,false);
-  const source='const schemas={snapshot:'+JSON.stringify(project(schema))+'};\n'+
-    structuralValidatorSource({extended:true})+'export const check=value=>valid(value,schemas.snapshot);';
-  const reader=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+  const shape=project(schema);
+  const valid=structuralWireValidator({extended:true,schemas:{snapshot:shape}});
+  const reader={check:value=>valid(value,shape)};
   const vectors=JSON.parse(readFileSync('spec/contracts/fixtures/notion-read-snapshot-vectors.json','utf8')).vectors;
   for(const original of vectors){
     assert.equal(reader.check(original.body),true);

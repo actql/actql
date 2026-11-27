@@ -45,24 +45,26 @@ test('contract pointers resolve exact bodies including escaped member names', ()
 for (const [name, path, pointer] of [
   ...['check_reason', 'check_outcome', 'source_evidence', 'run_receipt',
     'captured_run'].map(name => [name,
-    'spec/contracts/actql-protocol-schemas.json', `/artifact_schemas/${name}`]),
+    'spec/contracts/actql-protocol-schemas.json', `/artifact_schemas/${name}`] as const),
   ['local_signing_public_key',
-    'spec/contracts/actql-local-signing-public-key.schema.json', ''],
+    'spec/contracts/actql-local-signing-public-key.schema.json', ''] as const,
 ]) {
   test(`current ${name} canonical vector matches its schema and pin`, () => {
     const family = JSON.parse(readFileSync('spec/spec-family.json', 'utf8')) as ReturnType<typeof loadSpecFamily>['manifest'];
     const refs = family.documents.flatMap(owner => owner.machine_contracts ?? [])
       .filter(ref => ref.path === path && ref.pointer === pointer);
     assert.equal(refs.length, 1, 'one authoritative schema pin');
+    const [ref] = refs;
+    assert.ok(ref);
     const value = resolvePointer(JSON.parse(readFileSync(path, 'utf8')), pointer);
     const id = `contract ${path}#${pointer}`;
-    const expected = generateTests([{id, value, cid: refs[0].cid}])
-      .split('\n///|\n')[1].trimEnd();
+    const [, expected] = generateTests([{id, value, cid: ref.cid}]).split('\n///|\n');
+    assert.ok(expected);
     const source = readFileSync('src/canonical_json/identity_vectors.generated_test.mbt', 'utf8');
     const actual = source.split('\n///|\n')
       .filter(block => block.startsWith(`test "${id}" {`));
     assert.equal(actual.length, 1, 'one current generated schema case');
-    assert.equal(actual[0].trimEnd(), expected,
+    assert.equal(actual[0]?.trimEnd(), expected.trimEnd(),
       `${name} canonical vector is stale; run npm run generate:canonical`);
   });
 }
@@ -99,7 +101,8 @@ test('generated chunks preserve complete owned version spellings and JSON bytes'
         const text = canonicalText(value);
         const generated = generateTests([{id: 'chunk-boundary', value,
           cid: 'sha256:' + createHash('sha256').update(text).digest('hex')}]);
-        const input = generated.match(/let input = @json.parse\(\[\n([\s\S]*?)\n  \]\.join/)![1];
+        const input = generated.match(/let input = @json.parse\(\[\n([\s\S]*?)\n  \]\.join/)?.[1];
+        assert.ok(input);
         const reconstructed = input.trim().split(',\n    ').map(chunk =>
           JSON.parse(chunk.replace(/,$/u, ''))).join('');
         assert.equal(reconstructed, JSON.stringify(value));

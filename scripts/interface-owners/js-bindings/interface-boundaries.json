@@ -147088,7 +147088,7 @@
                 "anchor": "actual pinned MoonBit Result"
               },
               {
-                "path": "packages/coordinator-core/holder-terminal.test.mjs",
+                "path": "packages/coordinator-core/holder-terminal.test.mts",
                 "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
               }
             ]

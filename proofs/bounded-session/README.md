@@ -134,23 +134,17 @@ the JS source and artifacts are rebuilt; Wasm/native were not mutated.
 
 ## MoonBit proof capability experiment
 
-`probe-moon-prove.mjs` mechanically extracts the exact production `add_counter`
-body and attaches a range/postcondition contract in a temporary module. It is a
-capability experiment, not an accepted implementation proof or a second runtime.
-With MoonBit `0.10.12+1634b282e` and Z3 `4.15.3`, the annotated production body is
-rejected with E4207: `Int.to_int64()` is an unsupported primitive operator in a
-contracted function body (and its logic contract). Without annotations the tool
-reports zero proved goals; that result is also not counted as evidence.
+The [archived capability experiment](https://github.com/actql/actql/blob/b1685224abca14a3680b3d9e000a69440ee058c2/proofs/bounded-session/probe-moon-prove.mjs)
+extracted the production `add_counter` body and attached a range and
+postcondition contract in a temporary module. With MoonBit
+`0.10.12+1634b282e` and Z3 `4.15.3`, the annotated body returned E4207 because
+`Int.to_int64()` was unsupported in the contracted function and its logic
+contract. The unannotated run reported zero proved goals. The experiment
+contributed no accepted proof evidence.
 
-```sh
-Z3PATH=/path/to/z3 node proofs/bounded-session/probe-moon-prove.mjs
-```
-
-No new external declarations are trusted to hide the conversion. Runtime range
-and overflow checks/tests remain. The current official guide also distinguishes
-mathematical arithmetic from runtime overflow; this experiment is tied to the
-repository's fixed compiler rather than assuming nightly capabilities:
-<https://docs.moonbitlang.com/en/latest/language/verification.html>.
+The ordinary Session checks above retain the runtime range and overflow
+coverage. The [MoonBit verification guide](https://docs.moonbitlang.com/en/latest/language/verification.html)
+distinguishes mathematical arithmetic from runtime overflow.
 
 ## Test retirement and marginal operation cost
 

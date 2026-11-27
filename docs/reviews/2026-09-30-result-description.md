@@ -57,7 +57,8 @@ in this OSS completion unit.
 
 ## Independent acceptance
 
-`scripts/fixtures/packed-result-description.mjs` is copied unchanged to a clean
+The build emits `scripts/fixtures/packed-result-description.mjs` from the
+authored `.mts` fixture. The consumer copies that output unchanged to a clean
 installation outside the checkout. It consumes five packed packages with
 install scripts disabled and no MoonBit toolchain in the consumer PATH. Both
 embedded Local and an actual TLS HTTP Host execute the same authored Program

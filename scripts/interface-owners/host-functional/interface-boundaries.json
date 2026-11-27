@@ -112495,15 +112495,15 @@
             ],
             "verification": [
               {
-                "path": "packages/coordinator-core/site-planning.test.mjs",
+                "path": "packages/coordinator-core/site-planning.test.mts",
                 "anchor": "test('packaged common planner counts a distinct copy and stable Site ties', () => {"
               },
               {
-                "path": "packages/coordinator-core/effect-checkpoint.test.mjs",
+                "path": "packages/coordinator-core/effect-checkpoint.test.mts",
                 "anchor": "test('portable Checkpoint report and exact ACK agree with independent canonical vectors', () => {"
               },
               {
-                "path": "packages/coordinator-core/bundle-retention.test.mjs",
+                "path": "packages/coordinator-core/bundle-retention.test.mts",
                 "anchor": "test('portable public namespace admits context without asserting retained readiness', () => {"
               },
               {
@@ -112511,7 +112511,7 @@
                 "anchor": "pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]"
               },
               {
-                "path": "packages/coordinator-core/holder-terminal.test.mjs",
+                "path": "packages/coordinator-core/holder-terminal.test.mts",
                 "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
               },
               {
@@ -112691,15 +112691,15 @@
             ],
             "verification": [
               {
-                "path": "packages/coordinator-core/site-planning.test.mjs",
+                "path": "packages/coordinator-core/site-planning.test.mts",
                 "anchor": "test('packaged common planner counts a distinct copy and stable Site ties', () => {"
               },
               {
-                "path": "packages/coordinator-core/effect-checkpoint.test.mjs",
+                "path": "packages/coordinator-core/effect-checkpoint.test.mts",
                 "anchor": "test('portable Checkpoint report and exact ACK agree with independent canonical vectors', () => {"
               },
               {
-                "path": "packages/coordinator-core/bundle-retention.test.mjs",
+                "path": "packages/coordinator-core/bundle-retention.test.mts",
                 "anchor": "test('portable public namespace admits context without asserting retained readiness', () => {"
               },
               {
@@ -112707,7 +112707,7 @@
                 "anchor": "pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]"
               },
               {
-                "path": "packages/coordinator-core/holder-terminal.test.mjs",
+                "path": "packages/coordinator-core/holder-terminal.test.mts",
                 "anchor": "test('holder terminal facade consumes the original shared canonical report in one namespace', () => {"
               },
               {

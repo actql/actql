@@ -1,0 +1,293 @@
+{
+  "version": 1,
+  "exemptions": [
+    {
+      "path": "adapters/connectors-builtin-rela/strategy.generated.mjs",
+      "mode": "100644",
+      "object": "085b54b0e453c15558c9a17472433593544d1222",
+      "role": "generated",
+      "owner": "scripts/connector-node-bundles.mts",
+      "reason": "Node and RelA connector registration generated from the concrete installed connector manifests."
+    },
+    {
+      "path": "adapters/connectors-builtin/installations.generated.mjs",
+      "mode": "100644",
+      "object": "92821a08c3b892adf525aed8347fa6c7a174604f",
+      "role": "generated",
+      "owner": "scripts/connector-node-bundles.mts",
+      "reason": "Node and RelA connector registration generated from the concrete installed connector manifests."
+    },
+    {
+      "path": "adapters/connectors-builtin/strategy.generated.mjs",
+      "mode": "100644",
+      "object": "085b54b0e453c15558c9a17472433593544d1222",
+      "role": "generated",
+      "owner": "scripts/connector-node-bundles.mts",
+      "reason": "Node and RelA connector registration generated from the concrete installed connector manifests."
+    },
+    {
+      "path": "adapters/connectors-workers-async/strategy.generated.mjs",
+      "mode": "100644",
+      "object": "b4db4e38b104611a72db1ace3d95406793265b90",
+      "role": "generated",
+      "owner": "scripts/workers-composition.mts",
+      "reason": "Generated registration for the existing Workers Local and independent Compute profiles."
+    },
+    {
+      "path": "adapters/connectors-workers/strategy.generated.mjs",
+      "mode": "100644",
+      "object": "00211c0bfba27715a697637309b567ad8e0731f7",
+      "role": "generated",
+      "owner": "scripts/workers-composition.mts",
+      "reason": "Generated registration for the existing Workers Local and independent Compute profiles."
+    },
+    {
+      "path": "adapters/connectors/notion/site/user-list-read-wire.generated.mjs",
+      "mode": "100644",
+      "object": "bb1f857a7d311dc2d67327a2831b669573f96ec1",
+      "role": "generated",
+      "owner": "scripts/notion-user-list-read-wire.mts",
+      "reason": "Literal projection of the original Notion user-list request asset for the remote read adapter."
+    },
+    {
+      "path": "adapters/host-common/compiler-binding.generated.mjs",
+      "mode": "100644",
+      "object": "e256cd6a11b88cb087e3cec52af0b1f2a318d222",
+      "role": "generated",
+      "owner": "scripts/generate-js-compiler-bindings.mts",
+      "reason": "Shared compiler binding compiled once and retained at each supported runtime package entrance."
+    },
+    {
+      "path": "adapters/host-common/credential-scope-fields.generated.mjs",
+      "mode": "100644",
+      "object": "10ee81048d39bd6093094105fe0e98d4278184f6",
+      "role": "generated",
+      "owner": "scripts/generate-credential-scope-binding.mts",
+      "reason": "Host-side credential and installation preparation fields projected from the Core Owners."
+    },
+    {
+      "path": "adapters/host-common/installation-preparation-fields.generated.mjs",
+      "mode": "100644",
+      "object": "02a21dedf3321bb629e0435a18155a6d3ce5e3fc",
+      "role": "generated",
+      "owner": "scripts/generate-credential-scope-binding.mts",
+      "reason": "Host-side credential and installation preparation fields projected from the Core Owners."
+    },
+    {
+      "path": "adapters/host-common/ledger-contract.generated.mjs",
+      "mode": "100644",
+      "object": "5d933052fcc55eb56eff7f34ffa6028765e77c0b",
+      "role": "generated",
+      "owner": "scripts/generate-ledger-transport-contract.mts",
+      "reason": "Host transport mirror of Core ledger field order and width."
+    },
+    {
+      "path": "adapters/host-common/publication-action.mjs",
+      "mode": "100644",
+      "object": "79c1a4c4cd413dfb2af169f0351b677b5012f027",
+      "role": "generated",
+      "owner": "scripts/generate-js-action-bindings.mts",
+      "reason": "Checked projection of the Core action codes used by the Host decision and publication adapters."
+    },
+    {
+      "path": "adapters/host-common/strategy-actions.mjs",
+      "mode": "100644",
+      "object": "bb94c0e3b7cab771b55ccf845ba1fa2f062c2803",
+      "role": "generated",
+      "owner": "scripts/generate-js-action-bindings.mts",
+      "reason": "Checked projection of the Core action codes used by the Host decision and publication adapters."
+    },
+    {
+      "path": "adapters/host-node/update-target-data.generated.mjs",
+      "mode": "100644",
+      "object": "dbd90e05f02e2d4922f77b3e4187945696eb45d6",
+      "role": "generated",
+      "owner": "scripts/generate-update-target-data-codec.mts",
+      "reason": "UPDATE transport encoder compiled from the typed template with the current Core ceilings."
+    },
+    {
+      "path": "adapters/local-node/mock-churn-risk-catalogue.mjs",
+      "mode": "100644",
+      "object": "d3b8178d2809d9d8fb5d6ea30742399fef4c3e74",
+      "role": "generated",
+      "owner": "scripts/mock-churn-risk-catalogue.mts",
+      "reason": "Checked Node DATA projection of the owned Common Mock catalogue; the generator verifies this and the matching MoonBit output."
+    },
+    {
+      "path": "packages/client-wire/client-host.generated.js",
+      "mode": "100644",
+      "object": "623cfe413e23998663a37ef608d58d9c7e2b5d04",
+      "role": "generated",
+      "owner": "scripts/generate-client-host-wire.mts",
+      "reason": "Client Host wire and Checkpoint answer runtime interfaces generated from the current protocol registry."
+    },
+    {
+      "path": "packages/client-wire/interactive-control.generated.js",
+      "mode": "100644",
+      "object": "9a9fd5384bfadf17826867cffd399d07b586765b",
+      "role": "generated",
+      "owner": "scripts/generate-interactive-run-control-wire.mts",
+      "reason": "Runtime wire projection for the current interactive Run control protocol."
+    },
+    {
+      "path": "packages/client-wire/publication.generated.js",
+      "mode": "100644",
+      "object": "74b146a5f469db8dbc5ce9eba27bb2448e977385",
+      "role": "generated",
+      "owner": "scripts/generate-client-publication-wire.mts",
+      "reason": "Runtime wire projection of the selected publication, source and delivery contracts."
+    },
+    {
+      "path": "packages/coordinator-core/compiler-binding.generated.mjs",
+      "mode": "100644",
+      "object": "e256cd6a11b88cb087e3cec52af0b1f2a318d222",
+      "role": "generated",
+      "owner": "scripts/generate-js-compiler-bindings.mts",
+      "reason": "Shared compiler binding compiled once and retained at each supported runtime package entrance."
+    },
+    {
+      "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+      "mode": "100644",
+      "object": "0bdd20d1935e15d3f44a58e0c9d7ca6a92170b03",
+      "role": "generated",
+      "owner": "scripts/generate-model-response-reader.mts",
+      "reason": "Typed physical response reader retained at each supported Provider runtime entrance."
+    },
+    {
+      "path": "packages/provider-ai-sdk/_internal/compiler-binding.generated.mjs",
+      "mode": "100644",
+      "object": "e256cd6a11b88cb087e3cec52af0b1f2a318d222",
+      "role": "generated",
+      "owner": "scripts/generate-js-compiler-bindings.mts",
+      "reason": "Shared compiler binding compiled once and retained at each supported runtime package entrance."
+    },
+    {
+      "path": "packages/provider-ai-sdk/_internal/original-materials.mjs",
+      "mode": "100644",
+      "object": "650ec53387bc3dcde50479f76155e11fcec982a0",
+      "role": "generated",
+      "owner": "scripts/generate-model-original-materials.mts",
+      "reason": "Typed original Model material projection retained in each selected Provider package."
+    },
+    {
+      "path": "packages/provider-http/_internal/bounded-response.mjs",
+      "mode": "100644",
+      "object": "0bdd20d1935e15d3f44a58e0c9d7ca6a92170b03",
+      "role": "generated",
+      "owner": "scripts/generate-model-response-reader.mts",
+      "reason": "Typed physical response reader retained at each supported Provider runtime entrance."
+    },
+    {
+      "path": "packages/provider-http/_internal/compiler-binding.generated.mjs",
+      "mode": "100644",
+      "object": "e256cd6a11b88cb087e3cec52af0b1f2a318d222",
+      "role": "generated",
+      "owner": "scripts/generate-js-compiler-bindings.mts",
+      "reason": "Shared compiler binding compiled once and retained at each supported runtime package entrance."
+    },
+    {
+      "path": "packages/provider-http/_internal/original-materials.mjs",
+      "mode": "100644",
+      "object": "ac001c0aa00c8bb47728db015cdec6b49085c55e",
+      "role": "generated",
+      "owner": "scripts/generate-model-original-materials.mts",
+      "reason": "Typed original Model material projection retained in each selected Provider package."
+    },
+    {
+      "path": "packages/run-host-core/compiler-binding.generated.mjs",
+      "mode": "100644",
+      "object": "e256cd6a11b88cb087e3cec52af0b1f2a318d222",
+      "role": "generated",
+      "owner": "scripts/generate-js-compiler-bindings.mts",
+      "reason": "Shared compiler binding compiled once and retained at each supported runtime package entrance."
+    },
+    {
+      "path": "packages/run-host-core/managed-failure.mjs",
+      "mode": "100644",
+      "object": "97592a29b98c9ea85506437ec54b699673eda8f5",
+      "role": "generated",
+      "owner": "scripts/build-run-host-core-package.mts",
+      "reason": "Run Host runtime member copied from the strict Host Common emit by the normal package builder."
+    },
+    {
+      "path": "packages/run-host-core/publication-action.mjs",
+      "mode": "100644",
+      "object": "79c1a4c4cd413dfb2af169f0351b677b5012f027",
+      "role": "generated",
+      "owner": "scripts/generate-js-action-bindings.mts",
+      "reason": "Checked projection of the Core action codes used by the Host decision and publication adapters."
+    },
+    {
+      "path": "packages/run-host-core/result-access.mjs",
+      "mode": "100644",
+      "object": "01c6c7461ee0077f7d0570a493c47c9bdeae316a",
+      "role": "generated",
+      "owner": "scripts/build-run-host-core-package.mts",
+      "reason": "Run Host runtime member copied from the strict Host Common emit by the normal package builder."
+    },
+    {
+      "path": "packages/run-host-core/result-delivery.mjs",
+      "mode": "100644",
+      "object": "d878ec6f71a3ece32592ebb7f59896f455806c7f",
+      "role": "generated",
+      "owner": "scripts/build-run-host-core-package.mts",
+      "reason": "Run Host runtime member copied from the strict Host Common emit by the normal package builder."
+    },
+    {
+      "path": "packages/sdk/check-reason-catalog.generated.js",
+      "mode": "100644",
+      "object": "780429174c0b6b70af11ba192001a276eccbca72",
+      "role": "generated",
+      "owner": "scripts/generate-check-reason-catalog.mts",
+      "reason": "SDK reason tables derived from the current Check protocol catalog."
+    },
+    {
+      "path": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
+      "mode": "100644",
+      "object": "bce1f26611035f562f131015f24bcb7383a4974c",
+      "role": "generated",
+      "owner": "scripts/generate-client-host-wire.mts",
+      "reason": "Client Host wire and Checkpoint answer runtime interfaces generated from the current protocol registry."
+    },
+    {
+      "path": "packages/sdk/internal/checkpoint-answer-contract.generated.mjs",
+      "mode": "100644",
+      "object": "5c22e8497b2025cfb1d092681fa780ba54a9bbb3",
+      "role": "generated",
+      "owner": "scripts/generate-client-host-wire.mts",
+      "reason": "Client Host wire and Checkpoint answer runtime interfaces generated from the current protocol registry."
+    },
+    {
+      "path": "packages/sdk/json-value-wire.generated.mjs",
+      "mode": "100644",
+      "object": "76d497b803ad69ba3265d56554dc5a9dae9e1a12",
+      "role": "generated",
+      "owner": "scripts/typed-json-literal-contract.mts",
+      "reason": "Client runtime CID table generated from the current JSON value wire and Result serialization laws."
+    },
+    {
+      "path": "packages/transfer-core/compiler-binding.generated.mjs",
+      "mode": "100644",
+      "object": "e256cd6a11b88cb087e3cec52af0b1f2a318d222",
+      "role": "generated",
+      "owner": "scripts/generate-js-compiler-bindings.mts",
+      "reason": "Shared compiler binding compiled once and retained at each supported runtime package entrance."
+    },
+    {
+      "path": "scripts/fixtures/external-compute/consumer.mjs",
+      "mode": "100644",
+      "object": "9d4539009d1cf2b03d16c885da15b0bbc928f118",
+      "role": "consumer",
+      "owner": "scripts/test-packed-external-connector.mts",
+      "reason": "Plain JavaScript ESM client copied unchanged into a fresh external Compute installation and executed by Node."
+    },
+    {
+      "path": "scripts/fixtures/external-installed/consumer.mjs",
+      "mode": "100644",
+      "object": "ccd57379053d608e145a27631a23228e8a8a5013",
+      "role": "consumer",
+      "owner": "scripts/test-packed-external-installed.mts",
+      "reason": "Plain JavaScript ESM client run against an external installation, alongside the separate TypeScript API check."
+    }
+  ]
+}
