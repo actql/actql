@@ -3515,7 +3515,9 @@ jobs:
             ${{ runner.temp }}/python-wheel-acceptance/cohort/cohort.json
             ${{ runner.temp }}/python-wheel-acceptance/cohort/wheels/*.whl
             ${{ runner.temp }}/python-wheel-acceptance/image/image-receipt.json
+            ${{ runner.temp }}/python-wheel-acceptance/artifact/artifact.json
             ${{ runner.temp }}/python-wheel-acceptance/artifact/producer.json
+            ${{ runner.temp }}/python-wheel-acceptance/model-crypto/producer.json
           if-no-files-found: error
           retention-days: 14
   native-separated-network:
