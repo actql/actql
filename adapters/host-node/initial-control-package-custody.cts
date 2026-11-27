@@ -124,7 +124,7 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
       hostValidator !== 'assertInitialControlHostPreparation') fail('InvalidInitialControlPackageImage');
   const groups: ImageGroup[] = [], actualPackages: string[] = [], groupDependencies = new NativeMap<string, ImageDependency[]>(),
     mainSources = new NativeMap<string, ImageSource>(), capturedGroups = new NativeMap<string, ImageGroup>(),
-    manifests = new NativeMap<string, unknown>();
+    manifests = new NativeMap<string, unknown>(), capturedOriginalPackages = new NativeMap<string, unknown>();
   function captureGroup(directory: string, facts: unknown, expectedName: string, expectedVersion: unknown,
     expectedReleaseVersion: unknown, expectedRepresentation?: ImageSource['representation'], external = false) {
     if (apply(mapHas, groupDependencies, [directory])) fail('InitialControlPackageImageChanged');
@@ -210,6 +210,28 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
       return captured !== undefined && captured.bytes === own(fact, 'bytes') && captured.sha256 === own(fact, 'sha256');
     });
   }
+  function sameOrdinaryPackageImage(original: unknown, selected: unknown, images: readonly unknown[],
+    edges: readonly unknown[]) {
+    if (original === undefined || own(original, 'name') !== own(selected, 'name') ||
+        own(original, 'version') !== own(selected, 'version') ||
+        optionalField(original, 'releaseVersion') !== optionalField(selected, 'releaseVersion')) return false;
+    const firstImages = own(original, 'images'), firstEdges = own(original, 'dependencies');
+    if (!array(firstImages) || firstImages.length !== images.length ||
+        !array(firstEdges) || firstEdges.length !== edges.length) return false;
+    for (let index = 0; index < images.length; index++) {
+      const first = firstImages[index], fact = images[index];
+      if (own(first, 'path') !== own(fact, 'path') || own(first, 'bytes') !== own(fact, 'bytes') ||
+          own(first, 'sha256') !== own(fact, 'sha256')) return false;
+      const firstRelease = optionalField(first, 'npmRelease'), release = optionalField(fact, 'npmRelease');
+      if (firstRelease === undefined && release === undefined) continue;
+      if (firstRelease === undefined || release === undefined ||
+          own(firstRelease, 'version') !== own(release, 'version') ||
+          own(firstRelease, 'bytes') !== own(release, 'bytes') ||
+          own(firstRelease, 'sha256') !== own(release, 'sha256')) return false;
+    }
+    return edges.every((edge, index) => own(edge, 'name') === own(firstEdges[index], 'name') &&
+      optionalField(edge, 'local') === optionalField(firstEdges[index], 'local'));
+  }
   function captureDependency(binding: unknown, from: string, importer: string | undefined,
     graph = packages, actual = actualPackages, external = false, append = true): string {
     const name = own(binding, 'name'), index = own(binding, 'package');
@@ -232,9 +254,16 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
     if (held === undefined) {
       captureGroup(directory, facts, name, own(selected, 'version'),
         optionalField(selected, 'releaseVersion'), local.representation, external);
-    } else if (!external || held.name !== name || held.version !== own(selected, 'version') ||
-        held.dependencies.length !== next.length || !sharesCapturedImages(held, facts)) {
-      fail('InitialControlPackageImageChanged');
+      if (ordinary && !external) apply(mapSet, capturedOriginalPackages, [directory, selected]);
+    } else {
+      // npm can resolve several published graph entries to one installed
+      // directory. Reuse the physical capture only for matching originals.
+      // The walk below still checks each edge against its captured root.
+      const samePackage = external
+        ? held.name === name && held.version === own(selected, 'version') && sharesCapturedImages(held, facts)
+        : ordinary && sameOrdinaryPackageImage(apply(mapGet, capturedOriginalPackages, [directory]),
+          selected, facts, next);
+      if (!samePackage || held.dependencies.length !== next.length) fail('InitialControlPackageImageChanged');
     }
     for (let item = 0; item < next.length; item++) {
       const child = next[item];

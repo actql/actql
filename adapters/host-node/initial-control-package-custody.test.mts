@@ -8,9 +8,9 @@ import {fileURLToPath} from 'node:url';
 import test, {type TestContext} from 'node:test';
 import {admitFixtureUndici} from './fixtures/ordinary-undici-custody.fixture.mjs';
 
-type ImageFact = ReturnType<typeof fact>;
+type ImageFact = ReturnType<typeof fact> & {npmRelease?: ReturnType<typeof releaseFact>};
 type Dependency = {name: string; package?: number; local?: boolean};
-type FixturePackage = {name: string; version: string; images: ImageFact[]; dependencies: Dependency[]};
+type FixturePackage = {name: string; version: string; releaseVersion?: string; images: ImageFact[]; dependencies: Dependency[]};
 type FixtureInventory = {
   images: ImageFact[];
   packages: FixturePackage[];
@@ -22,12 +22,17 @@ type FixtureInventory = {
   localPublicModule: string;
   hostModule: string;
   hostValidator: string;
+  localReleaseVersion?: string;
 };
 
 const custody = fileURLToPath(new URL('./initial-control-package-custody.cjs', import.meta.url));
 const actual = (name: string) => readFileSync(new URL(name, import.meta.url));
 const fact = (path: string, bytes: Uint8Array) => ({path, bytes: bytes.length,
   sha256: createHash('sha256').update(bytes).digest('hex')});
+const releaseFact = (version: string, bytes: Uint8Array) => {
+  const {bytes: length, sha256} = fact('package.json', bytes);
+  return {version, bytes: length, sha256};
+};
 function fixture(t: TestContext, host = 'globalThis.actualHostImageValue="original";export function assertInitialControlHostPreparation(){};') {
   const directory = mkdtempSync(join(tmpdir(), 'actql-package-image-custody-'));
   t.after(() => rmSync(directory, {recursive: true}));
@@ -618,14 +623,37 @@ test('a selected ordinary SDK must use the same original Undici root as Local', 
   };
   const readSdk = 'globalThis.sdkOriginal=readVerifiedSdkImages(packageImageCustody,' +
     JSON.stringify(selection[0]) + ');';
-  const accepted = f.run([
+  const body = [
     'import assert from "node:assert/strict";',
     'import {createRequire} from "node:module";',
     'assert.equal(sdkOriginal.sdk.sdkOriginal, true);',
     'assert.equal(sdkOriginal.adapter.original(), createRequire(import.meta.url)("@actql/local-node/_internal/model-http-transport"));',
     'packageImageCustody.assertCurrent();',
-  ].join('\n'), '', readSdk, include, true, undefined, true, selection);
-  assert.equal(accepted.status, 0, accepted.stderr);
+  ].join('\n');
+  for (const duplicate of [false, true]) {
+    const accepted = f.run(body, '', readSdk, inventory => include(inventory, duplicate),
+      true, undefined, true, selection);
+    assert.equal(accepted.status, 0, accepted.stderr);
+  }
+  for (const changed of [
+    (original: FixturePackage) => {original.images[0]!.sha256 = '0'.repeat(64);},
+    (original: FixturePackage) => {original.version = '7.30.1';},
+    (original: FixturePackage) => {original.dependencies.push({name: '@fixture/foreign', package: 0});},
+  ]) {
+    const unauthorized = f.run('throw Error("UnreachableConsumer");', '', '', inventory => {
+      include(inventory, true);
+      const binding = inventory.packages[inventory.optionalSdk!]?.dependencies.find(edge => edge.name === 'undici');
+      assert(typeof binding?.package === 'number');
+      const alias = binding.package, original = inventory.packages[alias];
+      assert(original);
+      const replacement = {...original, images: structuredClone(original.images), dependencies: [...original.dependencies]};
+      changed(replacement);
+      inventory.packages[alias] = replacement;
+    }, true, undefined, true, selection);
+    assert.notEqual(unauthorized.status, 0);
+    assert.match(unauthorized.stderr, /code: 'InitialControlPackageImageChanged'/u);
+    assert.doesNotMatch(unauthorized.stderr, /UnreachableConsumer/u);
+  }
   mkdirSync(join(directory, 'node_modules'), {recursive: true});
   cpSync(undici.original, join(directory, 'node_modules/undici'), {recursive: true});
   const refused = f.run('throw Error("UnreachableConsumer");', '', '', inventory => include(inventory, true),
@@ -633,6 +661,56 @@ test('a selected ordinary SDK must use the same original Undici root as Local', 
   assert.notEqual(refused.status, 0);
   assert.match(refused.stderr, /code: 'InvalidInstalledModelSdkInstallation'/u);
   assert.doesNotMatch(refused.stderr, /UnreachableConsumer/u);
+});
+
+test('an ordinary released package alias retains both manifest variants and the same physical dependencies', t => {
+  const f = fixture(t);
+  const undici = admitFixtureUndici(f).include(f.inventory);
+  const module = Buffer.from('export const original=true;');
+  const releaseVersion = '1.0.1', version = '1.0.0';
+  const manifest = (name: string, dependencies: Record<string, string>) =>
+    ({name, type: 'module', exports: './index.mjs', version, dependencies});
+  const bytes = (value: unknown) => Buffer.from(JSON.stringify(value));
+  const existingLocal = JSON.parse(readFileSync(join(f.root, 'package.json'), 'utf8'));
+  const localManifest = {...existingLocal, version,
+    dependencies: {...existingLocal.dependencies, '@fixture/left': releaseVersion, '@fixture/right': releaseVersion}};
+  const publishedLocal = bytes({...localManifest, version: releaseVersion});
+  f.inventory.localReleaseVersion = releaseVersion;
+  f.inventory.images = f.inventory.images.map(item => item.path === 'package.json'
+    ? {...fact('package.json', bytes(localManifest)), npmRelease: releaseFact(releaseVersion, publishedLocal)} : item);
+  writeFileSync(join(f.root, 'package.json'), publishedLocal);
+
+  function add(name: string, deps: Dependency[], dependencies: Record<string, string>) {
+    const directory = join(f.directory, 'node_modules', name);
+    mkdirSync(directory, {recursive: true});
+    const declared = manifest(name, dependencies), released = bytes({...declared, version: releaseVersion});
+    writeFileSync(join(directory, 'package.json'), released);
+    writeFileSync(join(directory, 'index.mjs'), module);
+    return f.inventory.packages.push({name, version, releaseVersion, dependencies: deps,
+      images: [{...fact('package.json', bytes(declared)), npmRelease: releaseFact(releaseVersion, released)},
+        fact('index.mjs', module)]}) - 1;
+  }
+  const name = '@fixture/shared';
+  const original = add(name, [{name: 'undici', package: undici}], {'undici': '7.30.0'});
+  const alias = f.inventory.packages.push(structuredClone(f.inventory.packages[original]!)) - 1;
+  for (const [nameOfParent, selected] of [['@fixture/left', original], ['@fixture/right', alias]] as const) {
+    const index = add(nameOfParent, [{name, package: selected}], {[name]: releaseVersion});
+    f.inventory.dependencies.push({name: nameOfParent, package: index});
+  }
+
+  const accepted = f.run('packageImageCustody.assertCurrent();', '', '', undefined, true, undefined, true);
+  assert.equal(accepted.status, 0, accepted.stderr);
+  for (const changed of [
+    (record: FixturePackage) => {record.images[0]!.npmRelease!.sha256 = 'f'.repeat(64);},
+    (record: FixturePackage) => {record.releaseVersion = '1.0.2';},
+    (record: FixturePackage) => {record.dependencies[0]!.name = '@fixture/unselected';},
+  ]) {
+    const refused = f.run('throw Error("UnreachableConsumer");', '', '',
+      inventory => changed(inventory.packages[alias]!), true, undefined, true);
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /code: 'InitialControlPackageImageChanged'/u);
+    assert.doesNotMatch(refused.stderr, /UnreachableConsumer/u);
+  }
 });
 
 test('the public Local factory enters the selected direct Chat module after the package seal', t => {
