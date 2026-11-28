@@ -11,8 +11,8 @@ type TestExports = {
 };
 type TestInstance = WebAssembly.Instance & {exports: TestExports};
 type StringReader = {value: string; offset: number};
-type Case = {name: string; index: number};
-type TestResult = {type: string; index: number; message: string};
+type Case = {name: string; index: number; attrs?: readonly string[]};
+type TestResult = {type: string; file: string; index: number; message: string};
 // The pinned Node lines expose exception imports that the compiler's DOM types omit.
 type WasmWithExceptions = typeof WebAssembly & {
   Tag: new (descriptor: {parameters: []}) => WebAssembly.ImportValue;
@@ -20,7 +20,9 @@ type WasmWithExceptions = typeof WebAssembly & {
 };
 const artifact = process.argv[2];
 const selected = process.argv[4] ?? 'original_metadata_wbtest.mbt';
-assert.match(selected, /^[a-z0-9_]+_wbtest\.mbt$/u);
+const debug = selected === '--debug';
+const whiteboxFile = /^[a-z0-9_]+_wbtest[.]mbt$/u;
+if (!debug) assert.match(selected, whiteboxFile);
 const bytes = fs.readFileSync(artifact) as Buffer<ArrayBuffer>;
 const module = new WebAssembly.Module(bytes);
 let instance: TestInstance;
@@ -71,23 +73,45 @@ for (const entry of WebAssembly.Module.imports(module)) {
 }
 instance = new WebAssembly.Instance(module, imports) as TestInstance;
 instance.exports._start();
-const info: {tests: Record<string, Case[]>} = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
-const declared = info.tests[selected];
-assert.ok(Array.isArray(declared) && declared.length >= 2);
-// Optional exact names select real compiler-declared controls; default CI
-// still executes the complete original file. Unknown/duplicate/zero refuse.
-const names = process.argv.slice(5);
-assert.equal(new Set(names).size, names.length, 'Duplicate pure control name');
-const tests = names.length ? declared.filter(row => names.includes(row.name)) : declared;
-assert.ok(tests.length > 0, 'No actual pure controls selected');
-if (names.length) assert.equal(tests.length, names.length, 'Unknown or ambiguous pure control name');
-for (const {index} of tests) {
-  instance.exports.moonbit_test_driver_internal_execute(selected, index);
+const info: {tests: Record<string, Case[]>; with_bench_args_tests?: Record<string, Case[]>} =
+  JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));
+const selections: {file: string; tests: Case[]}[] = [];
+if (debug) {
+  const count = Number(process.argv[5]), files = process.argv.slice(6);
+  assert(Number.isSafeInteger(count) && count > 0 && files.length > 0);
+  assert.equal(new Set(files).size, files.length, 'Duplicate original debug test file');
+  for (const file of files) {
+    assert.match(file, whiteboxFile);
+    const declared = info.tests[file];
+    assert(Array.isArray(declared) && declared.length > 0, 'Missing original debug test file');
+    const benchmarks = new Set((info.with_bench_args_tests?.[file] ?? []).map(row => JSON.stringify(row)));
+    const tests = declared.filter(row => !row.attrs?.includes('skip') && !benchmarks.has(JSON.stringify(row)));
+    assert(tests.length > 0, 'Empty original debug test file');
+    selections.push({file, tests});
+  }
+  assert.equal(selections.reduce((total, selection) => total + selection.tests.length, 0), count,
+    'Debug test count differs from the original compiler selection');
+} else {
+  const declared = info.tests[selected];
+  assert(Array.isArray(declared) && declared.length >= 2);
+  // Optional exact names select real compiler-declared controls; default CI
+  // still executes the complete original file. Unknown/duplicate/zero refuse.
+  const names = process.argv.slice(5);
+  assert.equal(new Set(names).size, names.length, 'Duplicate pure control name');
+  const tests = names.length ? declared.filter(row => names.includes(row.name)) : declared;
+  assert.ok(tests.length > 0, 'No actual pure controls selected');
+  if (names.length) assert.equal(tests.length, names.length, 'Unknown or ambiguous pure control name');
+  selections.push({file: selected, tests});
+}
+const expected = selections.flatMap(({file, tests}) => tests.map(({index}) => JSON.stringify([file, index])));
+assert.equal(new Set(expected).size, expected.length, 'Duplicate original compiler test identity');
+for (const {file, tests} of selections) {
+  for (const {index} of tests) instance.exports.moonbit_test_driver_internal_execute(file, index);
 }
 instance.exports.moonbit_test_driver_finish();
 const results = output.split('\n').filter(line => line.startsWith('{')).map((line): TestResult => JSON.parse(line)).filter(row => row.type === 'result');
 assert.equal(hostCalls, 0);
-assert.equal(results.length, tests.length);
-assert.deepEqual(results.map(row => row.index).sort((a,b)=>a-b), tests.map(row => row.index).sort((a,b)=>a-b));
+assert.equal(results.length, expected.length);
+assert.deepEqual(results.map(row => JSON.stringify([row.file, row.index])).sort(), expected.sort());
 assert.ok(results.every(row => row.message === ''), 'Selected pure Core entrance assertion failed');
 console.log(JSON.stringify({actualTests: results.length, hostCalls, wasmSha256: crypto.createHash('sha256').update(bytes).digest('hex')}));

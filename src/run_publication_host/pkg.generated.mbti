@@ -77,7 +77,7 @@ pub fn admit_client_effect_review_checkpoint_preview(@checkpoint_runtime.SealedC
 
 pub fn admit_client_effect_review_checkpoint_preview_with_original(@checkpoint_runtime.SealedCheckpoint, ClientEffectAllowedRun, @run_publication.PublicationContract, String, String, @checkpoint_runtime.WireLimits) -> Result[(@run_publication.EffectPreviewIdentity, @canonical_json.CanonicalValue), ClientEffectCheckpointReconciliationIssue]
 
-pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?, original_source? : ClientSourcePreparation?, numeric_profile_cid? : String?, original_compilation? : ClientEffectCompilation?, request_value_policies? : ((@program_check.EffectComputationCandidate) -> Result[Array[@program_check.HostRequestValuePolicyEvidence], ClientEffectComputationIssue])?, before_compilation? : ((ClientEffectCompilationConstructionInput) -> Result[Unit, ClientEffectRunMaterialsIssue])?, before_body? : ((String, Int, Int, Int) -> Bool)?, original_environment? : @program_check.CheckEnvironment?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
+pub fn admit_client_effect_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits, ClientEffectComputationLimits, original_materials? : ClientEffectIssuedNormalizationMaterials?, expected_request? : ClientRequestIdentity?, original_source? : ClientSourcePreparation?, numeric_profile_cid? : String?, original_compilation? : ClientEffectCompilation?, request_value_policies? : ((@program_check.EffectComputationCandidate) -> Result[Array[@program_check.HostRequestValuePolicyEvidence], ClientEffectComputationIssue])?, before_compilation? : ((ClientEffectCompilationConstructionInput) -> Result[Unit, ClientEffectRunMaterialsIssue])?, before_body? : ((String, Int, Int, Int) -> Bool)?, original_environment? : @program_check.CheckEnvironment?, retained_submission_input? : ClientEffectRetainedSubmissionInput?) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue]
 
 pub fn admit_client_effect_saved_review_reference(ClientEffectWaitingOriginal, String, Int, Int, Int) -> Result[ClientEffectSavedReviewReference, ClientCheckpointJournalIssue]
 
@@ -2743,6 +2743,8 @@ pub fn prepare_client_effect_resolution_proof_challenge(ClientEffectSavedReviewC
 
 pub fn prepare_client_effect_retained_input_edge(ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[ClientRetainedInputEdge, ClientEffectRetainedInputIssue]
 
+pub fn prepare_client_effect_retained_submission_input(ClientSubmissionReferenceRecord, ClientSubmittedIntent, ClientRequestIdentity, String) -> Result[ClientEffectRetainedSubmissionInput, ClientRequestIdentityIssue]
+
 pub fn prepare_client_effect_retained_task_dispatch(ClientEffectAllowedRun, @run_publication.PublicationContract, ClientRequestIdentity, Int, String, ClientValuesSiteSelection, ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[@remote_site_protocol.DispatchRequest, ClientEffectRetainedInputIssue]
 
 pub fn[E] prepare_client_effect_run_journal_append(ClientSavedSubmissionSnapshot, ClientSubmittedIntent, ClientEffectRunMaterials, ClientLocalRunPolicyProfile, @run_publication.PublicationContract, String, String, Double, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E, indexed_store? : Bool) -> Result[ClientEffectRunJournalAppend, ClientRunJournalAppendIssue[E]]
@@ -4220,6 +4222,8 @@ pub(all) enum ClientEffectRetainedInputIssue {
   Dispatch(ClientEffectSourceDispatchIssue)
   ForeignConsumer
 }
+
+type ClientEffectRetainedSubmissionInput derive(Eq)
 
 pub(all) enum ClientEffectRunIssue {
   Admission(@effect_program_binding.EffectProgramRunIssue)

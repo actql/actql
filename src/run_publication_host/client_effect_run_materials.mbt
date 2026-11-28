@@ -205,7 +205,18 @@ pub fn admit_client_effect_run_materials(
   ])? = None,
   before_body? : ((String, Int, Int, Int) -> Bool)? = None,
   original_environment? : @checked.CheckEnvironment? = None,
+  retained_submission_input? : ClientEffectRetainedSubmissionInput? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
+  if retained_submission_input is Some(input) &&
+    (
+      original_materials is Some(_) ||
+      original_source is Some(_) ||
+      original_compilation is Some(_) ||
+      !(expected_request is Some(expected) && expected == input.request) ||
+      expected_run_definition_cid != input.run_definition_cid
+    ) {
+    return Err(Request(IdentityMismatch))
+  }
   if original_environment is Some(environment) {
     guard original_compilation is Some(original) && before_body is Some(_) else {
       return Err(Input(MaterialsEnvironment))
@@ -555,14 +566,25 @@ pub fn admit_client_effect_run_materials(
         Ok(_) => ()
         Err(issue) => return Err(Request(issue))
       }
-      if client_request_input_cid(value) !=
-        client_effect_original_input_intent_cid(prepared) {
-        return Err(Request(IdentityMismatch))
+      match retained_submission_input {
+        Some(input) =>
+          if value != input.request {
+            return Err(Request(IdentityMismatch))
+          }
+        None =>
+          if client_request_input_cid(value) !=
+            client_effect_original_input_intent_cid(prepared) {
+            return Err(Request(IdentityMismatch))
+          }
       }
       Some(value)
     }
   }
-  if (original_source is Some(_) || original_compilation is Some(_)) &&
+  if (
+      original_source is Some(_) ||
+      original_compilation is Some(_) ||
+      retained_submission_input is Some(_)
+    ) &&
     (request is None || expected_request is None || request != expected_request) {
     return Err(Request(IdentityMismatch))
   }
@@ -589,7 +611,8 @@ pub fn admit_client_effect_run_materials(
     infer is Some(_) ||
     source_free_policy is Some(_) ||
     original_source is Some(_) ||
-    original_compilation is Some(_) {
+    original_compilation is Some(_) ||
+    retained_submission_input is Some(_) {
     let canonical = match
       encode_prepared_client_effect_materials(
         allowed,

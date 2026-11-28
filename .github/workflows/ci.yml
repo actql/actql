@@ -652,6 +652,8 @@ jobs:
           else
             if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then
               node scripts/ci-moon-tests.mjs "${{ matrix.target }}"
+            elif [ "${{ matrix.target }}" = wasm ]; then
+              node scripts/ci-moon-tests.mjs wasm --all
             else
               moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             fi

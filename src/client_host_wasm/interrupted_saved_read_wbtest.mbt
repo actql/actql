@@ -57,7 +57,7 @@ test "saved interruption cleanup spends normal entry but retains original loans 
   let parent_slot = @buffers.reserve_output_buffer(pool, 64, 64L, () => true).unwrap()
   let parent : StoredSubmissionProjection = {
     configuration: 1,
-    kind: 6,
+    kind: INCREMENTAL_SAVED_RESULT_KIND,
     borrow: Err(CleanupPending),
     slot: parent_slot,
     saved_result: None,

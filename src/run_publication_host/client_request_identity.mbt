@@ -232,6 +232,33 @@ pub fn prepare_client_original_effect_request_identity(
 }
 
 ///|
+/// Exact input identity from an independently retained Submission and Run.
+/// This holds no authored body and grants no current permission or authority.
+struct ClientEffectRetainedSubmissionInput {
+  request : ClientRequestIdentity
+  run_definition_cid : String
+} derive(Eq)
+
+///|
+/// The Host must already have authenticated the same submitted original and
+/// Run. Only a Request which explicitly binds that input can use this proof.
+pub fn prepare_client_effect_retained_submission_input(
+  reference : ClientSubmissionReferenceRecord,
+  intent : ClientSubmittedIntent,
+  request : ClientRequestIdentity,
+  run_definition_cid : String,
+) -> Result[ClientEffectRetainedSubmissionInput, ClientRequestIdentityIssue] {
+  if !client_submission_reference_matches_request(reference, request) ||
+    !valid_client_request_cid(run_definition_cid) ||
+    client_submitted_intent_requests_read_only(intent) ||
+    request.caller_input_intent_cid == source_free_caller_input_intent_cid() ||
+    request.caller_input_intent_cid != client_submitted_intent_cid(intent) {
+    return Err(IdentityMismatch)
+  }
+  Ok({ request, run_definition_cid, })
+}
+
+///|
 /// Readmission checks stored identity components against both claimed CIDs.
 /// It verifies identity, not the storage provenance or current authorization.
 pub fn admit_client_request_identity_record(

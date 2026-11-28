@@ -12,8 +12,8 @@ import {moonGraphCandidate, nonMoonRequirements, normalizeMoonGraph, planMoonTes
 import type {MoonTestPlan} from './ci-moon-test-plan.mjs';
 import {selectTargets, validateSelection, gateJobRequired, deepProofRequired, verifyGate, gateJobs,
   maintenanceFiles, documentationFiles, readChanges} from './ci-targets.mjs';
-import {runMoonTests, nativeMoonPackages} from './ci-moon-tests.mjs';
-import {nativeCoreTestSelection, nativeCoreTestSelectionOptions, nativeScopedTestFiles, portableMoonTestCount} from './native-core-test-selection.mjs';
+import {runCoreWasmTests, runMoonTests, nativeMoonPackages} from './ci-moon-tests.mjs';
+import {nativeCoreTestSelection, nativeCoreTestSelectionOptions, nativeScopedTestFiles, portableMoonTestCount, portableMoonTestFiles} from './native-core-test-selection.mjs';
 import {runFocusedTests} from './test-execution.mjs';
 import {inventory as verificationInventory} from './verification-actions.mjs';
 
@@ -175,14 +175,54 @@ test('a backend without runnable compiler cases retains its full nonzero suite',
   let invoked = 0;
   assert.equal(runMoonTests({sourceRevision:hash, selection}, 'wasm', other, {
     git:() => hash, discover:() => selection.moonTests!, count:() => 0,
-    run(kind, args) {
-      invoked++; assert.equal(kind, 'moon');
-      assert.deepEqual(args.slice(0, 3), ['--target', 'wasm', '--deny-warn']);
-      assert.equal(args.length, 5, 'No selected path means the complete backend, never a zero-case pass');
+    runWasm(paths) {
+      invoked++;
+      assert.equal(paths, undefined, 'No selected path retains the complete Wasm backend');
       return 1;
     },
   }), 1);
   assert.equal(invoked, 1);
+});
+
+test('Wasm preserves original ordinary and physical test identities and keeps release selection separate', () => {
+  const host = 'src/client_host_wasm/metadata_wbtest.mbt';
+  const ordinary = 'src/example/example_test.mbt';
+  const record = (source: string, kind: string): ReturnType<typeof portableMoonTestFiles>[number] =>
+    ({directory:dirname(source), source, benchmark:false,
+      entry:[JSON.stringify(['actql/actql',kind]), source.split('/').at(-1)!, {index:0,name:source}]});
+  const records = [record(ordinary,'blackbox'), record(host,'whitebox')];
+  let ordinaryCalls = 0;
+  const commands: {command:string; args:string[]}[] = [];
+  const execute = ((command: string, args: readonly string[]) => {
+    commands.push({command,args:[...args]});
+    return Buffer.alloc(0);
+  }) as typeof execFileSync;
+  const options = {cwd:repository, inventory(root: string, args: readonly string[], target: string) {
+    assert.equal(root, repository);
+    assert.equal(target, 'wasm');
+    assert(args.includes('--deny-warn'));
+    return records;
+  }, run(kind: string, args: readonly string[], options: {expectedTests?: number} = {}) {
+    ordinaryCalls++;
+    assert.equal(kind, 'moon');
+    assert(args.includes(ordinary) && !args.includes(host));
+    assert.equal(options.expectedTests, 1);
+    return 0;
+  }, execute};
+  assert.equal(runCoreWasmTests(undefined, options), 0);
+  assert.equal(ordinaryCalls, 1);
+  assert.equal(commands[0]!.command, 'moon');
+  assert(commands[0]!.args.includes('--debug') && commands[0]!.args.includes('--build-only') &&
+    commands[0]!.args.includes(dirname(host)));
+  assert.equal(commands[1]!.command, process.execPath);
+  assert.deepEqual(commands[1]!.args.slice(-3), ['--debug','1','metadata_wbtest.mbt']);
+  commands.splice(0);
+  assert.equal(runCoreWasmTests([host], options), 0);
+  assert.equal(ordinaryCalls, 1);
+  assert.equal(commands.length, 2);
+  assert.throws(() => runCoreWasmTests(['foreign.mbt'], options), /No original Wasm tests selected/u);
+  assert.throws(() => runCoreWasmTests([host], {...options, inventory: () => [record(host,'blackbox')]}),
+    /additional physical Wasm test driver/u);
 });
 
 test('Native caller consumes the same checked package closure without changing its full entry classification', async () => {
@@ -509,6 +549,13 @@ test('actual compiler and Git endpoints execute only selected backend tests whil
         run(kind, args, options) {
           assert.equal(args.length, 5, 'Zero-case selection must run the complete backend');
           return runFocusedTests(kind, args, {...options, expectedTests:4});
+        },
+        runWasm(paths) {
+          assert.equal(paths, undefined);
+          return runCoreWasmTests(paths, {cwd:root, run(kind, args, options) {
+            assert.equal(options?.expectedTests, 4);
+            return runFocusedTests(kind, args, options);
+          }});
         }}), 0);
     }
   }

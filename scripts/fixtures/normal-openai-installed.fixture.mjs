@@ -15,7 +15,7 @@ import {DatabaseSync} from 'node:sqlite';
 import tls, {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
-import {closedModelRawEvidence, modelPlanFixtureDigest, normalProviderDiagnostics, omitFixtureModelPlanBinding,
+import {closedModelRawEvidence, modelPlanFixtureDigest, normalProviderDiagnostics, observeEnteredCancellation, omitFixtureModelPlanBinding,
   verifyFixtureModelPlanBindingStillAbsent} from './normal-provider-diagnostics.fixture.mjs';
 
 const phase = process.argv[2];
@@ -375,6 +375,15 @@ let completedHttpFailures = 0;
 const continuousResponseClosed = fresh && timeoutMode === 'call'
   ? new Promise(resolve => {finishContinuousResponse = resolve;}) : undefined;
 const enteredRequest = Promise.withResolvers(), interruptedResponse = Promise.withResolvers();
+const cancelTraceStart = performance.now();
+function recordEnteredCancellation(stage) {
+  if (fresh && enteredCancel) {
+    // Fixed stage names and monotonic offsets survive a red in the raw child
+    // log. The original Run, credentials and peer payload stay in the fixture.
+    process.stderr.write(JSON.stringify({enteredCancellationStage: stage,
+      elapsedMs: Math.round(performance.now() - cancelTraceStart)}) + '\n');
+  }
+}
 async function awaitPeer(pending, issue) {
   let deadline;
   try {
@@ -474,7 +483,10 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   assert.deepEqual(input, index === 0 ? {text: 'first'} : {quantity: 7});
   const value = index === 0 ? {answer: true} : {label: 'exact-label'};
   if (interruption !== undefined) {
-    response.once('close', interruptedResponse.resolve);
+    response.once('close', () => {
+      recordEnteredCancellation('peer_closed');
+      interruptedResponse.resolve();
+    });
     enteredRequest.resolve();
     if (!enteredCancel) request.socket.destroy();
     return;
@@ -1122,21 +1134,27 @@ try {
       await writeFile('run-' + index + '.json', JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
       if (denied) deniedRef = run.ref;
       else originalRef = run.ref;
-      const waiting = interruption === undefined ? run.wait() : run.wait({signal: AbortSignal.timeout(15000)});
-      if (enteredCancel) {
-        await awaitPeer(enteredRequest.promise, 'OriginalEnteredRequestUnavailable');
-        const before = await run.status();
-        const cancelRef = {...run.ref, cancelId: 'entered-fixture-cancel', expectedRevision: before.control.revision};
-        const accepted = await run.cancel({cancelId: cancelRef.cancelId, expectedRevision: cancelRef.expectedRevision,
-          attemptId: 'original-entered-fixture-cancel'});
-        assert.equal(accepted.kind, 'accepted');
-        cancellation = accepted.cancellation;
-        assert.equal(cancellation.kind, 'accepted');
-        assert.deepEqual(cancellation.cancelRef, cancelRef);
-        assert.deepEqual(await run.lookupCancellation(cancelRef), {kind: 'found', cancellation});
-        await writeFile('entered-cancellation.json', JSON.stringify(cancellation), {flag: 'wx', mode: 0o600});
-      }
-      const waited = await waiting;
+      const wait = () => interruption === undefined ? run.wait() : run.wait({signal: AbortSignal.timeout(15000)});
+      const waited = enteredCancel ? await observeEnteredCancellation({
+        awaitEntry: () => awaitPeer(enteredRequest.promise, 'OriginalEnteredRequestUnavailable'),
+        wait,
+        record: recordEnteredCancellation,
+        async cancel() {
+          const before = await run.status();
+          recordEnteredCancellation('status_observed');
+          const cancelRef = {...run.ref, cancelId: 'entered-fixture-cancel', expectedRevision: before.control.revision};
+          const accepted = await run.cancel({cancelId: cancelRef.cancelId, expectedRevision: cancelRef.expectedRevision,
+            attemptId: 'original-entered-fixture-cancel'});
+          assert.equal(accepted.kind, 'accepted');
+          cancellation = accepted.cancellation;
+          assert.equal(cancellation.kind, 'accepted');
+          assert.deepEqual(cancellation.cancelRef, cancelRef);
+          recordEnteredCancellation('cancel_accepted');
+          assert.deepEqual(await run.lookupCancellation(cancelRef), {kind: 'found', cancellation});
+          recordEnteredCancellation('receipt_confirmed');
+          await writeFile('entered-cancellation.json', JSON.stringify(cancellation), {flag: 'wx', mode: 0o600});
+        },
+      }) : await wait();
       await diagnostic.terminal(index, waited);
       originalTerminalStatus = waited.status;
       assert.equal(waited.status, missingKey || externalDuplicate || denied ? 'failed'
@@ -1249,8 +1267,13 @@ try {
 finally {
   if (client !== undefined) {
     firstClose.attempted = true;firstClose.calls++;
-    try {await client.close();firstClose.returned = true;}
+    recordEnteredCancellation('first_close_started');
+    try {
+      await client.close();firstClose.returned = true;
+      recordEnteredCancellation('first_close_returned');
+    }
     catch (cause) {
+      recordEnteredCancellation('first_close_failed');
       firstClose.error = {name: cause?.name, code: cause?.code};
       if (!failed) {failed = true;primary = cause;}
     }

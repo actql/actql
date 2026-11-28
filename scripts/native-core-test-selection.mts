@@ -446,6 +446,13 @@ export function portableMoonTestCount(repository: string, args: readonly string[
   return compilerTestSelection(repository, args, options, target, true).runnableCases;
 }
 
+export function portableMoonTestFiles(repository: string, args: readonly string[], target: string, options: CompilerOptions = {}) {
+  assert(['js', 'wasm'].includes(target), 'Portable test metadata target required');
+  const {records} = compilerTestSelection(repository, args, {...options, includeRecords: true}, target, true);
+  assert(records, 'Missing original portable test inventory');
+  return records.filter(runnableCompilerCase);
+}
+
 export function nativeCoreFocusedTestCount(repository: string, args: readonly string[], options: CompilerOptions = {}) {
   return compilerTestSelection(repository, args, options, 'native', true).runnableCases;
 }
