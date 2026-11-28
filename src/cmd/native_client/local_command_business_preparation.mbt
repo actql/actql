@@ -148,6 +148,15 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   let (preparation, normalization, authoring) = self.prepare_business_request(
     capture, intent, environment,
   )
+  if settings.model_http_installations is Some(_) &&
+    self.project is Some(project) &&
+    project.selects_operator_file_effect("run") {
+    guard @local_host.native_client_submitted_preparation(preparation)
+      is EffectComputation(effect) &&
+      @run_host.prepared_client_effect_infer_count(effect) == Some(1) else {
+      stop("LocalOriginalModelHttpEffectUnavailable")
+    }
+  }
   let model_compilation = match
     (
       settings.model_http_installations,

@@ -16,7 +16,8 @@ test('Native Model local observation retains partial exports before issuer retir
     assert(block, name); return block.trim();
   }).join('\n');
   const grow = capacities.split('///|').find(value => value.includes('fn NativeClientMockModelWork::grow_observation_capacity('));
-  const startup = capacities.split('///|').find(value => value.includes('pub fn native_client_mock_model_observation_capacity('));
+  const startup = capacities.split('///|').find(value =>
+    /^(?:pub )?fn native_client_mock_model_observation_capacity\(/mu.test(value));
   assert(grow && startup);
   const representation = readFileSync(new URL('../src/execution_relation/preparation_representation.mbt', import.meta.url), 'utf8');
   const arrayRepresentation = representation.split('///|').find(value =>

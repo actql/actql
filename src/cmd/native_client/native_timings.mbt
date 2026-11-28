@@ -108,6 +108,13 @@ fn LocalCommandPreparationOriginal::record_domain_inventory(
 extern "C" fn native_acceptance_enabled() -> Bool = "actql_native_acceptance_enabled"
 
 ///|
+// The existing Model acceptance sink retains only the first fixed labels.
+extern "C" fn native_model_preview_failure(
+  stage : Int,
+  managed_reason : Int,
+) -> Unit = "actql_native_model_preview_failure"
+
+///|
 #borrow(identity)
 extern "C" fn native_acceptance_identity_raw(
   tag : Int,

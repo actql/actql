@@ -242,7 +242,7 @@ struct ModelState {
   quantity_capacity : ModelQuantityCapacity?
   call_scope : @publication_host.ClientInferCallScope?
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
-  egress_admission : @publication_host.ClientInferEgressAdmission?
+  mut egress_admission : @publication_host.ClientInferEgressAdmission?
   attempts : Map[Int, ModelAttemptTrace]
   attempt_slots : Array[Int]
   restored_calls : Map[Int, RestoredModelCall]
@@ -260,7 +260,7 @@ struct ModelState {
   send_mask : Array[Bool]?
   mut reservation_next_slot : Int
   requests : Array[PreparedModelRequest]
-  physical_preflight : ModelPhysicalPreflight?
+  mut physical_preflight : ModelPhysicalPreflight?
   physical_cursors : Array[ModelRequestPreflight]
   physical_plans : Map[Int, ModelPhysicalRequestPlan]
   mut physical_next_slot : Int

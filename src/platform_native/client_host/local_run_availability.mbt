@@ -399,6 +399,7 @@ fn NativeLocalHostConnection::refresh_original_run_availability(
       now,
       operations=Some(operations),
       capture=Some(capture),
+      model_store=Some((store, namespace_id, operation)),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

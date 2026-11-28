@@ -471,7 +471,6 @@ fn native_mock_effect_managed_plan(
   mock : LocalProjectMockDeclarations,
   contracts : @local_values.ClientInstalledSequenceContracts,
   provider : @local_compute.ManagedProvider,
-  publication : @execution.ExecutionCapacity,
   record_bytes : Int,
   capture_recipes? : Array[Array[@execution.ExecutionCapacity]] = [],
 ) -> @local_values.ClientInstalledEffectManagedPlan raise ClientStop {
@@ -488,6 +487,11 @@ fn native_mock_effect_managed_plan(
   // no Node-specific physical layout or spare Model allowance is inferred.
   let retained = limits.mapping.logical.max_live_value_bytes
   let execution = limits.identity.wire.max_bytes.to_int64()
+  let publication = @local_host.native_client_effect_model_publication_capacity(
+    limits,
+  ).unwrap_or_else(() => {
+    stop("LocalOriginalModelPublicationCapacityUnavailable")
+  })
   let suffix = @local_values.retained_effect_local_tasks_control_capacity(
     @strategy.checked_effect_computation_graph(
       @run_host.prepared_client_effect_computation_graph(prepared),
@@ -594,6 +598,35 @@ fn native_mock_effect_source_plan(
 }
 
 ///|
+// Borrow the exact ordered acquisition owned by this prepared Effect Plan.
+// A typed row reader for another installed declaration cannot replace it.
+fn native_http_effect_whole_source_matches(
+  plan : @local_values.ClientInstalledEffectManagedPlan,
+  index : Int,
+  source : LocalProjectMockEffectSourceInput,
+) -> Bool {
+  guard @local_values.prepared_installed_effect_managed_whole_source(
+      plan, index,
+    )
+    is Ok((whole, acquisition, capacity)) else {
+    return false
+  }
+  let provider = match source._retained_reader {
+    Rows(row) => row.provider.capacity()
+    Files(_, listing) => listing.capacity()
+  }
+  @local_values.check_installed_whole_source_capacity(
+    capacity, acquisition, provider,
+  ) &&
+  @row_host.check_row_input_acquisition_original(
+    acquisition,
+    source._retained_source._retained_declaration,
+    whole,
+  )
+  is Ok(_)
+}
+
+///|
 fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
   self : LocalCommandBusinessPreparation,
   first : LocalEffectFirstCompilation,
@@ -611,7 +644,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     @initial_resources.preparation_body_borrow_value(borrow) is Some(prepared) &&
     business.request_run is None &&
     business.effect_model is None &&
-    first._retained_models.length() == business.model_work.length() &&
+    first.matches_model_work_before_store(business.model_work) &&
     (
       first._retained_models.length() == 1 ||
       (
@@ -671,7 +704,6 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     } else {
       let selected = first._retained_models[0]
       let limits = selected._retained_limits
-      let work = business.model_work[0]
       let provider = @infer.composed_local_provider(
         selected.graph.occurrence,
         limits,
@@ -690,25 +722,25 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
         },
         _ => @compute_sdk.ComputeUnsupported,
       )
-      native_mock_effect_managed_plan(
+      let plan = native_mock_effect_managed_plan(
         prepared,
         first,
         mock,
         self.installed_contracts,
         provider,
-        work
-        .observation_capacity(
-          first.request,
-          first.model_compiled.unwrap(),
-          first.definition,
-          selected.graph,
-        )
-        .unwrap_or_else(() => {
-          stop("LocalOriginalModelPublicationCapacityUnavailable")
-        }),
         native_mock_effect_record_bytes(installation),
         capture_recipes~,
       )
+      // The finite Source plan selects Whole acquisition independently of
+      // whether its exact installed File reader supplies typed rows or files.
+      if selected.provider is HttpModel(_) {
+        for index, source in first._retained_sources {
+          if !native_http_effect_whole_source_matches(plan, index, source) {
+            stop("LocalOriginalModelHttpEffectUnavailable")
+          }
+        }
+      }
+      plan
     }
     let state = retain_native_mock_effect_plan(
       first, prepared, plan, capture_recipes,
@@ -722,10 +754,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
     )
     |> ignore
     business.request_body = None
-    if !first._retained_models.is_empty() {
+    if first._retained_models is [selected] {
+      let quantities = match selected.provider {
+        MockModel(_, _) => None
+        HttpModel(_) => Some(native_model_plan_quantities([selected.graph]))
+      }
       state.scope = Some(
         @local_values.prepare_request_effect_model_read_scope(
-          parent, input, plan,
+          parent,
+          input,
+          plan,
+          quantity_limits=quantities,
         ).unwrap_or_else(() => stop("LocalOriginalModelScopeUnavailable")),
       )
     }

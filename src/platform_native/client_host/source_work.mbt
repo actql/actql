@@ -35,6 +35,7 @@ pub(all) enum NativeClientSourceWorkIssue {
   Preparation(@local.ClientClosedValuesPreparationIssue)
   LocalExport(@local.LocalValuesResultExportIssue)
   WholeModelProducerExport(@local.LocalWholeUnitResultExportIssue)
+  WholeModelOutcomeExport(@execution.CompletedExportIssue)
   CaptureIdentity(@execution_query.CapturedSourceIssue)
   AuthorizationDenied
   Normalization(@host.ClientLocalNormalizationIssue)

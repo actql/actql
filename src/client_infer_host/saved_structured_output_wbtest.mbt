@@ -330,8 +330,62 @@ test "structured answer adoption requires the original saved raw receipt" {
     "model_capture_bundle", wire, 16384, 1024, 32,
   ).unwrap()
   let bundle_cid = @publication.run_evidence_value_identity(bundle_value)
+  let limits = @model.model_call_settlement_export_limits(1048576, 100000)
+  let nodes = Int::min(limits.max_nodes, wire.length())
+  let bytes = @utf8.encode(wire).length()
+  assert_true(
+    @publication.run_evidence_admission_construction_inventory(
+      bytes,
+      nodes,
+      limits.max_depth,
+    )
+    is None,
+  )
+  assert_true(
+    @publication.model_capture_bundle_read_construction_inventory(
+      bytes,
+      nodes,
+      limits.max_depth,
+    )
+    is Some(_),
+  )
+  assert_true(
+    @publication.model_capture_bundle_read_construction_inventory(
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Some(_),
+  )
+  for
+    (byte_limit, node_limit, depth_limit) in [
+      (1048577, 100000, 100),
+      (1048576, 100001, 100),
+      (1048576, 100000, 101),
+    ] {
+    assert_true(
+      @publication.model_capture_bundle_read_construction_inventory(
+        byte_limit, node_limit, depth_limit,
+      )
+      is None,
+    )
+  }
+  assert_true(
+    @publication.read_model_capture_bundle(
+      wire,
+      "sha256:" + "0".repeat(64),
+      limits.max_bytes,
+      nodes,
+      limits.max_depth,
+    )
+    is Err(@publication.RunEvidenceIdentityMismatch),
+  )
   let bundle = @publication.read_model_capture_bundle(
-    wire, bundle_cid, 16384, 1024, 32,
+    wire,
+    bundle_cid,
+    limits.max_bytes,
+    nodes,
+    limits.max_depth,
   ).unwrap()
   let record = @publication.model_capture_bundle_record(bundle, 0).unwrap()
   let quote = Ref(0L)

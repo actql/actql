@@ -1,6 +1,6 @@
 {
   "source": "a84580b5a0b383c6cc066d32ee5a9da64313239b",
-  "syntaxProjectionSha256": "ea1d3de8984acad8996ce5021d67cc9f4b44891852166315333e5a0c44a20311",
+  "syntaxProjectionSha256": "ca3440274fe2d24d5d3f011069a8432d9e92d48f654177e0284667a3101c02df",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -101074,7 +101074,7 @@
     },
     {
       "module": "src/cmd/native_client/local_adoption.mbt",
-      "sha256": "fcf53244ea2be64c31a9bcb41224a4793fe1400a8a9d85fddced9097b15b3701",
+      "sha256": "39190f357b4d6a8dcbbc09425289847c58d3d8e7fa9fdc4de4f588a4376c3d4e",
       "exports": [],
       "operations": [
         {
@@ -103652,9 +103652,13 @@
     },
     {
       "module": "src/run_publication/run_evidence_admission_construction.mbt",
-      "sha256": "4b5f2e5ec261666ff78be4d774f01a3d6423d538edf05deaae4263740a792f7a",
+      "sha256": "aea9983e136f5becbaaacd1c189b4a80feb451a9698ecb2f6b04d77013d722e8",
       "exports": [],
       "operations": [
+        {
+          "name": "model_capture_bundle_read_construction_inventory",
+          "declaration": "model_capture_bundle_read_construction_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > RunEvidenceAdmissionConstruction ?"
+        },
         {
           "name": "run_evidence_admission_construction_inventory",
           "declaration": "run_evidence_admission_construction_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > RunEvidenceAdmissionConstruction ?"
@@ -103741,6 +103745,102 @@
               {
                 "path": ".github/workflows/ci.yml",
                 "anchor": "journal_decode_originals_wbtest.mbt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "model_capture_bundle_read_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "Same constructor geometry for the saved Model CaptureBundle role"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "pub fn model_capture_bundle_read_construction_inventory("
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original.mbt",
+                "anchor": "fn read_native_saved_model_capture_bundle("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication/model_capture_bundle.mbt",
+                "anchor": "if bundle.identity != expected_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication/model_capture_bundle.mbt",
+                "anchor": "pub fn release_model_capture_bundle_read("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_read.mbt",
+                "anchor": "fn NativeClientMockModelWork::read_completed_model_dependency_in_original_read("
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_dependent_unknown.mbt",
+                "anchor": "fn NativeLocalJournalCapture::restore_saved_dependent_model_unknown_locked("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "bytes > 1048576"
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original.mbt",
+                "anchor": ").map_err(_ => CustodyLost)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_read.mbt",
+                "anchor": "!run.cancellation_requested()"
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_dependent_unknown.mbt",
+                "anchor": "require_saved_model_read_current(authority, run, store)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original.mbt",
+                "anchor": "fund_native_saved_model_leaf("
+              },
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "Storage, reader and retained optional bundle/records"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "data_keys=true"
+              },
+              {
+                "path": "src/run_publication/model_capture_bundle.mbt",
+                "anchor": "pub fn read_model_capture_bundle("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/saved_structured_output_wbtest.mbt",
+                "anchor": "test \"structured answer adoption requires the original saved raw receipt\""
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original_wbtest.mbt",
+                "anchor": "test \"dependent Model success Journal points select the exact originating slot and full success inventory\""
               }
             ]
           }
@@ -105886,7 +105986,9 @@
             "prepare_client_run_state_original",
             "prepare_client_unpublished_run_state_original",
             "restore_client_run_state_original",
-            "validate_client_historical_run_state_original"
+            "validate_client_historical_run_state_original",
+            "ClientRetainedRunStateOriginal::requires_dependent_model_unknown_proof",
+            "prepare_client_dependent_model_unknown_run_state_original"
           ],
           "exports": [],
           "attributes": {
@@ -106001,6 +106103,10 @@
           "declaration": "ClientRetainedRunStateOriginal : : matches ( self : Self , definition : @ publication . PublicationContract , wire : String , revision : Int64 , key : String , ) - > Bool"
         },
         {
+          "name": "ClientRetainedRunStateOriginal::requires_dependent_model_unknown_proof",
+          "declaration": "ClientRetainedRunStateOriginal : : requires_dependent_model_unknown_proof ( self : Self , ) - > Bool"
+        },
+        {
           "name": "ClientRetainedRunStateOriginal::requires_model_proof",
           "declaration": "ClientRetainedRunStateOriginal : : requires_model_proof ( self : Self , ) - > Bool"
         },
@@ -106026,7 +106132,11 @@
         },
         {
           "name": "encode_client_run_state_original",
-          "declaration": "encode_client_run_state_original ( definition : @ publication . PublicationContract , manifest : @ publication . PublicationContract ? , state_wire : String , status : @ publication . RunOutcomeStatus , locator ? : ( String , String ) ?"
+          "declaration": "encode_client_run_state_original ( definition : @ publication . PublicationContract , manifest : @ publication . PublicationContract ? , state_wire : String , status : @ publication . RunOutcomeStatus , locator ? : ClientRunStateModelLocator ?"
+        },
+        {
+          "name": "prepare_client_dependent_model_unknown_run_state_original",
+          "declaration": "prepare_client_dependent_model_unknown_run_state_original ( definition : @ publication . PublicationContract , state_wire : String , attempt_cid : String , entry_digest : String , ) - > Result [ ClientRunStateOriginal , ClientJournalDecodingIssue ]"
         },
         {
           "name": "prepare_client_run_state_original",
@@ -106165,7 +106275,7 @@
           }
         }
       ],
-      "sha256": "e729eb95c5251247ca8be27f18515641f5cdbdf60a72b57793021abc58dff291",
+      "sha256": "579b520d4965d7f7b158ad1a2430ab2e097a83dbc089e5c81d7f5f164550eba7",
       "exports": [],
       "operations": [
         {
@@ -106338,7 +106448,7 @@
     },
     {
       "module": "src/run_publication_host/client_saved_submission_snapshot.mbt",
-      "sha256": "948a0b63405b402f5d31b5578ab3c155a4bdbc6ecb57b5451d607f44881be8a5",
+      "sha256": "f3ed381f18f86aad4716e9c7a3b6c5ebfdcc9a1fb4db8bc2d657c3dc8a1c25d8",
       "exports": [],
       "operations": [
         {
@@ -106386,6 +106496,10 @@
           "declaration": "client_saved_submission_record ( value : ClientSavedSubmissionSnapshot , ) - > ClientSubmittedJournalEncoding"
         },
         {
+          "name": "client_saved_submission_retained_state_original",
+          "declaration": "client_saved_submission_retained_state_original ( value : ClientSavedSubmissionSnapshot , ) - > ClientRetainedRunStateOriginal ?"
+        },
+        {
           "name": "client_saved_submission_revision",
           "declaration": "client_saved_submission_revision ( value : ClientSavedSubmissionSnapshot , ) - > Int64"
         },
@@ -106396,10 +106510,6 @@
         {
           "name": "client_saved_submission_run_row",
           "declaration": "client_saved_submission_run_row ( value : ClientSavedSubmissionSnapshot , ) - > ClientJournalPhysicalRow ?"
-        },
-        {
-          "name": "client_saved_submission_retained_state_original",
-          "declaration": "client_saved_submission_retained_state_original ( value : ClientSavedSubmissionSnapshot , ) - > ClientRetainedRunStateOriginal ?"
         },
         {
           "name": "client_saved_submission_task_materials_original",

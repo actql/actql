@@ -37,6 +37,7 @@ priv enum LocalCommandDiagnosticKind {
   RuntimeRequirementsPorts
   RuntimeRequirementsCapacity
   RuntimeRowExecutionLimit
+  RuntimeModelTerminalFailure(@publication.BoundModelHttpFailure)
 }
 
 ///|
@@ -346,6 +347,8 @@ fn local_command_primary_diagnostic(message : String) -> (String, String) {
       (
         "ACTQL_E_EXECUTION_LIMIT", "Local row execution exceeded its admitted row or workspace limit.",
       )
+    RuntimeModelTerminalFailure(proof) =>
+      @publication.model_http_failure_diagnostic(proof)
   }
 }
 

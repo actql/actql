@@ -454,6 +454,110 @@ fn project_bindings_fixture(
 }
 
 ///|
+test "explicit operator File Effect selection uses cold write declarations without Model input" {
+  let configuration =
+    #|{"version":"actql-config/0.1","profile":"mock","connectors":"./connectors.json","model_tasks":"../plain/model-tasks.json","mock":{"catalog":"./mock/catalog.json","data":"./mock/data.json","answers":{}}}
+  for
+    (operation, command_args) in [
+      ("check", ["check", "file.aql"]),
+      ("run", ["run", "file.aql"]),
+      ("approve", ["approve", "original-checkpoint"]),
+      ("reject", ["reject", "original-checkpoint"]),
+      ("status", ["status", "--run-id", "original-run"]),
+    ] {
+    let args = [
+      "--mode", "local", "--config", "actql.config.json", "--config-root", "/operator",
+      "--config-file", "operator.json",
+    ]
+    args.append(command_args)
+    let matches = command().parse(argv=args)
+    assert_true(local_project_explicit_operator_selected(matches))
+    let cold = operation == "approve" || operation == "reject"
+    let project = project_bindings_fixture(
+      if cold {
+        "deal-review-approval"
+      } else {
+        "deal-review"
+      },
+      configuration,
+    )
+    assert_eq(
+      project.selects_operator_file_effect(operation),
+      operation == "status",
+    )
+    let selected = local_project_read_execution_bindings(
+        Some(project),
+        operation,
+      )
+      .unwrap()
+      .unwrap()
+    if selected.mock_declarations is Some(original) {
+      defer original.retire()
+      original.prepare_source_declarations().unwrap()
+      assert_eq(original._retained_registry is Some(_), !cold)
+      assert_true(selected.selects_operator_file_effect(operation))
+      if cold {
+        local_project_apply_selection(matches, Some(selected))
+        assert_eq(optional(matches, "state-dir"), None)
+        assert_eq(optional(matches, "config-file"), Some("operator.json"))
+      }
+    } else {
+      assert_eq(operation, "status")
+      assert_true(selected.selects_operator_file_effect(operation))
+    }
+  }
+}
+
+///|
+test "explicit operator File Effect selection requires a retained read-side File" {
+  let configuration =
+    #|{"version":"actql-config/0.1","profile":"mock","connectors":"./connectors.json","model_tasks":"./model-tasks.json","mock":{"catalog":"./mock/catalog.json","data":"./mock/data.json","answers":{}}}
+  for
+    (directory, has_read_side) in [
+      ("typed-file-effect", true),
+      ("write-only-file-effect", false),
+    ] {
+    for operation in ["check", "run"] {
+      let matches = command().parse(argv=[
+        "--mode", "local", "--config", "actql.config.json", "--config-root", "/operator",
+        "--config-file", "operator.json", operation, "file.aql",
+      ])
+      assert_true(local_project_explicit_operator_selected(matches))
+      let project = project_bindings_fixture(directory, configuration)
+      let selected = local_project_read_execution_bindings(
+          Some(project),
+          operation,
+        )
+        .unwrap()
+        .unwrap()
+      let original = selected.mock_declarations.unwrap()
+      defer original.retire()
+      assert_false(selected.selects_operator_file_effect(operation))
+      original.prepare_source_declarations().unwrap()
+      assert_eq(original._retained_registry.unwrap().task_count(), 0)
+      assert_true(
+        original.sources.all(source => source._retained_files.is_empty()),
+      )
+      assert_true(
+        original.sources.any(source => {
+          source._retained_rows.any(row => row.view.resource == "Opportunity") &&
+          source._retained_writes.any(write => {
+            write.mapping.resource == "Opportunity"
+          })
+        }),
+      )
+      assert_eq(
+        original.sources.any(source => {
+          source._retained_rows.any(row => row.view.resource == "files")
+        }),
+        has_read_side,
+      )
+      assert_eq(selected.selects_operator_file_effect(operation), has_read_side)
+    }
+  }
+}
+
+///|
 test "plain project execution reads both selected empty declarations before changing the route" {
   let project = project_bindings_fixture(
     "plain", "{\"version\":\"actql-config/0.1\",\"connectors\":\"connectors.json\",\"model_tasks\":\"model-tasks.json\"}",

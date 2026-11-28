@@ -12,6 +12,7 @@ priv enum NativeMockModelStorePhase {
   ModelStoreUnstarted
   ModelStorePrelude
   ModelStoreEntered
+  ModelStoreAcknowledged
 } derive(Eq)
 
 ///|
@@ -37,6 +38,52 @@ priv struct NativeMockModelSettlement {
   mut store_complete : Bool
   mut journal_attempted : Bool
   mut journal_recorded : Bool
+}
+
+///|
+/// Fund the dependent success evidence vector while the original Journal Read
+/// is current. The Compute constructor must present the same accepted Raw.
+pub fn NativeClientMockModelWork::fund_settlement_export_in_original_read(
+  self : Self,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  if !(self.provider_role is PortableHttp(http) && http.output_used) {
+    return Ok(())
+  }
+  guard !self.closing &&
+    !self.closed &&
+    !self.advancing &&
+    self.settlement_raw_funding is None &&
+    self.settlement is None &&
+    self.entry_recorded &&
+    self.active is Some(active) &&
+    @infer.call_settlement(active) is Some(original) else {
+    return Err(ForeignOriginal)
+  }
+  guard @model.model_call_settlement_success_raw(original) is Some(raw) else {
+    return Ok(())
+  }
+  let (_, _, _, header, pointer) = @bootstrap.native_managed_value_layout()
+  guard header > 0L &&
+    pointer > 0L &&
+    @execution.checked_preparation_add_product(header, 9L, pointer)
+    is Some(bytes) else {
+    return Err(Original(ConfigurationLimit))
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  self.capture
+  .fund_model_http_material_in_original_read(bytes, bytes)
+  .map_err(issue => Transport(issue))
+  .bind(_ => {
+    guard @model.model_call_settlement_success_raw(original) is Some(current) &&
+      physical_equal(current, raw) else {
+      return Err(ForeignOriginal)
+    }
+    self.settlement_raw_funding = Some(raw)
+    Ok(())
+  })
 }
 
 ///|
@@ -94,7 +141,7 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
         NativeClientMockModelIssue::Evidence(issue)
       }),
     )
-    let _ = mock_model_require(
+    let attempt_evidence = mock_model_require(
       @publication.bind_model_slot_attempt_evidence(
         binding,
         attempt,
@@ -105,9 +152,36 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
         self.definition,
       ).map_err(issue => NativeClientMockModelIssue::Evidence(issue)),
     )
-    let leaves = [attempt, accounting, outcome, authority, capture]
     guard @publication.bound_model_slot_capture_outcome(binding) is Some(result) else {
       return Err(ForeignOriginal)
+    }
+    let retain_success_raw = result == "ok" &&
+      self.provider_role is PortableHttp(http) &&
+      http.output_used
+    let success_raw = if retain_success_raw {
+      guard self.settlement_raw_funding is Some(funded) &&
+        @model.model_call_settlement_success_raw(original) is Some(raw) &&
+        physical_equal(funded, raw) else {
+        return Err(ForeignOriginal)
+      }
+      Some(raw)
+    } else {
+      if self.settlement_raw_funding is Some(_) {
+        return Err(ForeignOriginal)
+      }
+      None
+    }
+    let originals = [attempt, accounting, outcome, authority, capture]
+    let leaves = if success_raw is Some(_) {
+      // The new descriptor is borrowed from the same completed exchange.
+      // The original Read has funded this vector. Store prices each body.
+      let selected = Array(capacity=9)
+      for original in originals {
+        selected.push(original)
+      }
+      selected
+    } else {
+      originals
     }
     if result == "ok" {
       guard @infer.invocation_evidence(active, slot) is Some(observation) else {
@@ -120,6 +194,14 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
         ),
       )
       leaves.push(observation)
+      if success_raw is Some(raw) {
+        mock_model_require(
+          @publication.verify_model_attempt_success_raw(
+            attempt_evidence, scope, observation, raw,
+          ).map_err(issue => NativeClientMockModelIssue::Evidence(issue)),
+        )
+        leaves.push(@publication.model_raw_response_value(raw))
+      }
     } else {
       mock_model_require(
         @publication.verify_model_slot_no_response_failure(binding, result).map_err(issue => {
@@ -127,6 +209,19 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
           },
         ),
       )
+      let raw = @model.model_call_settlement_failure_raw(original).map(
+        @publication.model_raw_response_value,
+      )
+      mock_model_require(
+        @publication.verify_model_attempt_reported_raw(
+          attempt_evidence, scope, raw,
+        ).map_err(issue => NativeClientMockModelIssue::Evidence(issue)),
+      )
+      // This leaf is only the canonical descriptor from the exact accepted
+      // Call. The response bytes remain in the entered Raw holding.
+      if raw is Some(descriptor) {
+        leaves.push(descriptor)
+      }
     }
     let attachment = mock_model_require(
       @infer.issued_attachment_admission(active, slot).map_err(issue => {
@@ -158,6 +253,7 @@ pub fn NativeClientMockModelWork::prepare_settlement_export(
       journal_recorded: false,
     }
     self.settlement = Some(saved)
+    self.settlement_raw_funding = None
     let exporter = mock_model_require(
       @model.start_model_call_settlement_export(original, limits).map_err(issue => {
         NativeClientMockModelIssue::Capture(issue)
@@ -318,6 +414,15 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
     saved.store_phase = ModelStoreEntered
     saved.store = Some(store)
     for original in saved.leaves {
+      let raw_descriptor = if @publication.run_evidence_value_name(original) ==
+        "model_raw_response" {
+        match @model.model_call_settlement_failure_raw(saved.original) {
+          Some(original) => Some(original)
+          None => @model.model_call_settlement_success_raw(saved.original)
+        }
+      } else {
+        None
+      }
       let child = mock_model_require(
         store
         .prepare_model_evidence_custody(
@@ -328,6 +433,7 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
           original,
           crypto,
           key,
+          raw_descriptor~,
         )
         .map_err(issue => NativeClientMockModelIssue::Store(issue)),
       )

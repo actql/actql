@@ -50,6 +50,8 @@ static _Atomic bool actql_acceptance_invalid;
 static bool actql_acceptance_selected;
 static bool actql_model_confirmation_selected;
 static _Atomic unsigned actql_model_confirmation_count[2];
+static _Atomic uint32_t actql_model_preview_failure;
+static _Atomic uint32_t actql_model_dependency_failure;
 typedef struct { int32_t tag; uint64_t start, child_ns, sql_start, current_start; } actql_timing_frame;
 static _Thread_local actql_timing_frame actql_timing_stack[ACTQL_TIMING_STACK];
 static _Thread_local uint32_t actql_timing_depth;
@@ -206,6 +208,18 @@ static void actql_timing_report(void) {
     }
     ACTQL_TIMING_APPEND("ACTQL_NATIVE_ACCEPTANCE_END {\"pid\":%ld,\"count\":%u}\n", (long)actql_timing_process, count);
   }
+  uint32_t preview_failure = ACTQL_TIMING_LOAD(actql_model_preview_failure);
+  if (preview_failure != 0) {
+    ACTQL_TIMING_APPEND("ACTQL_NATIVE_MODEL_PREVIEW_FAILURE {\"pid\":%ld,\"stage\":%u,\"managed_reason\":%u}\n",
+      (long)actql_timing_process, (unsigned)(preview_failure >> 8),
+      (unsigned)(preview_failure & UINT32_C(0xff)));
+  }
+  uint32_t dependency_failure = ACTQL_TIMING_LOAD(actql_model_dependency_failure);
+  if (dependency_failure != 0) {
+    ACTQL_TIMING_APPEND("ACTQL_NATIVE_MODEL_DEPENDENCY_FAILURE {\"pid\":%ld,\"stage\":%u,\"reason\":%u}\n",
+      (long)actql_timing_process, (unsigned)(dependency_failure >> 8),
+      (unsigned)(dependency_failure & UINT32_C(0xff)));
+  }
   actql_timing_emit(body, used);
 #undef ACTQL_TIMING_APPEND
   errno = saved_errno;
@@ -237,6 +251,40 @@ int32_t actql_native_acceptance_enabled(void) {
   bool enabled = actql_timing_enabled() && actql_acceptance_selected && getpid() == actql_timing_process;
   errno = saved_errno;
   return enabled;
+}
+/* Keep only the first scalar refusal for the selected Model acceptance run.
+ * Defer stderr to the existing process report, after ordinary cleanup. */
+void actql_native_model_preview_failure(int32_t stage, int32_t managed_reason) {
+  int saved_errno = errno;
+  if (actql_native_acceptance_enabled() && actql_model_confirmation_selected &&
+      stage >= 1 && stage <= 14 && managed_reason >= 0 && managed_reason <= 12 &&
+      ((stage == 8) == (managed_reason != 0))) {
+    uint32_t unset = 0;
+    uint32_t value = ((uint32_t)stage << 8) | (uint32_t)managed_reason;
+    (void)atomic_compare_exchange_strong_explicit(&actql_model_preview_failure,
+      &unset, value, memory_order_relaxed, memory_order_relaxed);
+  }
+  errno = saved_errno;
+}
+/* As with Preview, keep the first refusal and emit after normal cleanup.
+ * Stage 3 records the closed Whole Model Invocation reason. Stage 13 separates
+ * the Read transition (1, 11-16), the return (21-26), and the Read body (30-44). */
+void actql_native_model_dependency_failure(int32_t stage, int32_t reason) {
+  int saved_errno = errno;
+  if (actql_native_acceptance_enabled() && actql_model_confirmation_selected &&
+      stage >= 1 && stage <= 13 &&
+      ((stage == 3 && reason >= 1 && reason <= 8) ||
+       (stage == 13 && (reason == 0 || reason == 1 ||
+                        (reason >= 11 && reason <= 16) ||
+                        (reason >= 21 && reason <= 26) ||
+                        (reason >= 30 && reason <= 44))) ||
+       (stage != 3 && stage != 13 && reason == 0))) {
+    uint32_t unset = 0;
+    uint32_t value = ((uint32_t)stage << 8) | (uint32_t)reason;
+    (void)atomic_compare_exchange_strong_explicit(&actql_model_dependency_failure,
+      &unset, value, memory_order_relaxed, memory_order_relaxed);
+  }
+  errno = saved_errno;
 }
 /* Only the confirmed accounting record and acknowledged Raw descriptor use
  * this probe. Their closed schemas contain identifiers and scalar facts. */

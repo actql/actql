@@ -18,7 +18,30 @@ priv struct LocalEffectFirstCompilation {
   issued : @run_host.ClientEffectIssuedNormalizationMaterials
   model_compiled : @run_host.ClientCompiledRun?
   _retained_sources : Array[LocalProjectMockEffectSourceInput]
-  _retained_models : Array[LocalProjectMockEffectModelInput]
+  _retained_models : Array[LocalEffectModelInput]
+}
+
+///|
+fn LocalEffectFirstCompilation::matches_model_work_before_store(
+  self : Self,
+  works : Array[@local_host.NativeClientMockModelWork],
+) -> Bool {
+  match self._retained_models {
+    [] => works.is_empty()
+    [{ provider: HttpModel(_), .. }] =>
+      works.is_empty() && self.model_compiled is Some(_)
+    [selected] =>
+      self.model_compiled is Some(compiled) &&
+      works is [work] &&
+      work.matches_unopened_plan(
+        self.request,
+        compiled,
+        self.definition,
+        selected.graph,
+        selected._retained_limits,
+      )
+    _ => false
+  }
 }
 
 ///|
@@ -100,7 +123,7 @@ fn local_effect_first_compilation(
   now : String,
   until : String,
   infers? : Array[@run_host.ClientInferPlanGraph] = [],
-  models? : Array[LocalProjectMockEffectModelInput] = [],
+  models? : Array[LocalEffectModelInput] = [],
   request? : @run_host.ClientRequestIdentity? = None,
   source_inputs? : Array[LocalProjectMockEffectSourceInput] = [],
 ) -> LocalEffectFirstCompilation raise ClientStop {
@@ -108,31 +131,32 @@ fn local_effect_first_compilation(
     is EffectComputation(prepared) else {
     stop("LocalEffectPreparationRequired")
   }
-  // The original file inputs are retained only by the admitted project Mock
-  // entrance. One proof audits the entire checked Set, including a later DELETE.
-  let allow_file_mutation = !source_inputs.is_empty() && models.is_empty()
-  let headers = @checked.effect_program_static_headers(
-    @run_host.prepared_client_effect_computation_candidate(prepared),
-  )
-  guard @syntax.effect_header_at(headers, 0) is Some(header) else {
-    stop("LocalEffectNormalizationProfileNotInstalled")
+  // The Project caller has already retained the checked File inputs. A Model
+  // is orthogonal to Mapping normalization, but its compiler graph must be the
+  // same admitted occurrence and original Plan selected on this Request.
+  let allow_file_mutation = !source_inputs.is_empty() &&
+    (match (models, infers) {
+      ([], []) => true
+      ([selected], [graph]) =>
+        physical_equal(selected.graph, graph) &&
+        @run_host.client_infer_occurrence_matches_effect(
+          graph.occurrence,
+          prepared,
+        ) &&
+        @run_host.client_infer_occurrence_matches_plan(graph.occurrence, graph)
+      _ => false
+    })
+  let normalization = match
+    @run_host.issue_prepared_client_effect_selected_normalization(
+      prepared,
+      allow_source_completion=true,
+      allow_file_mutation~,
+    ) {
+    Ok(original) => original
+    Err(Inventory(ProfileNotInstalled)) =>
+      stop("LocalEffectNormalizationProfileNotInstalled")
+    Err(_) => stop("LocalOriginalNormalizationNotInstalled")
   }
-  let first_kind = @syntax.effect_header_kind(header)
-  let normalization_result = match first_kind {
-    "create" if @syntax.effect_header_count(headers) == 1 =>
-      @run_host.issue_prepared_client_effect_normalization(prepared)
-    "update" | "delete" | "upsert" if first_kind == "update" ||
-      allow_file_mutation =>
-      @run_host.issue_prepared_client_effect_selected_normalization(
-        prepared,
-        allow_source_completion=true,
-        allow_file_mutation~,
-      )
-    _ => stop("LocalEffectNormalizationProfileNotInstalled")
-  }
-  let normalization = normalization_result.unwrap_or_else(() => {
-    stop("LocalOriginalNormalizationNotInstalled")
-  })
   // Reuse the same immutable installed manifests retained by Request Graph
   // construction. Do not admit identical compiler contracts again here.
   let manifests = native_request_manifests
@@ -352,6 +376,7 @@ fn local_effect_prepare_start_with_clocks(
         run_text(retention, "available_until"),
         request,
         utc_now,
+        settings.model_http_installations,
       )
   }
   // These same original bindings are consumed by the actual preflight, in

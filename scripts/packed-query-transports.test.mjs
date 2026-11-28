@@ -1219,7 +1219,8 @@ test('canonical query launcher forwards one selected envelope to deadline and co
   }
 });
 
-async function nativeGraphLauncherControl(capture, {compiler, platform = process.platform} = {}) {
+async function nativeGraphLauncherControl(capture, {releasePath, ciPart, releaseSource = 'selected',
+  platform = process.platform, arch = process.arch, artifactCurrent = true, localRuntime} = {}) {
   const {source, nodes} = await fixtureSyntax('./test-packed-public-query.mjs');
   const functions = ['run', 'exerciseNativeGraphSource'].map(name => {
     const selected = nodes.filter(node => node.type === 'FunctionDeclaration' && node.id?.name === name);
@@ -1228,14 +1229,80 @@ async function nativeGraphLauncherControl(capture, {compiler, platform = process
   });
   const context = {root: 'owned-consumer', repository: 'original-repository', directory: 'owned-evidence',
     environment: Object.freeze({compiler: 'original',
-      ...(compiler === undefined ? {} : {ACTQL_TEST_NATIVE_QUERY_COMPILER: compiler})}),
+      ...(releasePath === undefined ? {} : {ACTQL_PACKED_NATIVE_GRAPH_RELEASE: releasePath})}),
     runtimeEnvironment: Object.freeze({runtime: 'original'})};
+  const prefix = join(context.root, 'native-graph-install');
+  const installed = join(prefix, 'node_modules/@actql/cli-linux-x64-gnu');
+  const artifact = {platform: 'linux-x64-gnu', binarySha256: 'original', localRuntime};
+  const verifyRelease = async directory => {
+    assert.equal(directory, releasePath);
+    return {sourceSha: releaseSource, artifacts: [artifact],
+      packages: [{name: '@actql/cli-linux-x64-gnu', file: 'native.tgz'}, {name: 'actql', file: 'launcher.tgz'}]};
+  };
+  const tarballs = [];
   const launch = Function('capture', 'root', 'environment', 'repository', 'runtimeEnvironment',
-    'directory', 'join', 'process', 'console', functions.join('\n') + '\nreturn exerciseNativeGraphSource;')(
+    'directory', 'join', 'process', 'console', 'ciPart', 'revision', 'assert',
+    'verifyNativeCliRelease', 'recordTarball', 'mkdir', 'admitInstalledNativeArtifact',
+    functions.join('\n') + '\nreturn exerciseNativeGraphSource;')(
     capture, context.root, context.environment, context.repository, context.runtimeEnvironment,
-    context.directory, join, {execPath: process.execPath, platform}, {log() {}});
-  return {...context, launch};
+    context.directory, join, {execPath: process.execPath, platform, arch}, {log() {}}, ciPart, {stdout: 'selected'},
+    assert, verifyRelease, tar => tarballs.push(tar),
+    async (path, options) => {
+      assert.equal(path, prefix);
+      assert.deepEqual(options, {mode: 0o700});
+    }, async (path, source) => {
+      assert.equal(path, installed);
+      assert.equal(source, 'selected');
+      return artifactCurrent ? artifact : {...artifact, binarySha256: 'changed'};
+    });
+  return {...context, prefix, installed, launch, tarballs};
 }
+
+test('selected Native Graph launches the admitted Remote package without building or narrowing the corpus', async () => {
+  const calls = [];
+  const selected = await nativeGraphLauncherControl((...args) => { calls.push(args); return ''; },
+    {ciPart: 'native', releasePath: 'original-release', platform: 'linux', arch: 'x64'});
+  await selected.launch();
+  assert.deepEqual(selected.tarballs, ['original-release/native.tgz', 'original-release/launcher.tgz']);
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0], ['npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund',
+    '--prefix', selected.prefix, ...selected.tarballs],
+    {cwd: selected.root, env: selected.environment, timeout: 60_000}]);
+  assert.deepEqual(calls[1], [process.execPath, [join(selected.repository, 'scripts/test-native-sga-public-source.mjs'),
+    selected.root, join(selected.prefix, 'node_modules/.bin/actql'), selected.directory,
+    `--installed-binary=${join(selected.installed, 'bin/actql-native-client')}`],
+    {cwd: selected.root, env: selected.runtimeEnvironment, timeout: 240_000}]);
+});
+
+test('selected Native Graph refuses absent, foreign and Local releases before installation', async () => {
+  for (const [releasePath, releaseSource, localRuntime, expected] of [
+    [undefined, 'selected', undefined, /requires its same-attempt Native release/u],
+    ['original-release', 'foreign', undefined, /differs from the checked source/u],
+    ['original-release', 'selected', {sha256: 'local'}, /requires the ordinary Native Remote release/u],
+  ]) {
+    const calls = [];
+    const selected = await nativeGraphLauncherControl((...args) => { calls.push(args); return ''; },
+      {ciPart: 'native', releasePath, releaseSource, localRuntime, platform: 'linux', arch: 'x64'});
+    await assert.rejects(selected.launch(), expected);
+    assert.deepEqual(calls, []);
+    assert.deepEqual(selected.tarballs, []);
+  }
+});
+
+test('selected Native Graph refuses changed installed material and preserves the runtime failure', async () => {
+  for (const artifactCurrent of [false, true]) {
+    const calls = [];
+    const failure = new Error('original Graph consumer error');
+    const selected = await nativeGraphLauncherControl((...args) => {
+      calls.push(args);
+      if (args[0] !== 'npm') throw failure;
+      return '';
+    }, {ciPart: 'native', releasePath: 'original-release', platform: 'linux', arch: 'x64', artifactCurrent});
+    await assert.rejects(selected.launch(), error => artifactCurrent ? error === failure : error.code === 'ERR_ASSERTION');
+    assert.equal(calls.length, artifactCurrent ? 2 : 1);
+    assert.equal(calls[0][0], 'npm');
+  }
+});
 
 test('canonical Native Graph launcher selects the existing compile budget without changing runtime scope', async () => {
   for (const sourceOnly of [false, true]) {
@@ -1266,64 +1333,5 @@ test('canonical Native Graph launcher preserves original build and consumer fail
     });
     await assert.rejects(original.launch(), error => error === failure);
     assert.equal(calls.length, phase === 'build' ? 1 : 2);
-  }
-});
-
-test('canonical Native Graph launcher binds the selected Linux compiler and serial build budget', async () => {
-  for (const sourceOnly of [false, true]) {
-    const calls = [];
-    const original = await nativeGraphLauncherControl((...args) => {
-      calls.push(args);
-      return args[0] === 'cc' ? 'Ubuntu clang version 19.1.7\n' : '';
-    }, {compiler: 'clang-19', platform: 'linux'});
-    await original.launch(sourceOnly);
-    assert.equal(calls.length, 3);
-    assert.deepEqual(calls[0], ['cc', ['--version'],
-      {cwd: original.repository, env: original.environment, timeout: 10_000}]);
-    assert.deepEqual(calls[1], ['moon', ['build', '--target', 'native', '--release',
-      '-j', '1', 'src/cmd/native_client'],
-    {cwd: original.repository, env: original.environment, timeout: 1_800_000}]);
-    assert.deepEqual(calls[2], [process.execPath,
-      [join(original.repository, 'scripts/test-native-sga-public-source.mjs'), original.root,
-        join(original.repository, '_build/native/release/build/cmd/native_client/native_client.exe'),
-        original.directory, ...(sourceOnly ? ['--authored-source-only'] : [])],
-      {cwd: original.root, env: original.runtimeEnvironment, timeout: 240_000}]);
-  }
-});
-
-test('canonical Native Graph selected compiler refuses foreign missing and failing selections without fallback', async () => {
-  for (const [compiler, platform] of [['clang-18', 'linux'], ['clang-19', 'darwin'], ['', 'linux']]) {
-    const calls = [];
-    const original = await nativeGraphLauncherControl((...args) => { calls.push(args); return ''; },
-      {compiler, platform});
-    await assert.rejects(original.launch(), {message: 'PackedQueryNativeCompilerSelectionInvalid'});
-    assert.equal(calls.length, 0);
-  }
-  for (const code of ['ENOENT', 'PackedQueryCommandFailed']) {
-    const failure = Object.assign(new Error('original compiler failure'), {code});
-    const calls = [];
-    const original = await nativeGraphLauncherControl((...args) => { calls.push(args); throw failure; },
-      {compiler: 'clang-19', platform: 'linux'});
-    await assert.rejects(original.launch(), error => error === failure);
-    assert.deepEqual(calls.map(call => call[0]), ['cc']);
-  }
-  for (const phase of ['build', 'consumer']) {
-    const failure = new Error('original selected Native phase failure');
-    const calls = [];
-    const original = await nativeGraphLauncherControl((...args) => {
-      calls.push(args);
-      if (args[0] === 'cc') return 'Ubuntu clang version 19.1.7';
-      if (phase === 'build' || args[0] === process.execPath) throw failure;
-      return '';
-    }, {compiler: 'clang-19', platform: 'linux'});
-    await assert.rejects(original.launch(), error => error === failure);
-    assert.equal(calls.length, phase === 'build' ? 2 : 3);
-  }
-  for (const banner of ['gcc (Ubuntu) 13.3.0', 'Ubuntu clang version 18.1.8']) {
-    const calls = [];
-    const original = await nativeGraphLauncherControl((...args) => { calls.push(args); return banner; },
-      {compiler: 'clang-19', platform: 'linux'});
-    await assert.rejects(original.launch(), {message: 'PackedQueryNativeCompilerMismatch'});
-    assert.deepEqual(calls.map(call => call[0]), ['cc']);
   }
 });

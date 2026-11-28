@@ -1,11 +1,15 @@
 ///|
 // Per-invocation selection retained by the existing command, not another
-// Model, Resource or cleanup owner. The provider and profile are the original
-// admitted Project objects; the Limits are selected once from this Graph.
-priv struct LocalProjectMockEffectModelInput {
+// Model, Resource or cleanup owner. The Limits come from the same Graph.
+priv enum LocalEffectModelProvider {
+  MockModel(@compiler_environment.ModelMockProfile, @model.ModelProvider)
+  HttpModel(@local_host.NativeModelHttpInstallation)
+}
+
+///|
+priv struct LocalEffectModelInput {
   graph : @run_host.ClientInferPlanGraph
-  _retained_provider : @model.ModelProvider
-  _retained_profile : @compiler_environment.ModelMockProfile
+  provider : LocalEffectModelProvider
   _retained_limits : @infer.Limits
 }
 
@@ -22,7 +26,7 @@ fn[I] LocalProjectMockDeclarations::prepare_request_models(
   environment : @checked.CheckEnvironment,
   contracts : @local_values.ClientInstalledSequenceContracts,
 ) -> Result[
-  Array[LocalProjectMockEffectModelInput],
+  Array[LocalEffectModelInput],
   @local_values.ClientRequestProgramPlanIssue,
 ] raise ClientStop {
   guard !self.closing &&
@@ -123,8 +127,7 @@ fn[I] LocalProjectMockDeclarations::prepare_request_models(
     )
     models.push({
       graph,
-      _retained_provider: provider,
-      _retained_profile: profile,
+      provider: MockModel(profile, provider),
       _retained_limits: limits,
     })
   }
@@ -133,16 +136,21 @@ fn[I] LocalProjectMockDeclarations::prepare_request_models(
 
 ///|
 // Same domain inventories, before their actual constructors. Each selected
-// provider/profile/Graph is borrowed; the new holder owns four references.
+// provider/profile/Graph is borrowed.
 // The first occurrence also backs selection, Graph projection and Native Work
 // Arrays with their actual checked count. Every later occurrence adds only its
 // own bounds and holder; prior debits survive all failures and parent cleanup.
 fn native_mock_effect_model_selection_storage(
   vector_count : Int,
+  mock_work? : Bool = true,
 ) -> @execution.PreparationRepresentationUnits raise ClientStop {
   let holder : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L,
-    reference_slots: 4L,
+    record_headers: 2L,
+    reference_slots: if mock_work {
+      5L
+    } else {
+      4L
+    },
     scalar_words: 0L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -181,7 +189,11 @@ fn native_mock_effect_model_selection_storage(
   @execution.compose_preparation_representation([
     compiled_view,
     @infer.prepared_composed_bounds_construction(),
-    @local_host.native_client_mock_model_work_construction(),
+    if mock_work {
+      @local_host.native_client_mock_model_work_construction()
+    } else {
+      { ..holder, record_headers: 0L, reference_slots: 0L, }
+    },
     holder,
     arrays,
   ]).unwrap_or_else(() => stop("LocalOriginalModelBoundsUnavailable"))

@@ -148,7 +148,11 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     operation == "result" ||
     operation == "start" ||
     operation == "sql" ||
-    operation == "aql" {
+    operation == "aql" ||
+    (
+      local_checkpoint_action_selected(matches, operation) &&
+      local_project_explicit_operator_selected(matches)
+    ) {
     return execute_native_local_adoption(matches, operation, child)
   }
   if operation != "check" && operation != "explain" {

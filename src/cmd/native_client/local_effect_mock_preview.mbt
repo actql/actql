@@ -31,6 +31,71 @@ fn native_mock_preview_json(wire : String) -> Json raise ClientStop {
 }
 
 ///|
+// Closed acceptance-only labels for the original generic Preview refusal.
+// No configuration, request evidence or physical ownership is observed here.
+priv enum NativeEffectPreviewFailureStage {
+  Selection
+  DirectOwner
+  DirectLimits
+  ModelWork
+  ModelObservation
+  CaptureTuple
+  Construction
+  Growth
+  InvocationScope
+  CapturedInput
+  CheckedHeader
+  MemberDescriptor
+  TargetMapping
+  TerminalBody
+}
+
+///|
+fn[T] stop_native_effect_preview(
+  stage : NativeEffectPreviewFailureStage,
+  managed_reason? : Int = 0,
+) -> T raise ClientStop {
+  let stage = match stage {
+    Selection => 1
+    DirectOwner => 2
+    DirectLimits => 3
+    ModelWork => 4
+    ModelObservation => 5
+    CaptureTuple => 6
+    Construction => 7
+    Growth => 8
+    InvocationScope => 9
+    CapturedInput => 10
+    CheckedHeader => 11
+    MemberDescriptor => 12
+    TargetMapping => 13
+    TerminalBody => 14
+  }
+  native_model_preview_failure(stage, managed_reason)
+  stop("LocalOriginalEffectPreviewUnavailable")
+}
+
+///|
+fn native_effect_preview_managed_reason(
+  issue : LocalNativeMockEffectProposalIssue,
+) -> Int {
+  match issue {
+    Managed(InsufficientCapacity) => 1
+    Managed(Ledger(RetentionLimit)) => 2
+    Managed(Ledger(ExecutionLimit)) => 3
+    Managed(Ledger(ResourceParked)) => 4
+    Managed(Ledger(ClosedReservation)) => 5
+    Managed(Ledger(_)) => 6
+    Managed(AlreadyBound) => 7
+    Managed(Retired) => 8
+    Managed(ForeignOriginal) => 9
+    Managed(Unsupported) => 10
+    Managed(_) => 11
+    _ => 12
+  }
+}
+
+///|
 // Use the same original request, target snapshots and completed Model evidence
 // at the actual Preview boundary. Core authors every semantic/dispatch identity
 // and verifies the plan against the already retained original Result snapshot.
@@ -57,7 +122,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
     self.original.project is Some(project) &&
     project.mock_declarations is Some(mock) &&
     mock.write_installations is Some(installations) else {
-    stop("LocalOriginalEffectPreviewUnavailable")
+    stop_native_effect_preview(Selection)
   }
   // Observe selected configuration under the actual Read before suspending
   // it for Request payload work. Only these immutable bodies cross the phase.
@@ -74,7 +139,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
         business.request_run is Some(run) &&
         state.direct_sources is Some(direct) &&
         direct.publication_originals() is Some((observation, invocation)) else {
-        stop("LocalOriginalEffectPreviewUnavailable")
+        stop_native_effect_preview(DirectOwner)
       }
       let max_bytes = native_mock_effect_record_bytes(installation)
       let limits = @local_values.installed_effect_managed_publication_limits(
@@ -83,7 +148,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
         state.first.request,
         state._retained_plan,
         max_bytes,
-      ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
+      ).unwrap_or_else(() => stop_native_effect_preview(DirectLimits))
       let report = issue => {
         self.original.retain_primary(CommandBusinessEffectProposals(issue))
       }
@@ -107,7 +172,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
       return
     }
     if business.model_work.length() != 1 {
-      stop("LocalOriginalEffectPreviewUnavailable")
+      stop_native_effect_preview(ModelWork)
     }
     let limits = state.first._retained_models[0]._retained_limits
     state.build_mock_effect_preview(
@@ -121,7 +186,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
             limits.output_rows,
           )
           is Some((observation, invocation, models, sources)) else {
-          stop("LocalOriginalEffectPreviewUnavailable")
+          stop_native_effect_preview(ModelObservation)
         }
         let task = @run_host.client_infer_occurrence_model_task_cid(
           state.model_graph().occurrence,
@@ -143,6 +208,41 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
       installation,
     )
   })
+}
+
+///|
+// The measured proposal and its imports are still retained on this capture.
+// The warm frame needs the Preview constructor beside those originals.
+// The original recovery recipe is used by another phase and remains intact.
+fn native_mock_measured_effect_preview_recipe(
+  held : Array[@execution.ExecutionCapacity],
+  warm : Array[@execution.ExecutionCapacity],
+  preview : @execution.ExecutionCapacity,
+) -> Array[@execution.ExecutionCapacity]? {
+  guard held.length() == 6 &&
+    warm.length() == 6 &&
+    @execution.execution_capacity_retained_bytes(held[1]) == 0L &&
+    @execution.execution_capacity_execution_bytes(held[1]) == 0L else {
+    return None
+  }
+  let previous = @execution.execution_capacity_retained_bytes(held[0])
+  let warm_fixed = warm[0]
+  let workspace = @execution.execution_capacity_execution_bytes(warm_fixed) -
+    @execution.execution_capacity_retained_bytes(warm_fixed)
+  let preview_r = @execution.execution_capacity_retained_bytes(preview)
+  guard @execution.execution_capacity_execution_bytes(held[0]) == previous &&
+    @execution.execution_capacity_execution_bytes(preview) - preview_r <=
+    workspace &&
+    @execution.checked_preparation_add_product(previous, preview_r, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) &&
+    @execution.execution_capacity(retained, execution) is Some(fixed) else {
+    return None
+  }
+  let selected = held.copy()
+  selected[0] = fixed
+  Some(selected)
 }
 
 ///|
@@ -170,33 +270,58 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     physical_equal(original, proposals) &&
     proposals.materials is Some(materials) &&
     state.preview is None else {
-    stop("LocalOriginalEffectPreviewUnavailable")
+    stop_native_effect_preview(CaptureTuple)
   }
   // Target/request construction has returned its own scratch and each read
   // child acknowledged close. Re-enter this SAME capture's original warm
   // workspace before any Preview/receipt constructors, never a new slot.
   let construction = proposals.construction.unwrap_or_else(() => {
-    stop("LocalOriginalEffectPreviewUnavailable")
+    stop_native_effect_preview(Construction)
   })
+  let policy = @run_host.client_standard_effect_computation_limits()
+  let max_nodes = policy.effects.max_admission_nodes
+  let max_depth = policy.effects.max_admission_depth
   let recipe = if proposals.uses_measured_model_proposal() {
-    let preview = state._retained_import_recipes[1].copy()
-    // The measured proposal already holds its actual retained row pairs.
-    preview[1] = @execution.execution_capacity(0L, 0L).unwrap()
-    preview
+    let selected = @local_values.installed_physical_write_preview_capacity(
+      max_bytes, max_nodes, max_depth,
+    ).bind(preview => {
+      native_mock_measured_effect_preview_recipe(
+        construction.recipe,
+        state._retained_import_recipes[1],
+        preview,
+      )
+    })
+    guard construction.workspace == 0L && selected is Some(recipe) else {
+      let issue = LocalNativeMockEffectProposalIssue::Managed(
+        InsufficientCapacity,
+      )
+      report(issue)
+      stop_native_effect_preview(
+        Growth,
+        managed_reason=native_effect_preview_managed_reason(issue),
+      )
+    }
+    recipe
   } else {
     construction.recipe
   }
-  let funded = construction
-    .resize_result(recipe, construction.retained, construction.workspace)
-    .retain_mock_effect_proposal_issue(report)
-  if !funded {
-    stop("LocalOriginalEffectPreviewUnavailable")
+  match
+    construction.resize_result(
+      recipe,
+      construction.retained,
+      construction.workspace,
+    ) {
+    Ok(_) => ()
+    Err(issue) => {
+      report(issue)
+      stop_native_effect_preview(
+        Growth,
+        managed_reason=native_effect_preview_managed_reason(issue),
+      )
+    }
   }
   construction.recipe = recipe
-  let policy = @run_host.client_standard_effect_computation_limits()
   let codec = policy.program.checking.compilation.artifacts
-  let max_nodes = policy.effects.max_admission_nodes
-  let max_depth = policy.effects.max_admission_depth
   let max_work = policy.effects.max_work
   let encode_with_usage = fn(
     value : Json,
@@ -234,7 +359,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       state.first.request,
     )
     is Ok(scope) else {
-    stop("LocalOriginalEffectPreviewUnavailable")
+    stop_native_effect_preview(InvocationScope)
   }
   let definition_cid = @run_host.prepared_client_effect_computation_definition_cid(
     materials.prepared,
@@ -308,7 +433,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     let mut row_count = 0
     for index, entry in proposals.members {
       let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
-          stop("LocalOriginalEffectPreviewUnavailable")
+          stop_native_effect_preview(CapturedInput)
         },
       )
       let stage = @strategy.captured_effect_input_stage(input)
@@ -318,14 +443,14 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
         ),
       )
       let header = @syntax.effect_header_at(headers, index).unwrap_or_else(() => {
-        stop("LocalOriginalEffectPreviewUnavailable")
+        stop_native_effect_preview(CheckedHeader)
       })
       let descriptor = @run_host.client_effect_member_descriptor(
         materials.prepared,
         stage,
         @syntax.effect_header_id(header),
         max_work,
-      ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
+      ).unwrap_or_else(() => stop_native_effect_preview(MemberDescriptor))
       let deleting = descriptor.2 == "delete"
       let creating = descriptor.2 == "create"
       let upserting = descriptor.2 == "upsert"
@@ -344,7 +469,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
         native_mock_preview_json(selected.owner.1) is Object(owner) &&
         native_mock_preview_json(selected.write.mapping.body) is Object(mapping) &&
         mapping.get("required_permissions") is Some(permissions) else {
-        stop("LocalOriginalEffectPreviewUnavailable")
+        stop_native_effect_preview(TargetMapping)
       }
       let source = @run_host.issue_client_effect_local_source_artifact(
           materials,
@@ -567,7 +692,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
           _ => stop("LocalOriginalEffectPreviewPlanUnavailable")
         }
         guard body is Object(fields) else {
-          stop("LocalOriginalEffectPreviewUnavailable")
+          stop_native_effect_preview(TerminalBody)
         }
         fields["effect_plan_logical_cid"] = Json::string(cid)
       }

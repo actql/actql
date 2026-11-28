@@ -67,5 +67,12 @@ fn finish_prepared_model_capacity(
     // longer needs the reverse edge, which would retain the entire execution.
     state.prepared_call_set = None
   }
+  // A retired output may still retain this state. Its live adapter ports
+  // can point back to this execution or keep the Native Store and Host open.
+  // Drop our references after the same physical cleanup and capacity return.
+  state.enter_call = None
+  state.dispatch_admission = None
+  state.physical_preflight = None
+  state.egress_admission = None
   Ok(true)
 }

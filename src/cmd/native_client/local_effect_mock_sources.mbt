@@ -17,8 +17,7 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
     business.request_run is Some(run) &&
     self.original.host is Some(arena) &&
     business.execution is Some(execution) &&
-    business.model_work.length() == state.first._retained_models.length() &&
-    business.model_work.length() <= 1 &&
+    state.first.matches_model_work_before_store(business.model_work) &&
     state.source_started_at is None &&
     state.source_start is None &&
     state.sources.is_empty() else {
@@ -51,6 +50,35 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
     Ok(Ok(_)) => ()
   }
   self.prepare_mock_effect_store(installation)
+  if first._retained_models
+    is [{ provider: HttpModel(installed), .. } as selected] {
+    guard business.operation is Some(operation) &&
+      business.store is Some(store) &&
+      first.model_compiled is Some(compiled) else {
+      stop("LocalOriginalModelWorkUnavailable")
+    }
+    match
+      @local_host.prepare_native_client_model_http_work(
+        operation,
+        first.request,
+        compiled,
+        first.definition,
+        selected.graph,
+        installed,
+        store,
+        selected._retained_limits,
+        self.principal,
+        self.connection,
+        installation.namespace_id,
+        local_utc_now,
+      ) {
+      Ok(work) => business.model_work.push(work)
+      Err(issue) => {
+        self.original.retain_primary(CommandBusinessModel(issue))
+        stop("LocalOriginalModelWorkUnavailable")
+      }
+    }
+  }
   if business.model_work.get(0) is Some(work) {
     match work.claim_start_in_original_read(self.connection) {
       Err(issue) => {

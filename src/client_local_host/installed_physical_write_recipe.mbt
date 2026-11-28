@@ -30,7 +30,9 @@ pub fn installed_physical_write_recipe_capacities(
       body_bytes, body_nodes, body_depth,
     )
     is Some(capture_row) &&
-    local_file_store_json_capacity(preview_bytes, preview_nodes, preview_depth)
+    installed_physical_write_preview_capacity(
+      preview_bytes, preview_nodes, preview_depth,
+    )
     is Some(preview) &&
     local_file_store_json_capacity(recovery_bytes, preview_nodes, preview_depth)
     is Some(recovery) &&
@@ -94,6 +96,18 @@ pub fn installed_physical_write_recipe_capacities(
   Ok([
     capture_fixed, capture_row, request, physical, controls, no_additional_effect_id,
   ])
+}
+
+///|
+/// Geometry of the Preview document alone. A staged Native capture can
+/// combine it with its retained inputs before entering the warm constructor.
+/// Recovery remains a separate document on the installed recovery route.
+pub fn installed_physical_write_preview_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  local_file_store_json_capacity(bytes, nodes, depth)
 }
 
 ///|

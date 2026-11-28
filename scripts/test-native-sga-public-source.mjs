@@ -20,7 +20,11 @@ const requireInstalled = createRequire(join(installation, 'package.json'));
 const {graphSourceSuccesses, graphSourceRefusals} =
   await import(pathToFileURL(join(installation, 'graph-source-input.mjs')));
 const {connect} = await import(pathToFileURL(requireInstalled.resolve('@actql/node')));
-const sourceOnly = process.argv.includes('--authored-source-only');
+const controls = process.argv.slice(5);
+const sourceOnly = controls.includes('--authored-source-only');
+const binaryControl = controls.find(argument => argument.startsWith('--installed-binary='));
+const installedBinary = binaryControl?.slice('--installed-binary='.length);
+assert(binaryControl === undefined || installedBinary, 'Installed Native binary path is required');
 // Reuse independently authored public sources/expectations, without converting
 // them to machine Programs before submission. Keep the JSON control separate.
 const cases = sourceOnly ? graphSourceSuccesses
@@ -85,8 +89,10 @@ const observe = () => {
       'SELECT COUNT(*) AS count FROM client_requests').get().count};
   } finally { journal.close(); }
 };
-const binaryCid = 'sha256:' + createHash('sha256')
+const executableCid = 'sha256:' + createHash('sha256')
   .update(await readFile(executable)).digest('hex');
+const binaryCid = installedBinary === undefined ? executableCid
+  : 'sha256:' + createHash('sha256').update(await readFile(installedBinary)).digest('hex');
 await writeFile(join(installation, 'native-connection.json'),
   JSON.stringify({mode: 'remote', owner: 'remote', consentRefs: [], runners: []}));
 await writeFile(join(installation, 'native-token.txt'), 'fixture-token\n', {mode: 0o600});
@@ -186,7 +192,8 @@ try {
   }
 } finally {
   await writeFile(join(evidenceDirectory, 'native-sga.log'),
-    JSON.stringify({binaryCid, cases: cases.map(({name, format}) => ({name, format})),
+    JSON.stringify({binaryCid, ...(installedBinary === undefined ? {} : {launcherCid: executableCid}),
+      cases: cases.map(({name, format}) => ({name, format})),
       refusals: graphSourceRefusals.map(({name, format}) => ({name, format})), log}, null, 2));
   client?.close();
   server.closeAllConnections();

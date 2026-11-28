@@ -179,7 +179,6 @@ fn local_model_http_installation_selections(
     )
     for prior in selections {
       if prior.task_id == selected.task_id ||
-        prior.provider_id != selected.provider_id ||
         prior.files.setting == selected.files.setting {
         stop("InvalidLocalModelHttpInstallation")
       }
@@ -449,6 +448,11 @@ fn execute_native_local_adoption(
       parent_path == settings.state_parent &&
       directory_name == settings.state_name else {
       stop("ConflictingLocalHostState")
+    }
+    if project.profile == Some("mock") &&
+      matches.subcommand is Some(("check" | "run", _)) &&
+      !(settings.model_http_installations is Some([_])) {
+      stop("LocalOriginalModelHttpEffectUnavailable")
     }
   }
   if configuration_original is None && preparation_runtime is Some(runtime) {

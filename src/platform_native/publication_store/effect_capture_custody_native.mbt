@@ -158,34 +158,69 @@ pub fn EffectCaptureReadExtent::read_original_wire(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[String, NativePublicationStoreIssue] {
-  let store = self.store
-  store.with_original_read(false, false, fn() {
-    match require_store_open(store) {
+  self.store.read_private_evidence_wire_at_extent(
+    "effect_capture_custody",
+    self.holding,
+    self.header,
+    "effect_capture",
+    self.semantic_cid,
+    crypto,
+    key,
+  )
+}
+
+///|
+fn Store::read_private_evidence_wire_at_extent(
+  self : Store,
+  table : String,
+  holding : String,
+  header : @sqlite.NativeJournalHeader,
+  kind : String,
+  semantic_cid : String,
+  crypto : @signature.Library,
+  key : Bytes,
+) -> Result[String, NativePublicationStoreIssue] {
+  self.inspect_private_evidence_wire_at_extent(
+    table,
+    holding,
+    header,
+    kind,
+    semantic_cid,
+    crypto,
+    key,
+    wire => Ok(wire),
+  )
+}
+
+///|
+fn[T] Store::inspect_private_evidence_wire_at_extent(
+  self : Store,
+  table : String,
+  holding : String,
+  header : @sqlite.NativeJournalHeader,
+  kind : String,
+  semantic_cid : String,
+  crypto : @signature.Library,
+  key : Bytes,
+  consume : (String) -> Result[T, NativePublicationStoreIssue],
+) -> Result[T, NativePublicationStoreIssue] {
+  self.with_original_read(false, false, fn() {
+    match require_store_open(self) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
     let row = match
-      store.database.read_exact_body_extent(
-        "effect_capture_custody",
-        self.holding,
-        self.header,
-      ) {
+      self.database.read_exact_body_extent(table, holding, header) {
       Ok(value) => value
       Err(issue) => return Err(Database(issue))
     }
     let plain = match
-      crypto.open_private_evidence(
-        key,
-        "effect_capture",
-        self.semantic_cid,
-        row.body,
-      ) {
+      crypto.open_private_evidence(key, kind, semantic_cid, row.body) {
       Ok(value) => value
       Err(issue) => return Err(PrivateEvidence(issue))
     }
-    Ok(@utf8.decode(plain)) catch {
-      _ => Err(StateCollision)
-    }
+    let wire = @utf8.decode(plain) catch { _ => return Err(StateCollision) }
+    consume(wire)
   })
 }
 

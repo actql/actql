@@ -94,7 +94,7 @@ export function nativeJoinedModelRun(firstTask, secondTask, {includeReview = fal
 
 // Every individual Task has one input row and one admitted attempt. Events
 // from independent Tasks can interleave, so compare progression per attempt.
-export function requireModelAttempts(events, count) {
+export function requireModelAttempts(events, count, expectedTags = [0, 1, 2]) {
   const attempts = new Map();
   for (const {identity, tag, ordinal} of events) {
     assert.match(identity, /^sha256:[0-9a-f]{64}$/u);
@@ -103,7 +103,7 @@ export function requireModelAttempts(events, count) {
     attempts.get(identity).push(tag);
   }
   assert.equal(attempts.size, count);
-  for (const tags of attempts.values()) assert.deepEqual(tags, [0, 1, 2]);
+  for (const tags of attempts.values()) assert.deepEqual(tags, expectedTags);
   return [...attempts.keys()];
 }
 
@@ -115,7 +115,7 @@ function requireSealedContract(value, version, identity) {
 }
 
 export function requireNativeJoinedDelivery({report, runReceipt, outputs, rows, policyCid, custody,
-  additionalResults = {}}) {
+  additionalResults = {}, failedModelTask = null}) {
   assert.equal(report.version, 'actql-cli-run-response/0.1');
   assert.equal(report.run.run_id, custody.runId);
   assert.equal(report.run.status, 'succeeded');
@@ -161,10 +161,16 @@ export function requireNativeJoinedDelivery({report, runReceipt, outputs, rows, 
     }
   }
 
-  const expectedModels = custody.observed.map(call => {
+  if (failedModelTask !== null) assert.equal(custody.observed.filter(call => call.task === failedModelTask).length, 1);
+  const expectedModels = custody.observed.flatMap(call => {
     const evidence = call.evidence.filter(value => value.role === 'model_invocation_evidence');
+    if (call.task === failedModelTask) {
+      assert.equal(evidence.length, 0, 'A failed Model cannot contribute successful invocation evidence');
+      assert.equal(call.evidence.filter(value => value.role === 'model_raw_response').length, 1);
+      return [];
+    }
     assert.equal(evidence.length, 1);
-    return evidence[0].evidenceCid;
+    return [evidence[0].evidenceCid];
   });
   const models = runReceipt.external_observation_evidence.filter(value => value.kind === 'model_invocation');
   assert.deepEqual(models.map(value => value.evidence_cid).sort(), expectedModels.sort());

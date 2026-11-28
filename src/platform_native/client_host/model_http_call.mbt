@@ -5,6 +5,7 @@ pub(all) enum NativeClientModelHttpIssue {
   Library(NativeLocalModelHttpIssue)
   Execution(@host.ClientInferPlanGraphIssue)
   Dependencies(@environment.ModelDependencyIssue)
+  Egress(@host.ClientInferEgressIssue)
   Dispatch(@model.ModelExecutionIssue)
   RawPolicy(@host.ClientModelRawCaptureIssue)
   Raw(@model.ModelRawCaptureSaveIssue)
@@ -732,10 +733,13 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
     }
     let run_policy = match
       read_native_model_http_run_policy(
-        configuration, occurrence, execution, limits, operations,
+        configuration, occurrence, execution, binding, limits, operations,
       ) {
       Ok(value) => value
-      Err(issue) => return Err(issue)
+      Err(PolicyOriginal(issue)) => return Err(issue)
+      // Return the original typed refusal only if the surrounding Read also
+      // succeeds. Adoption and resource fences remain authoritative.
+      Err(PolicyEgress(issue)) => return Ok(Err(issue))
     }
     host.journal
     .transaction_with_reads(
@@ -754,19 +758,24 @@ pub fn NativeLocalJournalCapture::admit_model_http_installation_in_original_read
     )
     .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
     .map(credential => {
-      capture: self,
-      runtime,
-      execution,
-      implementation,
-      binding,
-      provider,
-      response,
-      profile,
-      credential,
-      run_policy,
+      Ok({
+        capture: self,
+        runtime,
+        execution,
+        implementation,
+        binding,
+        provider,
+        response,
+        profile,
+        credential,
+        run_policy,
+      })
     })
   })
   .map_err(issue => NativeClientModelHttpIssue::Original(issue))
+  .bind(result => {
+    result.map_err(issue => NativeClientModelHttpIssue::Egress(issue))
+  })
   .bind(installation => {
     // The journal's same Read is still entered. The Runtime borrows this
     // frame, owns the first load result and keeps partial loads for close.
@@ -1446,7 +1455,8 @@ fn NativeClientModelHttpCall::adopt_saved_chat(
     terminator == unit &&
     @execution.preparation_representation_cost({
       record_headers: 9L,
-      reference_slots: 20L,
+      // The exact Chat carrier retains one authenticated failure observation.
+      reference_slots: 21L,
       scalar_words: 8L,
       owned_utf16_units: units + 1L,
       owned_wire_bytes: 0L,
@@ -1476,11 +1486,7 @@ fn NativeClientModelHttpCall::adopt_saved_chat(
     _ => {
       // The original Raw was confirmed even when the provider used
       // non-UTF8. An observed complete HTTP reply still has a known outcome.
-      let failure = if response.status >= 200 && response.status < 300 {
-        @model.SchemaInvalid
-      } else {
-        @model.ProviderError
-      }
+      let failure = @model.model_http_rejected_response_failure(response.status)
       self.outcome = Some(
         @model.PhysicalMeasuredHttp(
           receipt,

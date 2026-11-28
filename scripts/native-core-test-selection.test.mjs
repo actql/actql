@@ -1002,6 +1002,7 @@ test('Native physical consumers retain scoped file/index identities and exclude 
     'Native inventory Source binding funds the same operation before checking roots',
     'Native Preview target parsing funds overlapping original rows before entry',
     'Native Preview draft counts both positions of one original row value',
+    'measured Model Preview keeps the imported bodies and excludes cold recovery',
   ]);
   for (const [directory, file, cases, profile] of [
     ['src/platform_native/installed_arena_control', 'request_source_frame_physical_scoped_wbtest.mbt', 2, 'scoped-review-values'],

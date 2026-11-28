@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -47,7 +47,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const normal = "${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const groups = ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-model-packed'];
-const acceptanceGroups = [...groups.slice(0, 6), 'native-cli-installed', ...groups.slice(6)];
+const acceptanceGroups = [...groups.slice(0, 6), 'native-cli-installed', 'client-packed', 'client-packed-query-native', ...groups.slice(7)];
 const consumers = ['client-distribution', 'client-distribution-callers',
   'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-model-packed'];
 const runs = name => jobs[name].steps.filter(step => step.run).flatMap(step => {
@@ -1155,7 +1155,7 @@ test('Client lanes cover local acceptance without positional command snapshots',
     assert.equal(jobs[name]['timeout-minutes'], name === 'client-packed' ? 45 : name === 'client-model-packed' ? 20 : 30, name);
     if (name === 'client-packed') {
       assert.equal(jobs[name].strategy['fail-fast'], false, 'no fail-fast sibling cancellation');
-      assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable-1', 'query-portable-2', 'query-portable-3', 'query-native']);
+      assert.deepEqual(jobs[name].strategy.matrix.group, ['connectors', 'infer', 'query-portable-1', 'query-portable-2', 'query-portable-3']);
     } else if (name === 'client-model-packed') {
       assert.equal(jobs[name].strategy['fail-fast'], false);
       assert.deepEqual(jobs[name].strategy.matrix.node, ['22.22.0', '24']);
@@ -1204,50 +1204,39 @@ test('Client lanes cover local acceptance without positional command snapshots',
     'the packed composition acceptance moves from Host into the artifact consumer exactly once');
 });
 
-test('packed Native Graph compiler setup retains exact cc and ar selection', () => {
-  const job = jobs['client-packed'];
-  const setup = job.steps.find(step => step.name === 'Select the packed Native Graph compiler');
-  const query = job.steps.find(step => step.id === 'packed-query-native');
-  assert(setup && query);
-  assert(job.steps.indexOf(setup) < job.steps.indexOf(query));
-  assert.deepEqual(job.needs, ['select-targets', 'client-packages']);
+test('packed Native Graph binds both original producers without delaying the portable matrix', () => {
+  const job = jobs['client-packed-query-native'];
+  assert.deepEqual(job.needs, ['select-targets', 'client-packages', 'native-cli-installed']);
+  assert.deepEqual(jobs['client-packed'].needs, ['select-targets', 'client-packages']);
+  assert.equal(job.name, 'client-packed (query-native)');
   assert.equal(job['runs-on'], 'ubuntu-24.04');
   assert.equal(job['timeout-minutes'], 45);
-  assert.equal(setup['continue-on-error'], undefined);
-  assert.equal(query['continue-on-error'], undefined);
-  assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
+  const gate = job.steps.find(step => step.run === 'node scripts/native-cli-ci-artifact.mjs');
+  const download = job.steps.find(step => step.id === 'native-inputs');
+  const query = job.steps.find(step => step.id === 'packed-query-native');
+  const producer = jobs['native-cli-installed'];
+  assert.equal(producer.outputs['artifact-id'], '${{ steps.native_evidence.outputs.artifact-id }}');
+  assert.equal(producer.steps.find(step => step.id === 'native_evidence').with.name,
+    'native-cli-installed-${{ github.run_id }}-${{ github.run_attempt }}');
+  assert.equal(gate.env.ARTIFACT_ID, download.with['artifact-ids']);
+  assert.deepEqual(gate.env, {
+    ARTIFACT_ID: '${{ needs.native-cli-installed.outputs.artifact-id }}',
+    ARTIFACT_RUN_ID: '${{ needs.native-cli-installed.outputs.artifact-run-id }}',
+    ARTIFACT_RUN_ATTEMPT: '${{ needs.native-cli-installed.outputs.artifact-run-attempt }}',
+    ARTIFACT_SOURCE_SHA: '${{ needs.native-cli-installed.outputs.artifact-source-sha }}',
+    EXPECTED_RUN_ID: '${{ github.run_id }}',
+    EXPECTED_RUN_ATTEMPT: '${{ github.run_attempt }}',
+    EXPECTED_SOURCE_SHA: '${{ github.sha }}',
+  });
+  assert(job.steps.indexOf(gate) < job.steps.indexOf(download));
+  assert(job.steps.indexOf(download) < job.steps.indexOf(query));
+  assert.equal(query.if, "${{ !cancelled() && steps.client-inputs.outcome == 'success' && steps.native-inputs.outcome == 'success' }}");
+  assert.equal(query.run, 'node scripts/test-packed-public-query.mjs --ci-part=native');
   assert.equal(query.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
-  assert(setup.run.startsWith('bash scripts/ci-install-linux-clang.sh --packed-query-native\n'));
-  const directory = mkdtempSync(join(tmpdir(), 'actql-packed-compiler-control-'));
-  try {
-    const cc = join(directory, 'selected-clang-19');
-    const ar = join(directory, 'selected-ar');
-    const foreign = join(directory, 'foreign-cc');
-    const pathFile = join(directory, 'github-path');
-    writeFileSync(cc, '#!/bin/sh\nprintf "%s\\n" "Ubuntu clang version 19.1.7"\n', {mode: 0o700});
-    writeFileSync(ar, '#!/bin/sh\nexit 0\n', {mode: 0o700});
-    writeFileSync(foreign, '#!/bin/sh\nexit 0\n', {mode: 0o700});
-    // Execute the actual alias setup and pre-corpus check with only the two
-    // installed tool paths replaced; package installation/compiler work is absent.
-    const paths = script => script.replaceAll('/usr/bin/clang-19', cc).replaceAll('/usr/bin/ar', ar);
-    const originalSetup = paths(setup.run.slice(setup.run.indexOf('compiler_bin=')));
-    const prepared = run(originalSetup, {RUNNER_TEMP: directory, GITHUB_PATH: pathFile});
-    assert.equal(prepared.status, 0, prepared.stderr);
-    const compilerBin = join(directory, 'packed-query-compiler');
-    assert.equal(readFileSync(pathFile, 'utf8'), compilerBin + '\n');
-    assert.equal(realpathSync(join(compilerBin, 'cc')), realpathSync(cc));
-    assert.equal(realpathSync(join(compilerBin, 'ar')), realpathSync(ar));
-    const prefix = query.run.slice(0, query.run.indexOf('node scripts/test-packed-public-query'));
-    assert(prefix.startsWith('test "$(realpath "$(command -v cc)")" = '));
-    const selected = run(paths(prefix), {PATH: compilerBin + ':' + process.env.PATH});
-    assert.equal(selected.status, 0, selected.stderr);
-    assert.match(selected.stdout, /Ubuntu clang version 19\.1\.7/u);
-    unlinkSync(join(compilerBin, 'cc'));
-    symlinkSync(foreign, join(compilerBin, 'cc'));
-    const refused = run(paths(prefix), {PATH: compilerBin + ':' + process.env.PATH});
-    assert.notEqual(refused.status, 0, 'a foreign ambient compiler cannot replace the selected compiler');
-    assert.equal(refused.stdout, '', 'selection fails before invoking the foreign compiler or corpus');
-  } finally { rmSync(directory, {recursive: true, force: true}); }
+  const upload = job.steps[job.steps.indexOf(query) + 1];
+  assert.equal(upload.if, "always() && steps.packed-query-native.outputs.evidence-directory != ''");
+  assert.equal(upload.with.name, 'packed-public-query-native-${{ github.sha }}');
+  assert(!job.steps.some(step => /clang|moon build/u.test(step.run ?? '')));
 });
 
 test('ordinary Local assets reuse tarballs while cold and external builds stay source-backed', () => {
@@ -1322,17 +1311,14 @@ test('packed evidence uploads remain always-on after their original command', ()
   for (const [id, name] of [['packed-infer', 'packed-single-infer'],
     ['packed-infer-evaluation', 'packed-infer-evaluation'],
     ['packed-acquired-infer', 'packed-acquired-infer'],
-    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description'],
-    ['packed-query-native', 'packed-public-query-native']]) {
+    ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description']]) {
     const command = steps.findIndex(step => step.id === id);
     const upload = steps[command + 1];
     assert(command >= 0);
     assert.equal(upload.uses, './.github/actions/upload-packed-query-evidence');
-    const group = id.includes('infer') ? 'infer' : id === 'packed-query' ? 'portable' : id === 'packed-query-native' ? 'query-native' : 'connectors';
+    const group = id.includes('infer') ? 'infer' : id === 'packed-query' ? 'portable' : 'connectors';
     const selectedGroup = id === 'packed-query' ? "(matrix.group == 'query-portable-1' || matrix.group == 'query-portable-2' || matrix.group == 'query-portable-3')" : `matrix.group == '${group}'`;
-    assert.equal(upload.if, id === 'packed-query-native'
-      ? `always() && matrix.group == '${group}' && steps.${id}.outputs.evidence-directory != ''`
-      : `${selectedGroup} && always() && steps.${id}.outputs.evidence-directory != ''`);
+    assert.equal(upload.if, `${selectedGroup} && always() && steps.${id}.outputs.evidence-directory != ''`);
     assert.deepEqual(upload.with, {
       directory: '${{ steps.' + id + '.outputs.evidence-directory }}',
       name: id === 'packed-query' ? 'packed-public-${{ matrix.group }}-${{ github.sha }}' : name + '-${{ github.sha }}',

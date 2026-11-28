@@ -948,7 +948,8 @@ test('the required Node caller cannot silently become a direct Native caller', a
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'VariableDeclarator' && node.id.name === 'runScenarioCommand') declarations.push(node.init);
     if (node.type === 'CallExpression' && ['runNativeCliMockScenario', 'runNativeSharedFileMockScenario',
-      'runNativeNullableMockScenarios', 'runNativeMixedFileMockScenarios', 'runNativeOrderedFileMockScenarios']
+      'runNativeNullableMockScenarios', 'runNativeMixedFileMockScenarios', 'runNativeOrderedFileMockScenarios',
+      'runNativeModelDeleteMockScenarios']
       .includes(node.callee.name)) {
       assert.equal(invocations.has(node.callee.name), false);
       invocations.set(node.callee.name, node.arguments[0]);
@@ -973,7 +974,7 @@ test('the required Node caller cannot silently become a direct Native caller', a
   assert.equal(launchArguments.elements[1].type, 'SpreadElement');
   assert.equal(launchArguments.elements[1].argument.name, 'args');
   assert.equal(directory.name, 'cwd');
-  assert.equal(invocations.size, 5);
+  assert.equal(invocations.size, 6);
   for (const [name, options] of invocations) {
     assert.equal(options.type, 'ObjectExpression');
     const byName = new Map(options.properties.map(property => [property.key.name, property.value]));

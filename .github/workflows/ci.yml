@@ -2376,7 +2376,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [connectors, infer, query-portable-1, query-portable-2, query-portable-3, query-native]
+        group: [connectors, infer, query-portable-1, query-portable-2, query-portable-3]
         include:
           - {group: query-portable-1, query-part: portable-1}
           - {group: query-portable-2, query-part: portable-2}
@@ -2389,16 +2389,6 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
-      - name: Select the packed Native Graph compiler
-        if: ${{ matrix.group == 'query-native' }}
-        timeout-minutes: 5
-        run: |
-          bash scripts/ci-install-linux-clang.sh --packed-query-native
-          compiler_bin="$RUNNER_TEMP/packed-query-compiler"
-          mkdir -m 700 "$compiler_bin"
-          ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
-          ln -s "$(realpath /usr/bin/ar)" "$compiler_bin/ar"
-          echo "$compiler_bin" >> "$GITHUB_PATH"
       - name: Download the exact Client package artifact
         id: client-inputs
         uses: ./.github/actions/download-client-packages
@@ -2606,18 +2596,51 @@ jobs:
         with:
           directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
           name: packed-result-description-${{ github.sha }}
+  client-packed-query-native:
+    name: client-packed (query-native)
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.native-cli-installed.result == 'success' }}
+    needs: [select-targets, client-packages, native-cli-installed]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Download the exact Client package artifact
+        id: client-inputs
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/actql-client-packages
+      - name: Require the exact successful same-attempt Native Remote artifact
+        env:
+          ARTIFACT_ID: ${{ needs.native-cli-installed.outputs.artifact-id }}
+          ARTIFACT_RUN_ID: ${{ needs.native-cli-installed.outputs.artifact-run-id }}
+          ARTIFACT_RUN_ATTEMPT: ${{ needs.native-cli-installed.outputs.artifact-run-attempt }}
+          ARTIFACT_SOURCE_SHA: ${{ needs.native-cli-installed.outputs.artifact-source-sha }}
+          EXPECTED_RUN_ID: ${{ github.run_id }}
+          EXPECTED_RUN_ATTEMPT: ${{ github.run_attempt }}
+          EXPECTED_SOURCE_SHA: ${{ github.sha }}
+        run: node scripts/native-cli-ci-artifact.mjs
+      - name: Download the exact Native Remote artifact without rebuilding
+        id: native-inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.native-cli-installed.outputs.artifact-id }}
+          path: ${{ runner.temp }}/native-cli-installed
+          merge-multiple: true
       - name: Test the complete packed Native Graph campaign
-        if: ${{ !cancelled() && matrix.group == 'query-native' && steps.client-inputs.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.client-inputs.outcome == 'success' && steps.native-inputs.outcome == 'success' }}
         id: packed-query-native
         env:
           ACTQL_TEST_QUERY_TIMEOUT_MS: '1800000'
-          ACTQL_TEST_NATIVE_QUERY_COMPILER: 'clang-19'
-        run: |
-          test "$(realpath "$(command -v cc)")" = "$(realpath /usr/bin/clang-19)"
-          cc --version
-          node scripts/test-packed-public-query.mjs --ci-part=native
+          ACTQL_PACKED_NATIVE_GRAPH_RELEASE: ${{ runner.temp }}/native-cli-installed/release
+        run: node scripts/test-packed-public-query.mjs --ci-part=native
       - name: Retain packed Native query evidence
-        if: always() && matrix.group == 'query-native' && steps.packed-query-native.outputs.evidence-directory != ''
+        if: always() && steps.packed-query-native.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.packed-query-native.outputs.evidence-directory }}
@@ -2682,8 +2705,8 @@ jobs:
   # or unexpectedly skipped producers/consumers. No acceptance runs here.
   client:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
-      !(needs.client-packages.result == 'skipped' && needs.client-supported-versions.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-distribution-callers.result == 'skipped' && needs.client-distribution-mutations.result == 'skipped' && needs.client-distribution-packed.result == 'skipped' && needs.native-cli-installed.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-packed-composition.result == 'skipped' && needs.client-salesforce.result == 'skipped' && needs.client-model-packed.result == 'skipped') }}
-    needs: [client-packages, client-supported-versions, client-distribution, client-distribution-callers, client-distribution-mutations, client-distribution-packed, native-cli-installed, client-packed, client-packed-composition, client-salesforce, client-model-packed]
+      !(needs.client-packages.result == 'skipped' && needs.client-supported-versions.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-distribution-callers.result == 'skipped' && needs.client-distribution-mutations.result == 'skipped' && needs.client-distribution-packed.result == 'skipped' && needs.native-cli-installed.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-packed-query-native.result == 'skipped' && needs.client-packed-composition.result == 'skipped' && needs.client-salesforce.result == 'skipped' && needs.client-model-packed.result == 'skipped') }}
+    needs: [client-packages, client-supported-versions, client-distribution, client-distribution-callers, client-distribution-mutations, client-distribution-packed, native-cli-installed, client-packed, client-packed-query-native, client-packed-composition, client-salesforce, client-model-packed]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -2694,7 +2717,7 @@ jobs:
           node -e '
             const results = JSON.parse(process.env.RESULTS);
             let failed = false;
-            for (const job of ["client-packages", "client-supported-versions", "client-distribution", "client-distribution-callers", "client-distribution-mutations", "client-distribution-packed", "native-cli-installed", "client-packed", "client-packed-composition", "client-salesforce", "client-model-packed"]) {
+            for (const job of ["client-packages", "client-supported-versions", "client-distribution", "client-distribution-callers", "client-distribution-mutations", "client-distribution-packed", "native-cli-installed", "client-packed", "client-packed-query-native", "client-packed-composition", "client-salesforce", "client-model-packed"]) {
               const result = results[job]?.result;
               const ok = result === "success";
               console.log(`${ok ? "ok  " : "FAIL"} ${job}: ${result}`);
@@ -2707,6 +2730,11 @@ jobs:
   native-cli-installed:
     needs: [select-targets, client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    outputs:
+      artifact-id: ${{ steps.native_evidence.outputs.artifact-id }}
+      artifact-run-id: ${{ github.run_id }}
+      artifact-run-attempt: ${{ github.run_attempt }}
+      artifact-source-sha: ${{ github.sha }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -2728,6 +2756,7 @@ jobs:
       - name: Build normal CLI packages and exercise fresh installed consumers
         run: node scripts/ci-native-cli-installed.mjs "${{ runner.temp }}/native-cli-installed"
       - name: Retain exact CLI artifact and installed acceptance receipts
+        id: native_evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -2926,7 +2955,9 @@ jobs:
           path: ${{ runner.temp }}/native-cli-linux-local
           merge-multiple: true
       - name: Require actual fresh installed source-free Local execution
-        run: node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+        run: >-
+          node scripts/test-native-cli-source-free-install.mjs "$RUNNER_TEMP/native-cli-linux-local/release"
+          --require-model-terminal --require-dependent-model
       - name: Retain independent installed Local acceptance receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

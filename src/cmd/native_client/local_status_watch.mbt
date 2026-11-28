@@ -244,6 +244,7 @@ fn local_saved_run_status_command(
   capture? : @local_host.NativeLocalJournalCapture? = None,
   human_display? : ((String) -> String raise ClientStop)? = None,
   original_reader? : ((String) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop)? = None,
+  read_model_terminal? : ((@local_host.NativeClientOriginalRunSelection, String) -> @local_host.NativeClientSavedRunState raise ClientStop)? = None,
 ) -> String raise ClientStop {
   guard local_status_watch_options(child) is Some(options) else {
     return local_saved_run_status(
@@ -255,6 +256,7 @@ fn local_saved_run_status_command(
       capture~,
       human_display~,
       original_reader~,
+      read_model_terminal~,
     )
   }
   let scope = local_host_result(

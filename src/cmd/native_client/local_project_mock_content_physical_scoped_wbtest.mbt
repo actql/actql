@@ -373,6 +373,20 @@ fn native_mock_readme_content_join(
   )
   let compiled = first.model_compiled.unwrap()
   if @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_PLAN_ONLY") == Some("1") {
+    let publication = @local_host.native_client_effect_model_publication_capacity(
+      limits,
+    ).unwrap()
+    // 39 record headers, 158 references (including the empty carrier slot),
+    // and 67 scalar words under the pinned logical preparation representation.
+    assert_eq(@execution.execution_capacity_retained_bytes(publication), 2424L)
+    assert_eq(@execution.execution_capacity_execution_bytes(publication), 2424L)
+    assert_true(
+      @local_host.native_client_effect_model_publication_capacity({
+        ..limits,
+        model: { ..limits.model, max_items: -1, },
+      })
+      is None,
+    )
     let provider = @infer.composed_local_provider(
       occurrence,
       limits,
@@ -380,14 +394,9 @@ fn native_mock_readme_content_join(
       _ => @compute_sdk.ComputeUnsupported,
     )
     let selected = native_mock_effect_managed_plan(
-      prepared,
-      first,
-      original,
-      contracts,
-      provider,
-      @local_host.native_client_mock_model_observation_capacity(limits).unwrap(),
+      prepared, first, original, contracts, provider,
       // Existing finite Product record ceiling; explicit component DATA only.
-      1048576,
+       1048576,
     ) catch {
       ClientStop(message) => fail(message)
     }

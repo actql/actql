@@ -232,7 +232,15 @@ test "entry acknowledgement binds the original handle and starts each call once"
       ),
     )
   }
+  let output = acquire_output(active).unwrap()
+  let observed_egress = active.egress_admission.unwrap()
+  assert_false(cleanup(active).unwrap())
+  assert_true(physical_equal(active.dispatch_admission.unwrap(), admission))
+  assert_true(physical_equal(active.egress_admission.unwrap(), observed_egress))
+  assert_true(release_output(output))
   assert_true(cleanup(active).unwrap())
+  assert_true(active.dispatch_admission is None)
+  assert_true(active.egress_admission is None)
   assert_eq(calls.val, 2)
 }
 

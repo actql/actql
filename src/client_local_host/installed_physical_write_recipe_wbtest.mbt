@@ -71,6 +71,21 @@ test "file row keeps its original request peak without a duplicate Preview envel
 }
 
 ///|
+test "installed physical writer Preview quote is independent of recovery" {
+  let preview = installed_physical_write_preview_capacity(16777216, 100000, 64).unwrap()
+  let recovery = local_file_store_json_capacity(16777216, 100000, 64).unwrap()
+  let combined = standard_create_sequence_pair_capacity(preview, recovery).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(preview), 201372080L)
+  assert_eq(@execution.execution_capacity_execution_bytes(preview), 335589808L)
+  assert_eq(@execution.execution_capacity_execution_bytes(combined), 536961888L)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(combined) >
+    client_local_execution_byte_ceiling(),
+  )
+  assert_true(installed_physical_write_preview_capacity(0, 100000, 64) is None)
+}
+
+///|
 test "file constructor keeps real decode peak without retaining completed parser aliases" {
   let output = @execution.execution_capacity(17L, 29L).unwrap()
   let original = installed_file_effect_constructor_capacity(

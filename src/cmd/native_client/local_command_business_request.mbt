@@ -480,6 +480,7 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
   until : String,
   request : @run_host.ClientRequestIdentity,
   current_time : () -> String,
+  http_installations : Array[LocalModelHttpInstallationSettings]?,
 ) -> LocalEffectFirstCompilation raise ClientStop {
   guard self.original.business is Some(business) &&
     business.request_parent is Some(parent) &&
@@ -493,30 +494,115 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
     physical_equal(original, prepared) else {
     stop("LocalBusinessOriginalUnavailable")
   }
-  self.original.with_business_request(self.capture, () => {
-    let occurrences = @run_host.prepared_client_effect_infer_occurrences(
-      prepared,
-    ).unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
-    let models = if occurrences.is_empty() {
-      []
-    } else {
-      guard self.original.project is Some(project) &&
-        project.mock_declarations is Some(mock) else {
+  let read_occurrences = () => {
+    @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap_or_else(() => {
         stop("LocalOriginalModelUnavailable")
+      },
+    )
+  }
+  let http = if http_installations is Some(configured) &&
+    @run_host.prepared_client_effect_infer_count(prepared) != Some(0) {
+    guard self.original.project is Some(project) &&
+      project.mock_declarations is Some(file) &&
+      file.models.is_empty() &&
+      self.original.runtime is Some(runtime) else {
+      stop("LocalOriginalModelHttpEffectUnavailable")
+    }
+    let occurrences = self.original.with_business_request(
+      self.capture,
+      read_occurrences,
+    )
+    guard occurrences is [occurrence] &&
+      @run_host.client_infer_occurrence_has_captured_sources(occurrence) &&
+      @run_host.client_infer_occurrence_keyed_source_identity(occurrence)
+      is None else {
+      stop("LocalOriginalModelHttpEffectUnavailable")
+    }
+    let limits = local_project_mock_task_limits()
+    let configurations = self.original.read_model_http_configurations(
+      self.capture,
+      configured,
+      limits,
+    )
+    let slots = configurations.length().to_int64()
+    let retained = local_host_metadata_price(
+      local_host_metadata_units(2L + slots, 2L * slots + 2L, 2L, 0L),
+    )
+    local_host_metadata_prepare(retained, retained)
+    let execution = self.original.select_model_http_execution_in_original_read(
+      self.capture,
+      occurrence,
+      configurations,
+      Array::make(configurations.length(), None),
+      limits,
+    )
+    let installation = match
+      self.capture.admit_model_http_installation_in_original_read(
+        runtime,
+        execution,
+        occurrence,
+        limits.bodies,
+        self.original.profile.diagnostic_ceiling,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        self.original.retain_primary(CommandBusinessModelHttp(issue))
+        stop("LocalModelHttpInstallationRefused")
       }
-      match
-        mock.prepare_request_models(
+    }
+    Some((occurrence, execution, installation))
+  } else {
+    None
+  }
+  self.original.with_business_request(self.capture, () => {
+    let models = if http is Some((occurrence, execution, installation)) {
+      let graph = match
+        @local_values.prepare_request_model_graph(
           parent,
           input,
-          kind=@local_values.Effect,
-          occurrences,
-          self.environment,
+          occurrence,
+          execution.execution_contract(),
           self.installed_contracts,
+          manifests=native_request_manifests,
+          compilation_limits=@run_host.client_standard_pure_compilation_limits(),
+          caller_material=Some(
+            native_mock_effect_model_selection_storage(1, mock_work=false),
+          ),
         ) {
         Ok(value) => value
         Err(issue) => {
           self.original.retain_primary(CommandBusinessModelGraph(issue))
           stop("LocalOriginalModelGraphUnavailable")
+        }
+      }
+      let limits = @infer.prepared_composed_bounds(occurrence, graph).unwrap_or_else(() => {
+          stop("LocalOriginalModelBoundsUnavailable")
+        },
+      )
+      [{ graph, provider: HttpModel(installation), _retained_limits: limits, }]
+    } else {
+      let occurrences = read_occurrences()
+      if occurrences.is_empty() {
+        []
+      } else {
+        guard self.original.project is Some(project) &&
+          project.mock_declarations is Some(mock) else {
+          stop("LocalOriginalModelUnavailable")
+        }
+        match
+          mock.prepare_request_models(
+            parent,
+            input,
+            kind=@local_values.Effect,
+            occurrences,
+            self.environment,
+            self.installed_contracts,
+          ) {
+          Ok(value) => value
+          Err(issue) => {
+            self.original.retain_primary(CommandBusinessModelGraph(issue))
+            stop("LocalOriginalModelGraphUnavailable")
+          }
         }
       }
     }
@@ -534,6 +620,9 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
         stop("LocalOriginalSourceUnavailable")
       }
       mock.prepare_effect_sources(prepared, direct)
+    }
+    if http is Some(_) && source_inputs.is_empty() {
+      stop("LocalOriginalModelHttpEffectUnavailable")
     }
     let first = local_effect_first_compilation(
       self.preparation,
@@ -556,6 +645,9 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
         stop("LocalOriginalModelWorkUnavailable")
       })
       for selected in models {
+        guard selected.provider is MockModel(profile, provider) else {
+          continue
+        }
         let work = match
           @local_host.prepare_native_client_mock_model_work(
             self.capture,
@@ -563,8 +655,8 @@ fn LocalCommandBusinessPreparation::compile_effect_first(
             compiled,
             first.definition,
             selected.graph,
-            selected._retained_profile,
-            selected._retained_provider,
+            profile,
+            provider,
             selected._retained_limits,
             self.principal,
             namespace_id,

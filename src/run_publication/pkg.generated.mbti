@@ -855,6 +855,8 @@ pub fn model_capture_bundle_count(ModelCaptureBundleRead) -> Int
 
 pub fn model_capture_bundle_identity(ModelCaptureBundleRead) -> String?
 
+pub fn model_capture_bundle_read_construction_inventory(Int, Int, Int) -> RunEvidenceAdmissionConstruction?
+
 pub fn model_capture_bundle_record(ModelCaptureBundleRead, Int) -> Result[ModelCaptureRecordRead, RunEvidenceValueIssue]
 
 pub fn model_capture_record_evidence(ModelCaptureRecordRead) -> RunEvidenceValue

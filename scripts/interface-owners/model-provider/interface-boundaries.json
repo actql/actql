@@ -3867,7 +3867,7 @@
     },
     {
       "module": "src/model_execution/execution.mbt",
-      "sha256": "e45ad989ea7c415fb801a67ed8a9948c5a895b13cf9038a85b4314bf5ac2e4bb",
+      "sha256": "0c3bb8a114651b7c098203cd1aaf581c5aa4122f59817b757c8ff078f8daf7ed",
       "exports": [],
       "operations": [
         {
@@ -4315,7 +4315,7 @@
     },
     {
       "module": "src/model_execution/prepared_call_set.mbt",
-      "sha256": "aafd24cb2a8f438ebfb515da50ac7411bd100b7527838b45ff490b3e5d49f653",
+      "sha256": "bb1e8a3e0a92c6f3d3ed53be7ebde462d49b9e71f9bcefb0659a7d916d59f998",
       "exports": [],
       "operations": [
         {
@@ -4825,7 +4825,9 @@
             "client_infer_call_scope_local_coordinate",
             "client_infer_call_scope_matches",
             "client_infer_call_scope_matches_rows",
+            "client_infer_call_scope_matches_whole_result_reader",
             "client_infer_call_scope_model_execution",
+            "client_infer_call_scope_saved_input",
             "client_infer_call_scope_snapshot",
             "client_infer_call_scope_source_observations",
             "client_infer_call_scope_unit_id",
@@ -4843,9 +4845,7 @@
             "issue_client_infer_occurrence_call_scope",
             "issue_prepared_client_infer_call_scope",
             "read_client_infer_saved_call_scope",
-            "restore_client_infer_call_scope",
-            "client_infer_call_scope_matches_whole_result_reader",
-            "client_infer_call_scope_saved_input"
+            "restore_client_infer_call_scope"
           ],
           "exports": [],
           "attributes": {

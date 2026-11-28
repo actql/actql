@@ -22,6 +22,10 @@ fn journal_test_read_access(
       calls.push("read:" + table_name + ":" + key)
       database.read(table_name, key)
     },
+    read_bounded: (table_name, key, maximum) => {
+      calls.push("read-bounded:" + table_name + ":" + key)
+      database.read_with_body_limit(table_name, key, maximum)
+    },
     observe_scan_body_extent: (table_name, cursor) => {
       calls.push("scan-extent:" + table_name + ":" + cursor)
       database.observe_scan_body_extent(table_name, cursor)

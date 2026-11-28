@@ -162,7 +162,16 @@ test('installed Local acceptance consumes the successful producer independently 
   assert(consumer);
   assert.equal(consumer.if, undefined);
   assert.equal(consumer['continue-on-error'], undefined);
-  assert.equal(consumer.run.split(' ').at(-1), '"$RUNNER_TEMP/native-cli-linux-local/release"');
+  const temp = '/tmp/with spaces';
+  const selected = spawnSync('bash', ['-eo', 'pipefail', '-c',
+    'node() { printf "%s\\n" "$@"; }\n' + consumer.run], {
+    encoding: 'utf8', timeout: 5000, env: {...process.env, RUNNER_TEMP: temp},
+  });
+  assert.equal(selected.status, 0, selected.stderr);
+  assert.deepEqual(selected.stdout.trimEnd().split('\n'), [
+    'scripts/test-native-cli-source-free-install.mjs',
+    temp + '/native-cli-linux-local/release', '--require-model-terminal', '--require-dependent-model',
+  ]);
   const download = installedJob.steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
   assert.deepEqual(download.with, {
     'artifact-ids': '${{ needs.native-cli-linux-local.outputs.artifact-id }}',
@@ -481,15 +490,6 @@ if [[ "$*" == *' install '* ]]; then
 fi
 `);
     chmodSync(sudo, 0o755);
-    writeFileSync(join(bin, 'apt-cache'), `#!/bin/bash
-set -euo pipefail
-printf 'apt-cache %s\\n' "$*" >> "$ACQUISITION_CALLS"
-case "$ACQUISITION_FAILURE" in
-  version-query) exit 98 ;;
-  version-missing) printf '  Candidate: (none)\\n' ;;
-  *) printf '  Candidate: 1:19.1.1-1ubuntu1~24.04.2\\n' ;;
-esac
-`, {mode: 0o755});
     const shell = compilerCommands.replaceAll('/etc/apt/apt-mirrors.txt', mirror)
       .replaceAll('/etc/apt/sources.list.d/ubuntu.sources', sources)
       .replaceAll('/usr/bin/clang-19', compiler);
@@ -538,48 +538,11 @@ test('compiler acquisition diagnostic failure cannot replace the original comman
   assert.equal(result.stderr, '');
 });
 
-test('packed Native Graph resolves one signed clang version and keeps its matching compiler runtime', () => {
-  const result = compilerAcquisitionControl('none', {args: ['--packed-query-native']});
-  const options = `-o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Dir::Etc::sourcelist=${result.sources} -o Dir::Etc::sourceparts=-`;
-  assert.equal(result.status, 0);
-  assert.equal(result.stderr, '');
-  assert.deepEqual(result.calls, [
-    `apt-get ${options} update --error-on=any`,
-    `apt-cache ${options} policy clang-19`,
-    `apt-get ${options} install --yes --no-install-recommends clang-19=1:19.1.1-1ubuntu1~24.04.2 libclang-rt-19-dev=1:19.1.1-1ubuntu1~24.04.2`,
-  ]);
-});
-
-test('packed Native Graph compiler acquisition rejects unknown profiles and incomplete selections', () => {
-  for (const [failure, args, code, calls, stage] of [
-    ['none', ['--other'], 1, 0, 'select-clang-profile'],
-    ['none', ['--packed-query-native', '--other'], 1, 0, 'select-clang-profile'],
-    ['update', ['--packed-query-native'], 100, 1, 'update-ubuntu-index'],
-    ['version-query', ['--packed-query-native'], 98, 2, 'resolve-clang-version'],
-    ['version-missing', ['--packed-query-native'], 1, 2, 'resolve-clang-version'],
-    ['install', ['--packed-query-native'], 100, 3, 'install-clang'],
-    ['missing', ['--packed-query-native'], 1, 3, 'verify-selected-clang'],
-  ]) {
-    const result = compilerAcquisitionControl(failure, {args});
-    assert.equal(result.status, code, failure);
-    assert.equal(result.calls.length, calls, failure);
-    assert.equal(result.stdout, '');
-    assert.equal(result.stderr, `ActQL Linux compiler preparation failed: stage=${stage} status=${code}\n`);
+test('compiler acquisition rejects the retired Native Graph profile before apt', () => {
+  for (const profile of ['--other', '--packed-query-native']) {
+    const result = compilerAcquisitionControl('none', {args: [profile]});
+    assert.equal(result.status, 1);
+    assert.deepEqual(result.calls, []);
+    assert.equal(result.stderr, 'ActQL Linux compiler preparation failed: stage=select-clang-profile status=1\n');
   }
-});
-
-test('packed Native Graph shares bounded compiler acquisition before exact compiler aliases', () => {
-  const step = workflow.jobs['client-packed'].steps.find(step =>
-    step.name === 'Select the packed Native Graph compiler');
-  assert.equal(step['timeout-minutes'], 5);
-  assert.equal(step['continue-on-error'], undefined);
-  assert.equal(compilerStep.run.trim(), 'bash scripts/ci-install-linux-clang.sh');
-  assert.equal(step.run.split('\n')[0], 'bash scripts/ci-install-linux-clang.sh --packed-query-native');
-  assert.deepEqual(step.run.trim().split('\n').slice(1), [
-    'compiler_bin="$RUNNER_TEMP/packed-query-compiler"',
-    'mkdir -m 700 "$compiler_bin"',
-    'ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"',
-    'ln -s "$(realpath /usr/bin/ar)" "$compiler_bin/ar"',
-    'echo "$compiler_bin" >> "$GITHUB_PATH"',
-  ]);
 });

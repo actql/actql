@@ -40,6 +40,8 @@ target/
 /scripts/native-client-checkpoint-fixture.d.mts
 /scripts/fixtures/native-effect-resolution-fixture.mjs
 /scripts/fixtures/native-effect-resolution-fixture.d.mts
+/scripts/fixtures/native-file-model-effect.mjs
+/scripts/fixtures/native-file-model-effect.d.mts
 /scripts/test-native-local-effect-response.test.mjs
 /scripts/test-native-local-effect-response.test.d.mts
 /scripts/native-core-scoped-profile.mjs

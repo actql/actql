@@ -2550,6 +2550,7 @@ test('Native first-member capture uses the original scoped Request provider and 
     'Native inventory Source binding funds the same operation before checking roots',
     'Native Preview target parsing funds overlapping original rows before entry',
     'Native Preview draft counts both positions of one original row value',
+    'measured Model Preview keeps the imported bodies and excludes cold recovery',
   ];
   assert.deepEqual([...captureSource.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]), expectedCases);
   for (const zero of [false, true]) {
@@ -2586,8 +2587,8 @@ test('Native first-member capture uses the original scoped Request provider and 
     if (zero) assert.match(result.stderr + result.stdout,
       /no successfully executed test cases|expected tests=1/u);
     else {
-      assert.equal(calls.length, 26, 'both checkpoints, ordinary Core and all 23 scoped cases execute');
-      assert.match(result.stdout, /"ordinary":3,"http":0,"source":0,"scoped":23,"physical":22,"repeatedGeometry":1/u);
+      assert.equal(calls.length, 27, 'both checkpoints, ordinary Core and all 24 scoped cases execute');
+      assert.match(result.stdout, /"ordinary":3,"http":0,"source":0,"scoped":24,"physical":23,"repeatedGeometry":1/u);
     }
     f.verifyExternal();
   }

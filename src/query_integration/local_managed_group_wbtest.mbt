@@ -985,7 +985,7 @@ fn run_local_managed_group_case(
   assert_eq(group_rows, group_expected)
 
   let retained = if retain_result_export {
-    guard intermediates.last() is Some((_, ops, _)) else {
+    guard intermediates.last() is Some((producer_task, ops, _)) else {
       fail("missing the original Unit completion")
     }
     let unit = @strategy.pin_captured_completed_unit_results(
@@ -1047,6 +1047,26 @@ fn run_local_managed_group_case(
     let handoff = @strategy.prepare_captured_completed_unit_result_handoff(
       unit, 0, groups, bridge, preparation, receipt,
     ).unwrap()
+    let exported = @execution.completed_relation_export_original_source(receipt).unwrap()
+    assert_true(
+      @strategy.captured_completed_unit_result_export_matches_output(
+        handoff, run, group_stage, producer_task, exported,
+      ),
+    )
+    assert_false(
+      @strategy.captured_completed_unit_result_export_matches_output(
+        handoff, run, group_stage, first_task, exported,
+      ),
+    )
+    assert_false(
+      @strategy.captured_completed_unit_result_export_matches_output(
+        handoff,
+        run,
+        group_stage + 1,
+        producer_task,
+        exported,
+      ),
+    )
     let edge_at = (task : Int) => {
       for index in 0..<@strategy.graph_data_count(graph) {
         let edge = @strategy.graph_data_at(graph, index).unwrap()
@@ -1073,9 +1093,37 @@ fn run_local_managed_group_case(
     ).unwrap()
     assert_eq(same_input, first_input)
     assert_true(physical_equal(same_read, first_read))
+    assert_true(@execution.producer_read_has_cell_access(first_read))
     assert_true(
       @strategy.captured_completed_unit_result_input_matches(
         handoff, first, first_read,
+      ),
+    )
+    assert_false(
+      @strategy.captured_completed_unit_result_input_matches(
+        handoff, second, first_read,
+      ),
+    )
+    let rebound = @execution.rebind_producer_representation(
+      first_read,
+      @execution.producer_read_original_output(first_read).unwrap(),
+    ).unwrap()
+    assert_true(@execution.producer_read_same_binding(first_read, rebound))
+    assert_false(
+      @strategy.captured_completed_unit_result_input_matches(
+        handoff, first, rebound,
+      ),
+    )
+    assert_true(
+      physical_equal(
+        first_read,
+        @strategy.captured_task_input(
+          run,
+          first_task,
+          16,
+          1024,
+          input_index=first_input,
+        ).unwrap(),
       ),
     )
     // Re-admit equal bytes independently for the negative control. That
@@ -1089,6 +1137,16 @@ fn run_local_managed_group_case(
         @execution.completed_relation_export_content(foreign_receipt),
       ),
     )
+    let competing = @execution.completed_relation_export_original_source(
+      foreign_receipt,
+    ).unwrap()
+    // Both bridges retain the same upstream completion. The pending reader
+    // below must still refuse the independently constructed receiving view.
+    assert_true(
+      @strategy.captured_completed_unit_result_export_matches_output(
+        handoff, run, group_stage, producer_task, competing,
+      ),
+    )
     assert_true(
       @strategy.prepare_captured_completed_unit_result_handoff(
         unit, 0, groups, foreign_bridge, preparation, receipt,
@@ -1098,6 +1156,11 @@ fn run_local_managed_group_case(
     let replacement = @strategy.prepare_captured_completed_unit_result_handoff(
       unit, 0, groups, foreign_bridge, foreign_preparation, foreign_receipt,
     ).unwrap()
+    assert_false(
+      @strategy.captured_completed_unit_result_input_matches(
+        replacement, first, first_read,
+      ),
+    )
     assert_true(
       @strategy.retain_captured_completed_unit_result_input(
         replacement, first, 16, 1024,
@@ -1109,7 +1172,11 @@ fn run_local_managed_group_case(
     let original = @strategy.captured_pending_task_input_output(
       run, first_task, 0,
     ).unwrap()
-    Some((unit, bridge, receipt, handoff, second, original))
+    Some(
+      (
+        unit, bridge, receipt, handoff, second, original, producer_task, first, first_read,
+      ),
+    )
   } else {
     None
   }
@@ -1142,13 +1209,37 @@ fn run_local_managed_group_case(
   }
   assert_eq(local_managed_test_rows(first_ops), group_rows)
 
-  if retained is Some((_, _, _, handoff, edge, original)) {
-    let (input, reader) = @strategy.retain_captured_completed_unit_result_input(
+  if retained
+    is Some((_, _, _, handoff, edge, original, _, first_edge, first_read)) {
+    let (input, read) = @strategy.retain_captured_completed_unit_result_input(
       handoff, edge, 16, 1024,
     ).unwrap()
+    assert_true(@execution.producer_read_has_cell_access(read))
     assert_true(
       @strategy.captured_completed_unit_result_input_matches(
-        handoff, edge, reader,
+        handoff, edge, read,
+      ),
+    )
+    assert_false(
+      @strategy.captured_completed_unit_result_input_matches(
+        handoff, edge, first_read,
+      ),
+    )
+    assert_false(
+      @strategy.captured_completed_unit_result_input_matches(
+        handoff, first_edge, first_read,
+      ),
+    )
+    assert_true(
+      physical_equal(
+        read,
+        @strategy.captured_task_input(
+          run,
+          second_task,
+          16,
+          1024,
+          input_index=input,
+        ).unwrap(),
       ),
     )
     let received = @strategy.captured_pending_task_input_output(
@@ -1193,8 +1284,15 @@ fn run_local_managed_group_case(
   @strategy.close_captured_task_output(run, second_task)
   (second_ops.close)()
   (second_ops.cleanup_refresh)() |> ignore
-  if retained is Some((unit, bridge, receipt, _, _, _)) {
+  if retained
+    is Some((unit, bridge, receipt, handoff, _, _, producer_task, _, _)) {
+    let output = @execution.completed_relation_export_original_source(receipt).unwrap()
     assert_true(@strategy.release_captured_completed_unit_results(unit))
+    assert_false(
+      @strategy.captured_completed_unit_result_export_matches_output(
+        handoff, run, group_stage, producer_task, output,
+      ),
+    )
     @execution.cancel_completed_relation_export_receipt(receipt)
     @execution.close_managed_publication_bridge(bridge)
   }

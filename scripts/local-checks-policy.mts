@@ -15,7 +15,7 @@ export type LocalCheckPolicy<Classification extends string = MoonClassification 
 
 export const heavyJobs = Object.freeze([
   'core', 'host', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'native-http', 'session-evidence', 'session-controls',
-  'client-packages', 'client-readme-packed', 'client-model-packed', 'client-distribution', 'client-packed', 'client-packed-composition', 'client-salesforce',
+  'client-packages', 'client-readme-packed', 'client-model-packed', 'client-distribution', 'client-packed', 'client-packed-query-native', 'client-packed-composition', 'client-salesforce',
   'client-distribution-callers', 'client-distribution-mutations',
   'client-distribution-packed',
   'workers', 'connector-addition', 'duckdb-node', 'spec',

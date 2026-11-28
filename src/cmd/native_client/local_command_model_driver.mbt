@@ -9,6 +9,7 @@ fn LocalCommandBusinessPreparation::prepare_configured_model_works(
   store : @local_store.Store,
 ) -> Unit raise ClientStop {
   guard !business.active &&
+    business.operation is Some(operation) &&
     business.request_run is Some(_) &&
     business.model_run is Some(model) &&
     self.model_compilation is Some(selection) &&
@@ -19,7 +20,7 @@ fn LocalCommandBusinessPreparation::prepare_configured_model_works(
   for index, graph in model.graphs {
     match
       @local_host.prepare_native_client_model_http_work(
-        self.capture,
+        operation,
         request,
         model.compiled,
         model.definition,
@@ -28,8 +29,10 @@ fn LocalCommandBusinessPreparation::prepare_configured_model_works(
         store,
         selection.bounds[index],
         self.principal,
+        self.connection,
         run.namespace_id,
         local_utc_now,
+        output_receivers=Some(selection.installations),
       ) {
       Err(issue) => {
         self.original.retain_primary(CommandBusinessModel(issue))
@@ -48,14 +51,23 @@ fn[T] LocalCommandBusinessPreparation::with_model_driver_read(
   self : Self,
   business : LocalCommandBusinessOriginal,
   step : () -> T raise ClientStop,
+  trace_dependency? : Bool = false,
 ) -> T raise ClientStop {
   guard business.active && business.operation is Some(operation) else {
+    if trace_dependency {
+      native_model_dependency_read_failure(13, 1)
+    }
     stop("LocalBusinessScopeUnavailable")
   }
+  let returned = operation.return_business_to_original_read()
+  if trace_dependency && returned is Err(issue) {
+    native_model_dependency_read_failure(
+      13,
+      10 + native_dependency_phase_reason(issue),
+    )
+  }
   command_preparation_result(
-    operation
-    .return_business_to_original_read()
-    .map_err(issue => CommandStoreOperation(issue)),
+    returned.map_err(issue => CommandStoreOperation(issue)),
     stage=Some("model-step-read"),
   )
   business.active = false
@@ -66,16 +78,129 @@ fn[T] LocalCommandBusinessPreparation::with_model_driver_read(
   // Retain attempted entry before the fallible operation. The receiver owns
   // an interrupted return even when no business phase was restored.
   business.active = true
+  let entered = operation.enter_business_from_original_read()
+  if trace_dependency && entered is Err(issue) {
+    native_model_dependency_read_failure(
+      13,
+      20 + native_dependency_phase_reason(issue),
+    )
+  }
   command_preparation_result(
-    operation
-    .enter_business_from_original_read()
-    .map_err(issue => CommandStoreOperation(issue)),
+    entered.map_err(issue => CommandStoreOperation(issue)),
     stage=Some("model-step-return"),
   )
   match result {
     Ok(value) => value
     Err(message) => stop(message)
   }
+}
+
+///|
+// Acceptance stage 13 is the existing original Read/return boundary inside
+// the receiving callback. Its original exception stays with the same owner.
+extern "C" fn native_model_dependency_read_failure(
+  stage : Int,
+  reason : Int,
+) -> Unit = "actql_native_model_dependency_failure"
+
+///|
+fn native_dependency_phase_reason(
+  issue : @local_host.NativeLocalStoreOperationIssue,
+) -> Int {
+  match issue {
+    StoreOperationUnavailable => 1
+    StoreOperationForeignOriginal => 2
+    StoreOperationCapture(_) => 3
+    StoreOperationResources(_) => 4
+    StoreOperationExecution(_) => 5
+    StoreOperationSqlite(_) => 6
+  }
+}
+
+///|
+fn native_dependency_body_reason(
+  issue : @local_host.NativeClientMockModelIssue,
+) -> Int {
+  match issue {
+    ForeignOriginal => 30
+    Original(ConfigurationLimit) => 31
+    Original(Journal(CapacityExceeded)) => 32
+    Original(Journal(CustodyLost)) => 33
+    Original(Journal(ForeignRun)) => 34
+    Original(Journal(PublicationObservation(_))) => 35
+    Original(Journal(_)) => 36
+    Original(_) => 37
+    Transport(Original(OriginalResources(_))) => 38
+    Transport(RawPolicy(_)) => 39
+    Transport(_) => 40
+    Egress(ForeignOwner) => 41
+    Egress(_) => 42
+    Store(_) => 43
+    _ => 44
+  }
+}
+
+///|
+// A dependent task's actual Readers are already staged, and its own
+// compute registration and Model Read have not yet opened.
+fn LocalCommandBusinessPreparation::retain_model_output_dependencies(
+  self : Self,
+  business : LocalCommandBusinessOriginal,
+  model : LocalCommandModelRun,
+  task : Int,
+  inputs : @local_host.NativeWholeModelResultInputs,
+  fund : (@execution.ExecutionCapacity) -> Bool,
+) -> Bool {
+  for index, graph in model.graphs {
+    if @run_host.client_infer_occurrence_coordinates(graph.occurrence).0 != task {
+      continue
+    }
+    guard business.model_work.get(index) is Some(work) else { return false }
+    if !work.requires_model_output_dependencies() {
+      return true
+    }
+    self.with_model_driver_read(
+      business,
+      () => {
+        let retained = work.read_model_output_dependencies_in_original_read(
+          business.model_work,
+          model.completions,
+          inputs,
+        )
+        if retained is Err(issue) {
+          native_model_dependency_read_failure(
+            13,
+            native_dependency_body_reason(issue),
+          )
+        }
+        self.original.require_model_step(retained)
+      },
+      trace_dependency=true,
+    ) catch {
+      ClientStop(message) => {
+        native_model_dependency_read_failure(13, 0)
+        self.original.retain_primary(CommandApplication(message))
+        return false
+      }
+    }
+    return try {
+      self.original.require_model_step(
+        work.finish_model_output_dependencies_after_original_read(
+          business.model_work,
+          model.completions,
+          inputs,
+          fund,
+        ),
+      )
+      true
+    } catch {
+      ClientStop(message) => {
+        self.original.retain_primary(CommandApplication(message))
+        false
+      }
+    }
+  }
+  false
 }
 
 ///|
@@ -118,25 +243,35 @@ fn LocalCommandBusinessPreparation::drive_configured_model_task(
       let progress = match (operations.advance)(31) {
         Ok(value) => value
         Err(issue) => {
-          if work.closed_http_unknown_observed() &&
+          let unknown = work.closed_http_unknown_observed()
+          if (unknown || work.closed_http_failure_observed()) &&
             business.publication_publisher is Some(publisher) {
-            self.original.retain_primary(
-              CommandBusinessModel(Model(@infer.Model(@model.UnknownCalls))),
-            )
+            if unknown {
+              self.original.retain_primary(
+                CommandBusinessModel(Model(@infer.Model(@model.UnknownCalls))),
+              )
+            }
             // A failed metadata save cannot replace the original driver
             // failure or discharge the existing scope/Journal cleanup.
-            self.with_model_driver_read(business, () => {
-              local_host_result(
-                work.retain_http_unknown_in_original_read(
+            let proof = self.with_model_driver_read(business, () => {
+              match
+                work.retain_http_terminal_in_original_read(
                   publisher,
                   reference,
                   self.connection,
                   local_utc_now(),
                   @env.now().to_double(),
-                ),
-              )
+                ) {
+                Ok(value) => value
+                Err(_) => None
+              }
             }) catch {
-              ClientStop(_) => ()
+              ClientStop(_) => None
+            }
+            if proof is Some(verified) {
+              command_preparation_diagnostic.val = RuntimeModelTerminalFailure(
+                verified,
+              )
             }
           }
           return Err(Driver(issue))

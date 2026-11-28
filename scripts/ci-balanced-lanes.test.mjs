@@ -19,7 +19,7 @@ const condition = (expression, group, ready = true) => runInNewContext(
   }, {timeout: 100});
 
 test('every packed campaign has exactly one matrix owner and one same-run package producer', () => {
-  assert.deepEqual(job.strategy.matrix.group, ['connectors', 'infer', 'query-portable-1', 'query-portable-2', 'query-portable-3', 'query-native']);
+  assert.deepEqual(job.strategy.matrix.group, ['connectors', 'infer', 'query-portable-1', 'query-portable-2', 'query-portable-3']);
   assert.equal(job.strategy['fail-fast'], false);
   assert.equal(job['continue-on-error'], undefined);
   assert(job.needs.includes('client-packages'));
@@ -48,7 +48,6 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
     'Test the registered external SDK adapter through the same ordinary Client packages',
     'Test raw public SQL and Pipe through packed Local and HTTP',
     'Test committed Result descriptions through packed Local and HTTP',
-    'Test the complete packed Native Graph campaign',
   ]);
   for (const step of campaigns) {
     assert.equal(job.strategy.matrix.group.filter(group => condition(step.if, group)).length, step.id === 'packed-query' || step.name === 'Retain packed public query evidence' ? 3 : 1, step.name);
@@ -58,6 +57,7 @@ test('every packed campaign has exactly one matrix owner and one same-run packag
     assert.equal(job.strategy.matrix.group.filter(group => condition(step.if, group)).length, step.id === 'packed-query' || step.name === 'Retain packed public query evidence' ? 3 : 1, step.name);
   const aggregate = workflow.jobs.client;
   assert(aggregate.needs.includes('client-packed'));
+  assert(aggregate.needs.includes('client-packed-query-native'));
   assert(aggregate.steps[0].run.includes('const ok = result === "success";'));
 });
 
@@ -127,12 +127,12 @@ test('packed CI parts refuse narrowing, duplicate parts and ambient selective ca
   }
   assert.throws(() => validatePackedPublicQueryArguments(['--ci-part=missing'], {}));
   const portable = job.steps.find(step => step.id === 'packed-query');
-  const native = job.steps.find(step => step.id === 'packed-query-native');
+  const native = workflow.jobs['client-packed-query-native'].steps.find(step => step.id === 'packed-query-native');
   assert(portable.run.includes('--ci-part=${{ matrix.query-part }}'));
   assert.deepEqual(job.strategy.matrix.include, [1,2,3].map(part =>
     ({group: `query-portable-${part}`, 'query-part': `portable-${part}`})));
   assert(native.run.includes('--ci-part=native'));
-  assert.equal(native.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
+  assert.equal(native.env.ACTQL_PACKED_NATIVE_GRAPH_RELEASE, '${{ runner.temp }}/native-cli-installed/release');
 });
 
 test('portable and Native packed parts preserve both original complete campaigns', async () => {

@@ -223,6 +223,7 @@ fn relation_work_issue(issue : @client.NativeClientSourceWorkIssue) -> String {
     LocalExport(_) => "LocalExport (original retained)"
     WholeModelProducerExport(_) =>
       "WholeModelProducerExport (original retained)"
+    WholeModelOutcomeExport(_) => "WholeModelOutcomeExport (original retained)"
     CaptureIdentity(_) => "CaptureIdentity (original retained)"
     AuthorizationDenied => "AuthorizationDenied"
     Normalization(_) => "unexpected export-only Normalization"
@@ -345,6 +346,8 @@ fn relation_return_work_label(
     LocalExport(_) => "Work.LocalExport; original custody retained"
     WholeModelProducerExport(_) =>
       "Work.WholeModelProducerExport; original custody retained"
+    WholeModelOutcomeExport(_) =>
+      "Work.WholeModelOutcomeExport; original custody retained"
     CaptureIdentity(_) => "Work.CaptureIdentity; original custody retained"
     AuthorizationDenied => "Work.AuthorizationDenied; original custody retained"
     Normalization(_) => "Work.Normalization; original custody retained"
@@ -371,4 +374,19 @@ fn relation_return_failure_label(
         Ok(_) => "unexpected successful original return diagnostic"
       }
   }
+}
+
+///|
+test "Relation File diagnostics identify the retained Whole Model outcome export" {
+  let issue : @client.NativeClientSourceWorkIssue = WholeModelOutcomeExport(
+    NotFinished,
+  )
+  assert_eq(
+    relation_work_issue(issue),
+    "WholeModelOutcomeExport (original retained)",
+  )
+  assert_eq(
+    relation_return_work_label(issue),
+    "Work.WholeModelOutcomeExport; original custody retained",
+  )
 }
