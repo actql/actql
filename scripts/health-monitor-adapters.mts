@@ -219,14 +219,15 @@ export async function prepareHealthPackages({repository, root, source, retained,
   }
   const consumer = join(root, 'consumer'); await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
+  // The monitor supplies a private npm_config_cache to every subprocess.
+  // npm's explicit option selects the already-prefetched cache for this install.
   await command('npm', ['install', ...(optionalProvider === undefined ? ['--offline'] : []),
+    ...(process.env.ACTQL_TEST_NPM_CACHE ? ['--cache', packedNpmCache(root)] : []),
     normalLifecycle ? '--ignore-scripts=false' : '--ignore-scripts',
     '--no-audit', '--no-fund', '--no-save', '--omit=optional',
     ...manifest.packages.map(row => {
       assert.equal(row.file, row.file.split('/').at(-1)); return resolve(dirname(retained!), row.file);
-    })], {cwd: consumer, name: 'install-node',
-    ...(process.env.ACTQL_TEST_NPM_CACHE
-      ? {env: {...process.env, npm_config_cache: packedNpmCache(root)}} : {})});
+    })], {cwd: consumer, name: 'install-node'});
   await verifyNodeBenchmarkPackages(manifest, retained, consumer);
   return {manifest, manifestPath: retained, consumer};
 }

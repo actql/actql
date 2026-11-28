@@ -8,14 +8,14 @@ import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import test, {before, after} from 'node:test';
 import {inspect} from 'node:util';
-import {writeInertPythonReleaseCohort} from './fixtures/release-python-wheels.mjs';
+import {writeInertPairedPythonReleaseCohort, writeInertPythonReleaseCohort} from './fixtures/release-python-wheels.mjs';
 import {freezeReleaseSet, prepareReleaseReview} from './release-set.mjs';
 import {pythonPublishPlan, publishPythonReleaseProject} from './publish-package-release.mjs';
 import {runRelease} from './release.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const actionRevision = 'dc37677b2e1c63e2034f94d8a5b11f265b73ba33'; // Source DATA only, not an executed image/tool.
-let root, python, reviewed, noRecovery, unaccepted, extraPlatform;
+let root, python, reviewed, noRecovery, unaccepted, extraPlatform, pairedRelease;
 before(async () => {
   root = await mkdtemp(join(tmpdir(), 'actql-python-publish-'));
   python = execFileSync('python3', ['-c', 'import os,sys;print(os.path.realpath(sys.executable))'], {encoding: 'utf8'}).trim();
@@ -52,6 +52,14 @@ before(async () => {
   review.manifestSha256 = wide.sha256; review.environments[0].platforms = wideRequest.targets[0].platforms;
   review.acceptance[0].status = 'passed'; review.acceptance[0].evidence = ['acceptance']; await writeFile(file, JSON.stringify(review));
   extraPlatform = await prepareReleaseReview({directory: wideDirectory, expectedSha256: wide.sha256, reviewFile: file, destination: join(root, 'extra-platform')});
+  const pair = await writeInertPairedPythonReleaseCohort(join(root, 'original-pair'), python);
+  const pairRequest = structuredClone(wideRequest), fixedPairDirectory = join(root, 'pair-preparation');
+  pairRequest.version = '0.0.3'; pairRequest.targets[0].platforms = ['linux-x64', 'darwin-arm64'];
+  const fixedPair = await freezeReleaseSet({request: pairRequest, policy, cohorts: [pair], destination: fixedPairDirectory, python});
+  review.manifestSha256 = fixedPair.sha256; review.environments[0].platforms = pairRequest.targets[0].platforms;
+  await writeFile(file, JSON.stringify(review));
+  pairedRelease = await prepareReleaseReview({directory: fixedPairDirectory, expectedSha256: fixedPair.sha256,
+    reviewFile: file, destination: join(root, 'paired-release')});
 });
 after(async () => {if (root) await rm(root, {recursive: true});});
 
@@ -311,4 +319,89 @@ test('Python terminal snapshot: original success and output survive later return
   assert.equal(command.code,0);assert.equal(command.signal,null);assert.equal(command.commandSucceeded,true);
   assert.equal(await readFile(join(result.receiptDirectory,'stdout.txt'),'utf8'),initial.stdout);
   assert.equal(await readFile(join(result.receiptDirectory,'stderr.txt'),'utf8'),initial.stderr);
+});
+
+async function pairFixture(t) {
+  const own = await mkdtemp(join(root, 'pair-')); t.after(() => rm(own, {recursive: true}));
+  const directory = join(own, 'fixed');
+  await cp(join(root, 'paired-release'), directory, {recursive: true});
+  const {artifacts, cohorts} = pairedRelease.manifest;
+  const published = new Set(), jobs = [], calls = [];
+  const [linux, darwin] = artifacts.filter(item => item.name === 'actql-local-runtime');
+  const sdk = artifacts.find(item => item.name === 'actql-sdk');
+  const fetchResponse = async (url, request) => {
+    assert.equal(request.method, 'GET'); assert.equal(request.credentials, 'omit');
+    calls.push(url);
+    const endpoint = artifacts.find(item => url === `https://pypi.org/pypi/${item.name}/${item.version}/json`);
+    if (endpoint) {
+      const urls = artifacts.filter(item => item.name === endpoint.name && published.has(item.file)).map(item => ({
+        filename: item.file, digests: {sha256: item.sha256}, size: item.bytes, packagetype: 'bdist_wheel', yanked: false,
+        url: `https://files.pythonhosted.org/packages/aa/${item.file}`,
+      }));
+      return urls.length ? Response.json({info: {name: endpoint.name, version: endpoint.version}, urls}) : new Response('', {status: 404});
+    }
+    const found = artifacts.find(item => url === `https://files.pythonhosted.org/packages/aa/${item.file}`);
+    assert(found && published.has(found.file));
+    return new Response(await readFile(join(directory, found.path)));
+  };
+  const control = {};
+  const options = {directory, expectedSha256: pairedRelease.sha256, targetId: 'python', python, actionRevision,
+    publisherWorkspace: own, receiptsDirectory: join(own, 'receipts'), fetchResponse,
+    runProjectJob: async (action, context) => {
+      const payload = action.with['packages-dir'], files = await readdir(payload);
+      const intent = JSON.parse(await readFile(join(dirname(payload), 'intent.json')));
+      assert.deepEqual(intent.artifacts, context.artifacts);
+      assert.deepEqual(files.sort(), context.artifacts.map(item => item.file).sort());
+      jobs.push(context);
+      for (const item of context.artifacts) {
+        const installed = join(payload, item.file);
+        assert.deepEqual(await readFile(installed), await readFile(join(directory, item.path)));
+        assert.equal((await lstat(installed)).mode & 0o777, 0o400);
+        if (control.unconfirmed !== item.file) published.add(item.file);
+        if (control.missingAttestation !== item.file) await writeFile(`${installed}.publish.attestation`, 'Inert publisher output\n');
+      }
+      return {code: 0, signal: null, stdout: 'inert terminal job', stderr: ''};
+    }};
+  return {options, cohorts, sdk, linux, darwin, published, jobs, calls, control,
+    run: project => publishPythonReleaseProject({...options, project})};
+}
+
+test('Python pair publish: facade needs both original runtimes and runtime sends only the exact absent sibling', async t => {
+  const f = await pairFixture(t);
+  const plan = await pythonPublishPlan(f.options.directory, f.options.expectedSha256, 'python', python, actionRevision);
+  assert.deepEqual(plan.jobs.map(job => job.artifacts.length), [1, 2, 1]);
+  f.published.add(f.sdk.file); f.published.add(f.linux.file);
+  await assert.rejects(f.run('actql'), /Facade publication waits/u);
+  assert.equal(f.jobs.length, 0);
+  const result = await f.run('actql-local-runtime');
+  assert.equal(f.jobs.length, 1);
+  assert.deepEqual(f.jobs[0].artifacts, [f.darwin]);
+  assert.deepEqual(result.attestations.map(item => item.file), [`${f.darwin.file}.publish.attestation`]);
+  assert.equal((await f.run('actql-local-runtime')).state, 'already-identical');
+  assert.equal(f.jobs.length, 1);
+  assert.equal((await f.run('actql')).state, 'command-and-public-bytes-confirmed');
+  assert.equal(f.published.size, 4);
+});
+
+test('Python pair publish: two absent runtimes share one protected action and each needs a terminal byte readback', async t => {
+  const good = await pairFixture(t);
+  const result = await good.run('actql-local-runtime');
+  assert.equal(good.jobs.length, 1);
+  assert.deepEqual(good.jobs[0].artifacts, [good.linux, good.darwin]);
+  assert.equal(result.attestations.length, 2);
+  for (const kind of ['unconfirmed', 'missingAttestation']) {
+    const failed = await pairFixture(t); failed.control[kind] = failed.darwin.file;
+    await assert.rejects(failed.run('actql-local-runtime'), kind === 'unconfirmed' ? /remain unconfirmed/u : /attestation missing/u);
+    assert.equal(failed.jobs.length, 1);
+  }
+});
+
+test('Python pair publish: both original cold cohort manifests are required before any public observation', async t => {
+  const f = await pairFixture(t);
+  const [linux, darwin] = f.cohorts[0].originalManifests;
+  assert.equal(linux.path, 'python/linux-x64/cohort.json');
+  assert.equal(darwin.path, 'python/darwin-arm64/cohort.json');
+  await writeFile(join(f.options.directory, darwin.path), await readFile(join(f.options.directory, linux.path)));
+  await assert.rejects(f.run('actql-local-runtime'));
+  assert.equal(f.jobs.length, 0); assert.equal(f.calls.length, 0);
 });
