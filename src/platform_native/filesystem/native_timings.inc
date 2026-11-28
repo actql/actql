@@ -267,13 +267,18 @@ void actql_native_model_preview_failure(int32_t stage, int32_t managed_reason) {
   errno = saved_errno;
 }
 /* As with Preview, keep the first refusal and emit after normal cleanup.
- * Stage 3 records the closed typed Whole Model Invocation reason. */
+ * Stage 3 records the closed Whole Model Invocation reason. Stage 13 separates
+ * the Read transition (1, 11-16), the return (21-26), and the Read body (30-44). */
 void actql_native_model_dependency_failure(int32_t stage, int32_t reason) {
   int saved_errno = errno;
   if (actql_native_acceptance_enabled() && actql_model_confirmation_selected &&
       stage >= 1 && stage <= 13 &&
       ((stage == 3 && reason >= 1 && reason <= 8) ||
-       (stage != 3 && reason == 0))) {
+       (stage == 13 && (reason == 0 || reason == 1 ||
+                        (reason >= 11 && reason <= 16) ||
+                        (reason >= 21 && reason <= 26) ||
+                        (reason >= 30 && reason <= 44))) ||
+       (stage != 3 && stage != 13 && reason == 0))) {
     uint32_t unset = 0;
     uint32_t value = ((uint32_t)stage << 8) | (uint32_t)reason;
     (void)atomic_compare_exchange_strong_explicit(&actql_model_dependency_failure,

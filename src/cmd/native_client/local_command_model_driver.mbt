@@ -51,14 +51,23 @@ fn[T] LocalCommandBusinessPreparation::with_model_driver_read(
   self : Self,
   business : LocalCommandBusinessOriginal,
   step : () -> T raise ClientStop,
+  trace_dependency? : Bool = false,
 ) -> T raise ClientStop {
   guard business.active && business.operation is Some(operation) else {
+    if trace_dependency {
+      native_model_dependency_read_failure(13, 1)
+    }
     stop("LocalBusinessScopeUnavailable")
   }
+  let returned = operation.return_business_to_original_read()
+  if trace_dependency && returned is Err(issue) {
+    native_model_dependency_read_failure(
+      13,
+      10 + native_dependency_phase_reason(issue),
+    )
+  }
   command_preparation_result(
-    operation
-    .return_business_to_original_read()
-    .map_err(issue => CommandStoreOperation(issue)),
+    returned.map_err(issue => CommandStoreOperation(issue)),
     stage=Some("model-step-read"),
   )
   business.active = false
@@ -69,10 +78,15 @@ fn[T] LocalCommandBusinessPreparation::with_model_driver_read(
   // Retain attempted entry before the fallible operation. The receiver owns
   // an interrupted return even when no business phase was restored.
   business.active = true
+  let entered = operation.enter_business_from_original_read()
+  if trace_dependency && entered is Err(issue) {
+    native_model_dependency_read_failure(
+      13,
+      20 + native_dependency_phase_reason(issue),
+    )
+  }
   command_preparation_result(
-    operation
-    .enter_business_from_original_read()
-    .map_err(issue => CommandStoreOperation(issue)),
+    entered.map_err(issue => CommandStoreOperation(issue)),
     stage=Some("model-step-return"),
   )
   match result {
@@ -88,6 +102,43 @@ extern "C" fn native_model_dependency_read_failure(
   stage : Int,
   reason : Int,
 ) -> Unit = "actql_native_model_dependency_failure"
+
+///|
+fn native_dependency_phase_reason(
+  issue : @local_host.NativeLocalStoreOperationIssue,
+) -> Int {
+  match issue {
+    StoreOperationUnavailable => 1
+    StoreOperationForeignOriginal => 2
+    StoreOperationCapture(_) => 3
+    StoreOperationResources(_) => 4
+    StoreOperationExecution(_) => 5
+    StoreOperationSqlite(_) => 6
+  }
+}
+
+///|
+fn native_dependency_body_reason(
+  issue : @local_host.NativeClientMockModelIssue,
+) -> Int {
+  match issue {
+    ForeignOriginal => 30
+    Original(ConfigurationLimit) => 31
+    Original(Journal(CapacityExceeded)) => 32
+    Original(Journal(CustodyLost)) => 33
+    Original(Journal(ForeignRun)) => 34
+    Original(Journal(PublicationObservation(_))) => 35
+    Original(Journal(_)) => 36
+    Original(_) => 37
+    Transport(Original(OriginalResources(_))) => 38
+    Transport(RawPolicy(_)) => 39
+    Transport(_) => 40
+    Egress(ForeignOwner) => 41
+    Egress(_) => 42
+    Store(_) => 43
+    _ => 44
+  }
+}
 
 ///|
 // A dependent task's actual Readers are already staged, and its own
@@ -108,15 +159,24 @@ fn LocalCommandBusinessPreparation::retain_model_output_dependencies(
       return true
     }
     try {
-      self.with_model_driver_read(business, () => {
-        self.original.require_model_step(
-          work.read_model_output_dependencies_in_original_read(
+      self.with_model_driver_read(
+        business,
+        () => {
+          let retained = work.read_model_output_dependencies_in_original_read(
             business.model_work,
             model.completions,
             inputs,
-          ),
-        )
-      })
+          )
+          if retained is Err(issue) {
+            native_model_dependency_read_failure(
+              13,
+              native_dependency_body_reason(issue),
+            )
+          }
+          self.original.require_model_step(retained)
+        },
+        trace_dependency=true,
+      )
       return true
     } catch {
       ClientStop(message) => {
