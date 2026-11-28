@@ -58,6 +58,7 @@ pub fn[E] read_client_saved_run_reference(
     E,
   ],
   custody_lost : E,
+  read_task_slots? : ((String, Int) -> Result[ClientJournalPhysicalRow?, E])? = None,
 ) -> Result[ClientSavedSubmissionSnapshot, E] {
   let key = saved_run_reference_locator_key(
     namespace_id, authority_scope_cid, definition_cid,
@@ -72,16 +73,40 @@ pub fn[E] read_client_saved_run_reference(
     Ok(value) => value
     Err(_) => return Err(custody_lost)
   }
+  fn matches(run : ClientRunJournalInspection) -> Bool {
+    client_request_authority_scope_cid(run.request) == authority_scope_cid &&
+    @publication.publication_contract_identity(run.definition) == definition_cid &&
+    @publication.run_definition_namespace(run.definition) == Some(namespace_id)
+  }
+  let validate = match read_task_slots {
+    None => validate_run
+    Some(_) =>
+      row => {
+        // A selected physical batch may start only after the exact Run
+        // scope, Definition and namespace have been matched.
+        validate_run(row).bind(run => {
+          if matches(run) {
+            Ok(run)
+          } else {
+            Err(custody_lost)
+          }
+        })
+      }
+  }
   let snapshot = match
-    read_client_saved_submission(reference, read, validate_run, custody_lost) {
+    read_client_saved_submission(
+      reference,
+      read,
+      validate,
+      custody_lost,
+      read_task_slots~,
+    ) {
     Ok(Some(value)) => value
     Err(issue) => return Err(issue)
     _ => return Err(custody_lost)
   }
   guard snapshot.inspection is Some(run) else { return Err(custody_lost) }
-  if client_request_authority_scope_cid(run.request) != authority_scope_cid ||
-    @publication.publication_contract_identity(run.definition) != definition_cid ||
-    @publication.run_definition_namespace(run.definition) != Some(namespace_id) {
+  if !matches(run) {
     return Err(custody_lost)
   }
   Ok(snapshot)

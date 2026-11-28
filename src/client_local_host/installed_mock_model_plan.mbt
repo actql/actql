@@ -185,6 +185,40 @@ fn installed_request_model_compilation_matches(
 }
 
 ///|
+/// The same adopted Model Plan must own the capture that enters Compute.
+pub fn open_installed_model_whole_source_compute(
+  adopted : ClientInstalledManagedRun,
+  model : ClientInstalledManagedModelPlan,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  source : @query.CapturedInputSource,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
+  guard !adopted.effect_operation_closing &&
+    model.captured is Some(captured) &&
+    captured.whole_sources.length() == 1 &&
+    model.source_free is None &&
+    adopted.captured_preparation is Some(original) &&
+    physical_equal(original, captured) &&
+    adopted.preparation_retirement is Some(PurePreparation(_)) &&
+    physical_equal(model.prepared, prepared) &&
+    physical_equal(model.request, request) &&
+    physical_equal(model.compiled, compiled) &&
+    physical_equal(model.definition, definition) else {
+    return Err(Managed(ForeignOriginal))
+  }
+  open_installed_managed_capture_host(adopted, prepared, request, [source])
+}
+
+///|
 /// Immutable selected module/Model demand, not another Ledger or cleanup
 /// owner. The actual existing module holders retain their original compiler.
 struct ClientInstalledManagedModelPlan {
@@ -453,4 +487,43 @@ fn prepare_installed_mock_model_plan_owned(
     max_holdings,
     max_delegations,
   })
+}
+
+///|
+/// Open the exact source-free Model module already adopted through its Read
+/// Scope. Bind the same compiled Run and Definition before the existing
+/// one-shot managed Host opener can consume that module.
+pub fn open_installed_model_source_free_compute(
+  adopted : ClientInstalledManagedRun,
+  model : ClientInstalledManagedModelPlan,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  ClientInstalledManagedRunIssue,
+] {
+  guard !adopted.effect_operation_closing &&
+    model.source_free is Some(module_) &&
+    model.captured is None &&
+    adopted.source_free_preparation is Some(original) &&
+    physical_equal(original, module_) &&
+    adopted.preparation_retirement is Some(PurePreparation(_)) &&
+    physical_equal(model.prepared, prepared) &&
+    physical_equal(model.request, request) &&
+    physical_equal(model.compiled, compiled) &&
+    physical_equal(model.definition, definition) else {
+    return Err(ForeignOriginal)
+  }
+  open_installed_managed_source_free_host(
+    adopted,
+    prepared,
+    request,
+    module_.installed_contracts,
+    module_.values_body,
+    module_.fragment_body,
+    module_.ordered_body,
+    true,
+  )
 }

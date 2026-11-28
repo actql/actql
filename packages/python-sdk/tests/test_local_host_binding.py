@@ -180,6 +180,8 @@ class OriginalHostBindingTests(unittest.TestCase):
         originals = tuple(state.read_original(name, max_bytes=64) for name in (
             'initialization.json', 'configuration-custody.json', 'journal-custody.json'))
         core = LocalCore.__new__(LocalCore)
+        core._ordinary_host = False
+        core._platform_vm_original = None
         core._lock = RLock()
         core._identity = object()
         core._inputs = {}

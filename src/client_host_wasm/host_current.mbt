@@ -481,7 +481,13 @@ pub fn close_host_current(nonce : Int64, handle : Int) -> Int {
   record.observed_operation = 0L
   if value.run_configurations
     .values()
-    .any(configuration => configuration.host_current == Some(handle)) {
+    .any(configuration => configuration.host_current == Some(handle)) ||
+    value.original_metadata
+    .values()
+    .any(child => {
+      child.project is Some(ModelHttpTask(model)) &&
+      model.host_current == Some(handle)
+    }) {
     return -9
   }
   if !record.output_closed {

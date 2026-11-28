@@ -17,6 +17,14 @@ import test_local_submission_append as append_fixture
 from local_abi_declaration_fixture import original_byte_fixture_port
 
 
+def saved_coordinates_wire(definition, name, *, result=0, binding=0):
+    return (bytes((2, result, binding)) + definition.encode('ascii')
+            + hashlib.sha256(name.encode('utf-8')).hexdigest().encode('ascii')
+            + ('sha256:' + 'f' * 64).encode('ascii')
+            + (3).to_bytes(8, 'little', signed=True) + (512).to_bytes(4, 'little')
+            + b'2030-01-01T00:00:00.000Z')
+
+
 class LocalSubmissionLookupTests(unittest.TestCase):
     def submit_body(self, reference):
         intent = {'kind': 'aql', 'input': {'text': 'SELECT 7', 'format': 'sql'},
@@ -228,15 +236,17 @@ class LocalSubmissionLookupTests(unittest.TestCase):
             return callbacks
 
         def call(family, name, *args):
-            if family == 'submission' and name == 'reserve' and args[2] in (4, 5, 6, 7, 8, 13):
+            if family == 'submission' and name == 'reserve' and args[2] in (4, 5, 7, 8, 13):
                 # Reserve output custody before entering its physical Read.
                 callbacks = core._journal_callbacks(host._installation.binding._current.ticket)
                 self.assertIsNone(callbacks.reader)
                 handle = 100 + args[3]
-                expected_kind = (13 if pending_saved_result is not None else
+                expected_kind = (13 if result_name is not None else
                                  8 if restoration else 7 if saved_state else
-                                 6 if result_name is not None else 4 if run_reference is None else 5)
+                                 4 if run_reference is None else 5)
                 self.assertEqual(args[2], expected_kind)
+                if expected_kind == 7:
+                    self.assertLess(args[4], 262144)
                 sources[handle] = args[1]
                 return handle
             if family == 'submission' and name == 'produce' and args[0] in sources:
@@ -246,7 +256,7 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 expected = ({'reference': json.dumps(reference, ensure_ascii=False, separators=(',', ':'))}
                             if run_reference is None else run_reference if result_name is None else
                             {**run_reference, "resultName": result_name})
-                if 'expectedIntentCid' in observed:
+                if type(observed) is dict and 'expectedIntentCid' in observed:
                     submitted = self.submit_body(reference)
                     transported = json.loads(source)
                     expected['intent'] = transported['intent']
@@ -256,14 +266,15 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 self.assertEqual(json.loads(source), expected)
                 if pending_saved_result is not None and counters['produce'] <= pending_saved_result:
                     return 1
-                outputs[args[0]] = json.dumps(observed, separators=(',', ':')).encode()
+                outputs[args[0]] = (observed if isinstance(observed, bytes) else
+                                     json.dumps(observed, separators=(',', ':')).encode())
                 return 0
             if family == 'submission' and name == 'validate_append' and args[0] in sources:
                 counters['validate'] += 1
                 current()
                 return 0
             if family == 'submission' and name == 'retire_output' and args[0] in outputs:
-                self.assertIsNotNone(pending_saved_result)
+                self.assertIsNotNone(result_name)
                 ticket = args[0] - 100
                 self.assertTrue(core._lock._is_owned())
                 self.assertEqual(core._inputs[ticket].payload, b'',
@@ -463,23 +474,24 @@ class LocalSubmissionLookupTests(unittest.TestCase):
     def test_saved_result_reader_keeps_nominal_owner_without_compiling_or_delivering(self):
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals', 'resultName': 'answer',
-                  'runDefinitionCid': reference['runDefinitionCid'],
-                  **{name: '{"fixture":"transport"}' for name in
-                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        packet = saved_coordinates_wire(reference['runDefinitionCid'], 'answer', result=2, binding=7)
         with TemporaryDirectory(prefix='actql-cold-read-') as directory:
             host, core, calls, counts, _ = self.fixture(directory, packet,
                 run_reference=reference, result_name='answer')
             store = host._installation._store
             with patch.object(store, 'compare_exchange_many_inspected',
                               side_effect=AssertionError('Metadata read must not write or deliver')):
-                output, metadata = host._retain_original_result_read(reference, 'answer')
-            self.assertEqual(metadata, packet)
+                output, definition = host._reserve_original_result_read(reference, 'answer')
+                metadata = host._read_original_result_projection(output, definition, 'answer')
+            result, binding, control = metadata
+            self.assertEqual((result, binding), (2, 7))
+            self.assertEqual((control.key, control.generation, control.extent, control.expires_at),
+                             ('sha256:' + 'f' * 64, 3, 512, '2030-01-01T00:00:00.000Z'))
             self.assertIs(core._loans[output.ticket], output)
             self.assertIs(host._projections[-1], output)
             self.assertFalse(host._run_loans)
             self.assertFalse(host._prepared_inputs)
-            self.assertEqual(counts, {'produce': 1, 'validate': 2})
+            self.assertEqual(counts, {'produce': 1, 'validate': 0})
             self.assertFalse(any(family in ('program', 'compute', 'publication')
                                  for family, _, _ in calls))
             with patch.object(core, 'close_submission_lookup', return_value=False):
@@ -491,18 +503,22 @@ class LocalSubmissionLookupTests(unittest.TestCase):
     def test_saved_result_reader_rejects_changed_selection_with_same_cleanup_carrier(self):
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals', 'resultName': 'foreign',
-                  'runDefinitionCid': reference['runDefinitionCid'],
-                  **{name: '{}' for name in
-                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
-        with TemporaryDirectory(prefix='actql-cold-foreign-') as directory:
-            host, core, _, _, _ = self.fixture(directory, packet,
-                run_reference=reference, result_name='answer')
-            with self.assertRaisesRegex(ValueError, 'Foreign original saved Local Result'):
-                host._retain_original_result_read(reference, 'answer')
-            original = host._projections[-1]
-            self.assertIs(core._loans[original.ticket], original)
-            self.assertTrue(host.close())
+        definition = reference['runDefinitionCid']
+        original = saved_coordinates_wire(definition, 'answer')
+        variants = (saved_coordinates_wire(definition, 'foreign'),
+                    saved_coordinates_wire('sha256:' + 'e' * 64, 'answer'),
+                    saved_coordinates_wire(definition, 'answer', binding=8),
+                    b'\x01' + original[1:], original[:-1])
+        for packet in variants:
+            with self.subTest(packet=packet), TemporaryDirectory(prefix='actql-cold-foreign-') as directory:
+                host, core, _, _, _ = self.fixture(directory, packet,
+                    run_reference=reference, result_name='answer')
+                output, definition = host._reserve_original_result_read(reference, 'answer')
+                with self.assertRaisesRegex(ValueError, 'Foreign original saved Local Result'):
+                    host._read_original_result_projection(output, definition, 'answer')
+                self.assertIs(host._projections[-1], output)
+                self.assertIs(core._loans[output.ticket], output)
+                self.assertTrue(host.close())
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@
 // owner. Partial candidate/material failures remain until that review retires.
 priv struct NativeLocalSavedEffectRestoration {
   packet : NativeClientRetainedEffectMaterials
+  retained_submission_input : @host.ClientEffectRetainedSubmissionInput?
   mut capacity : @execution.ExecutionCapacity
   fields : @decode.ObjectView
   mut capture_reference_key : Bytes?
@@ -65,8 +66,8 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
     return Err(Journal(CustodyLost))
   }
   self.approval_attempted = true
-  let packet = match
-    host.lookup_submitted_effect_material_original(
+  let (packet, retained_submission_input) = match
+    host.read_submitted_effect_approval_material_original(
       self.capture.crypto,
       self.principal,
       self.connection,
@@ -100,6 +101,7 @@ pub fn NativeLocalSavedEffectReview::prepare_approval_restoration_in_original_re
   }
   let restoration : NativeLocalSavedEffectRestoration = {
     packet,
+    retained_submission_input,
     capacity,
     fields,
     capture_reference_key: None,
@@ -703,6 +705,7 @@ pub fn NativeLocalSavedEffectReview::construct_approval_in_entered_constructor(
         effect_limits,
         before_compilation=Some(before_compilation),
         request_value_policies~,
+        retained_submission_input=restoration.retained_submission_input,
       ) {
       Ok(value) => value
       Err(issue) => {
@@ -774,6 +777,7 @@ pub fn NativeLocalSavedEffectReview::complete_approval_restoration_in_original_r
       self.selected.request,
       now,
       restoration.packet,
+      retained_submission_input=restoration.retained_submission_input,
     ) {
     Ok(_) => ()
     Err(Journal(issue)) => return Err(Journal(issue))

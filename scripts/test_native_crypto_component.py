@@ -12,6 +12,8 @@ import subprocess
 import re
 import shutil
 import struct
+import sys
+from contextlib import redirect_stdout
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('crypto_original',
@@ -290,6 +292,77 @@ class LinuxCryptoPackageArchives(LinuxCryptoSources):
                         self.materialize()
                     self.assertFalse((self.root / 'materialized').exists())
             self.members[key] = original
+
+
+class PortableLinuxPerlInputs(unittest.TestCase):
+    def test_only_exact_named_regular_rpm_originals_are_admitted(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch).resolve()
+            first, second, extra = (root / name for name in ('first.rpm', 'second.rpm', 'extra.rpm'))
+            first.write_bytes(b'original')
+            second.write_bytes(b'other')
+            selected = {path.name: P.original(path) for path in (first, second)}
+            self.assertEqual(P.portable_linux_perl_inputs(root, selected),
+                             {str(path): selected[path.name] for path in (first, second)})
+            extra.write_bytes(b'foreign')
+            with self.assertRaisesRegex(ValueError, 'exact Perl RPM inventory'):
+                P.portable_linux_perl_inputs(root, selected)
+            extra.unlink()
+            second.unlink()
+            with self.assertRaisesRegex(ValueError, 'exact Perl RPM inventory'):
+                P.portable_linux_perl_inputs(root, selected)
+            second.write_bytes(b'wrong')
+            with self.assertRaisesRegex(ValueError, 'Foreign Portable Linux Crypto Perl input'):
+                P.portable_linux_perl_inputs(root, selected)
+            second.unlink()
+            second.symlink_to(first)
+            with self.assertRaises(OSError):
+                P.portable_linux_perl_inputs(root, selected)
+
+
+class PortableCryptoProducerCli(unittest.TestCase):
+    def test_normal_linux_and_darwin_forms_dispatch_at_the_real_cli(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch).resolve()
+            archive, compiler, sdk, rpms, output = (root / name for name in (
+                'openssl.tar.gz', 'clang', 'MacOSX.sdk', 'rpms', 'component'))
+            archive.touch()
+            compiler.touch()
+            sdk.mkdir()
+            rpms.mkdir()
+            receipt = {'source': 'original', 'library': {'sha256': 'original'}}
+            for target, accepted_sdk, accepted_rpms, options in (
+                    ('linux-x64', None, rpms, ['--portable-linux-perl-rpms', str(rpms)]),
+                    ('darwin-arm64', sdk, None, ['--sdk', str(sdk)])):
+                with self.subTest(target=target):
+                    command = [str(P.__file__), '--portable', '--target', target,
+                               '--clang', str(compiler), '--source-archive', str(archive),
+                               '--output', str(output), '--seconds', '420', *options]
+                    with patch.object(sys, 'argv', command), \
+                            patch.object(P, 'produce_portable', return_value=receipt) as portable, \
+                            patch.object(P, 'produce_linux') as native_linux, \
+                            patch.object(P, 'produce_darwin_source') as native_darwin, \
+                            redirect_stdout(io.StringIO()) as stdout:
+                        P.main()
+                    portable.assert_called_once_with(output, compiler, accepted_sdk, 420, target, archive,
+                                                     linux_perl_rpms=accepted_rpms)
+                    native_linux.assert_not_called()
+                    native_darwin.assert_not_called()
+                    self.assertEqual(json.loads(stdout.getvalue()), receipt)
+                    self.assertFalse(output.exists())
+
+    def test_portable_perl_arguments_refuse_native_or_darwin(self):
+        for target, prefix in (('darwin-arm64', ['--portable']), ('linux-x64', [])):
+            with self.subTest(target=target):
+                command = [str(P.__file__), '--target', target, '--clang', '/unopened',
+                           '--portable-linux-perl-rpms', '/unopened', '--output', '/unopened', *prefix]
+                with patch.object(sys, 'argv', command), \
+                        patch.object(P, 'produce_portable') as portable, \
+                        patch.object(P, 'produce_linux') as native_linux:
+                    with self.assertRaisesRegex(ValueError, 'Perl RPM originals require Portable Linux Crypto'):
+                        P.main()
+                    portable.assert_not_called()
+                    native_linux.assert_not_called()
 
 
 class CompatibleDarwinSource(unittest.TestCase):

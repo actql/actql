@@ -5,6 +5,8 @@ fn request_effect_fixture(
   current? : () -> Bool = () => true,
   limits? : @publication_host.ClientEffectComputationLimits? = None,
   automatic? : Bool = false,
+  write_input_before_last_step? : Bool = false,
+  debug? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   ClientProgramCheckPreparation[Array[Int], Unit],
@@ -19,6 +21,23 @@ fn request_effect_fixture(
   ).unwrap()
   let text =
     #|{"version":"actql/0.1","id":"request-effect-original","params":{"n":{"type":"number","default":7}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"seed"},{"derive":{"amount":"id + $n"},"as":"changed"}],"results":{"rows":{"from":"changed","fields":["id","amount"]}},"effects":{"save":{"update":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"rows"},"id":"id","set":{"Name":{"field":"amount"}}}}}}],"results":{"rows":{"from":{"stage":"main","result":"rows"}}}}
+  let text = if write_input_before_last_step {
+    text
+    .replace(
+      old="\"results\":{\"rows\":{\"from\":\"changed\"",
+      new="\"results\":{\"seed_rows\":{\"from\":\"seed\",\"fields\":[\"id\"]},\"rows\":{\"from\":\"changed\"",
+    )
+    .replace(
+      old="\"result\":\"rows\"},\"id\"",
+      new="\"result\":\"seed_rows\"},\"id\"",
+    )
+    .replace(
+      old="\"Name\":{\"field\":\"amount\"}",
+      new="\"Name\":{\"field\":\"id\"}",
+    )
+  } else {
+    text
+  }
   let supplied = @decode.admit_raw_json(
     @json.parse("{\"n\":9}"),
     {
@@ -47,6 +66,15 @@ fn request_effect_fixture(
       ),
     ),
     supplied=Some(supplied),
+    intent_wire=if debug {
+      Some(
+        "{\"kind\":\"program\",\"input\":" +
+        text +
+        ",\"parameters\":{\"n\":9},\"executionProfile\":\"debug\"}",
+      )
+    } else {
+      None
+    },
     computation_limits=if automatic {
       Some(
         (
@@ -240,6 +268,373 @@ test "actual Effect Request adopts the same initial Plan and body while manager 
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(parent.ledger).reserved_execution_bytes, 0L)
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+fn exercise_installed_effect_debug_map(restored : Bool) -> Unit raise {
+  let live = Ref(true)
+  let (parent, _, input, _) = request_effect_fixture(
+    current=() => live.val,
+    automatic=true,
+    debug=true,
+  )
+  finish_request_computation_preparation(parent, input).unwrap()
+  let submitted = request_submitted_intent_original(parent, input).unwrap()
+  let prepared = parent.compiled_effect.unwrap()
+  let (plan, request) = request_effect_plan_fixture(prepared)
+  assert_eq(@strategy.graph_task_count(plan.graph), 2)
+  let compilation = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    request_program_module_manifests(),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let allowed = @publication_host.issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2026-11-25T00:00:00.000Z",
+  ).unwrap()
+  let issue_definition = id => {
+    @publication_host.issue_client_effect_run_definition(
+      allowed, "scope", id, "2026-11-24T00:00:00.000Z", "2026-11-25T00:00:00.000Z",
+    ).unwrap()
+  }
+  let definition = issue_definition("effect-debug-map")
+  let bound = @publication_host.bind_client_effect_compiled_run(
+    prepared, allowed, definition,
+  ).unwrap()
+  let sibling_definition = issue_definition("sibling-effect-debug-map")
+  let sibling = @publication_host.bind_client_effect_compiled_run(
+    prepared, allowed, sibling_definition,
+  ).unwrap()
+  let capacity = parent.effect_capacity.unwrap()
+  let before_capture = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  let scope = try_capture_request_effect_run_explanation(
+      parent, input, allowed, definition, 65536, 8192, 64, 10000,
+    )
+    .unwrap()
+    .unwrap()
+  let captured = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  let map = scope.original.unwrap().debug_map.unwrap().0
+  let cid = @publication.run_evidence_value_identity(map)
+  let backing = installed_effect_debug_map_backing(map).unwrap()
+  let wire = original_effect_run_explanation_facets(scope, definition).unwrap().plan
+  let view = @json.parse(wire)
+  guard view is Object(fields) &&
+    fields.get("logical_map") is Some(Object(logical)) &&
+    logical.get("steps") is Some(Array(steps)) &&
+    steps[0] is Object(first) &&
+    first.get("step_id") is Some(String(step)) else {
+    fail("the original Plan contains the first Step")
+  }
+  assert_true(logical.get("self_cid") is Some(String(value)) && value == cid)
+  reserve_request_effect_plan(parent, input).unwrap()
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  let run = begin_request_effect_managed_run(parent, request).unwrap()
+  let holder = effect_unit_publication_body(run, plan, request).unwrap()
+  let selected_map = if restored {
+    // Re-admit the saved bytes. The new path must survive the loss of the
+    // original Explanation alias and reserve backing for this new token.
+    let wire = @publication.run_evidence_value_json(map)
+    discard_original_effect_run_explanation(scope, definition, reclaim=true).unwrap()
+    let selected = @publication.admit_run_evidence_value(
+      "logical_map", wire, 65536, 8192, 64,
+    ).unwrap()
+    assert_false(physical_equal(selected, map))
+    selected
+  } else {
+    map
+  }
+  let before = @resources.preparation_body_borrow_reserved_extents(holder).unwrap()
+  let work = 1 +
+    12 * steps.length() +
+    @strategy.graph_data_count(plan.graph) +
+    @strategy.graph_control_count(plan.graph)
+  let definition_cid = @publication.publication_contract_identity(definition)
+  let select = (bound, max_work) => {
+    if restored {
+      restore_installed_effect_debug_map(
+        run, bound, request, selected_map, definition_cid, cid, step, max_work,
+      )
+    } else {
+      retain_installed_effect_debug_map(
+        run, bound, request, submitted, scope, max_work,
+      )
+    }
+  }
+  assert_true(select(sibling, work) is Err(ForeignOriginal))
+  if restored {
+    let foreign = "sha256:" + "f".repeat(64)
+    assert_true(
+      restore_installed_effect_debug_map(
+        run, bound, request, selected_map, definition_cid, foreign, step, work,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(
+      restore_installed_effect_debug_map(
+        run, bound, request, selected_map, definition_cid, cid, foreign, work,
+      )
+      is Err(ForeignOriginal),
+    )
+    assert_true(run.effect_debug_map is None)
+  }
+  let unrelated = @publication_host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" +
+    debug_original_values_document +
+    ",\"parameters\":null,\"executionProfile\":\"debug\"}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  if !restored {
+    assert_true(
+      retain_installed_effect_debug_map(
+        run, bound, request, unrelated, scope, work,
+      )
+      is Err(ForeignOriginal),
+    )
+  }
+  let before_work = @resources.ledger_usage(parent.ledger).planning_work
+  assert_true(select(bound, work - 1) is Err(Ledger(PlanningLimit)))
+  assert_eq(@resources.ledger_usage(parent.ledger).planning_work, before_work)
+  for retention in [true, false] {
+    let limits = @resources.ledger_limits(parent.ledger)
+    let usage = @resources.ledger_usage(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes -
+        backing +
+        1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - usage.reserved_execution_bytes - backing + 1L
+      },
+    ).unwrap()
+    let refused = select(bound, work)
+    assert_true(
+      if retention {
+        refused is Err(Preparation(Resource(RetentionLimit)))
+      } else {
+        refused is Err(Preparation(Resource(ExecutionLimit)))
+      },
+    )
+    assert_true(
+      installed_effect_debug_entry(run, bound, request, definition_cid)
+      is Err(ForeignOriginal),
+    )
+    assert_eq(
+      @resources.preparation_body_borrow_reserved_extents(holder).unwrap(),
+      before,
+    )
+    assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  }
+  select(bound, work).unwrap()
+  assert_true(select(bound, work) is Err(AlreadyBound))
+  assert_true(physical_equal(run.effect_debug_map.unwrap().map, selected_map))
+  let returned = if restored {
+    (0L, 0L)
+  } else {
+    discard_original_effect_run_explanation(scope, definition, reclaim=true).unwrap()
+    (captured.0 - before_capture.0, captured.1 - before_capture.1)
+  }
+  assert_eq(
+    @resources.preparation_body_borrow_reserved_extents(holder).unwrap(),
+    (before.0 + backing - returned.0, before.1 + backing - returned.1),
+  )
+  assert_eq(
+    installed_effect_debug_entry(run, bound, request, definition_cid).unwrap(),
+    (step, cid),
+  )
+  assert_true(
+    installed_effect_debug_entry(run, sibling, request, definition_cid)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    installed_effect_debug_entry(
+      run,
+      bound,
+      request,
+      @publication.publication_contract_identity(sibling_definition),
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(run.source_free_captured is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+  guard steps[1] is Object(second) &&
+    second.get("step_id") is Some(String(next_step)) else {
+    fail("the original Plan contains the next Step")
+  }
+  assert_not_eq(step, next_step)
+  let (host, captured_run, _) = open_installed_effect_managed_host(run, bound, [])
+    .unwrap()
+    .unwrap()
+  assert_true(
+    installed_effect_debug_entry(run, bound, request, definition_cid)
+    is Err(ForeignOriginal),
+  )
+  let dag = @strategy.captured_effect_run_dag(captured_run)
+  let readiness_work = @strategy.graph_task_count(plan.graph) *
+    (
+      1 +
+      @strategy.graph_data_count(plan.graph) +
+      @strategy.graph_control_count(plan.graph)
+    )
+  let pause_work = work + readiness_work
+  let command_work = pause_work + readiness_work
+  let account = @authorization.admit_account_configuration({
+    account_id: "effect-compute-debug",
+    entries: [
+      {
+        entry_id: "original-debug-control",
+        outcome: Allow,
+        scope: {
+          principal: AnyOf(["user"]),
+          connection: AnyOf(["local"]),
+          resource: AnyOf(["run"]),
+          operation: AnyOf(["pause", "resume"]),
+        },
+        exclusions: [],
+      },
+    ],
+    bootstrap: None,
+  }).unwrap()
+  assert_eq(
+    prepare_installed_effect_debug_control(
+      run, sibling, request, captured_run, account, "user", "local",
+    ),
+    Err(ForeignOwner),
+  )
+  assert_eq(
+    prepare_installed_effect_debug_control(
+      run, bound, request, captured_run, account, "foreign", "local",
+    ),
+    Err(AuthorizationMismatch),
+  )
+  prepare_installed_effect_debug_control(
+    run, bound, request, captured_run, account, "user", "local",
+  ).unwrap()
+  let hooks = @strategy.captured_task_boundary_hooks(dag).unwrap()
+  assert_eq(@strategy.captured_task_control_entry_task(dag, hooks), Some(0))
+  assert_eq(@strategy.next_captured_task(dag), None)
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+  let command = (start, boundary, single) => {
+    command_installed_effect_debug_control(
+      run, bound, request, captured_run, account, "user", "local", start, boundary,
+      single, command_work,
+    )
+  }
+  let runnable = start => {
+    installed_effect_debug_control_runnable(
+      run, bound, request, captured_run, start,
+    )
+  }
+  assert_eq(command(0, None, true), Err(StaleRevision))
+  assert_eq(runnable(4), Err(StaleRevision))
+  command(4, None, true).unwrap()
+  assert_eq(runnable(4), Ok(true))
+  assert_eq(runnable(5), Err(StaleRevision))
+  let pause = (revision, max_work) => {
+    installed_effect_debug_task_pause(
+      run, bound, request, captured_run, revision, max_work,
+    )
+  }
+  let observation = Ref(None)
+  let generated = execute_retained_effect_local_tasks_guarded(
+    host,
+    captured_run,
+    64,
+    10000,
+    () => {
+      if observation.val is None &&
+        @strategy.captured_task_control_state(dag, hooks) is Ok((2, Paused)) {
+        let generation = @strategy.captured_dag_generation(dag)
+        let actual = pause(4, pause_work)
+        let no_work = pause(4, pause_work - 1)
+        let foreign_start = pause(5, pause_work)
+        let foreign_next = command(4, Some((2, step, step, generation)), false)
+        let parked = runnable(4)
+        let unchanged = @strategy.captured_task_control_state(dag, hooks)
+        let attempts = @resources.ledger_usage(parent.ledger).attempts
+        let continued = command(
+          4,
+          Some((2, step, next_step, generation)),
+          false,
+        )
+        observation.val = Some(
+          (
+            generation, actual, no_work, foreign_start, foreign_next, unchanged,
+            parked, attempts, continued,
+          ),
+        )
+        return continued is Ok(_)
+      }
+      true
+    },
+    require_live=Some(() => true),
+  )
+  guard observation.val
+    is Some(
+      (
+        generation,
+        actual,
+        no_work,
+        foreign_start,
+        foreign_next,
+        unchanged,
+        parked,
+        attempts,
+        continued,
+      )
+    ) else {
+    fail("the real first Compute did not reach the next original Step")
+  }
+  assert_eq(actual, Ok((2, step, next_step, generation)))
+  assert_eq(no_work, Err(Resource(PlanningLimit)))
+  assert_eq(foreign_start, Err(StaleRevision))
+  assert_eq(foreign_next, Err(StaleRevision))
+  assert_eq(unchanged, Ok((2, Paused)))
+  assert_eq(parked, Ok(false))
+  assert_eq(attempts, 1)
+  assert_eq(continued, Ok(()))
+  let generated = generated.unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 2)
+  assert_eq(generated.rows().unwrap(), ["{\"amount\":10,\"id\":1}"])
+  assert_true(generated.close())
+  live.val = false
+  assert_true(
+    installed_effect_debug_entry(run, bound, request, definition_cid) is Err(_),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_true(run.effect_debug_map is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "the adopted Effect Debug Run keeps only the exact funded Map after Journal scratch return" {
+  exercise_installed_effect_debug_map(false)
+}
+
+///|
+test "the resumed Effect Compute adopts the retained original Map and exact first Step" {
+  exercise_installed_effect_debug_map(true)
 }
 
 ///|

@@ -345,27 +345,67 @@ pub fn relation_restore_construction_inventory(
   identity_wires : Array[String?],
 ) -> @execution.PreparationRepresentationUnits? {
   let count = resources.length()
-  if count < 1 ||
-    count > declaration_limits.max_views ||
-    resource_kinds.length() != count ||
+  if resource_kinds.length() != count ||
     schema_wires.length() != count ||
     request_wires.length() != count ||
     facts_wires.length() != count ||
     acquisition_wires.length() != count ||
-    identity_wires.length() != count ||
-    connector_id.length() > 128 ||
-    registration.length() > 64 ||
-    version.length() > declaration_limits.max_bytes {
+    identity_wires.length() != count {
     return None
   }
   guard relation_restore_wire_geometry(views_wire) is Some(outer) else {
     return None
   }
-  let parts = []
-  if !relation_restore_add(parts, relation_restore_source(outer, true)) ||
-    !relation_restore_add(parts, relation_restore_raw_json(outer)) {
+  guard relation_restore_source(outer, true) is Some(source) &&
+    relation_restore_raw_json(outer) is Some(raw) &&
+    relation_restore_inputs_inventory(
+      connector_id,
+      registration,
+      version,
+      count,
+      index => {
+        (
+          resources[index],
+          resource_kinds[index],
+          schema_wires[index],
+          request_wires[index],
+          facts_wires[index],
+          acquisition_wires[index],
+          identity_wires[index],
+        )
+      },
+    )
+    is Some(inputs) else {
     return None
   }
+  @execution.compose_preparation_representation([source, raw, inputs])
+}
+
+///|
+fn relation_restore_inputs_inventory(
+  connector_id : String,
+  registration : String,
+  version : String,
+  count : Int,
+  view_at : (Int) -> (
+    String,
+    String,
+    String,
+    String?,
+    String?,
+    String?,
+    String?,
+  ),
+  local_file_root? : String? = None,
+) -> @execution.PreparationRepresentationUnits? {
+  if count < 1 ||
+    count > declaration_limits.max_views ||
+    connector_id.length() > 128 ||
+    registration.length() > 64 ||
+    version.length() > declaration_limits.max_bytes {
+    return None
+  }
+  let parts = []
   let cid = 71L
   let connector = connector_id.length().to_int64()
   let revision = version.length().to_int64()
@@ -383,18 +423,26 @@ pub fn relation_restore_construction_inventory(
   let mut generated_names = 0L
   let mut largest_depth = 1
   for index in 0..<count {
-    if resources[index].length() > 255 || resource_kinds[index].length() > 64 {
+    let (
+      resource_name,
+      resource_kind,
+      schema_wire,
+      request_wire,
+      facts_wire,
+      acquisition_wire,
+      identity_wire,
+    ) = view_at(index)
+    if resource_name.length() > 255 || resource_kind.length() > 64 {
       return None
     }
-    guard relation_restore_wire_geometry(schema_wires[index]) is Some(schema) &&
+    guard relation_restore_wire_geometry(schema_wire) is Some(schema) &&
       relation_restore_wire_geometry(
-        request_wires[index].unwrap_or(
+        request_wire.unwrap_or(
           "{\"type\":\"object\",\"nullable\":false,\"additional_properties\":false,\"fields\":{}}",
         ),
       )
       is Some(request) &&
-      relation_restore_wire_geometry(facts_wires[index].unwrap_or("{}"))
-      is Some(facts) else {
+      relation_restore_wire_geometry(facts_wire.unwrap_or("{}")) is Some(facts) else {
       return None
     }
     input_bytes += schema.bytes.to_int64() +
@@ -470,8 +518,8 @@ pub fn relation_restore_construction_inventory(
       owned_utf16_units: schema_assembly.scratch_utf16_units,
       owned_wire_bytes: 0L,
     })
-    let resource = resources[index].length().to_int64()
-    let kind = resource_kinds[index].length().to_int64()
+    let resource = resource_name.length().to_int64()
+    let kind = resource_kind.length().to_int64()
     let id = connector + resource + "/records/pushdown".length().to_int64() + 1L
     let source_ref = connector +
       resource +
@@ -523,7 +571,7 @@ pub fn relation_restore_construction_inventory(
       2L +
       reference
     let mut acquisition_nodes = 12L
-    if acquisition_wires[index] is Some(wire) {
+    if acquisition_wire is Some(wire) {
       guard relation_restore_wire_geometry(wire) is Some(value) else {
         return None
       }
@@ -571,7 +619,7 @@ pub fn relation_restore_construction_inventory(
     }
     let mut identity_bytes = 0L
     let mut identity_nodes = 0L
-    if identity_wires[index] is Some(wire) {
+    if identity_wire is Some(wire) {
       guard relation_restore_wire_geometry(wire) is Some(value) else {
         return None
       }
@@ -639,6 +687,19 @@ pub fn relation_restore_construction_inventory(
     .length()
     .to_int64() +
     6L * (connector + registration.length().to_int64() + revision)
+  let extra_export_nodes = if local_file_root is Some(root) {
+    guard local_file_store_construction_inventory(connector, root, parts)
+      is Some((bytes, nodes, text)) else {
+      return None
+    }
+    catalog_bytes += bytes
+    catalog_nodes += nodes
+    largest_depth = Int::max(largest_depth, 3)
+    export_text += text + "\"command_bodies\":[],".length().to_int64()
+    2L
+  } else {
+    0L
+  }
   if !relation_restore_add(
       parts,
       relation_restore_emission(
@@ -660,7 +721,7 @@ pub fn relation_restore_construction_inventory(
     ) +
     Int64::min(manifest, declaration_limits.max_bytes.to_int64())
   let view_count = count.to_int64()
-  let export_nodes = 13L + 16L * view_count + field_count
+  let export_nodes = 13L + 16L * view_count + field_count + extra_export_nodes
   let export_bytes = 6L * export_text +
     512L +
     256L * view_count +
@@ -709,4 +770,53 @@ pub fn relation_restore_construction_inventory(
     owned_wire_bytes: 0L,
   })
   @execution.compose_preparation_representation(parts)
+}
+
+///|
+// The decoded view descriptions borrow strings from these original parsers.
+// Every view may create one specification, two option arrays below the three
+// result arrays, field lookup/result carriers, and one iteration frame.
+fn relation_restore_inputs_read_inventory(
+  outer : RelationRestoreWireGeometry,
+) -> @execution.PreparationRepresentationUnits? {
+  let n = outer.nodes.to_int64()
+  guard relation_restore_source(outer, true) is Some(source) &&
+    relation_restore_raw_json(outer) is Some(raw) &&
+    @shape.collection_construction_extent({
+      records: 24L + 32L * n,
+      record_references: 32L + 48L * n,
+      record_words: 24L + 24L * n,
+      reference_arrays: 4L + 3L * n,
+      reference_items: 8L + 16L * n,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(parsed) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    source,
+    raw,
+    relation_construction_collection_units(parsed),
+  ])
+}
+
+///|
+// Fixed quote controls and the part vector. The quote evaluates a bounded
+// inventory of five contract emissions, three field schemas, acquisition and
+// identity geometry per view. Each can keep at most 64 small geometry/extent
+// records before composition, including the nested reader and writer quotes.
+fn relation_restore_inputs_quote_inventory(
+  views : Int,
+) -> @execution.PreparationRepresentationUnits {
+  let parts = 64L + 64L * views.to_int64()
+  {
+    record_headers: 64L * parts,
+    reference_slots: 128L * parts,
+    scalar_words: 176L * parts,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
 }

@@ -115,11 +115,49 @@ fn client_debug_graph_collection_inventory(
 
 ///|
 /// Read only the SAME checked geometry before lowering/Graph construction.
-/// The first supported profile is source-free Pure Values; unsupported checked
-/// language stays valid and receives a physical capability refusal. No second
+/// Price source-free Pure Values or the original single Effect-bearing Unit.
+/// Other checked shapes receive a physical capability refusal. No second
 /// checker, parser, owner array, Result binding or selected graph is built.
 pub fn measure_client_debug_graph_construction(
   checked : @checked.CheckedProgram,
+  max_tasks : Int,
+  max_work : Int,
+  observed_work : Ref[Int64],
+  effect? : @checked.EffectComputationCandidate? = None,
+) -> Result[(Int64, Int), ClientProgramPreparationIssue] {
+  if max_tasks < 0 || max_work < 0 {
+    return Err(Graph(InvalidLimits))
+  }
+  let has_effects = @checked.checked_program_has_effects(checked)
+  let private_roots = match effect {
+    Some(original) => {
+      if !has_effects ||
+        !physical_equal(
+          @checked.effect_computation_checked_program(original),
+          checked,
+        ) ||
+        @checked.unit_count(checked) != 1 {
+        return Err(DebugProfileUnsupported)
+      }
+      @syntax.effect_header_count(@checked.effect_computation_headers(original)).to_int64()
+    }
+    None => {
+      if has_effects {
+        return Err(DebugProfileUnsupported)
+      }
+      0L
+    }
+  }
+  measure_original_debug_graph_construction(
+    checked, max_tasks, max_work, observed_work, private_roots,
+  )
+}
+
+///|
+/// Price the temporary Debug graph against the original completed static
+/// Effect preparation, including its private Result roots.
+pub fn measure_client_static_effect_debug_graph_construction(
+  prepared : PreparedClientEffectComputation,
   max_tasks : Int,
   max_work : Int,
   observed_work : Ref[Int64],
@@ -127,8 +165,32 @@ pub fn measure_client_debug_graph_construction(
   if max_tasks < 0 || max_work < 0 {
     return Err(Graph(InvalidLimits))
   }
-  if @checked.checked_program_has_effects(checked) ||
-    @checked.source_execution_count(checked) != 0 ||
+  let candidate = prepared.candidate
+  let checked = @checked.effect_program_static_checked_computation(candidate)
+  if @checked.unit_count(checked) != 1 {
+    return Err(DebugProfileUnsupported)
+  }
+  let roots = @syntax.effect_header_count(
+    @checked.effect_program_static_headers(candidate),
+  )
+  measure_original_debug_graph_construction(
+    checked,
+    max_tasks,
+    max_work,
+    observed_work,
+    roots.to_int64(),
+  )
+}
+
+///|
+fn measure_original_debug_graph_construction(
+  checked : @checked.CheckedProgram,
+  max_tasks : Int,
+  max_work : Int,
+  observed_work : Ref[Int64],
+  private_roots : Int64,
+) -> Result[(Int64, Int), ClientProgramPreparationIssue] {
+  if @checked.source_execution_count(checked) != 0 ||
     @checked.unit_count(checked) < 1 {
     return Err(DebugProfileUnsupported)
   }
@@ -217,7 +279,10 @@ pub fn measure_client_debug_graph_construction(
   let results = @stage_results.export_count(
     @context.program_incoming_wiring(incoming),
   )
-  let entries = obligations.to_int64() + results.to_int64()
+  // The retained Effect bindings may add a private Result root per member.
+  // Price their complete vector, including roots sharing a public port.
+  let roots = results.to_int64() + private_roots
+  let entries = obligations.to_int64() + roots
   if entries > remaining.to_int64() {
     return Err(Graph(WorkLimit))
   }
@@ -231,7 +296,7 @@ pub fn measure_client_debug_graph_construction(
     gates,
     obligations.to_int64(),
     numeric,
-    results.to_int64(),
+    roots,
   )
   guard @shape.collection_construction_extent(inventory) is Some(extent) &&
     @execution.preparation_representation_cost({

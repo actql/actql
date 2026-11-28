@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_commit_projection import OriginalCommitProjection
-from actql_sdk._local_core import LocalCoreError, _ClosedWasmExports, _Output
+from actql_sdk._local_core import LocalCoreError, _Output
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_reader_facts import OriginalReaderFacts
 from actql_sdk._local_sdk_delivery_storage import OriginalSDKDeliveryStore
@@ -36,6 +36,7 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             helper.addCleanup = self.addCleanup
             _, store, core, _, _, _, _, _, codes, _, binding = helper.fixture()
             core._retired = False
+            core._platform_vm_original = None
             state = dict(snapshot=0, bind=0, port=0, ordinal=0, cleanup=True,
                          current=0, on_full=lambda: None, on_port=lambda: None,
                          on_bind=lambda: None)
@@ -267,16 +268,15 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             self.assertFalse(store._connection.in_transaction)
             self.assertTrue(holder.close_original_payload_output(request))
 
-    def test_sealed_pair_refuses_unsupported_capability_without_split_validation(self):
-        for capability, code, refusal in (
-                (None, None, None), (1, 0, None),
-                (-2, None, ('saved_reader_facts_capability', -2)),
-                (-41, None, ('saved_reader_facts_capability', -41)),
-                (2, None, ('saved_reader_facts_capability', 2)),
-                (1, -32, ('validate_saved_payload_binding', -32)),
-                (1, -4, ('validate_saved_payload_binding', -4)),
-                (1, -1056, ('validate_payload_snapshot', -32))):
-            with self.subTest(capability=capability, code=code):
+    def test_sealed_pair_preserves_the_first_failure_without_fallback(self):
+        for eligible, code, refusal in (
+                (False, None, None), (True, 0, None),
+                (True, -2, ('validate_saved_payload_binding', -2)),
+                (True, -41, ('validate_saved_payload_binding', -41)),
+                (True, -32, ('validate_saved_payload_binding', -32)),
+                (True, -4, ('validate_saved_payload_binding', -4)),
+                (True, -1056, ('validate_payload_snapshot', -32))):
+            with self.subTest(eligible=eligible, code=code):
                 with self.fixture() as (holder, observation, fact, _, core, request, _first,
                                         clock, *unused):
                     holder.bind_original_payload(request, clock, fact)
@@ -285,20 +285,16 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                     inspected = []
                     def invoke(family, operation, *args):
                         if (family, operation) not in (
+                                ('publication_commit_export', 'validate_saved_reader_facts'),
                                 ('publication_commit_export', 'validate_payload_binding'),
                                 ('payload_record', 'validate_snapshot')):
                             return previous(family, operation, *args)
                         inspected.append((family, operation, args))
-                        if args == (0, 0, 0, -(2**31), 0):
-                            return capability
-                        if args[-2] == -(2**30):
-                            return code
-                        return 0
+                        return code if operation == 'validate_saved_reader_facts' else 0
                     def validate(_):
                         with (patch.object(core, '_call', side_effect=invoke),
-                              patch.object(core, '_ordinary_host', capability is not None, create=True),
-                              patch.object(core, '_closed_wasm_exports',
-                                           object.__new__(_ClosedWasmExports), create=True)):
+                              patch.object(core, '_ordinary_host', eligible, create=True),
+                              patch.object(core, '_platform_vm_original', object(), create=True)):
                             fact._projection.validate_reader_facts(fact._record, loan, 0, 0)
                     if refusal is None:
                         observation._binding.inspect(validate)
@@ -306,19 +302,12 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                         with self.assertRaises(LocalCoreError) as failure:
                             observation._binding.inspect(validate)
                         self.assertEqual((failure.exception.operation, failure.exception.code), refusal)
-                    if capability is None:
+                    if not eligible:
                         self.assertEqual([entry[1] for entry in inspected],
                                          ['validate_payload_binding', 'validate_snapshot'])
                         continue
-                    first, *remaining = inspected
-                    self.assertEqual(first, ('publication_commit_export', 'validate_payload_binding',
-                                             (0, 0, 0, -(2**31), 0)))
-                    if capability == 1:
-                        self.assertEqual(remaining, [('publication_commit_export', 'validate_payload_binding',
-                            (fact._projection._publication.handle, fact._record.handle, 31,
-                             -(2**30), loan.handle))])
-                    else:
-                        self.assertEqual(remaining, [])
+                    self.assertEqual(inspected, [('publication_commit_export', 'validate_saved_reader_facts',
+                        (fact._projection._publication.handle, fact._record.handle, 31, 0, 0, loan.handle))])
 
     def test_bound_material_keeps_original_full_file_current_refusal(self):
         with self.fixture() as (holder, _, fact, _, _, request, first, clock,

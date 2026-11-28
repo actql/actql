@@ -19,13 +19,15 @@ if TYPE_CHECKING:
 
 from ._local_wasm_abi import LOCAL_CORE_ABI
 
-WASMTIME_VERSION = '38.0.0'
+WASMTIME_VERSION = '51.0.0'
 # Selected standalone profile, shared with the pinned vendor/artifact producer.
 # This is not the older private Node/DuckDB physical diagnostic profile.
 DUCKDB_VERSION = 'v1.4.3'
 _LOCAL_COMPONENT_PLATFORM = 'darwin-arm64'
 _LOCAL_COMPONENT_PLATFORMS = ('darwin-arm64', 'linux-x64')
 _NOTICES = ('LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
+_MODEL_CRYPTO_NOTICE = 'OPENSSL-LICENSE'
+_MODEL_CRYPTO_MAXIMUM = 16 * 1024 * 1024
 
 
 class LocalInstallationError(RuntimeError):
@@ -38,6 +40,7 @@ class _LocalComponentTarget:
     engine_target: str
     cpu_features: tuple[str, ...]
     duckdb_file: str
+    model_crypto_file: str
     runtime_file: str
     image_machine: bytes
     minimum_glibc: tuple[int, int] | None
@@ -47,10 +50,12 @@ def _component_target(name: str) -> _LocalComponentTarget:
     """Closed component identities, not permission to execute a target."""
     if type(name) is str and name == 'darwin-arm64':
         return _LocalComponentTarget(name, 'aarch64-apple-darwin', ('aarch64-baseline',),
-            'libduckdb.dylib', 'darwin-aarch64/_libwasmtime.dylib', b'\xb7\x00', None)
+            'libduckdb.dylib', 'libactql_portable_crypto.dylib',
+            'darwin-aarch64/_libwasmtime.dylib', b'\xb7\x00', None)
     if type(name) is str and name == 'linux-x64':
         return _LocalComponentTarget(name, 'x86_64-unknown-linux-gnu', ('x86_64-baseline',),
-            'libduckdb.so', 'linux-x86_64/_libwasmtime.so', b'\x3e\x00', (2, 28))
+            'libduckdb.so', 'libactql_portable_crypto.so',
+            'linux-x86_64/_libwasmtime.so', b'\x3e\x00', (2, 28))
     raise LocalInstallationError('No selected component verifier for this packaging target')
 
 
@@ -92,6 +97,16 @@ class LocalComponentReadCleanupPending(LocalInstallationError):
 
 
 @dataclass(frozen=True, slots=True)
+class _LocalModelCrypto:
+    """The verified same-cohort physical member and its upstream notice."""
+
+    file: str
+    bytes: int
+    sha256: str
+    notice_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
 class LocalComponents:
     source_sha: str
     package_version: str
@@ -106,6 +121,8 @@ class LocalComponents:
     image_recipe: _SelectedImageRecipe
     engine_recipe: Path
     engine_recipe_sha256: str
+    artifact_sha256: str
+    model_crypto: _LocalModelCrypto | None = None
 
 
 def _closed(value: Any, fields: tuple[str, ...]) -> dict[str, Any]:
@@ -184,7 +201,10 @@ class _OriginalComponentFile:
 
 def _read_file(path: Path, *, maximum: int, expected: int | None = None,
                digest: str | None = None, capture: bool = False, prefix: int = 0,
-               _original: _OriginalComponentFile | None = None) -> bytes:
+               _original: _OriginalComponentFile | None = None,
+               _capture_single: bool = False) -> bytes:
+    if _capture_single and (not capture or expected is None or digest is None):
+        raise LocalInstallationError('Single installed capture requires an exact bound and digest')
     if type(prefix) is not int or prefix < 0 or prefix > maximum or capture and prefix:
         raise LocalInstallationError('Invalid installed Local prefix read')
     if _original is not None and (type(_original) is not _OriginalComponentFile
@@ -208,6 +228,21 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
         checksum = hashlib.sha256()
         captured = bytearray() if digest is None or capture or prefix else None
         remaining = before.st_size
+        whole = None
+        if _capture_single:
+            # Only the selected image takes this bounded path. Retain the
+            # immutable read directly when the file supplies its exact extent.
+            # A short read continues on the original descriptor below.
+            block = os.read(source.value, remaining)
+            if not block:
+                raise LocalInstallationError('Incomplete installed Local component')
+            checksum.update(block)
+            remaining -= len(block)
+            if remaining:
+                assert captured is not None
+                captured.extend(block)
+            else:
+                whole = block
         while remaining:
             block = os.read(source.value, min(65536, remaining))
             if not block:
@@ -222,11 +257,12 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
                                                       after.st_mtime_ns, after.st_ctime_ns)
                 or digest is not None and checksum.hexdigest() != digest):
             raise LocalInstallationError('Installed Local component changed or digest mismatched')
-        result = bytes(captured) if captured is not None else b''
+        if whole is None:
+            whole = bytes(captured) if captured is not None else b''
         if _original is not None:
             _original._retain(source, before, checksum.hexdigest())
             retained = True
-        return result
+        return whole
     except BaseException as failure:
         primary = failure
         raise
@@ -285,9 +321,11 @@ def _inspect_local_components_for_packaging(root: Path, *, target_platform: str,
         if artifact_sha256 is not None and not _hex(artifact_sha256, 64):
             raise LocalInstallationError('Invalid SDK-bound Local artifact digest')
         raw = _read_file(root / 'artifact.json', maximum=65536, digest=artifact_sha256, capture=True)
-        body = _closed(json.loads(raw, object_pairs_hook=_pairs), (
+        decoded = json.loads(raw, object_pairs_hook=_pairs)
+        model_fields = ('model_crypto',) if type(decoded) is dict and 'model_crypto' in decoded else ()
+        body = _closed(decoded, (
             'source_sha', 'package_version', 'platform', 'core_abi', 'wasmtime_version',
-            'module', 'duckdb', 'duckdb_version', 'notices', 'compiled_image', 'engine_recipe'))
+            'module', 'duckdb', 'duckdb_version', 'notices', 'compiled_image', 'engine_recipe') + model_fields)
         if (not _hex(body['source_sha'], 40) or type(package_version) is not str
                 or not package_version or body['package_version'] != package_version
                 or body['platform'] != target.name
@@ -305,6 +343,17 @@ def _inspect_local_components_for_packaging(root: Path, *, target_platform: str,
         original_recipe = _read_file(recipe_path, maximum=65536, digest=recipe_hash, capture=True)
         recipe = _recipe_from_original(original_recipe, source_sha=body['source_sha'],
             package_version=package_version, module_sha256=module_hash)
+        model_crypto = None
+        if model_fields:
+            if recipe.runtime_allocation != 'platform':
+                raise LocalInstallationError('Model crypto requires the ordinary Wasm runtime')
+            selected = _closed(body['model_crypto'], ('library', 'notice_sha256'))
+            _, digest = _component(root, selected['library'], target.model_crypto_file, _MODEL_CRYPTO_MAXIMUM)
+            notice = selected['notice_sha256']
+            if not _hex(notice, 64):
+                raise LocalInstallationError('Invalid installed Model crypto notice descriptor')
+            _read_file(root / _MODEL_CRYPTO_NOTICE, maximum=1024 * 1024, digest=notice)
+            model_crypto = _LocalModelCrypto(target.model_crypto_file, selected['library']['bytes'], digest, notice)
         image = _image_descriptor(body['compiled_image'], recipe)
         image_path = root / image['file']
         header = _read_file(image_path, maximum=recipe.image_bytes_limit,
@@ -318,7 +367,8 @@ def _inspect_local_components_for_packaging(root: Path, *, target_platform: str,
             _read_file(root / filename, maximum=1024 * 1024, digest=notices[filename])
         return LocalComponents(body['source_sha'], package_version, module, module_hash,
                                library, library_hash, body['duckdb_version'], image_path,
-                               image['sha256'], image['bytes'], recipe, recipe_path, recipe_hash)
+                               image['sha256'], image['bytes'], recipe, recipe_path, recipe_hash,
+                               hashlib.sha256(raw).hexdigest(), model_crypto=model_crypto)
     except (OSError, ValueError, UnicodeError, RecursionError) as original:
         raise LocalInstallationError('Installed Local components are unavailable or invalid') from original
 
@@ -337,9 +387,43 @@ def inspect_local_components(root: Path, *, package_version: str,
         package_version=package_version, artifact_sha256=artifact_sha256)
 
 
+def _requires_paired_platform_runtime(version: str) -> bool:
+    return version == '0.0.3' or version.startswith(
+        ('0.0.3a', '0.0.3b', '0.0.3rc', '0.0.3.post', '0.0.3.dev', '0.0.3+'))
+
+
+def _selected_release_binding(raw: bytes, version: str, target: str) -> tuple[str, str, bool]:
+    decoded = json.loads(raw, object_pairs_hook=_pairs)
+    platform_runtime = type(decoded) is dict and 'runtime_allocation' in decoded
+    paired = type(decoded) is dict and 'artifact_sha256_by_platform' in decoded
+    artifact_field = 'artifact_sha256_by_platform' if paired else 'artifact_sha256'
+    binding = _closed(decoded, ('source_sha', 'package_version', 'core_abi', artifact_field,
+        'runtime_allocation' if platform_runtime else 'host_capacity_sha256'))
+    if (not _hex(binding['source_sha'], 40) or binding['package_version'] != version
+            or type(binding['core_abi']) is not int or binding['core_abi'] != LOCAL_CORE_ABI
+            or (binding['runtime_allocation'] != 'platform' if platform_runtime
+                else not _hex(binding['host_capacity_sha256'], 64))):
+        raise LocalInstallationError('Installed SDK Local cohort binding is incompatible')
+    if platform_runtime and not paired and _requires_paired_platform_runtime(version):
+        raise LocalInstallationError('Installed SDK requires the paired Local runtime binding')
+    if paired:
+        if not platform_runtime or target not in _LOCAL_COMPONENT_PLATFORMS:
+            raise LocalInstallationError('Installed SDK Local runtime pair is incompatible')
+        originals = _closed(binding[artifact_field], _LOCAL_COMPONENT_PLATFORMS)
+        if (any(not _hex(digest, 64) for digest in originals.values())
+                or len(set(originals.values())) != len(_LOCAL_COMPONENT_PLATFORMS)):
+            raise LocalInstallationError('Installed SDK Local runtime pair is incompatible')
+        artifact = originals[target]
+    else:
+        artifact = binding[artifact_field]
+        if not _hex(artifact, 64):
+            raise LocalInstallationError('Installed SDK Local cohort binding is incompatible')
+    return binding['source_sha'], artifact, platform_runtime
+
+
 def installed_local_components() -> LocalComponents:
     """Only a selected Local connection calls this installed-package resolver."""
-    _execution_component_platform()
+    target = _execution_component_platform()
     try:
         version = metadata.version('actql-sdk')
         if (metadata.version('actql') != version
@@ -356,21 +440,11 @@ def installed_local_components() -> LocalComponents:
         # The cohort builder writes this source-qualified binding into the SDK
         # wheel. An independently changed runtime manifest cannot self-authorize
         # its image by changing both the declared recipe and file checksums.
-        decoded = json.loads(_read_file(sdk_root / '_local_release_binding.json',
-            maximum=65536), object_pairs_hook=_pairs)
-        platform_runtime = type(decoded) is dict and 'runtime_allocation' in decoded
-        binding = _closed(decoded,
-            ('source_sha', 'package_version', 'core_abi', 'artifact_sha256',
-             'runtime_allocation' if platform_runtime else 'host_capacity_sha256'))
-        if (not _hex(binding['source_sha'], 40) or binding['package_version'] != version
-                or type(binding['core_abi']) is not int or binding['core_abi'] != LOCAL_CORE_ABI
-                or not _hex(binding['artifact_sha256'], 64)
-                or (binding['runtime_allocation'] != 'platform' if platform_runtime
-                    else not _hex(binding['host_capacity_sha256'], 64))):
-            raise LocalInstallationError('Installed SDK Local cohort binding is incompatible')
-        components = inspect_local_components(root, package_version=version,
-            artifact_sha256=binding['artifact_sha256'])
-        if components.source_sha != binding['source_sha']:
+        source, artifact, platform_runtime = _selected_release_binding(
+            _read_file(sdk_root / '_local_release_binding.json', maximum=65536), version, target)
+        components = _inspect_local_components_for_packaging(root, target_platform=target,
+            package_version=version, artifact_sha256=artifact)
+        if components.source_sha != source:
             raise LocalInstallationError('Installed SDK and Local source do not match')
         if platform_runtime != (components.image_recipe.runtime_allocation == 'platform'):
             raise LocalInstallationError('Installed SDK and runtime allocation differ')

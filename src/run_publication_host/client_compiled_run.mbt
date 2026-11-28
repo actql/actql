@@ -296,6 +296,9 @@ pub fn client_compiled_run_source_free_result_policy_body(
 /// an authority to publish the output. No new policy is issued here.
 pub fn client_compiled_run_evaluation_policy_body(
   value : ClientCompiledRun,
+  max_bytes? : Int = 16384,
+  max_nodes? : Int = 1024,
+  max_depth? : Int = 20,
 ) -> (String, String, String)? {
   guard client_compiled_run_infer_observation_policy(value) is Some(cid) else {
     return None
@@ -332,7 +335,9 @@ pub fn client_compiled_run_evaluation_policy_body(
       }
       if @checked.publication_source_policy(publication) is Some(policy) &&
         policy.cid == cid {
-        let writer = @encode.writer(16384, 1024, 20) catch { _ => return None }
+        let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+          _ => return None
+        }
         @checked.emit_publication_source_policy(policy, writer) catch {
           _ => return None
         }
@@ -401,6 +406,7 @@ pub fn issue_client_task_compiled_run(
   execution_context_cid : String,
   host_policy_cid : String,
   expires_at : String,
+  body_work? : ((Int) -> Bool)? = None,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
   if !physical_equal(owner, compilation.owner) {
     return Err(ForeignOwner)
@@ -414,6 +420,7 @@ pub fn issue_client_task_compiled_run(
       execution_context_cid,
       host_policy_cid,
       expires_at,
+      body_work~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -458,10 +465,16 @@ fn issue_client_compiled_run(
   execution_context_cid : String,
   host_policy_cid : String,
   expires_at : String,
+  body_work? : ((Int) -> Bool)? = None,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
   let (prepared, authorization) = match
     issue_client_allowed_run_evidence(
-      template, plan, execution_context_cid, host_policy_cid, expires_at,
+      template,
+      plan,
+      execution_context_cid,
+      host_policy_cid,
+      expires_at,
+      body_work~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Policy(issue))
@@ -643,6 +656,7 @@ pub fn issue_client_compiled_run_definition(
   run_id : String,
   created_at : String,
   valid_until : String,
+  body_work? : ((Int) -> Bool)? = None,
 ) -> Result[@publication.PublicationContract, ClientCompiledRunIssue] {
   let definition = match
     @publication.issue_run_definition(
@@ -655,6 +669,7 @@ pub fn issue_client_compiled_run_definition(
       100000,
       10000,
       100,
+      body_work~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))

@@ -90,6 +90,92 @@ pub fn issue_client_task_run_materials(
 }
 
 ///|
+/// Material encoded from an already issued captured Task Run. The transport
+/// and the Task/Definition are one original, with no caller-supplied wire.
+pub struct ClientCapturedTaskRunMaterials {
+  request : ClientRequestIdentity
+  compiled : ClientCompiledRun
+  definition : @publication.PublicationContract
+  wire : String
+}
+
+///|
+pub fn client_captured_task_run_materials_wire(
+  value : ClientCapturedTaskRunMaterials,
+) -> String {
+  value.wire
+}
+
+///|
+/// Borrow the checked Program held by the same captured Task material.
+pub fn client_captured_task_run_materials_prepared(
+  value : ClientCapturedTaskRunMaterials,
+) -> PreparedClientProgram {
+  value.compiled.owner
+}
+
+///|
+/// The Request supplies its retained parameter cursor and funds the existing
+/// material codec. Only the original completed Definition of this captured
+/// Pure compilation can be projected. No checked input or Run is reissued.
+pub fn issue_original_client_captured_task_run_materials(
+  request : ClientRequestIdentity,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  supplied : @decode.Cursor?,
+  before_body : (String, Int, Int, Int) -> Bool,
+) -> Result[ClientCapturedTaskRunMaterials, ClientTaskRunMaterialsIssue] {
+  let prepared = compiled.owner
+  let identity = prepared_client_identity(prepared)
+  guard client_request_program_cid(request) == identity.program_definition_cid &&
+    client_request_parameters_cid(request) == identity.parameter_values_cid &&
+    compiled.compilation is Tasks(compilation) &&
+    physical_equal(compilation.owner, prepared) &&
+    !@strategy.graph_source_free_inputs_complete(prepared.graph) &&
+    compilation.infers.is_empty() &&
+    compilation.serialization is None &&
+    client_compiled_run_has_original_definition(compiled, definition) else {
+    return Err(RunMismatch)
+  }
+  let (program, parameters, environment) = match
+    client_funded_original_input_wires(
+      prepared.source,
+      supplied,
+      @checked.checked_environment(@strategy.graph_program(prepared.graph)),
+      before_body,
+    ) {
+    Err(Input(issue)) => return Err(Input(issue))
+    Err(_) => return Err(RunMismatch)
+    Ok(value) => value
+  }
+  let normalization_wire = match
+    client_run_materials_normalization_wire(prepared) {
+    Err(issue) => return Err(Input(issue))
+    Ok(value) => value
+  }
+  let wire = match
+    encode_client_run_materials_body(
+      compiled.admission,
+      definition,
+      prepared_client_check_environment_cid(prepared),
+      environment,
+      program,
+      parameters,
+      normalization_wire~,
+      before_body=Some(before_body),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Input(issue))
+  }
+  // A paid writer must preserve the ordinary Task inverse's wire ceiling.
+  guard @scalar.admit_utf8_length(wire, @remote.REMOTE_RUN_MATERIALS_MAX_BYTES)
+    is Ok(_) else {
+    return Err(Input(MaterialsConstructionRefused("run_materials")))
+  }
+  Ok({ request, compiled, definition, wire, })
+}
+
+///|
 /// Recompute the ordinary checked task compilation and re-admit the original
 /// evidence. Source acquisition is not performed here. A full Run CID match
 /// is mandatory before the reconstructed Run can enter Site admission.

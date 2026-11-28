@@ -221,9 +221,22 @@ pub fn validate_client_saved_run_state_update_original(
     update.definition_cid {
     return Err(ForeignRun)
   }
-  if snapshot.submission.key != update.key ||
-    snapshot.submission.revision != update.prior_revision ||
-    snapshot.submission.body != update.prior_body {
+  validate_client_saved_run_state_update_predecessor(
+    update,
+    snapshot.submission,
+  )
+}
+
+///|
+/// Compare the update's retained predecessor with a separately held original
+/// row. This comparison alone neither validates a snapshot nor confirms a CAS.
+pub fn validate_client_saved_run_state_update_predecessor(
+  update : ClientSavedRunStateUpdate,
+  row : ClientJournalPhysicalRow,
+) -> Result[Unit, ClientSavedRunStateUpdateIssue] {
+  if row.key != update.key ||
+    row.revision != update.prior_revision ||
+    row.body != update.prior_body {
     return Err(OriginalUnavailable)
   }
   Ok(())

@@ -1,10 +1,17 @@
 import assert from 'node:assert/strict';
+import {isNativeFunctionSymbol} from './native-code-disassembly.mjs';
 
 // Only the pinned debug compiler's contiguous noncapturing closure sequence
 // is accepted. A header or a code address alone does not establish an extent.
 export function scalarSitesX64(text, linkedSymbols) {
   const sites=new Map(); let constructor, start, instructions=[];
-  const addresses=linkedSymbols && new Map([...linkedSymbols].map(([name,address])=>[address.toString(),name]));
+  const addresses=linkedSymbols && new Map();
+  if(addresses) for(const [name,address] of linkedSymbols) {
+    // A debug block may have the same address as the owning function.
+    if(!isNativeFunctionSymbol(name)) continue;
+    const key=address.toString();
+    addresses.set(key,addresses.has(key)?undefined:name);
+  }
   function finish() {
     for(let k=0;k<instructions.length;k++) {
       const ins=instructions[k];
@@ -45,7 +52,7 @@ export function scalarSitesX64(text, linkedSymbols) {
     const fn=line.match(/^([0-9a-f]+) <([^>]+)>:$/);
     if(fn) {
       // Debug basic-block labels are not function boundaries.
-      if(fn[2].startsWith('.') || fn[2].includes('$bb')) continue;
+      if(!isNativeFunctionSymbol(fn[2])) continue;
       finish(); constructor=fn[2]; start=BigInt('0x'+fn[1]); instructions=[]; continue;
     }
     const relocation=line.match(/^\s*([0-9a-f]+):\s+R_X86_64_(PLT32|PC32)\s+(\S+)-0x4$/);

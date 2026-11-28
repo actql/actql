@@ -193,7 +193,7 @@ fn claim_native_client_retained_work_first_start_with_operations(
   // retained start/fence facts after that callback, before opening acquisition.
   match journal.lookup_with_reads(request, true, reads~) {
     Ok(Retained(record)) if record.physical_start_claimed &&
-      !record.cancellation_requested &&
+      !record.cancellation_requested() &&
       record.checkpoint is None =>
       Ok({
         journal,
@@ -229,7 +229,7 @@ fn NativeClientWorkFirstStart::require_current(
     Err(issue) => return Err(issue)
   }
   if record.physical_start_claimed &&
-    !record.cancellation_requested &&
+    !record.cancellation_requested() &&
     record.checkpoint is None &&
     record.revision >= self.observed_revision &&
     @publication.publication_contract_identity(record.definition) ==
@@ -322,7 +322,7 @@ fn native_client_work_observer(
           current_authorization() &&
           journal.lookup(request, true) is Ok(Retained(record)) &&
           record.physical_start_claimed &&
-          !record.cancellation_requested
+          !record.cancellation_requested()
       }
     }
   }
@@ -428,7 +428,7 @@ fn require_native_client_work_current_record(
   }
   match journal.lookup_with_reads(request, true, reads~) {
     Ok(Retained(record)) if record.physical_start_claimed &&
-      !record.cancellation_requested => Ok(record)
+      !record.cancellation_requested() => Ok(record)
     Ok(_) => Err(NeedsOriginalReconciliation)
     Err(issue) => Err(Journal(issue))
   }

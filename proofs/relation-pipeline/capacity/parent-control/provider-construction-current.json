@@ -78,14 +78,20 @@
         "type": "( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]"
       },
       {
-        "name": "start_numeric",
-        "type": "(( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, @execution.NumericAggregateExecution?, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?"
+        "name": "start_extension",
+        "type": "ManagedProviderStartExtension?"
       },
       {
         "name": "infer_relation_prefix",
-        "type": "( @execution.GeneratedSequence, Int, @execution.SequenceExecutionLimits, @execution.FixedInputGuardMeasureLimits, )?"
+        "type": "ManagedInferRelationPrefix?"
       }
     ]
+  },
+  "startExtension": {
+    "declaration": "priv enum ManagedProviderStartExtension { Numeric( ( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, @execution.NumericAggregateExecution?, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] ) TaskWorkspace( ( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, @strategy.TaskOutputWorkspace?, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] ) }",
+    "numericTag": 0,
+    "numericPayloadReferences": 1,
+    "numericCandidateOrdinals": [0, 6]
   },
   "bounds": {
     "providerRecords": 11,

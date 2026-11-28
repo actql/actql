@@ -85,3 +85,17 @@ test "BYTES retains distinct typed identity and bounds wire construction" {
   )
   assert_false(@contract.key_comparable(contract, text))
 }
+
+///|
+test "canonical base64 transport preserves byte views and bounded padding" {
+  let bytes = b"\xFF\x00\xFF\x80\xFF"
+  assert_eq(encode_canonical_base64(bytes[1:4]), "AP+A")
+  assert_eq(decode_canonical_base64("AP+A"[:], 3), Some(b"\x00\xFF\x80"))
+  assert_eq(decode_canonical_base64("Zg=="[:], 1), Some(b"f"))
+  assert_eq(decode_canonical_base64(""[:], 0), Some(b""))
+  for wire in ["Zg", "Zh==", "Zm9=", "Zg==AAAA", "AA=\n", "Zm8_", "Zm9v"] {
+    assert_true(decode_canonical_base64(wire[:], 2) is None, msg=wire)
+  }
+  assert_true(decode_canonical_base64("Zg=="[:], 0) is None)
+  assert_true(decode_canonical_base64(""[:], -1) is None)
+}

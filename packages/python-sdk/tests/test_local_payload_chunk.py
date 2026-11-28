@@ -1,5 +1,6 @@
 """Bounded physical replay loans; Core owns Result identity and completion."""
 import copy
+import sys
 from threading import RLock
 import unittest
 
@@ -22,6 +23,7 @@ class PayloadChunkCustodyTests(unittest.TestCase):
                  'final': 1, 'close': -9, 'cleanup_ready': False}
         wire = '[{"n":null,"text":"é\\r\\n/~😀"}]'.encode('utf-8')
         calls = []
+        _output_size = sys.getsizeof(_Output(core._identity, 8, 0, 128, 'payload_chunk'))
 
         def call(family, name, *args):
             calls.append((family, name, args))
@@ -34,7 +36,7 @@ class PayloadChunkCustodyTests(unittest.TestCase):
             self.assertEqual(family, 'payload_chunk')
             if name == 'reserve':
                 self.assertEqual(args[:2], (23, 8))
-                self.assertGreaterEqual(args[2], 2 * 65536)
+                self.assertEqual(args[2], core._output_copy_bytes(128) + _output_size)
                 self.assertEqual(core._inputs[8].payload, b'')
             if name == 'length':
                 return state.get('length', len(wire))
@@ -48,7 +50,7 @@ class PayloadChunkCustodyTests(unittest.TestCase):
     def test_same_original_request_and_current_configuration_are_forwarded(self):
         core, request, calls, state, wire = self.bridge()
         core.start_payload_replay(request, 31)
-        chunk = core.reserve_payload_chunk(request, cleanup=lambda: True)
+        chunk = core.reserve_payload_chunk(request, 128, cleanup=lambda: True)
         core.produce_payload_chunk(chunk, 37)
         core.produce_payload_chunk(chunk, 37)
         self.assertEqual(core.read_payload_chunk(chunk, 41), (wire, True))
@@ -61,7 +63,7 @@ class PayloadChunkCustodyTests(unittest.TestCase):
 
     def test_cached_bytes_revalidate_current_custody_without_another_copy(self):
         core, request, calls, state, wire = self.bridge()
-        chunk = core.reserve_payload_chunk(request, cleanup=lambda: True)
+        chunk = core.reserve_payload_chunk(request, 128, cleanup=lambda: True)
         first, _ = core.read_payload_chunk(chunk, 31)
         copied = sum(f == 'buffer' for f, _, _ in calls)
         second, _ = core.read_payload_chunk(chunk, 37)
@@ -76,7 +78,7 @@ class PayloadChunkCustodyTests(unittest.TestCase):
 
     def test_invalid_final_marker_and_refusal_do_not_become_eof_or_empty_success(self):
         core, request, calls, state, wire = self.bridge()
-        chunk = core.reserve_payload_chunk(request, cleanup=lambda: True)
+        chunk = core.reserve_payload_chunk(request, 128, cleanup=lambda: True)
         state['produce'] = -32
         with self.assertRaises(LocalCoreError):
             core.produce_payload_chunk(chunk, 31)
@@ -89,11 +91,11 @@ class PayloadChunkCustodyTests(unittest.TestCase):
 
     def test_nonfinal_chunk_and_oversized_projection_preserve_bounded_custody(self):
         core, request, calls, state, wire = self.bridge()
-        chunk = core.reserve_payload_chunk(request, cleanup=lambda: True)
-        state['length'] = 65537
+        chunk = core.reserve_payload_chunk(request, 128, cleanup=lambda: True)
+        state['length'] = 129
         with self.assertRaises(LocalCoreError) as caught:
             core.read_payload_chunk(chunk, 31)
-        self.assertEqual(caught.exception.code, 65537)
+        self.assertEqual(caught.exception.code, 129)
         self.assertFalse(any(f == 'buffer' for f, _, _ in calls))
         self.assertIs(core._loans[8], chunk)
         self.assertEqual(core._inputs[8].payload, b'')
@@ -103,7 +105,7 @@ class PayloadChunkCustodyTests(unittest.TestCase):
 
     def test_cleanup_failure_retains_same_chunk_and_parent_until_explicit_retry(self):
         core, request, calls, state, wire = self.bridge()
-        chunk = core.reserve_payload_chunk(request,
+        chunk = core.reserve_payload_chunk(request, 128,
                                            cleanup=lambda: state['cleanup_ready'])
         core.read_payload_chunk(chunk, 31)
         core._closing = True
@@ -122,11 +124,11 @@ class PayloadChunkCustodyTests(unittest.TestCase):
 
     def test_foreign_copied_wrong_family_and_invalid_controls_refuse_before_io(self):
         core, request, calls, state, wire = self.bridge()
-        chunk = core.reserve_payload_chunk(request, cleanup=lambda: True)
+        chunk = core.reserve_payload_chunk(request, 128, cleanup=lambda: True)
         foreign, *_ = self.bridge()
         before = len(calls)
         actions = [lambda: core.start_payload_replay(copy.copy(request), 31),
-                   lambda: core.reserve_payload_chunk(copy.copy(request), cleanup=lambda: True),
+                   lambda: core.reserve_payload_chunk(copy.copy(request), 128, cleanup=lambda: True),
                    lambda: core.produce_payload_chunk(copy.copy(chunk), 31),
                    lambda: core.read_payload_chunk(request, 31),
                    lambda: foreign.read_payload_chunk(chunk, 31),
@@ -144,13 +146,13 @@ class PayloadChunkCustodyTests(unittest.TestCase):
         core, request, calls, state, wire = self.bridge()
         state['reserve'] = -4
         with self.assertRaises(LocalCoreError):
-            core.reserve_payload_chunk(request, cleanup=lambda: True)
+            core.reserve_payload_chunk(request, 128, cleanup=lambda: True)
         self.assertNotIn(8, core._inputs)
         self.assertEqual(core._loans, {7: request})
         core._closing = True
         before = len(calls)
         for action in (lambda: core.start_payload_replay(request, 31),
-                       lambda: core.reserve_payload_chunk(request, cleanup=lambda: True)):
+                       lambda: core.reserve_payload_chunk(request, 128, cleanup=lambda: True)):
             with self.assertRaises(RuntimeError):
                 action()
         self.assertEqual(len(calls), before)

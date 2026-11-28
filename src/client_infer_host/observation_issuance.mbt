@@ -29,8 +29,10 @@ fn observation_issuance_metadata_bytes(
 /// complete physical publication recipe. Actual issuance still counts rows.
 pub fn prepared_observation_issuance_metadata_bytes(
   limits : ObservationIssuanceLimits,
+  owners? : Int = 1,
 ) -> Int64? {
-  if limits.max_slots < 0 ||
+  if owners < 1 ||
+    limits.max_slots < 0 ||
     limits.max_wire_bytes < 1 ||
     limits.max_wire_bytes > 16384 ||
     limits.max_work < 1 {
@@ -40,7 +42,7 @@ pub fn prepared_observation_issuance_metadata_bytes(
       observation_issuance_metadata_bytes(
         limits.max_wire_bytes,
         limits.max_slots,
-        1,
+        owners,
         0,
       ),
     )
@@ -59,7 +61,7 @@ pub fn original_observation_issuance_metadata_bytes(
   if prepared_observation_issuance_metadata_bytes(limits) is None {
     return None
   }
-  guard original_observation_slot_count(active) is Some(count) &&
+  guard original_observation_issuance_slot_count(active) is Some(count) &&
     active.call_scope is Some(scope) &&
     count <= limits.max_slots else {
     return None
@@ -71,7 +73,7 @@ pub fn original_observation_issuance_metadata_bytes(
 }
 
 ///|
-fn original_observation_slot_count(active : Execution) -> Int? {
+pub fn original_observation_issuance_slot_count(active : Execution) -> Int? {
   guard !active.advancing &&
     !active.reclaimed &&
     !active.cancelled &&
@@ -116,7 +118,7 @@ pub fn original_model_observation_requirements(
       active.plan is Some(plan) &&
       physical_equal(plan, plans[index]) &&
       active.call_scope is Some(scope) &&
-      original_observation_slot_count(active) is Some(slots) &&
+      original_observation_issuance_slot_count(active) is Some(slots) &&
       slots <= 2147483645 - count else {
       return None
     }
@@ -1041,7 +1043,7 @@ pub fn original_model_publication_inputs(
   let evidence = Array(capacity=state.count)
   let mut absolute = 0
   for owner in state.owners {
-    guard original_observation_slot_count(owner) is Some(count) else {
+    guard original_observation_issuance_slot_count(owner) is Some(count) else {
       return None
     }
     for slot in 0..<count {

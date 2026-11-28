@@ -20,7 +20,9 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient, ClientError
-from actql_sdk._local_core import LocalCore, LocalCoreError, LocalTaskProgress, _NORMAL_HOST_OPERATION_FUEL
+from actql_sdk._local_core import (
+    LocalCore, LocalCoreError, LocalTaskProgress, _NORMAL_HOST_OPERATION_FUEL, _TaskDrive,
+)
 from actql_sdk._local_product import (
     InstalledLocalHost, _OriginalExecution, _LOCAL_SELECTION, _ordinary_core_limits,
 )
@@ -123,10 +125,10 @@ async def main():
         client = await AsyncClient._connect_local(host)
         barrier = OriginalQuantumBarrier(core._lock, host._installation.binding, after_start=after_start)
         core._lock = barrier
-        original_drive = core.drive_task
+        original_drive = core.drive_task_step
 
         def observe_quantum(task, quantum):
-            complete = original_drive(task, quantum)
+            step = original_drive(task, quantum)
             # Read the SAME original bounded provider observation. Startup and
             # input-feed steps have no provider progress and cannot arm this
             # barrier. Task completion remains the separate drive result.
@@ -134,16 +136,16 @@ async def main():
             if after_start and not barrier.armed:
                 # Actual activation returned; the same task has no provider
                 # advance observation yet. Absence is not fabricated progress.
-                assert not complete and fields[0] == -33
+                assert step is not _TaskDrive.COMPLETE and fields[0] == -33
                 assert core._call('task', 'started', task.handle) == 0
                 barrier.armed = True
-                return complete
+                return step
             if fields[0] in (0, 1) and fields[1] in (0, 1) and min(fields[2:]) >= 0:
                 progress = LocalTaskProgress(fields[0] == 1, fields[1] == 1, fields[2], fields[3])
                 barrier.latest = progress
                 if not precommit and not progress.complete and not progress.waiting and progress.work > 0:
                     barrier.armed = True
-            return complete
+            return step
 
         original_commit = host._store_original_commit
         def pause_original_commit(*args, **kwargs):
@@ -154,7 +156,7 @@ async def main():
                 raise TimeoutError('Original prepared publication was not resumed')
             return original_commit(*args, **kwargs)
 
-        with patch.object(core, 'drive_task', side_effect=observe_quantum), \
+        with patch.object(core, 'drive_task_step', side_effect=observe_quantum), \
                 (patch.object(host, '_store_original_commit', side_effect=pause_original_commit)
                  if precommit else nullcontext()):
             query = ('SELECT 1 AS n' if precommit else

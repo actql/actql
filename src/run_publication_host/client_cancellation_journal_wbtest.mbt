@@ -7,6 +7,12 @@ let cancellation_journal_fixture = "{\"action\":\"accepted\",\"cancel_id\":\"can
 let cancellation_journal_key_fixture = "3ec097f4b1602404e88a04cfe7da4c13504e50a5358aae9e3841039c77f6ebcd"
 
 ///|
+let cancellation_journal_head_fixture : ClientAcceptedCancellationHead = {
+  record_key: cancellation_journal_key_fixture,
+  observed_revision: 20L,
+}
+
+///|
 fn cancellation_journal_original() -> ClientCancellationJournalEncoding {
   let run = journal_encoding_original()
   {
@@ -29,7 +35,10 @@ fn cancellation_journal_original() -> ClientCancellationJournalEncoding {
 
 ///|
 fn cancellation_journal_rows() -> Array[(String, ClientJournalPhysicalRow)] {
-  let run = { ..journal_encoding_original(), cancellation_requested: true, }
+  let run = {
+    ..journal_encoding_original(),
+    cancellation_head: Some(cancellation_journal_head_fixture),
+  }
   [
     ("client_cancel_custody", inventory_row("issued", b"1", revision=1L)),
     (
@@ -53,6 +62,17 @@ fn cancellation_journal_rows() -> Array[(String, ClientJournalPhysicalRow)] {
         revision=20L,
       ),
     ),
+    ("client_run_custody", inventory_row("issued", b"1")),
+  ]
+}
+
+///|
+fn empty_cancellation_journal_rows() -> Array[
+  (String, ClientJournalPhysicalRow),
+] {
+  [
+    ("client_cancel_custody", inventory_row("issued", b"0")),
+    ("client_run_custody", inventory_row("issued", b"0")),
   ]
 }
 
@@ -81,7 +101,7 @@ fn cancellation_journal_inspect(
       Ok({
         request: run.request,
         definition: run.definition,
-        cancellation_requested: run.cancellation_requested,
+        cancellation_head: run.cancellation_head,
       })
     },
     "custody",
@@ -174,9 +194,7 @@ test "nonempty cancellation census retains same original Run witness and issued 
     Ok((1, 1L)),
   )
   assert_eq(
-    cancellation_journal_inspect([
-      ("client_cancel_custody", inventory_row("issued", b"0")),
-    ]),
+    cancellation_journal_inspect(empty_cancellation_journal_rows()),
     Ok((0, 0L)),
   )
   assert_eq(cancellation_journal_inspect([]), Err("custody"))
@@ -206,6 +224,58 @@ test "nonempty cancellation census refuses lost witness stale Run and count corr
     })
     assert_eq(cancellation_journal_inspect(changed), Err("custody"))
   }
+}
+
+///|
+test "cancellation audit checks the exact accepted head in both directions" {
+  let rows = cancellation_journal_rows()
+  let with_head = head => {
+    rows.map(pair => {
+      let (table, row) = pair
+      if table == "client_runs" {
+        let run = decode_client_run_journal_row(row.body).unwrap()
+        let body = client_run_journal_row_body({
+          ..run,
+          cancellation_head: head,
+        }).unwrap()
+        (table, { ..row, body, })
+      } else {
+        pair
+      }
+    })
+  }
+  let head = cancellation_journal_head_fixture
+  for
+    changed in [
+      None,
+      Some({ ..head, observed_revision: 19L, }),
+      Some({
+        ..head,
+        record_key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      }),
+    ] {
+    assert_eq(cancellation_journal_inspect(with_head(changed)), Err("custody"))
+  }
+  // Removing both originals and replacing the issuance count leaves an
+  // orphaned head on the original Run. Receipt-only checks cannot see it.
+  let without_receipt = (inventory : Array[(String, ClientJournalPhysicalRow)]) => {
+    inventory
+    .filter(pair => {
+      pair.0 != "client_cancellations" && pair.0 != "client_cancel_originals"
+    })
+    .map(pair => {
+      if pair.0 == "client_cancel_custody" {
+        (pair.0, inventory_row("issued", b"0"))
+      } else {
+        pair
+      }
+    })
+  }
+  assert_eq(cancellation_journal_inspect(without_receipt(rows)), Err("custody"))
+  assert_eq(
+    cancellation_journal_inspect(without_receipt(with_head(None))),
+    Ok((0, 0L)),
+  )
 }
 
 ///|
@@ -254,21 +324,27 @@ test "cancellation census reuses exact nested Run identities after observing the
           inventory_read(rows, table, key)
         }
       },
-      (row, request, definition) => {
-        nested_decodes.val += 1
-        let (run, _, _) = decode_client_run_journal_row_with_retained_identity(
-          row.body,
-          request,
-          definition,
-        ).unwrap()
-        if !physical_equal(run.request, request) ||
-          !physical_equal(run.definition, definition) {
-          return Err("rebuilt identity")
+      (row, identity) => {
+        let run = match identity {
+          None => decode_client_run_journal_row(row.body).unwrap()
+          Some((request, definition)) => {
+            nested_decodes.val += 1
+            let (run, _, _) = decode_client_run_journal_row_with_retained_identity(
+              row.body,
+              request,
+              definition,
+            ).unwrap()
+            if !physical_equal(run.request, request) ||
+              !physical_equal(run.definition, definition) {
+              return Err("rebuilt identity")
+            }
+            run
+          }
         }
         Ok({
           request: run.request,
           definition: run.definition,
-          cancellation_requested: run.cancellation_requested,
+          cancellation_head: run.cancellation_head,
         })
       },
       "custody",

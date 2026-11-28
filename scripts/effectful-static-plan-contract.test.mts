@@ -66,13 +66,19 @@ test('Explanation Context admits structural declarations and refuses leaked or i
 test('Effectful static envelope preserves the independent original Plan/map schemas', () => {
   const registry = buildControlRegistry();
   assert.equal(registry.schema_cids.plan_view,
-    'sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4');
+    'sha256:96c085e289c370c4156cd5668fc8755512324923e45482b29db84f5a2626bd8a');
   assert.equal(validWireEffectfulStaticPlanViewShape(effectfulStaticPlan), true);
   assert.equal(validWirePlanViewShape(computationPlan), true);
   assert.equal(validWirePlanViewShape({...computationPlan,
     capabilities: {...computationPlan.capabilities, debug_entry: true}}), true);
   assert.equal(validWirePlanViewShape({...computationPlan,
     capabilities: {...computationPlan.capabilities, debug_entry: false}}), false);
+  const debugProfile = {...computationPlan, entry_breakpoint_profile: 'all_operations'};
+  assert.equal(validWirePlanViewShape(debugProfile), false);
+  assert.equal(validWirePlanViewShape({...debugProfile,
+    capabilities: {...computationPlan.capabilities, debug_entry: true}}), true);
+  assert.equal(validWirePlanViewShape({...debugProfile, entry_breakpoint_profile: 'first_operation',
+    capabilities: {...computationPlan.capabilities, debug_entry: true}}), false);
   assert.equal(validWirePlanViewShape(effectfulStaticPlan), false);
   assert.equal(Object.hasOwn(registry.identity_domains, 'effectful_static_plan_view'), false);
   assert.equal(JSON.parse(canonicalText(effectfulStaticPlan)).computation.scope, 'computation_component');
@@ -92,7 +98,18 @@ test('versioned static Explanation composes the existing closed schema families'
   assert.equal(originalPins.run_control_capabilities,
     'sha256:ec77b63d8ce6993243c2431db8d100f11c75b0fbdb1751acf31db9330a82e498');
   assert.equal(Object.keys(originalPins).length, 43);
-  assert.equal(createHash('sha256').update(canonicalText(originalPins)).digest('hex'),
+  assert.equal(originalPins.control_interval, 'sha256:1f36e9ba1e0d3de12adc8564ab8b3e401d1eaac2554453665324505254fcdc45');
+  assert.equal(originalPins.control_command, 'sha256:284fa01119e327af0a57cc4a45a288214264573dd5a11c92eda39683fa32208f');
+  // Current write parks share the existing Run View and controlled-state contracts.
+  assert.equal(originalPins.controlled_run_state, 'sha256:eae860a6f564f069bd1f3cebb06867d14cdb1f3b68488213585485ac66381361');
+  assert.equal(originalPins.run_view, 'sha256:daf99c1333c71d5369c71b9581aaefb894e3d71806def43f6da2db4c76094c15');
+  const precedingPins = {...originalPins,
+    plan_view: 'sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4',
+    control_interval: 'sha256:96c7f78a4f3b7fa1c28767a62af8bb2b30d9b0e6d149221637161fa661caaa27',
+    control_command: 'sha256:3652d5b0ccd085bcb7077cae918e6c802fa6d8e7d2ef57fdf533b591bcb23365',
+    controlled_run_state: 'sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c',
+    run_view: 'sha256:080a02459f184f92fb956141c2105b3ea36d0ac7f2efd02f06dcc9ac4b08a293'};
+  assert.equal(createHash('sha256').update(canonicalText(precedingPins)).digest('hex'),
     '873792c429fd20181e9b5959992af3172cbfad5bc4954d6b240f0978ca690beb');
   assert.equal(Object.hasOwn(registry.identity_domains, 'static_explanation_view'), false);
   const binding = {program_definition_cid: effectfulStaticPlan.program_definition_cid,

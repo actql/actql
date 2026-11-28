@@ -33,7 +33,8 @@ class StoreReconciliationTests(unittest.TestCase):
         core, record, publisher, projection, facts, calls, state, metadata = helper.bridge(root, reader, result=0, binding_index=0)
         facts.validate()
         state.update(publisher=0, lookup=0, observation=0, advance=0, ready=1, work=2,
-                     finish=4, borrow=True, transfer_cleanup=True, workspace_cleanup=True)
+                     finish=4, borrow=True, transfer_cleanup=True, workspace_cleanup=True,
+                     exact_index=0)
         workspaces, projected = {}, {}
         packets = []
         original_call = core._call
@@ -55,7 +56,9 @@ class StoreReconciliationTests(unittest.TestCase):
                 return state['publisher']
             if family == 'publication':
                 calls.append((family, name, args))
-                if name in ('prepare_lookup', 'prepare_observation'):
+                if name == 'observation_exact_index':
+                    return state['exact_index']
+                if name in ('prepare_lookup', 'prepare_observation', 'prepare_exact_observation'):
                     self.assertEqual((args[0], args[2], args[3]), (23, 17, 31))
                     packets.append((name, core._inputs[args[1] - 500].payload))
                     return state['lookup' if name == 'prepare_lookup' else 'observation']

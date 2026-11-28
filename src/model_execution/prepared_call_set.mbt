@@ -237,6 +237,49 @@ pub fn bind_prepared_model_scope(
 }
 
 ///|
+/// Attach the installed physical port to the completed, still unsent Plans.
+/// This retains the same request bodies and grants no Entry or send. The
+/// Host funds the replacement invocation carriers before binding its port.
+pub fn bind_prepared_model_http_chat_transport(
+  value : ModelPreparedCallSet,
+  provider : AdmittedStructuredModelProvider,
+  start : ModelHttpChatStart,
+) -> Result[Unit, ModelExecutionIssue] {
+  let state = value.owner.state
+  if check_model_original_resources_mutable(state) is Err(issue) {
+    return Err(issue)
+  }
+  guard prepared_model_current(value) &&
+    state.durable_calls &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.entry is None &&
+    state.progress.call is None &&
+    state.progress.settlement is None &&
+    state.attempt_slots.is_empty() &&
+    state.enter_call is None &&
+    state.enter_persistence is None &&
+    !state.physical_plans.is_empty() &&
+    state.source is Provider(actual) &&
+    physical_equal(actual, provider.capability.provider) else {
+    return Err(CallEntryRefused)
+  }
+  for (_, plan) in state.physical_plans {
+    guard plan.invocation is AsynchronousHttpChat(original, None) &&
+      physical_equal(original.provider, provider) &&
+      physical_equal(original.request, plan.request) else {
+      return Err(RequestIdentity)
+    }
+  }
+  let installed = Some(start)
+  for (_, plan) in state.physical_plans {
+    if plan.invocation is AsynchronousHttpChat(original, _) {
+      plan.invocation = AsynchronousHttpChat(original, installed)
+    }
+  }
+  Ok(())
+}
+
+///|
 pub fn bind_prepared_model_dispatch(
   value : ModelPreparedCallSet,
   admission : @publication_host.ClientInferDispatchAdmission,
@@ -289,6 +332,11 @@ fn check_prepared_model_dispatch(
     @publication_host.client_infer_dispatch_subject(admission) ==
     @publication.model_invocation_scope_cid(scope) else {
     return Err(RequestIdentity)
+  }
+  for (_, plan) in state.physical_plans {
+    if plan.invocation is AsynchronousHttpChat(_, None) {
+      return Err(CallEntryRefused)
+    }
   }
   match @publication_host.check_client_infer_dispatch_current(admission) {
     Err(issue) => return Err(Authorization(issue))

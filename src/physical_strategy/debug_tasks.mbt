@@ -35,6 +35,18 @@ pub fn prepare_checked_debug_dag(
     Ok(value) => value
     Err(issue) => return Err(Graph(issue))
   }
+  expand_debug_logical_dag(logical, max_tasks, remaining)
+}
+
+///|
+// Both callers admit their original program owner before sharing this split.
+// For Effects the checked private Result inputs are already roots here.
+fn expand_debug_logical_dag(
+  logical : CheckedDAG,
+  max_tasks : Int,
+  remaining : Int,
+) -> Result[CheckedDAG, DebugTaskGraphIssue] {
+  let program = logical.program
   let work = Ref(remaining)
   try {
     let boundaries : Array[Int?] = []

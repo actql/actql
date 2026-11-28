@@ -12,6 +12,7 @@ pub(all) enum InstalledRelationSampleEntryCommand {
   PrepareEntry
   ResumeEntryStep(Int)
   ResumeEntryTerminal(Int)
+  ResumeEntryBreakpoint(Int)
 }
 
 ///|
@@ -65,10 +66,14 @@ fn installed_relation_sample_start_matches(
 // receiver until the transaction repeats the extent check (H7/R18/W10).
 // The checked Map CID is borrowed through the Core tuple, runtime receiver,
 // Journal reply and dispatch arguments into the suspended controller (R6).
+// The checked profile proof handoff and journal insert retain two records,
+// their string references, a bound-parameter vector and its scalar extents
+// (H2/R12/W4). The issuer funds the variable proof bind copies before handing
+// off the wires. The selected Journal extent funds reads of the original row.
 let installed_relation_sample_start_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 175L,
-    reference_slots: 534L,
-    scalar_words: 222L,
+    record_headers: 177L,
+    reference_slots: 546L,
+    scalar_words: 226L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
@@ -331,6 +336,8 @@ pub fn advance_installed_relation_sample_start_control(
 ///|
 /// Prepare a stop-on-entry profile, then activate only its exact acknowledged
 /// start. The existing Journal owner supplies the accepted command and revision.
+/// A marked interval also rechecks the same acknowledged control admission
+/// and resolved profile after its physical control work is funded.
 pub fn advance_installed_relation_sample_debug_entry(
   profile : ClientCheckedRelationSampleProfile,
   owner : ClientInstalledManagedRun,
@@ -339,12 +346,13 @@ pub fn advance_installed_relation_sample_debug_entry(
   principal : String,
   connection : String,
   command : InstalledRelationSampleEntryCommand,
+  acknowledge_breakpoint? : (String, String, String) -> Bool,
 ) -> Result[Unit, InstalledRelationSampleStartIssue] {
   if !physical_equal(profile.captured, captured) ||
     !installed_relation_sample_profile_current(owner, profile) {
     return Err(ForeignSampleStart)
   }
-  guard profile.start_mode is PausedEntry else {
+  guard profile.start_mode is (PausedEntry | PausedBeforeBreakpoint(_, _, _, _)) else {
     return Err(SampleStartRequiresControl)
   }
   let selected : @strategy.CapturedTaskControlCommand = match command {
@@ -354,21 +362,55 @@ pub fn advance_installed_relation_sample_debug_entry(
       }
       Pause
     }
-    ResumeEntryStep(revision) | ResumeEntryTerminal(revision) => {
+    ResumeEntryStep(revision)
+    | ResumeEntryTerminal(revision)
+    | ResumeEntryBreakpoint(revision) => {
       if !@strategy.captured_relation_sample_start_matches_revision(
           captured, revision,
         ) {
         return Err(SampleStartRequiresControl)
       }
-      if command is ResumeEntryStep(_) {
-        ResumeStep
-      } else {
-        ResumeTerminal
+      match (command, profile.start_mode) {
+        (ResumeEntryStep(_), _) => ResumeStep
+        (ResumeEntryTerminal(_), PausedEntry) => ResumeTerminal
+        (
+          ResumeEntryBreakpoint(_),
+          PausedBeforeBreakpoint(stage, operation, _, _),
+        ) => ResumeBefore(stage, operation)
+        _ => return Err(SampleStartRequiresControl)
       }
     }
   }
+  let acknowledge = match
+    (acknowledge_breakpoint, command, profile.start_mode) {
+    (
+      Some(check),
+      ResumeEntryBreakpoint(revision),
+      PausedBeforeBreakpoint(_, _, step, _),
+    ) =>
+      Some(() => {
+        installed_relation_sample_profile_current(owner, profile) &&
+        @strategy.captured_relation_sample_start_matches_revision(
+          captured, revision,
+        ) &&
+        check(profile.control_admission_cid, profile.resolved_profile_cid, step) &&
+        installed_relation_sample_profile_current(owner, profile) &&
+        @strategy.captured_relation_sample_start_matches_revision(
+          captured, revision,
+        )
+      })
+    (_, ResumeEntryBreakpoint(_), _) | (Some(_), _, _) =>
+      return Err(SampleStartRequiresControl)
+    (None, _, _) => None
+  }
   advance_installed_relation_sample_control(
-    profile, captured, account, principal, connection, selected,
+    profile,
+    captured,
+    account,
+    principal,
+    connection,
+    selected,
+    acknowledge_breakpoint?=acknowledge,
   )
 }
 
@@ -381,7 +423,7 @@ pub fn installed_relation_sample_debug_entry_step(
 ) -> String {
   guard physical_equal(profile.captured, captured) &&
     installed_relation_sample_profile_current(owner, profile) &&
-    profile.start_mode is PausedEntry &&
+    profile.start_mode is (PausedEntry | PausedBeforeBreakpoint(_, _, _, _)) &&
     @strategy.captured_task_boundary_hooks(captured) is Some(hooks) &&
     @strategy.captured_task_control_entry_task(captured, hooks) is Some(task) &&
     profile.driver_outputs.get(task) is Some((step, _, _)) else {
@@ -404,7 +446,7 @@ pub fn installed_relation_sample_debug_entry_runnable(
     Err(issue) => return Err(issue)
   }
   match @strategy.captured_task_control_state(captured, hooks) {
-    Ok((_, Running | Stepping(_))) => Ok(true)
+    Ok((_, Running | Stepping(_) | RunningToBreakpoint(_))) => Ok(true)
     Ok((_, Paused)) => Ok(false)
     Ok(_) => Err(SampleStartControl(@strategy.InvalidTransition))
     Err(issue) => Err(SampleStartControl(issue))
@@ -425,7 +467,7 @@ fn installed_debug_task_control(
     installed_relation_sample_profile_current(owner, profile) else {
     return Err(ForeignSampleStart)
   }
-  guard profile.start_mode is PausedEntry &&
+  guard profile.start_mode is (PausedEntry | PausedBeforeBreakpoint(_, _, _, _)) &&
     @strategy.captured_relation_sample_start_matches_revision(
       captured, start_revision,
     ) else {
@@ -476,6 +518,7 @@ pub(all) enum InstalledRelationSampleNextInputIssue {
   NextInputForeignOriginal
   NextInputStalePause
   NextInputWorkLimit
+  NextInputCapacity(@resources.LedgerIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -530,6 +573,71 @@ pub fn installed_relation_sample_debug_next_input(
 }
 
 ///|
+/// Visit the scalar bindings for a continuation cut while its one original
+/// Task controller is still parked. The synchronous visitor owns any copies
+/// it retains, and must discard them if the original pause fails this check.
+pub fn visit_installed_relation_sample_debug_next_inputs(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  start_revision : Int,
+  control_revision : Int,
+  pause_generation : Int,
+  next_step_id : String,
+  max_work : Int,
+  visit : (Int, String, String, String, Int, Int) -> Bool,
+) -> Result[Unit, InstalledRelationSampleNextInputIssue] {
+  let hooks = match
+    installed_debug_task_control(profile, owner, captured, start_revision) {
+    Ok(value) => value
+    Err(ForeignSampleStart) => return Err(NextInputForeignOriginal)
+    Err(_) => return Err(NextInputStalePause)
+  }
+  let mut current = true
+  let result = @strategy.visit_captured_paused_next_sample_inputs(
+    captured,
+    hooks,
+    control_revision,
+    pause_generation,
+    max_work,
+    (ordinal, edge, start, generation, attempt) => {
+      if !current {
+        return
+      }
+      guard start == start_revision &&
+        profile.driver_outputs.get(edge.consumer) is Some((consumer, _, _)) &&
+        consumer == next_step_id &&
+        installed_relation_sample_profile_current(owner, profile) else {
+        current = false
+        return
+      }
+      if profile.driver_outputs.get(edge.producer)
+        is Some((producer, output, contract)) {
+        current = visit(
+          ordinal, producer, output, contract, generation, attempt,
+        )
+      }
+    },
+  )
+  result
+  .map_err(issue => {
+    match issue {
+      @strategy.InputWorkLimit => NextInputWorkLimit
+      @strategy.InputCapacity(cause) => NextInputCapacity(cause)
+      @strategy.InvalidDependency => NextInputForeignOriginal
+      _ => NextInputStalePause
+    }
+  })
+  .bind(_ => {
+    if current && installed_relation_sample_profile_current(owner, profile) {
+      Ok(())
+    } else {
+      Err(NextInputStalePause)
+    }
+  })
+}
+
+///|
 /// Check the installed Account before accepting a durable resume. Physical
 /// activation still binds the same tuple, subject and context at handoff.
 pub fn installed_relation_sample_debug_resume_allowed(
@@ -542,10 +650,10 @@ pub fn installed_relation_sample_debug_resume_allowed(
 ) -> Bool {
   physical_equal(profile.captured, captured) &&
   installed_relation_sample_profile_current(owner, profile) &&
-  profile.start_mode is PausedEntry &&
+  profile.start_mode is (PausedEntry | PausedBeforeBreakpoint(_, _, _, _)) &&
   @authorization.evaluate_account(
     account,
-    installed_relation_sample_control_tuple(principal, connection, false),
+    installed_debug_control_tuple(principal, connection, false),
   )
   is Allow(_)
 }
@@ -595,6 +703,175 @@ pub fn resume_installed_relation_sample_debug_task(
 }
 
 ///|
+/// Read candidates for the exact installed live park from its checked graph.
+/// The Account must still admit Resume. The caller owns publication.
+pub fn visit_installed_relation_sample_breakpoint_targets(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+  start_revision : Int,
+  control_revision : Int,
+  committed_generation : Int,
+  next_step_id : String,
+  logical_map_cid : String,
+  max_work : Int,
+  visit : (String) -> Bool,
+) -> Result[Unit, InstalledRelationSampleStartIssue] {
+  if profile.logical_map_cid != logical_map_cid {
+    return Err(ForeignSampleStart)
+  }
+  guard installed_relation_sample_debug_resume_allowed(
+    profile, owner, captured, account, principal, connection,
+  ) else {
+    return Err(SampleStartControl(@strategy.AuthorizationMismatch))
+  }
+  let hooks = match
+    installed_debug_task_control(profile, owner, captured, start_revision) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  @strategy.visit_captured_task_breakpoint_targets(
+    captured,
+    hooks,
+    control_revision,
+    committed_generation,
+    max_work,
+    (next, task) => {
+      guard installed_relation_sample_profile_current(owner, profile) &&
+        profile.driver_outputs.get(next) is Some((original_next, _, _)) &&
+        original_next == next_step_id else {
+        return false
+      }
+      match profile.driver_outputs.get(task) {
+        Some((step, _, _)) => visit(step)
+        None => true
+      }
+    },
+  ).map_err(issue => SampleStartControl(issue))
+}
+
+///|
+/// Resolve the original Step IDs against the funded installed output index.
+/// Only the selected original Run can lend this plan and paused controller.
+pub fn continue_installed_relation_sample_debug_to_breakpoint(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+  start_revision : Int,
+  control_revision : Int,
+  step_id : String,
+  next_step_id : String,
+  committed_generation : Int,
+  logical_map_cid : String,
+  before_step_ids : ReadOnlyArray[String],
+  acknowledge : (String) -> Bool,
+) -> Result[Unit, InstalledRelationSampleStartIssue] {
+  if profile.logical_map_cid != logical_map_cid {
+    return Err(ForeignSampleStart)
+  }
+  guard installed_relation_sample_debug_resume_allowed(
+    profile, owner, captured, account, principal, connection,
+  ) else {
+    return Err(SampleStartControl(@strategy.AuthorizationMismatch))
+  }
+  let graph = @strategy.captured_dag_graph(captured)
+  let tasks = @strategy.graph_task_count(graph)
+  let count = before_step_ids.length()
+  // Fund the existing readiness observation before borrowing the paused
+  // position: it may scan every edge for each unfinished task. The remaining
+  // work covers the bounded Step lookups and one stage-coordinate scan.
+  let readiness = @strategy.graph_data_count(graph).to_int64() +
+    @strategy.graph_control_count(graph).to_int64()
+  let per_task = 3L + count.to_int64() + readiness
+  if count <= 0 || count > 64 || per_task > 2147483647L {
+    return Err(SampleStartControl(@strategy.Resource(@resources.PlanningLimit)))
+  }
+  let stages = @checked.unit_count(@strategy.graph_program(graph)).to_int64()
+  let work = 1L + stages + (tasks.to_int64() + 1L) * per_task
+  if work > 2147483647L {
+    return Err(SampleStartControl(@strategy.Resource(@resources.PlanningLimit)))
+  }
+  match
+    @resources.charge_planning(
+      @strategy.captured_dag_ledger(captured),
+      work.to_int(),
+    ) {
+    Err(issue) => return Err(SampleStartControl(@strategy.Resource(issue)))
+    Ok(_) => ()
+  }
+  if !installed_relation_sample_profile_current(owner, profile) {
+    return Err(ForeignSampleStart)
+  }
+  match
+    installed_relation_sample_debug_task_pause(
+      profile, owner, captured, start_revision,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok((revision, original_step, original_next, generation)) =>
+      if revision != control_revision ||
+        original_step != step_id ||
+        original_next != next_step_id ||
+        generation != committed_generation {
+        return Err(SampleStartControl(@strategy.StaleRevision))
+      }
+  }
+  // The current checked Next identifies the physical index used for order.
+  let mut next_task = -1
+  for task in 0..<tasks {
+    if profile.driver_outputs.get(task) is Some((original, _, _)) &&
+      original == next_step_id {
+      next_task = task
+      break
+    }
+  }
+  if next_task < 0 {
+    return Err(SampleStartControl(@strategy.BoundaryUnavailable(next_task)))
+  }
+  let mut selected = tasks
+  let mut selected_step = ""
+  for breakpoint in before_step_ids {
+    let mut task = -1
+    for index in 0..<tasks {
+      if profile.driver_outputs.get(index) is Some((original, _, _)) &&
+        original == breakpoint {
+        task = index
+        break
+      }
+    }
+    if task < 0 {
+      return Err(SampleStartControl(@strategy.BoundaryUnavailable(task)))
+    }
+    if task > next_task && task < selected {
+      selected = task
+      selected_step = breakpoint
+    }
+  }
+  guard selected < tasks &&
+    @strategy.graph_task_unit_index(graph, selected) is Some(stage) else {
+    return Err(SampleStartControl(@strategy.BoundaryUnavailable(-1)))
+  }
+  let operation = @strategy.graph_task_selected_step(graph, selected).unwrap_or(
+    0,
+  )
+  advance_installed_relation_sample_control(
+    profile,
+    captured,
+    account,
+    principal,
+    connection,
+    @strategy.ResumeBefore(stage, operation),
+    expected_revision=control_revision,
+    acknowledge_breakpoint=() => acknowledge(selected_step),
+  )
+}
+
+///|
 fn advance_installed_relation_sample_control(
   profile : ClientCheckedRelationSampleProfile,
   captured : @strategy.CapturedDAG,
@@ -603,12 +880,13 @@ fn advance_installed_relation_sample_control(
   connection : String,
   command : @strategy.CapturedTaskControlCommand,
   expected_revision? : Int = 0,
+  acknowledge_breakpoint? : () -> Bool,
 ) -> Result[Unit, InstalledRelationSampleStartIssue] {
   let subject = @publication.publication_contract_identity(profile.definition)
   let context = @publication.run_publication_execution_context(
     @publication_host.client_compiled_run_admission(profile.compiled),
   )
-  let tuple = installed_relation_sample_control_tuple(
+  let tuple = installed_debug_control_tuple(
     principal,
     connection,
     command is Pause,
@@ -628,8 +906,16 @@ fn advance_installed_relation_sample_control(
       return Err(SampleStartControl(@strategy.NotPrepared))
     }
     return @strategy.command_captured_task_control(
-      captured, hooks, expected_revision, command, authorized, account, tuple, subject,
+      captured,
+      hooks,
+      expected_revision,
+      command,
+      authorized,
+      account,
+      tuple,
+      subject,
       context,
+      acknowledge_breakpoint?,
     ).map_err(issue => SampleStartControl(issue))
   }
   let hooks = match
@@ -647,7 +933,7 @@ fn advance_installed_relation_sample_control(
 }
 
 ///|
-fn installed_relation_sample_control_tuple(
+fn installed_debug_control_tuple(
   principal : String,
   connection : String,
   pause : Bool,

@@ -88,12 +88,27 @@ class SDKReadStoreProjectionTests(unittest.TestCase):
         previous = core._call
         outputs = {}
         def call(family, name, *args):
-            if family == 'publication_commit_export' and name == 'produce_sdk_read_' + kind:
+            if family == 'publication_commit_export' and kind == 'delivery_storage':
+                if name == 'measure_sdk_read_delivery_storage':
+                    calls.append((family, name, args))
+                    self.assertEqual(args[1:4], (29, 37, 31))
+                    return state['produce'] or len(body)
+                if name == 'emit_sdk_read_delivery_storage':
+                    calls.append((family, name, args))
+                    output, first, current = args
+                    self.assertEqual(current, 31)
+                    self.assertEqual(first, projection.pending_outputs[0].handle)
+                    self.assertEqual(projection.pending_outputs[0].limit, 1)
+                    self.assertEqual(projection.pending_outputs[1].limit, len(body))
+                    outputs[output] = body
+                    return 0
+            if (kind != 'delivery_storage' and family == 'publication_commit_export'
+                    and name == 'produce_sdk_read_' + kind):
                 calls.append((family, name, args))
                 self.assertEqual(args[1:4], (29, 37, 31))
                 if state['produce']:
                     return state['produce']
-                outputs[args[0]] = body if kind in ('evidence_decision', 'delivery_storage') or args[4] == 0 else identity
+                outputs[args[0]] = body if kind == 'evidence_decision' or args[4] == 0 else identity
                 return 0
             if family == 'publication_commit_export' and name == 'length' and args[0] in outputs:
                 return len(outputs[args[0]])
@@ -124,6 +139,7 @@ class SDKReadStoreProjectionTests(unittest.TestCase):
         def consume(raw):
             self.assertEqual(raw, body)
             self.assertEqual(len(projection.pending_outputs), 1)
+            self.assertEqual(projection.pending_outputs[0].limit, 393_472)
             consumed.append(True)
         projection.project_sdk_read_evidence_decision(request, 37, consume)
         self.assertEqual(consumed, [True])

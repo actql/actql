@@ -32,6 +32,8 @@ pub fn cancel_captured_file_locator(CapturedFileLocator) -> Unit
 
 pub fn cancel_captured_source_cell_identity(CapturedSourceCellIdentityScan) -> Bool
 
+pub fn cancel_captured_source_cell_identity_after_unwind(CapturedSourceCellIdentityScan) -> Unit
+
 pub fn cancel_captured_source_identity_scan(CapturedSourceIdentityScan) -> Bool
 
 pub fn[P] capture_verified_source(TrustedCapturePort[P], P) -> Result[CapturedInputSource, CapturedSourceIssue]

@@ -35,6 +35,7 @@ struct ClientInstalledManagedRun {
   mut preparation_retirement : ClientManagedPreparationCustody?
   mut source_free_captured : @strategy.CapturedDAG?
   mut source_free_opening : Bool
+  mut effect_debug_map : ClientInstalledEffectDebugMap?
   mut sample_start_journal_bytes : Int
   mut publication_invocation_started : Bool
   mut publication_definition : @publication.PublicationContract?
@@ -1011,6 +1012,7 @@ fn new_installed_managed_run_owned(
     source_free_captured: None,
     source_free_opening: false,
     sample_start_journal_bytes: 0,
+    effect_debug_map: None,
     publication_invocation_started: false,
     publication_definition: None,
     publication_invocation: None,
@@ -1658,19 +1660,99 @@ pub fn quiesce_installed_managed_run(
 pub fn retire_installed_managed_run(
   value : ClientInstalledManagedRun,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  retire_installed_managed_run_impl(value, false).map(_ => ())
+}
+
+///|
+/// Array-only canonical Resource writer, scoped snapshot, returned String
+/// and its fixed JS handoff. The Journal separately funds hashing and storage.
+pub fn installed_debug_ledger_wire_backing() -> Int {
+  let writer = @encode.text_writer_live_key_inventory(2048, 0, 8).unwrap()
+  @execution.preparation_representation_cost({
+    record_headers: writer.record_headers + 24L,
+    reference_slots: writer.reference_slots + 48L,
+    scalar_words: writer.scalar_words + 96L,
+    owned_utf16_units: writer.owned_utf16_units + 2048L,
+    owned_wire_bytes: 2048L,
+  })
+  .unwrap()
+  .to_int()
+}
+
+///|
+/// Co-count the admitted JSON tree, scalar original and canonical comparison
+/// on the caller's already bounded recovery Read, before starting the Node child.
+pub fn installed_debug_ledger_read_backing() -> Int {
+  let read = program_artifact_parse_layout((2048, 64, 8)).unwrap()
+  let peak = @execution.compose_preparation_representation([
+    read.value,
+    read.temporary,
+  ]).unwrap()
+  @execution.preparation_representation_cost(peak).unwrap().to_int() +
+  installed_debug_ledger_wire_backing()
+}
+
+///|
+/// Admit the fixed canonical accounting data. Its exact Journal and Run
+/// association and current resume authority remain with the calling Host.
+pub fn admit_installed_debug_ledger_wire(
+  wire : String,
+) -> Result[
+  @resources.LedgerContinuationState,
+  @resources.LedgerContinuationIssue,
+] {
+  guard wire.length() > 0 &&
+    wire.length() <= 2048 &&
+    @source.parse_json(wire, {
+      max_input_bytes: 2048,
+      max_nodes: 64,
+      max_depth: 8,
+    })
+    is Ok(value) &&
+    @decode.admit(value, {
+      max_nodes: 64,
+      max_depth: 8,
+      max_string_bytes: 64,
+      max_total_string_bytes: 2048,
+    })
+    is Ok(cursor) &&
+    @resources.admit_quiescent_ledger_state(cursor) is Ok(saved) &&
+    @resources.encode_ledger_continuation_state(saved) == Ok(wire) else {
+    return Err(InvalidRecord)
+  }
+  Ok(saved)
+}
+
+///|
+/// Selected source-free Debug retirement. The Host funds the fixed codec and
+/// its returned wire in an enclosing installation scope before invoking this.
+pub fn retire_installed_debug_run_with_ledger(
+  value : ClientInstalledManagedRun,
+) -> Result[String?, ClientInstalledManagedRunIssue] {
+  retire_installed_managed_run_impl(value, true)
+}
+
+///|
+fn retire_installed_managed_run_impl(
+  value : ClientInstalledManagedRun,
+  capture_ledger : Bool,
+) -> Result[String?, ClientInstalledManagedRunIssue] {
   match quiesce_installed_managed_run(value) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   if value.ledger is None {
-    return Ok(())
+    return Ok(None)
   }
+  // The dispatch owner has already closed its captured work. Cut the Map
+  // alias before returning the same adopted Plan's retained reservation.
+  value.effect_debug_map = None
   if value.preparation_retirement is Some(original) {
     return match original {
       PurePreparation(original) =>
-        retire_preparation_owned_installed_run(value, original)
+        retire_preparation_owned_installed_run(value, original, capture_ledger)
       EffectPlanPreparation(original) =>
-        retire_preparation_owned_installed_run(value, original)
+        retire_preparation_owned_installed_run(value, original, false)
     }
   }
   // Use the original admission's complete cleanup path too. It retains an
@@ -1703,7 +1785,7 @@ pub fn retire_installed_managed_run(
   value.source_free_preparation = None
   value.captured_preparation = None
   value.source_free_captured = None
-  Ok(())
+  Ok(None)
 }
 
 ///|

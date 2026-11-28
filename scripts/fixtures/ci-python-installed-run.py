@@ -8,17 +8,13 @@ original exception are retained; no operation is repeated.
 """
 from __future__ import annotations
 
-import _thread
 from collections import deque
 from concurrent.futures import Future
-from itertools import islice
 import json
 from pathlib import Path
 import runpy
 import sys
 import traceback
-import threading
-import weakref
 from types import FunctionType, MappingProxyType, ModuleType
 
 
@@ -162,133 +158,7 @@ def same_frame_cancellation_kind(frames, requested, wire_fields):
     return matches[0] if matches and all(item == matches[0] for item in matches) else None
 
 
-class _TaskRetirementObservation:
-    """Bounded CI samples inside the original allowance, never another close.
-
-    Samples own only scalars and nonowning work associations. Reporting after
-    failure does not enter Core after the worker returned its operation scope.
-    """
-
-    def __init__(self):
-        self.samples = [None] * MAX_WORK_RECORDS
-        self.count, self.overflow, self.failed = 0, False, False
-        self.active, self.installed, self.restored = False, False, False
-        self.previous = (sys.getprofile(), threading.getprofile())
-        self.profile = self._profile
-
-    def __enter__(self):
-        if any(previous is not None for previous in self.previous):
-            self.failed = True
-            return self
-        self.installed = True
-        try:
-            sys.setprofile(self.profile)
-            threading.setprofile(self.profile)
-            self.active = True
-        except BaseException:
-            self.failed = True
-            self._finish()
-        return self
-
-    def _finish(self):
-        self.active = False
-        if not self.installed:
-            return
-        for restore, previous in ((sys.setprofile, self.previous[0]),
-                                  (threading.setprofile, self.previous[1])):
-            try:
-                restore(previous)
-            except BaseException:
-                self.failed = True
-        self.restored = (sys.getprofile() is self.previous[0]
-                         and threading.getprofile() is self.previous[1])
-        self.installed = False
-
-    def __exit__(self, kind, primary, trace):
-        self._finish()
-        return False
-
-    def _profile(self, frame, event, returned):
-        if not self.active or event != 'return' or returned is not False:
-            return
-        try:
-            product = sys.modules.get('actql_sdk._local_product')
-            core_module = sys.modules.get('actql_sdk._local_core')
-            work_module = sys.modules.get('actql_sdk._local_work')
-            if not all(type(module) is ModuleType for module in (product, core_module, work_module)):
-                return
-            core_type, task_type = (vars(core_module).get('LocalCore'), vars(core_module).get('_Task'))
-            close = vars(core_type).get('close_task') if type(core_type) is type else None
-            if type(close) is not FunctionType or frame.f_code is not close.__code__:
-                return
-            core, task = frame.f_locals.get('self'), frame.f_locals.get('value')
-            if (type(core) is not core_type or type(task) is not task_type
-                    or frame.f_locals.get('code') != -9):
-                return
-            state = vars(core)
-            retained, lock = state.get('_host_retained_work'), state.get('_lock')
-            if (type(retained) is not tuple or len(retained) != 3
-                    or type(lock) is not _thread.RLock or not lock._is_owned()
-                    or state.get('_invoking') is not False
-                    or state.get('_ordinary_host') is not True
-                    or state.get('_host_fuel_phase') != 'operation'
-                    or retained[1] is not state.get('_host_operation_scope')
-                    or type(retained[2]) is not int or retained[2] <= 0
-                    or retained[2] != state.get('_host_operation_id') or '_call' in state):
-                return
-            work = retained[0]
-            work_type = vars(work_module).get('OriginalLocalWork')
-            if (type(work) is not work_type or vars(work).get('_original') is not work
-                    or vars(work).get('_thread') is not threading.current_thread()):
-                return
-            future = vars(work).get('_future')
-            original = vars(work).get('_invoke')
-            if (type(future) is not Future or not future.running()
-                    or type(original) is not vars(product).get('_OriginalExecution')):
-                return
-            host = original.host
-            if (type(host) is not vars(product).get('InstalledLocalHost')
-                    or vars(host).get('_original') is not host or vars(host).get('_core') is not core
-                    or original.run is not vars(work).get('_owner')
-                    or type(original.tasks) is not list or len(original.tasks) > MAX_WORK_RECORDS
-                    or not any(value is task for value in original.tasks)
-                    or task.owner is not state.get('_identity')
-                    or type(state.get('_task_loans')) is not dict
-                    or state['_task_loans'].get(task.handle) is not task):
-                return
-            if self.count == MAX_WORK_RECORDS:
-                self.overflow = True
-                return
-            slot = self.count
-            self.count += 1  # Reserve the bounded diagnostic slot BEFORE guest entries.
-            # The same worker and outer retirement lock still own the original
-            # operation. These reads do not create a scope or replenish fuel.
-            stage = core._call('task', 'progress', task.handle, 6)
-            cleanup = core._call('task', 'progress', task.handle, 7)
-            issue = core._call('task', 'issue', task.handle)
-            if any(type(code) is not int or not -(1 << 31) <= code < (1 << 31)
-                   for code in (stage, cleanup, issue)):
-                self.failed = True
-                return
-            self.samples[slot] = (weakref.ref(work), stage, cleanup, issue)
-        except BaseException:
-            # Never format, retain or replace an optional diagnostic exception.
-            self.failed = True
-
-    def snapshot(self, work):
-        records = [{'stage_code': item[1], 'cleanup_issue_code': item[2],
-                    'execution_issue_code': item[3]}
-                   for item in self.samples if item is not None and item[0]() is work]
-        refusal = next((code for item in records for code in
-                        (item['stage_code'], item['cleanup_issue_code']) if code < 0), None)
-        return {'scope': 'post-close-current-snapshot',
-                'available': bool(records) and self.restored and not self.failed
-                             and not self.overflow and refusal is None,
-                'observation_failed': self.failed, 'overflow': self.overflow,
-                'profilers_restored': self.restored, 'refusal_code': refusal, 'tasks': records}
-
-
-def selected_local_work(failure: BaseException, *, task_retirement=None):
+def selected_local_work(failure: BaseException):
     """Observe only an already-selected original; never wait or invoke it."""
     product = sys.modules.get('actql_sdk._local_product')
     core_module = sys.modules.get('actql_sdk._local_core')
@@ -434,65 +304,11 @@ def selected_local_work(failure: BaseException, *, task_retirement=None):
         errors = [(original, 'physical-original'),
                   (work.get('_cleanup_error'), 'physical-cleanup'),
                   (work.get('_exit_error'), 'physical-exit')]
-        if type(task_retirement) is _TaskRetirementObservation:
-            bits['task_retirement'] = task_retirement.snapshot(selected[0])
         return bits, [(error, role) for error, role in errors if isinstance(error, BaseException)]
     return None
 
 
-def captured_task_retirement(failure: BaseException, observer):
-    """Associate existing samples, never reconstruct current debt after close."""
-    if type(observer) is not _TaskRetirementObservation:
-        return None
-    samples = vars(observer).get('samples')
-    if type(samples) is not list or len(samples) != MAX_WORK_RECORDS:
-        return None
-    modules = [sys.modules.get(name) for name in
-               ('actql_sdk._local_product', 'actql_sdk._local_core', 'actql_sdk._local_work')]
-    if not all(type(module) is ModuleType for module in modules):
-        return None
-    product, core_module, work_module = map(vars, modules)
-    pending, stop_type, execution_type = (product.get('LocalProductCleanupPending'),
-        product.get('_OriginalCancellationStop'), product.get('_OriginalExecution'))
-    host_type, core_type, work_type = (product.get('InstalledLocalHost'),
-        core_module.get('LocalCore'), work_module.get('OriginalLocalWork'))
-    if not all(type(kind) is type for kind in
-               (pending, stop_type, execution_type, host_type, core_type, work_type)):
-        return None
-    run_method, invoke_method = vars(work_type).get('_run'), vars(execution_type).get('__call__')
-    if (type(failure) is not pending or type(failure.__context__) is not stop_type
-            or type(run_method) is not FunctionType or type(invoke_method) is not FunctionType):
-        return None
-    # Bound visits as well as storage. Missing frames leave evidence unavailable.
-    frames = tuple(islice(traceback.walk_tb(failure.__traceback__), MAX_FRAMES))
-    for frame, _ in frames:
-        if frame.f_code is not run_method.__code__ or frame.f_locals.get('failure') is not failure:
-            continue
-        work = frame.f_locals.get('self')
-        if type(work) is not work_type or vars(work).get('_original') is not work:
-            continue
-        fields = vars(work)
-        original, future = fields.get('_invoke'), fields.get('_future')
-        if (type(original) is not execution_type or type(future) is not Future
-                or vars(future).get('_exception') is not failure
-                or fields.get('_owner') is not original.run
-                or failure.__context__.original is not original):
-            continue
-        host = original.host
-        if (type(host) is not host_type or vars(host).get('_original') is not host
-                or type(vars(host).get('_core')) is not core_type
-                or vars(failure).get('cleanup_host') is not host
-                or not any(other.f_code is invoke_method.__code__
-                           and other.f_locals.get('self') is original
-                           and other.f_locals.get('work') is work for other, _ in frames)):
-            continue
-        return {'association': 'same-original-worker-traceback',
-                'sample_timing': 'original-task-close-return-before-worker-exit',
-                'live_selection': False, 'snapshot': observer.snapshot(work)}
-    return None
-
-
-def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> None:
+def report_contexts(failure: BaseException, stream) -> None:
     seen: set[int] = set()
     pending = [(failure, None)]
     emitted = 0
@@ -506,17 +322,10 @@ def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> 
                   for frame, line in deque(traceback.walk_tb(current.__traceback__), maxlen=MAX_FRAMES)]
         record = {'stage': 'installed-consumer-failure-location',
                   'exception_type': type(current).__name__[:MAX_LABEL], 'frames': frames}
-        try:
-            captured = captured_task_retirement(current, task_retirement)
-        except BaseException:
-            # Optional evidence must not format or replace the original failure.
-            captured = None
-        if captured is not None:
-            record['captured_task_retirement'] = captured
         if role is not None:
             record['failure_role'] = role
         try:
-            selected = selected_local_work(current, task_retirement=task_retirement)
+            selected = selected_local_work(current)
         except Exception:
             # A changed/malformed diagnostic snapshot never interrupts the
             # original bounded exception-chain report or changes its failure.
@@ -554,34 +363,11 @@ def report_contexts(failure: BaseException, stream, *, task_retirement=None) -> 
 
 
 def run_consumer(target: Path) -> None:
-    # Only these original failed cases select the optional observation. Existing
-    # profilers are never replaced, and setup failure cannot prevent execution.
-    args = sys.argv[1:]
-    selected = target.name == 'python-product-installed.py' and all(
-        args.count(flag) == 1 and args.index(flag) + 1 < len(args)
-        and args[args.index(flag) + 1] in expected
-        for flag, expected in (('--mode', ('local',)), ('--facade', ('sync', 'async')),
-                               ('--case', ('cancellation',)), ('--phase', ('initial',))))
-    observer = None
-    if selected:
-        try:
-            observer = _TaskRetirementObservation()
-            observer.__enter__()
-        except BaseException:
-            observer = None
     try:
-        try:
-            runpy.run_path(str(target), run_name='__main__')
-        finally:
-            if observer is not None:
-                try:
-                    observer.__exit__(None, None, None)
-                except BaseException:
-                    observer.failed = True
-        # The profiler is returned before any diagnostics or further execution.
+        runpy.run_path(str(target), run_name='__main__')
     except Exception as failure:
         try:
-            report_contexts(failure, sys.stderr, task_retirement=observer)
+            report_contexts(failure, sys.stderr)
         except Exception:
             # Diagnostics must never replace the original failure or retry it.
             pass

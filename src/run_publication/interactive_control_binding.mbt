@@ -147,6 +147,43 @@ pub fn check_interactive_logical_map_binding(
 }
 
 ///|
+fn match_interactive_step_selector(
+  step : @json.CanonicalValue,
+  selector : @json.CanonicalValue,
+  remaining : Int,
+) -> Result[(Bool, Int), RunEvidenceValueIssue] {
+  if remaining <= 0 {
+    return Err(RunEvidenceInvalidLimits)
+  }
+  let mut work = remaining - 1
+  let matches = match evidence_string(selector, "by") {
+    Some("id") =>
+      evidence_string(selector, "step_id") == evidence_string(step, "step_id")
+    Some("operator") =>
+      evidence_string(selector, "operator") == evidence_string(step, "operator")
+    Some("name") => {
+      guard @json.object_field(step, "names") is Some(@json.Array(names)) &&
+        evidence_string(selector, "name") is Some(name) else {
+        return Err(RunEvidenceInvalidShape)
+      }
+      for i in 0..<@json.array_count(names) {
+        if work == 0 {
+          return Err(RunEvidenceInvalidLimits)
+        }
+        work -= 1
+        if @json.array_at(names, i) is Some(@json.String(actual)) &&
+          actual == name {
+          return Ok((true, work))
+        }
+      }
+      false
+    }
+    _ => return Err(RunEvidenceInvalidShape)
+  }
+  Ok((matches, work))
+}
+
+///|
 // Match the checked Step before considering whether any of its output ports
 // can be retained. Charge each selector/name visit against the binding scan.
 fn interactive_sample_step_selected(
@@ -156,40 +193,119 @@ fn interactive_sample_step_selected(
 ) -> Result[(Bool, Int), RunEvidenceValueIssue] {
   let mut work = remaining
   for i in 0..<@json.array_count(targets) {
-    if work == 0 {
-      return Err(RunEvidenceInvalidLimits)
-    }
-    work -= 1
     let target = @json.array_at(targets, i).unwrap()
-    let selected = match evidence_string(target, "by") {
-      Some("id") =>
-        evidence_string(target, "step_id") == evidence_string(step, "step_id")
-      Some("operator") =>
-        evidence_string(target, "operator") == evidence_string(step, "operator")
-      Some("name") => {
-        guard @json.object_field(step, "names") is Some(@json.Array(names)) &&
-          evidence_string(target, "name") is Some(name) else {
-          return Err(RunEvidenceInvalidShape)
-        }
-        for j in 0..<@json.array_count(names) {
-          if work == 0 {
-            return Err(RunEvidenceInvalidLimits)
-          }
-          work -= 1
-          if @json.array_at(names, j) is Some(@json.String(actual)) &&
-            actual == name {
-            return Ok((true, work))
-          }
-        }
-        false
-      }
-      _ => return Err(RunEvidenceInvalidShape)
+    let (selected, rest) = match
+      match_interactive_step_selector(step, target, work) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
+    work = rest
     if selected {
       return Ok((true, work))
     }
   }
   Ok((false, work))
+}
+
+///|
+fn resolve_interactive_breakpoint_target(
+  target : @json.CanonicalValue,
+  steps : @json.FrozenArray[@json.CanonicalValue],
+  remaining : Int,
+) -> Result[((String, String, String), Int), RunEvidenceValueIssue] {
+  if remaining <= 0 {
+    return Err(RunEvidenceInvalidLimits)
+  }
+  let kind = evidence_string(target, "kind").unwrap()
+  let position = evidence_string(target, "position").unwrap()
+  let mut work = remaining - 1
+  if kind == "gate" {
+    return Ok(
+      ((kind, position, evidence_string(target, "gate_kind").unwrap()), work),
+    )
+  }
+  let selector = @json.object_field(target, "select").unwrap()
+  let mut match_id : String? = None
+  for j in 0..<@json.array_count(steps) {
+    let step = @json.array_at(steps, j).unwrap()
+    let (matches, rest) = match
+      match_interactive_step_selector(step, selector, work) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    work = rest
+    if matches {
+      if match_id is Some(_) {
+        return Err(RunEvidenceReferenceMismatch("control_admission.breakpoint"))
+      }
+      match_id = evidence_string(step, "step_id")
+    }
+  }
+  guard match_id is Some(id) else {
+    return Err(RunEvidenceReferenceMismatch("control_admission.breakpoint"))
+  }
+  Ok(((kind, position, id), work))
+}
+
+///|
+// Bind the resolved set to the effective profile and original logical map.
+// This resolves identities only. Actual stopping still needs the original
+// task/gate owner and its checked boundary.
+fn check_interactive_breakpoint_projection(
+  effective : @json.CanonicalValue,
+  resolved : @json.CanonicalValue,
+  steps : @json.FrozenArray[@json.CanonicalValue],
+  remaining : Int,
+) -> Result[Unit, RunEvidenceValueIssue] {
+  guard @json.object_field(effective, "execution") is Some(execution) &&
+    @json.object_field(execution, "breakpoints") is Some(@json.Array(targets)) &&
+    @json.object_field(resolved, "breakpoints") is Some(@json.Array(points)) else {
+    return Err(RunEvidenceInvalidShape)
+  }
+  if @json.array_count(targets) == 0 && @json.array_count(points) == 0 {
+    return Ok(())
+  }
+  let expected : Map[(String, String, String), Bool] = Map([])
+  let mut work = remaining
+  for i in 0..<@json.array_count(targets) {
+    let (key, rest) = match
+      resolve_interactive_breakpoint_target(
+        @json.array_at(targets, i).unwrap(),
+        steps,
+        work,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    work = rest
+    expected[key] = true
+  }
+  if @json.array_count(points) != expected.length() {
+    return Err(RunEvidenceReferenceMismatch("control_admission.breakpoint"))
+  }
+  for i in 0..<@json.array_count(points) {
+    if work <= 0 {
+      return Err(RunEvidenceInvalidLimits)
+    }
+    work -= 1
+    let point = @json.array_at(points, i).unwrap()
+    let kind = evidence_string(point, "kind").unwrap()
+    let position = evidence_string(point, "position").unwrap()
+    let id = evidence_string(
+      point,
+      if kind == "gate" {
+        "gate_kind"
+      } else {
+        "step_id"
+      },
+    ).unwrap()
+    let key = (kind, position, id)
+    if !expected.contains(key) {
+      return Err(RunEvidenceReferenceMismatch("control_admission.breakpoint"))
+    }
+    expected.remove(key)
+  }
+  Ok(())
 }
 
 ///|
@@ -280,14 +396,12 @@ fn checked_interactive_admission_outputs(
     @json.Array(steps) => steps
     _ => return Err(RunEvidenceInvalidShape)
   }
-  let step_ids : Map[String, Bool] = Map([])
   let output_ids : Map[String, Bool] = Map([])
   let retain = @json.object_field(effective.value, "retain").unwrap()
   let samples = @json.object_field(retain, "samples")
   let mut remaining = max_nodes
   for i in 0..<@json.array_count(steps) {
     let step = @json.array_at(steps, i).unwrap()
-    step_ids[evidence_string(step, "step_id").unwrap()] = true
     guard samples is Some(samples) else { continue }
     if evidence_string(samples, "capture_scope") == Some("selected_outputs") {
       guard @json.object_field(samples, "targets") is Some(@json.Array(targets)) else {
@@ -312,15 +426,15 @@ fn checked_interactive_admission_outputs(
       }
     }
   }
-  if @json.object_field(resolved.value, "breakpoints")
-    is Some(@json.Array(points)) {
-    for i in 0..<@json.array_count(points) {
-      let point = @json.array_at(points, i).unwrap()
-      if evidence_string(point, "kind") == Some("logical_step") &&
-        !step_ids.contains(evidence_string(point, "step_id").unwrap()) {
-        return Err(RunEvidenceReferenceMismatch("control_admission.breakpoint"))
-      }
-    }
+  match
+    check_interactive_breakpoint_projection(
+      effective.value,
+      resolved.value,
+      steps,
+      remaining,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   if @json.object_field(resolved.value, "sample_output_port_ids")
     is Some(@json.Array(ports)) {
@@ -458,6 +572,89 @@ pub fn interactive_profile_requires_entry_stop(
 }
 
 ///|
+/// Only a bounded, explicit before-Step profile can select the entry interval.
+pub fn interactive_profile_requires_breakpoint_entry(
+  profile : RunEvidenceValue,
+) -> Bool {
+  profile.name == "control_profile" &&
+  @json.object_field(profile.value, "execution") is Some(execution) &&
+  @json.object_field(execution, "stop_on_entry") is Some(@json.Bool(true)) &&
+  evidence_string(execution, "default_until") == Some("breakpoint") &&
+  @json.object_field(execution, "guards") is Some(@json.Null) &&
+  interactive_profile_breakpoint_count(profile) > 0
+}
+
+///|
+/// Seal the installed entry policy with exact before-Step choices. The
+/// caller authenticates the submitted intent and funds the entire issuance.
+pub fn issue_interactive_entry_breakpoint_profile(
+  policy : RunEvidenceValue,
+  count : Int,
+  step_at : (Int) -> String?,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
+  guard interactive_profile_requires_entry_stop(policy) &&
+    count >= 1 &&
+    count <= 32 &&
+    @json.object_field(policy.value, "execution") is Some(execution) &&
+    @json.object_without_field(policy.value, "self_cid") is Some(body) else {
+    return Err(RunEvidenceReferenceMismatch("control_profile.installed_sample"))
+  }
+  let values : Array[Json] = []
+  for index in 0..<count {
+    guard step_at(index) is Some(step_id) else {
+      return Err(RunEvidenceReferenceMismatch("control_admission.breakpoint"))
+    }
+    values.push({
+      "kind": "logical_step",
+      "position": "before",
+      "select": { "by": "id", "step_id": step_id },
+    })
+  }
+  let (targets, until) = (
+    @json.from_json(Json::array(values), max_nodes, max_depth, max_bytes),
+    @json.from_json(Json::string("breakpoint"), 1, 1, 16),
+  ) catch {
+    _ => return Err(RunEvidenceEncoding)
+  }
+  guard @json.object_with_replaced_fields(execution, [
+      ("breakpoints", targets),
+      ("default_until", until),
+    ])
+    is Some(marked_execution) &&
+    @json.object_with_replaced_fields(body, [("execution", marked_execution)])
+    is Some(marked_body) else {
+    return Err(RunEvidenceReferenceMismatch("control_profile.installed_sample"))
+  }
+  seal_original_run_evidence_body(
+    "control_profile", "self_cid", marked_body, max_bytes, max_nodes, max_depth,
+    @json.cid_value, @json.stringify_value_with_usage,
+  )
+}
+
+///|
+/// Borrow one Step ID from the checked resolved profile. The consumer owns
+/// authority, map equality, selection bounds and the physical task binding.
+pub fn interactive_resolved_before_step(
+  profile : RunEvidenceValue,
+  index : Int,
+) -> String? {
+  guard profile.name == "resolved_control_profile" &&
+    @json.object_field(profile.value, "breakpoints")
+    is Some(@json.Array(points)) &&
+    index >= 0 &&
+    index < @json.array_count(points) &&
+    @json.array_at(points, index) is Some(point) &&
+    evidence_string(point, "kind") == Some("logical_step") &&
+    evidence_string(point, "position") == Some("before") else {
+    return None
+  }
+  evidence_string(point, "step_id")
+}
+
+///|
 /// Look up the original logical output in the set already checked during
 /// admission. Permission and physical output remain separate.
 pub fn interactive_relation_sample_output_limits(
@@ -468,6 +665,18 @@ pub fn interactive_relation_sample_output_limits(
     Some(selection.limits)
   } else {
     None
+  }
+}
+
+///|
+/// Constant-time geometry from the admitted profile for its read owner.
+pub fn interactive_profile_breakpoint_count(profile : RunEvidenceValue) -> Int {
+  if profile.name == "control_profile" &&
+    @json.object_field(profile.value, "execution") is Some(execution) &&
+    @json.object_field(execution, "breakpoints") is Some(@json.Array(targets)) {
+    @json.array_count(targets)
+  } else {
+    0
   }
 }
 
@@ -489,6 +698,7 @@ pub fn issue_interactive_relation_sample_admission(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  expected_breakpoint_map_cid? : String,
 ) -> Result[
   (RunEvidenceValue, RunEvidenceValue, RunEvidenceValue),
   RunEvidenceValueIssue,
@@ -511,12 +721,33 @@ pub fn issue_interactive_relation_sample_admission(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard interactive_terminal_execution(requested) is Some(_) &&
+  guard @json.object_field(requested.value, "execution") is Some(execution) &&
+    @json.object_field(execution, "breakpoints") is Some(@json.Array(targets)) &&
     @json.object_field(requested.value, "retain") is Some(retain) &&
     @json.object_field(retain, "intermediate") is None &&
     @json.object_field(retain, "samples") is Some(samples) &&
     evidence_string(samples, "capture_scope") == Some("all_outputs") else {
     return Err(RunEvidenceReferenceMismatch("control_profile.installed_sample"))
+  }
+  let target_count = @json.array_count(targets)
+  if target_count == 0 {
+    guard expected_breakpoint_map_cid is None &&
+      interactive_terminal_execution(requested) is Some(_) else {
+      return Err(
+        RunEvidenceReferenceMismatch("control_profile.installed_sample"),
+      )
+    }
+  } else {
+    guard interactive_profile_requires_breakpoint_entry(requested) else {
+      return Err(
+        RunEvidenceReferenceMismatch("control_profile.installed_sample"),
+      )
+    }
+    if expected_breakpoint_map_cid != Some(map.identity) {
+      return Err(
+        RunEvidenceReferenceMismatch("control_admission.breakpoint_map"),
+      )
+    }
   }
   // Read the admitted map here. The same-Run consumer still checks full
   // key and port binding before it can issue a physical start ticket.
@@ -542,6 +773,41 @@ pub fn issue_interactive_relation_sample_admission(
     @encode.string_value(writer, map.identity)
     @encode.key(writer, "breakpoints")
     @encode.begin_array(writer)
+    if target_count > 0 {
+      let selected : Map[String, Bool] = Map([])
+      let mut work = max_nodes
+      for i in 0..<target_count {
+        let target = @json.array_at(targets, i).unwrap()
+        guard evidence_string(target, "kind") == Some("logical_step") &&
+          evidence_string(target, "position") == Some("before") &&
+          @json.object_field(target, "select") is Some(selector) &&
+          evidence_string(selector, "by") == Some("id") else {
+          return Err(
+            RunEvidenceReferenceMismatch("control_profile.installed_sample"),
+          )
+        }
+        let ((kind, position, id), rest) = match
+          resolve_interactive_breakpoint_target(target, steps, work) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        work = rest
+        if selected.contains(id) {
+          return Err(
+            RunEvidenceReferenceMismatch("control_admission.breakpoint"),
+          )
+        }
+        selected[id] = true
+        @encode.begin_object(writer)
+        @encode.key(writer, "kind")
+        @encode.string_value(writer, kind)
+        @encode.key(writer, "position")
+        @encode.string_value(writer, position)
+        @encode.key(writer, "step_id")
+        @encode.string_value(writer, id)
+        @encode.end_object(writer)
+      }
+    }
     @encode.end_array(writer)
     @encode.key(writer, "sample_output_port_ids")
     @encode.begin_array(writer)
@@ -582,7 +848,9 @@ pub fn issue_interactive_relation_sample_admission(
     fingerprint_cid +
     "\",\"requested_profile_cid\":\"" +
     requested.identity +
-    "\",\"expected_plan_cid\":null}"
+    "\",\"expected_plan_cid\":" +
+    (if target_count == 0 { "null" } else { "\"" + plan.identity + "\"" }) +
+    "}"
   let intent = match
     seal_run_evidence_value(
       "control_request_intent", intent_wire, max_bytes, max_nodes, max_depth,

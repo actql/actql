@@ -365,7 +365,7 @@ pub fn NativeClientMockModelWork::read_completed_model_dependency_in_original_re
           Ok(None) => return Err(ForeignRun)
           Err(issue) => return Err(issue)
         }
-        guard !run.cancellation_requested &&
+        guard !run.cancellation_requested() &&
           self.matches_model_call_journal_run(run) else {
           return Err(ForeignRun)
         }

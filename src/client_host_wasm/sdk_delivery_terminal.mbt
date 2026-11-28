@@ -38,7 +38,7 @@ fn sdk_terminal_observe(
       context.source,
       context.current.account,
       context.finite,
-      context.sdk.read,
+      context.selection,
       context.sdk.adoption_cid,
       context.owner,
       context.view,
@@ -79,6 +79,8 @@ pub fn observe_publication_sdk_terminal(
       run,
       current_configuration,
       same_reader_census=true,
+      targeted_task_material=true,
+      read_only_saved_control=true,
     ) {
     Ok(context) => context
     Err(code) => return code
@@ -97,7 +99,7 @@ pub fn observe_publication_sdk_terminal(
 }
 
 ///|
-/// Propose the original three terminal CAS rows before physical COMMIT. Cached
+/// Propose the original terminal CAS rows before physical COMMIT. Cached
 /// revalidation after those writes observes full evidence inside that actual
 /// transaction; it remains precommit validation, never a durable ACK.
 pub fn produce_publication_sdk_terminal_storage(
@@ -106,7 +108,12 @@ pub fn produce_publication_sdk_terminal_storage(
   first_handle : Int,
   clock_input : Int,
   current_configuration : Int,
+  mode : Int,
 ) -> Int {
+  if mode != 0 && mode != 1 {
+    return -3
+  }
+  let cancelled = mode == 1
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(handle) is Some(output) &&
     value.commit_exports.get(first_handle) is Some(first) &&
@@ -121,7 +128,7 @@ pub fn produce_publication_sdk_terminal_storage(
   if output.pending || output.closing || output.output_closed {
     return -5
   }
-  let projection = SDKTerminalStorage(first_handle)
+  let projection = SDKTerminalStorage(first_handle, cancelled, Staged)
   if output.projection is Some(original) && original != projection {
     return -33
   }
@@ -151,9 +158,15 @@ pub fn produce_publication_sdk_terminal_storage(
     if observed != 0 {
       return observed
     }
-    return sdk_payload_finish_current(
+    let current = sdk_payload_finish_current(
       value, first, context, current_configuration,
     )
+    if current == 0 {
+      output.projection = Some(
+        SDKTerminalStorage(first_handle, cancelled, Validated),
+      )
+    }
+    return current
   }
   if output.invoked {
     return -33
@@ -172,7 +185,7 @@ pub fn produce_publication_sdk_terminal_storage(
   output.projection = Some(projection)
   output.sdk_payload_parent = Some(first_handle)
   let code = sdk_terminal_prepare_output(
-    value, output, first, context, encoding, clock,
+    value, output, first, context, encoding, clock, cancelled,
   )
   let stopped = status(@buffers.return_buffer_borrow(value.pool, clock))
   if stopped == 0 {
@@ -189,6 +202,43 @@ pub fn produce_publication_sdk_terminal_storage(
 }
 
 ///|
+/// A trusted physical supplier calls this only after its exact terminal
+/// transaction returned COMMIT. The existing precommit observation already
+/// validated the same record, head and receipt when applicable.
+pub fn confirm_publication_sdk_terminal_commit(
+  nonce : Int64,
+  handle : Int,
+  first_handle : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(output) &&
+    value.commit_exports.get(first_handle) is Some(first) else {
+    return -2
+  }
+  guard handle != first_handle &&
+    output.publication == first.publication &&
+    output.sdk_payload_parent == Some(first_handle) &&
+    first.projection is Some(SDKReadDeliveryStorage(_, _)) &&
+    first.sdk_payload_terminal is Some(_) &&
+    output.projection is Some(SDKTerminalStorage(parent, cancelled, Validated)) &&
+    parent == first_handle else {
+    return -33
+  }
+  if !output.produced ||
+    output.pending ||
+    output.closing ||
+    output.output_closed ||
+    first.pending ||
+    first.closing {
+    return -5
+  }
+  output.projection = Some(
+    SDKTerminalStorage(first_handle, cancelled, Committed),
+  )
+  0
+}
+
+///|
 fn sdk_terminal_prepare_output(
   value : Instance,
   output : StoredPublicationCommitExport,
@@ -196,6 +246,7 @@ fn sdk_terminal_prepare_output(
   context : OriginalSDKReadContext,
   encoding : @local_run.LocalSDKPayloadEncoding,
   clock : @buffers.BufferBorrow,
+  cancelled : Bool,
 ) -> Int {
   guard first.state_borrow is Some(original_input) &&
     input_cursor(value, original_input.slot) is Some(cursor) &&
@@ -214,7 +265,7 @@ fn sdk_terminal_prepare_output(
       context.source,
       context.current.account,
       context.finite,
-      context.sdk.read,
+      context.selection,
       context.sdk.adoption_cid,
       context.owner,
       context.view,
@@ -227,6 +278,7 @@ fn sdk_terminal_prepare_output(
         sdk_run_journal_port(value, context.current, 1, table, key)
       },
       context.check_current,
+      cancelled~,
     ) {
     Ok(terminal) => terminal
     Err(issue) => return sdk_terminal_issue(issue)

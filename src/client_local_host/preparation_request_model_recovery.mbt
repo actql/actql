@@ -805,8 +805,41 @@ pub fn[I] issue_request_model_run_materials(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Result[String, ClientRequestProgramPlanIssue] {
-  guard owner.phase == ModelPlanReserved &&
-    owner.program_capacity is Some(capacity) &&
+  guard owner.phase == ModelPlanReserved else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  construct_request_model_run_materials_on_request(
+    owner,
+    input,
+    compiled,
+    retained_aliases=1L,
+    extra_control_bytes=0L,
+    fund => {
+      @publication_host.issue_original_client_infer_run_materials(
+        compiled,
+        definition,
+        owner.native_parameters,
+        fund,
+      ).map_err(issue => InferMaterials(issue))
+    },
+  )
+}
+
+///|
+// Both callers select the exact compiled Run and Definition before entering.
+fn[I, A] construct_request_model_run_materials_on_request(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  compiled : @publication_host.ClientCompiledRun,
+  retained_aliases~ : Int64,
+  extra_control_bytes~ : Int64,
+  extra_scratch_bytes? : Int64 = 0L,
+  construct : ((String, Int, Int, Int) -> Bool) -> Result[
+    A,
+    ClientRequestProgramPlanIssue,
+  ],
+) -> Result[A, ClientRequestProgramPlanIssue] {
+  guard owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
     owner.program_compilation is Some(original_compilation) &&
     @publication_host.client_compiled_run_matches_pure_compilation(
@@ -831,14 +864,9 @@ pub fn[I] issue_request_model_run_materials(
         compiled, current, current_compilation,
       )
     },
-    retained_aliases=1L,
-    fund => {
-      @publication_host.issue_original_client_infer_run_materials(
-        compiled,
-        definition,
-        owner.native_parameters,
-        fund,
-      ).map_err(issue => InferMaterials(issue))
-    },
+    retained_aliases~,
+    extra_control_bytes~,
+    extra_scratch_bytes~,
+    construct,
   )
 }

@@ -15,7 +15,7 @@ fn NativeClientRunJournal::recover_file_effect_members_locked(
     record.checkpoint is Some(checkpoint) &&
     checkpoint.state.status == @publication.Resuming &&
     !checkpoint.settlement_only &&
-    !record.cancellation_requested &&
+    !record.cancellation_requested() &&
     checkpoint.unknown_effects.is_empty() &&
     @publication.effect_preview_run_identity(preview) ==
     @publication.publication_contract_identity(record.definition) &&

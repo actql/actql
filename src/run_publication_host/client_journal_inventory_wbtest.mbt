@@ -47,6 +47,7 @@ fn inventory_run_original() -> ClientRunJournalInspection {
     request: original.request,
     definition: original.definition,
     checkpoint: None,
+    cancellation_head: original.cancellation_head,
     task_materials_cid: None,
   }
 }
@@ -549,4 +550,72 @@ test "retained intent byte sum is actual checked metadata beyond the compatibili
   assert_eq(journal_retained_intent_bytes_add(9223372036854775807L, 1), None)
   assert_eq(journal_retained_intent_bytes_add(-1L, 0), None)
   assert_eq(journal_retained_intent_bytes_add(0L, -1), None)
+}
+
+///|
+test "shared Run census verifies accepted cancellation reverse coverage once" {
+  let rows = cancellation_journal_rows()
+  let scan_calls = Ref(0)
+  let run = (row : ClientJournalPhysicalRow) => {
+    decode_client_run_journal_row(row.body).map_err(_ => "custody")
+  }
+  let original : ClientTaskMaterialsOriginal[Unit]? = None
+  let observe = (selected, denied) => {
+    scan_calls.val = 0
+    inspect_client_run_journal_inventory_with_task_original(
+      1024,
+      (table, cursor) => {
+        if table == "client_runs" {
+          scan_calls.val += 1
+        }
+        inventory_scan(selected, table, cursor)
+      },
+      (table, key) => {
+        if table == "client_cancel_originals" && denied {
+          Err("physical witness failure")
+        } else {
+          inventory_read(selected, table, key)
+        }
+      },
+      row => {
+        run(row).map(value => {
+          request: value.request,
+          definition: value.definition,
+          checkpoint: None,
+          cancellation_head: value.cancellation_head,
+          task_materials_cid: None,
+        })
+      },
+      () => Err("separate reverse census must not run"),
+      "custody",
+      original,
+      validate_cancellation_run=Some((row, original) => {
+        run(row).bind(value => {
+          guard original is Some((request, definition)) &&
+            client_request_identity_relation(request, value.request)
+            is SameRequest &&
+            @publication.publication_contract_identity(definition) ==
+            @publication.publication_contract_identity(value.definition) else {
+            return Err("missing original cancellation identity")
+          }
+          Ok({
+            request: value.request,
+            definition: value.definition,
+            cancellation_head: value.cancellation_head,
+          })
+        })
+      }),
+    )
+  }
+  assert_eq(observe(rows, false), Ok((1, 0L)))
+  assert_eq(scan_calls.val, 2)
+  assert_eq(observe(rows, true), Err("physical witness failure"))
+  assert_eq(scan_calls.val, 2)
+  let orphan = [
+    ("client_cancel_custody", inventory_row("issued", b"0")),
+    rows[3],
+    rows[4],
+  ]
+  assert_eq(observe(orphan, false), Err("custody"))
+  assert_eq(scan_calls.val, 2)
 }

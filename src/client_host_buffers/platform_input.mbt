@@ -98,24 +98,23 @@ fn seal_platform_buffer(
     Ok(value) => value
   }
   slot.parser_preflight = Some(preflight)
+  // One sealed transport owns both parser phases. The installed VM entry
+  // keeps its outer operation fuel across all transfers and resumptions.
+  // Do not debit the instance-wide Run planning history for transport work.
+  let mut remaining = @resources.ledger_limits(pool.ledger).planning_work
   let mut observed : @source.JsonSourceGeometry? = None
   while observed is None {
-    match @source.advance_json_source_preflight(preflight, 4096).unwrap() {
-      @source.JsonSourceContinue(work~) =>
-        match @resources.charge_planning(pool.ledger, work) {
-          Err(issue) => return Err(Resource(issue))
-          Ok(_) => ()
-        }
-      @source.JsonSourceFailed(issue, work~) =>
-        match @resources.charge_planning(pool.ledger, work) {
-          Err(error) => return Err(Resource(error))
-          Ok(_) => return Err(Input(issue))
-        }
-      @source.JsonSourceReady(geometry, work~) =>
-        match @resources.charge_planning(pool.ledger, work) {
-          Err(issue) => return Err(Resource(issue))
-          Ok(_) => observed = Some(geometry)
-        }
+    if remaining == 0 {
+      return Err(Resource(PlanningLimit))
+    }
+    let quantum = Int::min(4096, remaining)
+    match @source.advance_json_source_preflight(preflight, quantum).unwrap() {
+      @source.JsonSourceContinue(work~) => remaining -= work
+      @source.JsonSourceFailed(issue, ..) => return Err(Input(issue))
+      @source.JsonSourceReady(geometry, work~) => {
+        remaining -= work
+        observed = Some(geometry)
+      }
     }
   }
   let geometry = observed.unwrap()
@@ -131,22 +130,14 @@ fn seal_platform_buffer(
   slot.parser = Some(parser)
   slot.parser_preflight = None
   while slot.source is None {
-    match @source.advance_json_parse(parser, 4096).unwrap() {
-      @source.JsonParseContinue(work~) =>
-        match @resources.charge_planning(pool.ledger, work) {
-          Err(issue) => return Err(Resource(issue))
-          Ok(_) => ()
-        }
-      @source.JsonParseFailed(issue, work~) =>
-        match @resources.charge_planning(pool.ledger, work) {
-          Err(error) => return Err(Resource(error))
-          Ok(_) => return Err(Input(issue))
-        }
-      @source.JsonParseComplete(parsed, work~) =>
-        match @resources.charge_planning(pool.ledger, work) {
-          Err(issue) => return Err(Resource(issue))
-          Ok(_) => slot.source = Some(parsed.node)
-        }
+    if remaining == 0 {
+      return Err(Resource(PlanningLimit))
+    }
+    let quantum = Int::min(4096, remaining)
+    match @source.advance_json_parse(parser, quantum).unwrap() {
+      @source.JsonParseContinue(work~) => remaining -= work
+      @source.JsonParseFailed(issue, ..) => return Err(Input(issue))
+      @source.JsonParseComplete(parsed, ..) => slot.source = Some(parsed.node)
     }
   }
   slot.parser = None

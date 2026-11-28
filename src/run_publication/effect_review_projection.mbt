@@ -7,6 +7,7 @@ pub(all) enum EffectReviewProjectionIssue {
   Preview(EffectPreviewIdentityIssue)
   Evidence(RunEvidenceValueIssue)
   Encoding
+  DisplayLimit
 } derive(Eq, Debug)
 
 ///|
@@ -92,6 +93,242 @@ fn review_row_evidence_sufficient(
 }
 
 ///|
+// Admit the original member and row evidence independently of the policy
+// envelope. The same canonical Preview supplies all displayed values.
+fn admit_effect_display_evidence(
+  original : EffectPreviewIdentity,
+  preview_wire : String,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+  member_preview_cid? : String,
+) -> Result[
+  (@json.CanonicalValue, Array[@json.CanonicalValue]),
+  EffectReviewProjectionIssue,
+] {
+  let (checked, preview) = match
+    admit_effect_preview_identity_with_original(
+      preview_wire,
+      original.run_identity_cid,
+      original.authoring_context_cid,
+      preview_bytes,
+      preview_nodes,
+      preview_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Preview(issue))
+  }
+  if checked.semantic_cid != original.semantic_cid {
+    return Err(ForeignPreview)
+  }
+  let members = match @json.object_field(preview, "effects") {
+    Some(@json.Array(items)) => @json.array_values(items)
+    _ => return Err(ForeignPreview)
+  }
+  let mut selected = None
+  for effect_index, effect in members {
+    if member_preview_cid is Some(expected) {
+      if original.member_cids.get(effect_index) != Some(expected) ||
+        checked.member_cids.get(effect_index) != Some(expected) {
+        continue
+      }
+      selected = Some(effect)
+    }
+    guard @json.object_field(effect, "changes") is Some(@json.Array(changes)) else {
+      return Err(ForeignPreview)
+    }
+    for row_index, row in @json.array_values(changes) {
+      if !review_row_evidence_sufficient(effect, row) {
+        return Err(InsufficientEvidence(effect_index, row_index))
+      }
+    }
+  }
+  match (member_preview_cid, selected) {
+    (Some(_), Some(effect)) => Ok((preview, [effect]))
+    (Some(_), None) => Err(ForeignPreview)
+    _ => Ok((preview, members))
+  }
+}
+
+///|
+fn emit_effect_display_evidence(
+  writer : @encode.Writer,
+  members : Array[@json.CanonicalValue],
+) -> Result[Unit, EffectReviewProjectionIssue] raise @encode.EncodeFailure {
+  @encode.key(writer, "displayed_scope")
+  @encode.begin_object(writer)
+  @encode.key(writer, "effects")
+  @encode.begin_array(writer)
+  for effect in members {
+    @encode.begin_object(writer)
+    review_field(writer, effect, "effect_id")
+    @encode.key(writer, "kind")
+    @json.emit_value(@json.object_field(effect, "effect_kind").unwrap(), writer)
+    review_field(writer, effect, "target")
+    review_field(writer, effect, "count")
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+  emit_effect_display_values(writer, members)
+}
+
+///|
+// Only the selected Member contributes row values and permissions to a Debug
+// read. The independent policy review can still project its admitted scope.
+fn emit_effect_display_values(
+  writer : @encode.Writer,
+  members : Array[@json.CanonicalValue],
+) -> Result[Unit, EffectReviewProjectionIssue] raise @encode.EncodeFailure {
+  @encode.key(writer, "displayed_permissions")
+  @encode.begin_array(writer)
+  for effect in members {
+    guard @json.object_field(effect, "required_permissions")
+      is Some(@json.Array(permissions)) else {
+      return Err(ForeignPreview)
+    }
+    for permission in @json.array_values(permissions) {
+      @json.emit_value(permission, writer)
+    }
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "displayed_rows")
+  @encode.begin_array(writer)
+  for effect in members {
+    guard @json.object_field(effect, "changes") is Some(@json.Array(changes)) else {
+      return Err(ForeignPreview)
+    }
+    for row in @json.array_values(changes) {
+      @encode.begin_object(writer)
+      review_field(writer, effect, "effect_id")
+      for name in ["row_preview_cid", "target_row_identity", "before", "after"] {
+        review_field(writer, row, name)
+      }
+      // Strength comes from the original member, never from row shape or
+      // kind. Guard and intended change retain their exact original states.
+      review_field(writer, effect, "preview_strength")
+      review_field(writer, row, "target_guard")
+      review_field(writer, row, "intended_changes")
+      @encode.end_object(writer)
+    }
+  }
+  @encode.end_array(writer)
+  Ok(())
+}
+
+///|
+fn emit_debug_effect_set(
+  writer : @encode.Writer,
+  original : EffectPreviewIdentity,
+  preview : @json.CanonicalValue,
+  unit_id : String,
+  member_preview_cid : String,
+) -> Result[Unit, EffectReviewProjectionIssue] raise @encode.EncodeFailure {
+  guard @json.object_field(preview, "effects") is Some(@json.Array(effects)) else {
+    return Err(ForeignPreview)
+  }
+  @encode.key(writer, "effect_set")
+  @encode.begin_object(writer)
+  review_text(writer, "kind", "unordered")
+  review_text(writer, "unit_id", unit_id)
+  review_text(writer, "active_member_preview_cid", member_preview_cid)
+  @encode.key(writer, "members")
+  @encode.begin_array(writer)
+  for index, effect in @json.array_values(effects) {
+    guard effect_preview_member_identity(original, index) is Some(member_cid) else {
+      return Err(ForeignPreview)
+    }
+    @encode.begin_object(writer)
+    review_field(writer, effect, "effect_id")
+    review_text(writer, "member_preview_cid", member_cid)
+    @encode.key(writer, "kind")
+    @json.emit_value(@json.object_field(effect, "effect_kind").unwrap(), writer)
+    review_field(writer, effect, "target")
+    @encode.key(writer, "input")
+    @encode.begin_object(writer)
+    match effect_preview_member_relation_source(original, index) {
+      Some(source) => {
+        guard effect_preview_member_result_artifact_cid(original, index)
+          is Some(artifact_cid) else {
+          return Err(ForeignPreview)
+        }
+        let (kind, name) = match source {
+          Result(name) => ("result", name)
+          TableInput(name) => ("table_input", name)
+        }
+        review_text(writer, "kind", kind)
+        review_text(writer, "name", name)
+        review_text(writer, "artifact_cid", artifact_cid)
+      }
+      None => review_text(writer, "kind", "none")
+    }
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+  Ok(())
+}
+
+///|
+/// Project the unordered inventory of the original sealed Preview and display
+/// data for its one active Member. The caller supplies the checked Unit from
+/// the same captured Effect owner and owns the live park/read permission.
+pub fn project_effect_preview_changes(
+  original : EffectPreviewIdentity,
+  preview_wire : String,
+  preview_limits : (Int, Int, Int),
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  unit_id : String,
+  member_preview_cid : String,
+) -> Result[String, EffectReviewProjectionIssue] {
+  let (preview_bytes, preview_nodes, preview_depth) = preview_limits
+  if preview_bytes < 1 ||
+    preview_nodes < 2 ||
+    preview_depth < 1 ||
+    max_wire_bytes < 1 ||
+    max_nodes < 2 ||
+    max_depth < 1 {
+    return Err(InvalidLimits)
+  }
+  let (preview, members) = match
+    admit_effect_display_evidence(
+      original,
+      preview_wire,
+      preview_bytes,
+      preview_nodes,
+      preview_depth,
+      member_preview_cid~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  try {
+    let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    @encode.begin_object(writer)
+    review_text(writer, "effect_preview_cid", original.semantic_cid)
+    match
+      emit_debug_effect_set(
+        writer, original, preview, unit_id, member_preview_cid,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    match emit_effect_display_values(writer, members) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    @encode.OutputLimit => Err(DisplayLimit)
+    _ => Err(Encoding)
+  }
+}
+
+///|
 /// Project only the already admitted original Preview. The trusted Host owns
 /// policy/claim originals and their current authorization; these DATA inputs
 /// and the resulting public CID confer no apply, resume or storage authority.
@@ -107,6 +344,7 @@ pub fn project_effect_review_projection(
   max_nodes : Int,
   max_depth : Int,
   preview_limits? : (Int, Int, Int)? = None,
+  before_emission? : ((@encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[RunEvidenceValue, EffectReviewProjectionIssue] {
   if max_wire_bytes < 1 || max_nodes < 2 || max_depth < 1 {
     return Err(InvalidLimits)
@@ -140,44 +378,16 @@ pub fn project_effect_review_projection(
   if preview_bytes < 1 || preview_nodes < 2 || preview_depth < 1 {
     return Err(InvalidLimits)
   }
-  let checked = match
-    admit_effect_preview_identity(
-      preview_wire,
-      original.run_identity_cid,
-      original.authoring_context_cid,
-      preview_bytes,
-      preview_nodes,
-      preview_depth,
+  let (preview, members) = match
+    admit_effect_display_evidence(
+      original, preview_wire, preview_bytes, preview_nodes, preview_depth,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Preview(issue))
+    Err(issue) => return Err(issue)
   }
-  if checked.semantic_cid != original.semantic_cid {
-    return Err(ForeignPreview)
-  }
-  let preview = match
-    parse_effect_preview_shape(
-      preview_wire, preview_bytes, preview_nodes, preview_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Preview(PreviewShape(issue)))
-  }
-  let members = match @json.object_field(preview, "effects") {
-    Some(@json.Array(items)) => @json.array_values(items)
-    _ => return Err(ForeignPreview)
-  }
-  for effect_index, effect in members {
-    guard @json.object_field(effect, "changes") is Some(@json.Array(changes)) else {
-      return Err(ForeignPreview)
-    }
-    for row_index, row in @json.array_values(changes) {
-      if !review_row_evidence_sufficient(effect, row) {
-        return Err(InsufficientEvidence(effect_index, row_index))
-      }
-    }
-  }
-  let body_wire = try {
-    let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+  let emit = fn(
+    writer : @encode.Writer,
+  ) -> Result[Unit, EffectReviewProjectionIssue] raise @encode.EncodeFailure {
     @encode.begin_object(writer)
     review_text(writer, "version", "actql-review-projection/0.1")
     review_text(writer, "effect_preview_cid", original.semantic_cid)
@@ -194,58 +404,10 @@ pub fn project_effect_review_projection(
     review_text(writer, "retention_class", "approval-evidence")
     @encode.key(writer, "encryption_required")
     @encode.bool_value(writer, true)
-    @encode.key(writer, "displayed_scope")
-    @encode.begin_object(writer)
-    @encode.key(writer, "effects")
-    @encode.begin_array(writer)
-    for effect in members {
-      @encode.begin_object(writer)
-      review_field(writer, effect, "effect_id")
-      @encode.key(writer, "kind")
-      @json.emit_value(
-        @json.object_field(effect, "effect_kind").unwrap(),
-        writer,
-      )
-      review_field(writer, effect, "target")
-      review_field(writer, effect, "count")
-      @encode.end_object(writer)
+    match emit_effect_display_evidence(writer, members) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
-    @encode.end_array(writer)
-    @encode.end_object(writer)
-    @encode.key(writer, "displayed_permissions")
-    @encode.begin_array(writer)
-    for effect in members {
-      guard @json.object_field(effect, "required_permissions")
-        is Some(@json.Array(permissions)) else {
-        return Err(ForeignPreview)
-      }
-      for permission in @json.array_values(permissions) {
-        @json.emit_value(permission, writer)
-      }
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "displayed_rows")
-    @encode.begin_array(writer)
-    for effect in members {
-      guard @json.object_field(effect, "changes") is Some(@json.Array(changes)) else {
-        return Err(ForeignPreview)
-      }
-      for row in @json.array_values(changes) {
-        @encode.begin_object(writer)
-        review_field(writer, effect, "effect_id")
-        for
-          name in ["row_preview_cid", "target_row_identity", "before", "after"] {
-          review_field(writer, row, name)
-        }
-        // Strength comes from the original member, never from row shape or
-        // kind. Guard and intended change retain their exact original states.
-        review_field(writer, effect, "preview_strength")
-        review_field(writer, row, "target_guard")
-        review_field(writer, row, "intended_changes")
-        @encode.end_object(writer)
-      }
-    }
-    @encode.end_array(writer)
     @encode.key(writer, "displayed_authoring_context")
     @encode.begin_array(writer)
     @json.emit_value(
@@ -254,6 +416,27 @@ pub fn project_effect_review_projection(
     )
     @encode.end_array(writer)
     @encode.end_object(writer)
+    Ok(())
+  }
+  let body_wire = try {
+    if before_emission is Some(reserve) {
+      let meter = @encode.construction_measuring_writer(
+        max_wire_bytes, max_nodes, max_depth,
+      )
+      match emit(meter) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      let geometry = @encode.finish_construction_measurement(meter)
+      if !reserve(geometry) {
+        return Err(Encoding)
+      }
+    }
+    let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    match emit(writer) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
     @encode.finish(writer)
   } catch {
     _ => return Err(Encoding)
@@ -357,29 +540,25 @@ pub fn effect_review_projection_construction_inventory(
   let output_depth = Int64::min(review_depth.to_int64(), depth.to_int64() + 4L).to_int()
   guard effect_preview_identity_construction_inventory(bytes, nodes, depth)
     is Some(input) &&
-    protocol_wire_codec_construction_inventory(bytes, nodes, depth)
-    is Some(shape) &&
     protocol_wire_codec_construction_inventory(
       review_bytes, output_nodes, output_depth,
     )
     is Some(output) else {
     return None
   }
-  // One Preview identity admission and the second shape parse coexist.
-  // Only the first constructs member/row identity inventories. The review
-  // body writer, its generic sealing parser/forest,
+  // The one Preview identity admission retains its checked canonical tree
+  // for rendering. The Review body writer, its generic sealing parser/forest,
   // complete self-CID wrapper and final encoder coexist with that input;
   // two output inventories cover these returned and refused prefixes. No
   // parser frame, writer buffer or returned review is treated as released here.
   review_construction_inventory_parts(
-    input, shape, output, review_bytes, output_nodes, output_depth,
+    input, output, review_bytes, output_nodes, output_depth,
   )
 }
 
 ///|
 fn review_construction_inventory_parts(
   input : EffectPreviewIdentityConstructionInventory,
-  shape : EffectPreviewIdentityConstructionInventory,
   output : EffectPreviewIdentityConstructionInventory,
   review_bytes : Int,
   output_nodes : Int,
@@ -453,24 +632,12 @@ fn review_construction_inventory_parts(
     owned_wire_bytes: 4L * review_bytes.to_int64() + output.owned_wire_bytes,
   }
   let temporary : EffectPreviewIdentityConstructionInventory = {
-    record_headers: input.record_headers +
-    shape.record_headers +
-    2L * output.record_headers +
-    8L,
-    reference_slots: input.reference_slots +
-    shape.reference_slots +
-    2L * output.reference_slots +
-    24L,
-    scalar_words: input.scalar_words +
-    shape.scalar_words +
-    2L * output.scalar_words +
-    16L,
-    owned_utf16_units: input.owned_utf16_units +
-    shape.owned_utf16_units +
-    2L * output.owned_utf16_units,
-    owned_wire_bytes: input.owned_wire_bytes +
-    shape.owned_wire_bytes +
-    2L * output.owned_wire_bytes,
+    // The admission returns one pair holding the identity and the tree.
+    record_headers: input.record_headers + 2L * output.record_headers + 9L,
+    reference_slots: input.reference_slots + 2L * output.reference_slots + 26L,
+    scalar_words: input.scalar_words + 2L * output.scalar_words + 17L,
+    owned_utf16_units: input.owned_utf16_units + 2L * output.owned_utf16_units,
+    owned_wire_bytes: input.owned_wire_bytes + 2L * output.owned_wire_bytes,
   }
   Some((returned, temporary))
 }

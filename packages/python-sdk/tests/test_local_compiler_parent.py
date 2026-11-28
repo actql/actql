@@ -19,8 +19,8 @@ compiler = holding.compiler
 class CompilerParentTests(unittest.TestCase):
     def setUp(self):
         self.fixture = holding.CompilerHoldingTests()
-        self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
+        self.fixture.setUp()
         self.original = self.fixture.original()
         selected = compiler._compiler_holding_original(self.original)
         size = selected.capacity_bytes

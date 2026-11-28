@@ -31,7 +31,7 @@ pub struct ModelPhysicalRequestPlan {
   request : ModelRequest
   wire_bytes : Int64
   quantities : @resources.QuantityAmounts
-  invocation : ModelPhysicalInvocation
+  mut invocation : ModelPhysicalInvocation
   response_profile : @environment.ModelResponseProfile?
   evidence : ModelPhysicalRequestEvidence?
   attachments : Array[ModelContentAdmission]
@@ -41,10 +41,7 @@ pub struct ModelPhysicalRequestPlan {
 enum ModelPhysicalInvocation {
   Synchronous(() -> Result[ModelResponse, ModelProviderFailure])
   Asynchronous((ModelCallEntry) -> ModelPhysicalCall?)
-  AsynchronousHttpChat(
-    PreparedModelHttpChatRequest,
-    (ModelCallEntry) -> ModelPhysicalCall?
-  )
+  AsynchronousHttpChat(PreparedModelHttpChatRequest, ModelHttpChatStart?)
   AsynchronousMeasuredHttpChat(
     PreparedModelHttpChatRequest,
     (ModelCallEntry) -> ModelPhysicalCall?

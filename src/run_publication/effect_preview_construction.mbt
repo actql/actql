@@ -66,36 +66,140 @@ pub fn effect_preview_semantic_authoring_construction_inventory(
   ).to_int()
   guard protocol_wire_codec_construction_inventory(bytes, nodes, depth)
     is Some(template) &&
-    protocol_wire_codec_construction_inventory(
-      authored_bytes, authored_nodes, depth,
-    )
-    is Some(intermediate) &&
+    preview_authored_emission_inventory(authored_bytes, authored_nodes, depth)
+    is Some(emission) &&
     effect_preview_identity_construction_inventory(
       authored_bytes, authored_nodes, depth,
     )
     is Some(admission) else {
     return None
   }
-  // The template and returned row CID vectors coexist with intermediate
-  // shape/identity derivation and the authored writer. They return before
-  // the final admission, which keeps only the completed wire alongside its
-  // full validator. The Native caller owns the original draft separately.
+  // The original canonical tree stays live through the shallow replacements,
+  // temporary identity vectors and authored writer. The synchronous producer
+  // returns only its emitted wire. Independent admission owns that wire and
+  // its own validator after the producer's original trees have returned.
   Some({
-    record_headers: template.record_headers +
-    intermediate.record_headers +
-    admission.record_headers,
-    reference_slots: template.reference_slots +
-    intermediate.reference_slots +
-    admission.reference_slots,
-    scalar_words: template.scalar_words +
-    intermediate.scalar_words +
-    admission.scalar_words,
-    owned_utf16_units: template.owned_utf16_units +
-    intermediate.owned_utf16_units +
-    admission.owned_utf16_units,
-    owned_wire_bytes: template.owned_wire_bytes +
-    intermediate.owned_wire_bytes +
-    admission.owned_wire_bytes,
+    record_headers: Int64::max(
+      template.record_headers + emission.record_headers,
+      admission.record_headers + 1L,
+    ),
+    reference_slots: Int64::max(
+      template.reference_slots + emission.reference_slots,
+      admission.reference_slots + 1L,
+    ),
+    scalar_words: Int64::max(
+      template.scalar_words + emission.scalar_words,
+      admission.scalar_words + 3L,
+    ),
+    owned_utf16_units: Int64::max(
+      template.owned_utf16_units + emission.owned_utf16_units,
+      admission.owned_utf16_units + authored_bytes.to_int64(),
+    ),
+    owned_wire_bytes: Int64::max(
+      template.owned_wire_bytes + emission.owned_wire_bytes,
+      admission.owned_wire_bytes,
+    ),
+  })
+}
+
+///|
+// Bounds the authoring stage after template admission. Immutable payload
+// subtrees are shared. The row patch replaces only two scalar fields, one
+// ordered array per member and the outer member/row array spines.
+fn preview_authored_emission_inventory(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> EffectPreviewIdentityConstructionInventory? {
+  let count = nodes.to_int64()
+  let frames = depth.to_int64()
+  guard @shape.collection_construction_extent({
+      // Per visited node: copied object pair/CID/variant, scope/result
+      // carrier and shallow constructor bookkeeping. Also cover the
+      // measuring material, its ordered traversal and UTF-16 sort cursors.
+      records: 12L * count + 12L * frames + 40L,
+      record_references: 20L * count + 18L * frames + 52L,
+      record_words: 9L * count + 12L * frames + 40L,
+      // Original-order, patched members, patched rows, target sort and
+      // assigned-order vectors, including builder backings and growth.
+      reference_arrays: 6L * count + 8L,
+      reference_items: 12L * count + 8L * frames,
+      scalar_arrays: count + 4L,
+      scalar_items: 4L * count,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(patch) &&
+    protocol_wire_validation_construction_extent(count) is Some(shape) &&
+    preview_identity_member_row_inventory(count) is Some(identity) &&
+    @encode.text_writer_live_key_inventory(bytes, nodes, depth) is Some(text) &&
+    @encode.hash_writer_live_key_inventory(nodes, depth) is Some(hash) else {
+    return None
+  }
+  Some({
+    record_headers: patch.record_headers +
+    shape.record_headers +
+    identity.record_headers +
+    text.record_headers +
+    hash.record_headers,
+    reference_slots: patch.reference_slots +
+    shape.reference_slots +
+    identity.reference_slots +
+    text.reference_slots +
+    hash.reference_slots,
+    scalar_words: patch.scalar_words +
+    shape.scalar_words +
+    identity.scalar_words +
+    text.scalar_words +
+    hash.scalar_words,
+    // Retain the assigned row CIDs, target sort strings, copied correlations
+    // and intended values beside the output builder and incremental hash.
+    owned_utf16_units: identity.owned_utf16_units +
+    text.owned_utf16_units +
+    hash.owned_utf16_units +
+    4L * bytes.to_int64() +
+    71L * count,
+    owned_wire_bytes: hash.owned_wire_bytes,
+  })
+}
+
+///|
+/// Bound only the wire and identity returned by the author, after all parser,
+/// overlay and independent validation scratch has retired. Counts come from
+/// the admitted value; equal byte lengths alone cannot supply this proof.
+pub fn authored_effect_preview_retained_inventory(
+  authored : AuthoredEffectPreview,
+) -> EffectPreviewIdentityConstructionInventory? {
+  completed_effect_preview_retained_inventory(authored.identity, authored.wire)
+}
+
+///|
+/// Bounds the wire and admitted identity kept together after the compiler
+/// returns. This is accounting-only and does not join independently supplied
+/// parts or admit a Preview.
+pub fn completed_effect_preview_retained_inventory(
+  identity : EffectPreviewIdentity,
+  wire : String,
+) -> EffectPreviewIdentityConstructionInventory? {
+  let mut count = identity.member_cids.length().to_int64()
+  for rows in identity.row_cids {
+    count += rows.length().to_int64()
+  }
+  for footprint in identity.member_footprints {
+    count += footprint.provider_object_identity_cids.length().to_int64()
+  }
+  guard preview_identity_member_row_inventory(count) is Some(layout) else {
+    return None
+  }
+  // The original wire, its selected parsed text and the copied row
+  // correlation/intended values are covered together. Dispatch-order
+  // vectors borrow the same Strings. Generated CIDs are covered by layout.
+  Some({
+    record_headers: layout.record_headers + 3L,
+    reference_slots: layout.reference_slots + 4L,
+    scalar_words: layout.scalar_words + 7L,
+    owned_utf16_units: layout.owned_utf16_units + 4L * wire.length().to_int64(),
+    owned_wire_bytes: 0L,
   })
 }
 

@@ -18,6 +18,7 @@ fn submission_decode_prefix_fixture() -> (
     saved_result: None,
     saved_snapshot: None,
     append_plan: Idle,
+    append_reader_serial: 0L,
     failure_preparation: None,
     failure_plan: None,
     cancellation_append: None,
@@ -238,7 +239,9 @@ test "scanned prefix restores same previous Ready plan after original-token sett
     )
     .unwrap()
     .unwrap()
-  let previous = Ready(@host.Retained(prior))
+  let previous : StoredSubmissionAppend = Ready(
+    @host.ClientSubmittedJournalAppendPlan::Retained(prior),
+  )
   record.append_plan = previous
   let capacity = open_submission_decode_prefix(value, record).unwrap()
   assert_eq(prepare_submission_decode_prefix(value, record, capacity, 2), 0)

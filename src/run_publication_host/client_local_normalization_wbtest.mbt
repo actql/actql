@@ -97,7 +97,7 @@ test "Local original sole-view resolution remains a completion and preserves sou
     _issue_prepared_client_legacy_local_normalization(owner)
     is Err(Inventory(CompletionObserved)),
   )
-  assert_true(owner.local_normalization is None)
+  assert_true(owner.local_normalization is NormalizationNotIssued)
 }
 
 ///|
@@ -121,7 +121,7 @@ test "legacy projection records its completion while unsupported reshape and tem
     _issue_prepared_client_legacy_local_normalization(owner)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(owner.local_normalization is None)
+  assert_true(owner.local_normalization is NormalizationNotIssued)
   let template = local_normalization_document.replace(
     old="\"filter\":{\"gte\":[{\"field\":\"id\"},{\"literal\":0}]}",
     new="\"filter\":{\"eq\":[{\"template\":\"{id}\"},{\"literal\":\"1\"}]}",
@@ -131,7 +131,7 @@ test "legacy projection records its completion while unsupported reshape and tem
     _issue_prepared_client_legacy_local_normalization(owner)
     is Err(Inventory(CompletionObserved)),
   )
-  assert_true(owner.local_normalization is None)
+  assert_true(owner.local_normalization is NormalizationNotIssued)
 }
 
 ///|
@@ -268,7 +268,7 @@ fn local_sort_normalization_journal_body(
 fn _issue_prepared_client_legacy_local_normalization(
   owner : PreparedClientProgram,
 ) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
-  if owner.local_normalization is Some(original) {
+  if owner.local_normalization is NormalizationReady(original) {
     match prepared_client_local_normalization_evidence(owner, original) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
@@ -311,6 +311,61 @@ fn _issue_prepared_client_legacy_local_normalization(
     audit: inventory,
     evidence: journal,
   }
-  owner.local_normalization = Some(issued)
+  owner.local_normalization = NormalizationReady(issued)
   Ok(issued)
+}
+
+///|
+test "Retire exact issued or restored Local normalization after preparation cleanup" {
+  let limits = {
+    max_work: 10000,
+    max_wire_bytes: 1024,
+    max_nodes: 32,
+    max_depth: 8,
+  }
+  let sample = local_normalization_fixture()
+  let sample_original = issue_prepared_client_local_normalization(sample).unwrap()
+  let wire = @publication.run_evidence_value_json(
+    prepared_client_local_normalization_evidence(sample, sample_original).unwrap(),
+  )
+  assert_true(prepared_client_local_normalization_retirement_matches(sample))
+  retire_prepared_client_local_normalization_after_cleanup(sample)
+  for restoring in [false, true] {
+    let owner = local_normalization_fixture()
+    let (audit, _) = observe_prepare_client_local_normalization(owner, limits)
+    let audit = audit.unwrap()
+    let original = if restoring {
+      admit_prepared_client_local_normalization(audit, wire).unwrap()
+    } else {
+      finish_prepared_client_local_normalization(audit).unwrap()
+    }
+    let copied : PreparedClientProgram = { ..owner, }
+    assert_false(prepared_client_local_normalization_retirement_matches(copied))
+    retire_prepared_client_local_normalization_after_cleanup(copied)
+    assert_true(prepared_client_local_normalization_original(copied) is Some(_))
+    assert_true(
+      prepared_client_local_normalization_evidence(owner, original) is Ok(_),
+    )
+    assert_true(prepared_client_local_normalization_retirement_matches(owner))
+    retire_prepared_client_local_normalization_after_cleanup(owner)
+    assert_true(prepared_client_local_normalization_original(owner) is None)
+    assert_true(
+      prepared_client_local_normalization_evidence(owner, original)
+      is Err(ForeignPreparation),
+    )
+    assert_true(
+      issue_prepared_client_local_normalization(owner)
+      is Err(ForeignPreparation),
+    )
+    assert_true(
+      admit_prepared_client_local_normalization(audit, wire)
+      is Err(ForeignPreparation),
+    )
+    assert_true(
+      finish_prepared_client_local_normalization(audit)
+      is Err(ForeignPreparation),
+    )
+    assert_true(prepared_client_local_normalization_retirement_matches(owner))
+    retire_prepared_client_local_normalization_after_cleanup(owner)
+  }
 }

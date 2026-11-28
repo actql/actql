@@ -134,3 +134,47 @@ pub fn installed_file_effect_constructor_capacity(
   }
   Ok(capacity)
 }
+
+///|
+/// The original file and checked changes stay borrowed from the caller. The
+/// replacement stays on this constructor's operation until its last use.
+/// Physical transport and the File attempt have their own extents.
+pub fn prepare_installed_file_update_wire_extent(
+  layout : @row_source_host.RelationTargetWriteWireConstruction,
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  let returned : @execution.PreparationRepresentationUnits = {
+    record_headers: 2L,
+    reference_slots: 3L,
+    scalar_words: 1L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  let (retained, peak) = if layout.encoded_change_bytes == 0L {
+    // Before a row has supplied changes, the Plan holds only the carrier.
+    guard @execution.preparation_representation_cost(returned) is Some(bytes) else {
+      return Err(Unsupported)
+    }
+    (bytes, bytes)
+  } else {
+    guard @execution.preparation_representation_cost({
+        ..returned,
+        owned_wire_bytes: layout.replacement_bytes,
+      })
+      is Some(retained) &&
+      @execution.compose_preparation_representation([returned, layout.placement])
+      is Some(units) &&
+      @execution.preparation_representation_cost(units) is Some(peak) else {
+      return Err(Unsupported)
+    }
+    (retained, peak)
+  }
+  guard @execution.execution_capacity(retained, peak) is Some(capacity) else {
+    return Err(Unsupported)
+  }
+  prepare_installed_effect_operation_extent(
+    "python.mock.file.replacement-wire", capacity, 0L, false,
+  )
+}

@@ -84,7 +84,7 @@ fn cancellation_append_plan(
       request: actual.1.request,
       definition: actual.1.definition,
       revision: actual.0.revision,
-      cancellation_requested: actual.1.cancellation_requested,
+      cancellation_requested: actual.1.cancellation_requested(),
       publication_binding: actual.1.publication_binding,
     },
     key => {
@@ -123,15 +123,14 @@ fn cancellation_candidate_writes(
 ) -> Result[Array[(String, String, Int64?, Bytes)], Int] {
   guard plan is @host.AppendCancellation(plan) else { return Ok([]) }
   let original = @host.client_cancellation_append_original(plan)
-  let record = @host.client_cancellation_append_record(plan)
   let writes : Array[(String, String, Int64?, Bytes)] = []
-  if record.action == @host.AcceptCancellation {
+  if @host.client_cancellation_append_accepted_head(plan) is Some(head) {
     guard @host.decode_client_run_journal_row_with_observation_originals(
         original.0.body,
       )
       is Ok((_, policy, observations)) &&
       @host.client_run_journal_row_body(
-        { ..original.1, cancellation_requested: true, },
+        { ..original.1, cancellation_head: Some(head), },
         local_run_policy_originals=policy,
         run_observation_originals=observations,
       )
@@ -355,8 +354,8 @@ pub fn observe_cancellation_stop_interest(
     expected.key == @host.client_request_scope_cid(request) else {
     return -33
   }
-  // The control request boundary reobserves only its two original target rows.
-  // No namespace census or cold/status admission enters the normal task loop.
+  // The control request boundary reobserves the original Run, receipt and
+  // witness. No namespace census enters the normal task loop.
   let read = (table, key) => {
     physical_journal_row(scope.physical, check, 1, table, key)
   }
@@ -374,28 +373,30 @@ pub fn observe_cancellation_stop_interest(
     Ok(encoding) => encoding
     Err(code) => return code
   }
-  if !encoding.cancellation_requested {
-    return -35
-  }
-  let key = match
-    @host.client_cancellation_journal_index(
-      accepted.namespace_id,
-      @host.client_request_authority_scope_cid(request),
-      accepted.cancel_id,
-    ) {
-    Some(key) => key
-    None => return -31
-  }
-  let cancellation = match read("client_cancellations", key) {
-    Ok(Some(row)) if row.key == key => row
-    Ok(Some(_)) => return -35
-    Ok(None) => return -33
-    Err(code) => return code
-  }
+  guard encoding.cancellation_head is Some(head) else { return -35 }
   let observed = match
-    @host.decode_client_cancellation_journal_row(cancellation) {
-    Ok(observed) => observed
-    Err(_) => return -31
+    @host.observe_client_accepted_cancellation_head(
+      head,
+      configuration.run_namespace,
+      {
+        request: encoding.request,
+        definition: encoding.definition,
+        revision: row.revision,
+        cancellation_requested: true,
+        publication_binding: encoding.publication_binding,
+      },
+      (table, key) => {
+        match read(table, key) {
+          Ok(Some(value)) if value.key == key => Ok(Some(value))
+          Ok(Some(_)) => Err(-35)
+          Ok(None) => Err(-33)
+          Err(code) => Err(code)
+        }
+      },
+      -31,
+    ) {
+    Ok(value) => value
+    Err(code) => return code
   }
   if @host.client_cancellation_journal_row_body(observed) !=
     @host.client_cancellation_journal_row_body(accepted) {

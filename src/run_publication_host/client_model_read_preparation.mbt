@@ -198,6 +198,35 @@ pub fn prepare_client_model_read(
 }
 
 ///|
+/// Issue the Read of this exact selected Run and graph, then publish it to
+/// the caller's existing cleanup slot before attempting its one-shot claim.
+pub fn prepare_claimed_client_model_read(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+  retain : (ClientModelReadPreparation) -> Unit,
+) -> Result[
+  (ClientModelReadPreparation, ClientModelReadConsumer),
+  ClientModelReadPreparationIssue,
+] {
+  if !client_model_origin_matches(scope.origin, compiled, definition, plan) {
+    return Err(ForeignRun)
+  }
+  let read = match
+    prepare_client_model_read(scope, retained_bytes, execution_bytes) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  retain(read)
+  claim_client_model_read_preparation(
+    read, compiled, definition, plan, retained_bytes, execution_bytes,
+  ).map(consumer => (read, consumer))
+}
+
+///|
 // The original owning Run retains this scope when layout/descriptor/read
 // admission fails before a preparation exists. Its final cleanup uses the
 // same census/bootstrap; no Ledger projection or reconstructed binding is

@@ -3034,6 +3034,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/test-native-cli-release-install.d.mts
 /scripts/release-install-child.mjs
 /scripts/release-install-child.d.mts
+/scripts/ordinary-python-ordered-parity.mjs
+/scripts/ordinary-python-ordered-parity.d.mts
 /scripts/test-native-approval-performance.mjs
 /scripts/test-native-approval-performance.d.mts
 /adapters/connectors/calendar/host/installed-calendar-source.mjs

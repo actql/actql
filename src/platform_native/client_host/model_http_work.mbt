@@ -192,7 +192,7 @@ fn NativeClientRunJournal::require_unstarted_model_work_run(
     Err(issue) => return Err(issue)
   }
   guard !run.physical_start_claimed &&
-    !run.cancellation_requested &&
+    !run.cancellation_requested() &&
     run.checkpoint is None &&
     run.publication_binding == Some(binding) &&
     (run.effect_material_originals is Some(_)) == effect &&

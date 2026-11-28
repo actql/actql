@@ -491,3 +491,22 @@ pub fn bind_model_invocation_saved_call(
     Ok(_) => Ok(binding)
   }
 }
+
+///|
+/// Borrow the nonsecret coordinates from the already admitted binding tree.
+/// No new parsing, seal or physical selection is made during Scope binding.
+pub fn model_invocation_provider_originals(
+  value : RunEvidenceValue,
+) -> (String, String, String, String)? {
+  guard value.name == "model_provider_binding" &&
+    contract_string_from_value(value.value, "provider_id") is Some(provider) &&
+    contract_string_from_value(value.value, "installation_revision_cid")
+    is Some(revision) &&
+    contract_string_from_value(value.value, "configuration_contract_cid")
+    is Some(contract) &&
+    contract_string_from_value(value.value, "configuration_cid")
+    is Some(configuration) else {
+    return None
+  }
+  Some((provider, revision, contract, configuration))
+}

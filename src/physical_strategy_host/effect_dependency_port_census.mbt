@@ -107,11 +107,13 @@ pub fn captured_effect_dependency_port_census_geometry(
 ///|
 // All array/map/key and borrow/control construction has already been funded
 // on the SAME original Run. Each original Result/Source/Table occurrence and
-// pin is still acquired independently by the unchanged atomic pin helper.
+// pin is still acquired independently by its original holder. The admission
+// owns every count mutation until the complete set is adopted.
 // No physical owner is deduplicated by DATA identity.
 pub fn pin_censused_captured_effect_sources(
   value : CapturedEffectDependencyPortCensus,
   configured_max_pins : Int?,
+  admission : CapturedEffectPinAdmission,
 ) -> Result[CapturedEffectInputs, RunIssue] {
   if value.run.captured.stopped {
     return Err(ForeignCandidate)
@@ -135,5 +137,16 @@ pub fn pin_censused_captured_effect_sources(
   if ports.length() != value.results {
     return Err(ForeignCandidate)
   }
-  pin_captured_effect_sources_with_ports(value.run, selected, ports)
+  if !begin_captured_effect_pin_admission(admission, value.run) {
+    return Err(ForeignCandidate)
+  }
+  pin_captured_effect_sources_with_ports(
+    value.run,
+    selected,
+    ports,
+    admission=Some(admission),
+  ).map(inputs => {
+    admission.inputs = Some(inputs)
+    inputs
+  })
 }

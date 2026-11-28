@@ -219,6 +219,7 @@ pub fn[I] borrow_request_effect_plan_input(
   owner : ClientRequestPreparation[I],
   input : I,
   static_models? : Bool = false,
+  project_file? : Bool = false,
 ) -> Result[
   @resources.PreparationBodyBorrow[
     @publication_host.PreparedClientEffectComputation,
@@ -232,11 +233,60 @@ pub fn[I] borrow_request_effect_plan_input(
   let capacity = owner.effect_capacity.unwrap()
   let prepared = owner.compiled_effect.unwrap()
   let reserved = owner.phase == EffectPlanReserved
+  if project_file && (reserved || static_models) {
+    return Err(WrongPhase)
+  }
   let (r, e) = if reserved {
     match @resources.preparation_capacity_working_extents(capacity, input) {
       Err(issue) => return Err(Capacity(issue))
       Ok(value) => value
     }
+  } else {
+    (r, e)
+  }
+  // The Project shares its physical file. Reserve its positional Source and
+  // write-demand controls and the immutable identity before constructing them.
+  let (r, e) = if project_file {
+    let targets = @publication_host.prepared_client_effect_update_target_count(
+      prepared,
+    )
+    guard targets is Some(targets) &&
+      @publication_host.client_effect_direct_acquisition_count(
+        prepared,
+        @publication_host.client_standard_effect_computation_limits().effects.max_work,
+      )
+      is Ok(sources) &&
+      @publication_host.client_request_identity_construction_inventory()
+      is Some((identity_retained, identity_work)) &&
+      @execution.preparation_representation_cost({
+        record_headers: 122L +
+        24L * sources.to_int64() +
+        48L * targets.to_int64(),
+        reference_slots: 177L +
+        40L * sources.to_int64() +
+        88L * targets.to_int64(),
+        scalar_words: 184L +
+        64L * sources.to_int64() +
+        100L * targets.to_int64(),
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      })
+      is Some(controls) &&
+      @execution.preparation_representation_cost(identity_retained)
+      is Some(identity_r) &&
+      @execution.preparation_representation_cost(identity_work)
+      is Some(identity_e) &&
+      @execution.checked_preparation_add_product(r, controls + identity_r, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(
+        e,
+        controls + identity_r + identity_e,
+        1L,
+      )
+      is Some(e) else {
+      return Err(Policy)
+    }
+    (r, e)
   } else {
     (r, e)
   }
@@ -544,6 +594,57 @@ pub fn[I] borrow_request_effect_preparation(
   let result = @resources.borrow_preparation_body(capacity)
   owner.phase = EffectBodyReady
   result.map_err(issue => Capacity(issue))
+}
+
+///|
+/// Fund the same completed Effect Plan on the prepared Request's physical
+/// ticket. The caller must still establish the original Run and its authority.
+pub fn[P, C, I] fund_platform_vm_request_effect_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  access : @resources.BackedExecutionLiveAccess[P, C, I],
+) -> Result[Unit, @resources.BackedExecutionIssue] {
+  guard owner.phase == EffectBodyReady &&
+    owner.initial is BackedRequestInitial(initial) &&
+    owner.input is Some(original_input) &&
+    physical_equal(input, original_input) &&
+    owner.effect_capacity is Some(capacity) &&
+    owner.compiled_effect is Some(prepared) &&
+    owner.effect_plan is Some(plan) &&
+    physical_equal(plan.prepared, prepared) else {
+    return Err(ForeignOriginal)
+  }
+  guard !plan.transport_bytes.is_empty() &&
+    plan.transport_bytes.length() == plan.whole_sources.length() else {
+    return Err(ForeignOriginal)
+  }
+  // This Project entrance begins with its ordered Whole inputs. Fund their
+  // actual original transfers before Source; later attempts acquire only
+  // their own delta on this same ticket within the complete Plan ceiling.
+  let mut initial_transfer = 0L
+  for index, bytes in plan.transport_bytes {
+    guard plan.whole_sources[index] is Some(_) &&
+      @execution.checked_preparation_add_product(initial_transfer, bytes, 1L)
+      is Some(total) else {
+      return Err(Resource(InvalidCharge))
+    }
+    initial_transfer = total
+  }
+  let limits = plan.limits
+  owner.phase = Selecting
+  let funded = @resources.fund_platform_vm_prepared_run(
+    access,
+    initial,
+    input,
+    capacity,
+    plan,
+    limits.attempts,
+    limits.holdings,
+    limits.transfer_bytes,
+    initial_transfer_bytes=Some(initial_transfer),
+  )
+  owner.phase = EffectBodyReady
+  funded
 }
 
 ///|

@@ -202,5 +202,23 @@ pub fn[I] check_request_owned_submitted_intent(
     Err(issue) => return Err(Request(issue))
     Ok(_) => ()
   }
+  // These checkers read the authored Program and Parameters directly from
+  // this retained intent. JSON/YAML Source documents use the same structured
+  // compiler as Program input. A lowered Query keeps its own Source child.
+  let structured_source = kind == "aql" &&
+    owner.source_input is None &&
+    owner.query_syntax is None
+  if (kind == "program" || structured_source) &&
+    owner.program_check is Some(child) &&
+    child.effect_limits is Some(_) {
+    guard owner.submitted_intent is Some(original) &&
+      physical_equal(original, intent) else {
+      return Err(Preparation(ForeignOriginal))
+    }
+    if @publication_host.client_submitted_intent_requests_read_only(original) {
+      return Err(Preparation(SourceInput(Source(ReadOnly))))
+    }
+    child.submitted_program = owner.submitted_intent
+  }
   Ok(program_limits)
 }

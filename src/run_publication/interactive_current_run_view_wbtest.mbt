@@ -331,6 +331,165 @@ test "Common Inspect admits the original park and distinguishes TTL policy from 
       project(corrupt) is Err(ControlReadContract(InvalidField("debug_park"))),
     )
   }
+  let stopped_state = state
+    .replace(old="\"running\"", new="\"needs_reconciliation\"")
+    .replace(
+      old="\"physical_stop\":\"unknown\"",
+      new="\"physical_stop\":\"confirmed\"",
+    )
+    .replace(
+      old="\"next_action\":{\"kind\":\"none\"}",
+      new="\"next_action\":{\"kind\":\"reconcile_run\",\"reason\":\"execution_unknown\"}",
+    )
+  let stopped_park = park
+    .replace(
+      old="\"kind\":\"logical_step\"",
+      new="\"kind\":\"stopped_logical_step\"",
+    )
+    .replace(
+      old="\"revision\":17",
+      new="\"revision\":17,\"parked_revision\":16,\"resume_available\":true",
+    )
+  fn project_stopped(
+    observed : String,
+    facts : String,
+  ) -> Result[String, RunControlReadIssue] raise {
+    project_current_interactive_run_view(
+      run,
+      prepared,
+      authorization,
+      ref_wire,
+      observed,
+      inspect_fixture_snapshot(run, ref_wire, observed),
+      65536,
+      1000,
+      32,
+      debug_park_wire=facts,
+    )
+  }
+  let stopped_wire = project_stopped(stopped_state, stopped_park).unwrap()
+  let restored = parse_contract_wire(
+    stopped_wire,
+    65536,
+    1000,
+    32,
+    data_keys=true,
+  ).unwrap()
+  let ready = @json.object_field(restored, "run_state").unwrap()
+  assert_eq(contract_string_from_value(ready, "status"), Some("paused"))
+  assert_eq(interactive_integer(ready, "control_revision"), Some(17L))
+  let continued = @json.object_field(ready, "boundary").unwrap()
+  assert_eq(
+    contract_string_from_value(continued, "step_id"),
+    Some(inspect_fixture_cid("c")),
+  )
+  let marked_park = stopped_park.replace(
+    old="\"resume_available\":true",
+    new="\"resume_available\":true,\"matched_breakpoint_step_id\":\"" +
+      inspect_fixture_cid("c") +
+      "\"",
+  )
+  let marked = parse_contract_wire(
+    project_stopped(stopped_state, marked_park).unwrap(),
+    65536,
+    1000,
+    32,
+    data_keys=true,
+  ).unwrap()
+  let marked_state = @json.object_field(marked, "run_state").unwrap()
+  assert_eq(
+    contract_string_from_value(marked_state, "stop_reason"),
+    Some("breakpoint"),
+  )
+  let marks = @json.object_field(marked_state, "matched_breakpoints").unwrap()
+  assert_eq(
+    @json.stringify_value(marks, 1024, 4, 4),
+    "[\"" + inspect_fixture_cid("c") + "\"]",
+  )
+  assert_true(
+    project_stopped(
+      stopped_state,
+      marked_park.replace(
+        old="\"matched_breakpoint_step_id\":\"" + inspect_fixture_cid("c"),
+        new="\"matched_breakpoint_step_id\":\"" + inspect_fixture_cid("d"),
+      ),
+    )
+    is Err(ControlReadContract(InvalidField("debug_park"))),
+  )
+  let running_wire = project(park).unwrap()
+  let running = parse_contract_wire(
+    running_wire,
+    65536,
+    1000,
+    32,
+    data_keys=true,
+  ).unwrap()
+  let live = @json.object_field(
+    @json.object_field(running, "run_state").unwrap(),
+    "boundary",
+  ).unwrap()
+  assert_eq(
+    contract_string_from_value(continued, "consumed_boundary_cid"),
+    contract_string_from_value(live, "consumed_boundary_cid"),
+  )
+  let input_state = state
+    .replace(old="\"running\"", new="\"resuming\"")
+    .replace(
+      old="\"physical_stop\":\"unknown\"",
+      new="\"physical_stop\":\"confirmed\"",
+    )
+  let input_park = park.replace(
+    old="\"kind\":\"logical_step\"",
+    new="\"kind\":\"input_logical_step\"",
+  )
+  let input_view = parse_contract_wire(
+    project_stopped(input_state, input_park).unwrap(),
+    65536,
+    1000,
+    32,
+    data_keys=true,
+  ).unwrap()
+  let input_paused = @json.object_field(input_view, "run_state").unwrap()
+  assert_eq(contract_string_from_value(input_paused, "status"), Some("paused"))
+  assert_eq(interactive_integer(input_paused, "control_revision"), Some(17L))
+  let input_boundary = @json.object_field(input_paused, "boundary").unwrap()
+  assert_eq(
+    contract_string_from_value(input_boundary, "consumed_boundary_cid"),
+    contract_string_from_value(live, "consumed_boundary_cid"),
+  )
+  for
+    (observed, facts) in [
+      (state, stopped_park),
+      (stopped_state, park),
+      (state, input_park),
+      (input_state, park),
+      (
+        input_state.replace(
+          old="\"physical_stop\":\"confirmed\"",
+          new="\"physical_stop\":\"unknown\"",
+        ),
+        input_park,
+      ),
+      (
+        stopped_state,
+        stopped_park.replace(
+          old="\"parked_revision\":16",
+          new="\"parked_revision\":15",
+        ),
+      ),
+      (
+        stopped_state.replace(
+          old="\"cancellation_requested\":false",
+          new="\"cancellation_requested\":true",
+        ),
+        stopped_park,
+      ),
+    ] {
+    assert_true(
+      project_stopped(observed, facts)
+      is Err(ControlReadContract(InvalidField("debug_park"))),
+    )
+  }
   let entry_state = state.replace(old="\"running\"", new="\"preparing\"")
   let entry_snapshot = inspect_fixture_snapshot(run, ref_wire, entry_state)
   let entry = "{\"kind\":\"entry\",\"run_ref\":" +
@@ -397,6 +556,84 @@ test "Common Inspect admits the original park and distinguishes TTL policy from 
     contract_string_from_value(mapped_boundary, "consumed_boundary_cid"),
     contract_string_from_value(boundary, "consumed_boundary_cid"),
   )
+  let selection = "{\"logical_map_cid\":\"" +
+    inspect_fixture_cid("8") +
+    "\",\"before_step_ids\":[\"" +
+    step +
+    "\",\"" +
+    inspect_fixture_cid("d") +
+    "\"]}"
+  let marked = mapped.replace(
+    old="\"ttl_policy\":",
+    new="\"entry_breakpoint_selection\":" + selection + ",\"ttl_policy\":",
+  )
+  let marked_view = parse_contract_wire(
+    project_entry(marked).unwrap(),
+    65536,
+    1000,
+    32,
+    data_keys=true,
+  ).unwrap()
+  let expected_selection = parse_contract_wire(
+    selection,
+    65536,
+    1000,
+    32,
+    data_keys=true,
+  ).unwrap()
+  assert_eq(
+    @json.stringify_value(
+      @json.object_field(marked_view, "entry_breakpoint_selection").unwrap(),
+      65536,
+      1000,
+      32,
+    ),
+    @json.stringify_value(expected_selection, 65536, 1000, 32),
+  )
+  assert_eq(
+    @json.stringify_value(
+      @json.object_field(marked_view, "run_state").unwrap(),
+      65536,
+      1000,
+      32,
+    ),
+    @json.stringify_value(
+      @json.object_field(mapped_view, "run_state").unwrap(),
+      65536,
+      1000,
+      32,
+    ),
+  )
+  assert_true(
+    project_entry(
+      marked.replace(
+        old="\"resume_available\":true",
+        new="\"resume_available\":false",
+      ),
+    )
+    is Err(_),
+  )
+  assert_true(
+    project_entry(
+      marked.replace(
+        old=selection,
+        new=selection.replace(
+          old=inspect_fixture_cid("8"),
+          new=inspect_fixture_cid("f"),
+        ),
+      ),
+    )
+    is Err(_),
+  )
+  assert_true(
+    project_entry(
+      marked.replace(
+        old=selection,
+        new=selection.replace(old=inspect_fixture_cid("d"), new=step),
+      ),
+    )
+    is Err(_),
+  )
   let mapless = entry.replace(
     old="\"" + inspect_fixture_cid("8") + "\"",
     new="null",
@@ -449,6 +686,69 @@ test "Common Inspect admits the original park and distinguishes TTL policy from 
     )
     is Err(ControlReadContract(InvalidField("debug_park"))),
   )
+}
+
+///|
+test "breakpoint receipt binds a matching original entry or task park" {
+  let (run, _, _, ref_wire, _) = inspect_fixture()
+  let map = inspect_fixture_cid("8")
+  let command = seal_run_evidence_value(
+    "control_command",
+    "{\"version\":\"actql-control-command/0.1\",\"operation\":\"resume\",\"operation_id\":\"breakpoint-original\",\"run_ref\":" +
+    ref_wire +
+    ",\"expected_control_revision\":17,\"interval\":{\"until\":\"breakpoint\",\"guards\":null,\"breakpoint_selection\":{\"logical_map_cid\":\"" +
+    map +
+    "\",\"before_step_ids\":[\"" +
+    inspect_fixture_cid("c") +
+    "\"]}}}",
+    4096,
+    64,
+    8,
+  ).unwrap()
+  let original = "{\"run_ref\":" +
+    ref_wire +
+    ",\"revision\":17,\"logical_map_cid\":\"" +
+    map +
+    "\",\"paused_at\":\"2026-10-11T00:05:00.000Z\",\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"ttl_policy\":\"original_debug_entry_deadline\","
+  let task = original +
+    "\"kind\":\"logical_step\",\"start_revision\":3,\"control_revision\":2,\"committed_generation\":6,\"completed_step_id\":\"" +
+    inspect_fixture_cid("b") +
+    "\",\"next_step_id\":\"" +
+    inspect_fixture_cid("d") +
+    "\"}"
+  let accepted_at = "2026-10-11T00:06:00.000Z"
+  let receipt = issue_local_debug_resume_receipt(
+    run, command, task, 18, accepted_at, 65536, 1000, 32,
+  ).unwrap()
+  let operation = @json.object_field(receipt.value, "operation_ref").unwrap()
+  assert_eq(
+    contract_string_from_value(operation, "command_cid"),
+    Some(command.identity),
+  )
+  let mismatched_map = task.replace(old=map, new=inspect_fixture_cid("9"))
+  let entry = original + "\"kind\":\"entry\"}"
+  let entry_receipt = issue_local_debug_resume_receipt(
+    run, command, entry, 18, accepted_at, 65536, 1000, 32,
+  ).unwrap()
+  let entry_operation = @json.object_field(entry_receipt.value, "operation_ref").unwrap()
+  assert_eq(
+    contract_string_from_value(entry_operation, "command_cid"),
+    Some(command.identity),
+  )
+  assert_true(entry_receipt.identity != receipt.identity)
+  let mismatched_entry = entry.replace(old=map, new=inspect_fixture_cid("9"))
+  let no_next = task.replace(
+    old="\"" + inspect_fixture_cid("d") + "\"",
+    new="null",
+  )
+  for park in [mismatched_map, mismatched_entry, no_next] {
+    assert_true(
+      issue_local_debug_resume_receipt(
+        run, command, park, 18, accepted_at, 65536, 1000, 32,
+      )
+      is Err(ControlReadContract(InvalidField("control_command"))),
+    )
+  }
 }
 
 ///|
@@ -589,4 +889,209 @@ test "local Debug receipt seals the original entry and Step CAS in Common" {
       )
     }
   }
+}
+
+///|
+test "Effect Inspect and confirmation share the original write hold" {
+  let (run, prepared, authorization, ref_wire, state) = inspect_fixture()
+  let preview_cid = inspect_fixture_cid("c")
+  let member_cid = inspect_fixture_cid("d")
+  let selection = "{\"unit_id\":\"write\",\"effect_preview_cid\":\"" +
+    preview_cid +
+    "\",\"member_preview_cid\":\"" +
+    member_cid +
+    "\"}"
+  fn command_for(operation_id : String) -> RunEvidenceValue {
+    seal_run_evidence_value(
+      "control_command",
+      "{\"version\":\"actql-control-command/0.1\",\"operation\":\"confirm_write\",\"run_ref\":" +
+      ref_wire +
+      ",\"expected_control_revision\":17,\"operation_id\":\"" +
+      operation_id +
+      "\",\"effect_write\":" +
+      selection +
+      "}",
+      4096,
+      64,
+      8,
+    ).unwrap()
+  }
+  let command = command_for("original-write")
+  let accepted = "2026-10-11T00:06:00.000Z"
+  let window =
+    #|,"paused_at":"2026-10-11T00:05:00.000Z","expires_at":"2026-10-11T00:10:00.000Z"
+  let park = "{\"version\":\"actql-local-debug-effect-write-park/0.1\",\"run_ref\":" +
+    ref_wire +
+    ",\"start_revision\":5,\"revision\":17,\"effect_write\":" +
+    selection +
+    window +
+    "}"
+  fn issue(
+    wire : String,
+    revision : Int,
+    at : String,
+    bytes : Int,
+  ) -> Result[RunEvidenceValue, RunControlReadIssue] {
+    issue_local_effect_write_confirmation_receipt(
+      run, command, wire, revision, at, bytes, 1000, 32,
+    )
+  }
+  fn hash(wire : String) -> String raise {
+    let value = parse_contract_wire(wire, 65536, 1000, 32, data_keys=true).unwrap()
+    @json.cid_value(value, 65536, 1000, 32)
+  }
+  let receipt = issue(park, 18, accepted, 65536).unwrap()
+  fn inspect(
+    original : String,
+    current_state : String,
+    can_confirm : Bool,
+  ) -> Result[String, RunControlReadIssue] raise {
+    project_current_interactive_run_view(
+      run,
+      prepared,
+      authorization,
+      ref_wire,
+      current_state,
+      inspect_fixture_snapshot(run, ref_wire, current_state),
+      65536,
+      1000,
+      32,
+      debug_park_wire="{\"effect_write_park\":" +
+        original +
+        ",\"confirm_available\":" +
+        can_confirm.to_string() +
+        "}",
+    )
+  }
+  for can_confirm in [false, true] {
+    let view = parse_interactive_run_control_shape(
+      "run_view",
+      inspect(park, state, can_confirm).unwrap(),
+      65536,
+      1000,
+      32,
+    ).unwrap()
+    let observed = @json.object_field(view, "run_state").unwrap()
+    let boundary = @json.object_field(observed, "boundary").unwrap()
+    assert_eq(contract_string_from_value(observed, "status"), Some("paused"))
+    assert_eq(
+      contract_string_from_value(observed, "stop_reason"),
+      Some("effect_write"),
+    )
+    assert_eq(contract_string_from_value(boundary, "position"), Some("before"))
+    assert_true(@json.object_field(boundary, "step_id") is Some(@json.Null))
+    assert_eq(
+      contract_string_from_value(boundary, "consumed_boundary_cid"),
+      Some(hash(park)),
+    )
+    let shown = @json.object_field(boundary, "effect_write").unwrap()
+    assert_eq(@json.cid_value(shown, 65536, 1000, 32), hash(selection))
+    let operations = @json.object_field(view, "available_operations").unwrap()
+    let expected = if can_confirm {
+      "[\"inspect\",\"confirm_write\"]"
+    } else {
+      "[\"inspect\"]"
+    }
+    assert_eq(@json.cid_value(operations, 65536, 1000, 32), hash(expected))
+  }
+  assert_true(
+    inspect(
+      park.replace(old="\"revision\":17", new="\"revision\":16"),
+      state,
+      true,
+    )
+    is Err(_),
+  )
+  assert_true(
+    inspect(
+      park.replace(old=inspect_fixture_cid("a"), new=inspect_fixture_cid("e")),
+      state,
+      true,
+    )
+    is Err(_),
+  )
+  assert_true(
+    inspect(
+      park,
+      state.replace(
+        old="\"cancellation_requested\":false",
+        new="\"cancellation_requested\":true",
+      ),
+      true,
+    )
+    is Err(_),
+  )
+  let preimage = "{\"version\":\"actql-local-debug-continuation-generation/0.1\",\"consumed_boundary_cid\":\"" +
+    hash(park) +
+    "\"" +
+    window +
+    "}"
+  let generation = hash(preimage)
+  let operation = "{\"run_ref\":" +
+    ref_wire +
+    ",\"operation_id\":\"original-write\",\"command_cid\":\"" +
+    command.identity +
+    "\",\"accepted_from_revision\":17}"
+  let fence = hash(
+    "{\"version\":\"actql-local-debug-resume-fence/0.1\",\"operation_ref\":" +
+    operation +
+    ",\"continuation_generation_cid\":\"" +
+    generation +
+    "\",\"accepted_revision\":18}",
+  )
+  assert_eq(
+    receipt.identity,
+    hash(
+      "{\"version\":\"actql-control-operation-receipt/0.1\",\"outcome\":\"accepted\",\"operation_ref\":" +
+      operation +
+      ",\"observed_state\":{\"version\":\"actql-controlled-run-state/0.1\",\"run_id\":\"original\",\"status\":\"resuming\",\"control_revision\":18,\"updated_at\":\"" +
+      accepted +
+      "\",\"resume_origin\":{\"kind\":\"manual\",\"command_cid\":\"" +
+      command.identity +
+      "\",\"continuation_generation_cid\":\"" +
+      generation +
+      "\",\"fence_cid\":\"" +
+      fence +
+      "\"}}}",
+    ),
+  )
+  let competing = issue_local_effect_write_confirmation_receipt(
+    run,
+    command_for("competing-write"),
+    park,
+    18,
+    accepted,
+    65536,
+    1000,
+    32,
+  ).unwrap()
+  let observed = @json.object_field(competing.value, "observed_state").unwrap()
+  let origin = @json.object_field(observed, "resume_origin").unwrap()
+  assert_eq(
+    contract_string_from_value(origin, "continuation_generation_cid"),
+    Some(generation),
+  )
+  assert_true(contract_string_from_value(origin, "fence_cid") != Some(fence))
+  for
+    wrong in [
+      park.replace(old="\"scope\"", new="\"other\""),
+      park.replace(old=inspect_fixture_cid("a"), new=inspect_fixture_cid("e")),
+      park.replace(old="\"write\"", new="\"foreign-unit\""),
+      park.replace(old=preview_cid, new=inspect_fixture_cid("f")),
+      park.replace(old=member_cid, new=inspect_fixture_cid("f")),
+      park.replace(old="\"start_revision\":5", new="\"start_revision\":17"),
+      park.replace(old="\"revision\":17", new="\"revision\":16"),
+      park.replace(
+        old=",\"revision\":17",
+        new=",\"revision\":17,\"approval\":true",
+      ),
+    ] {
+    assert_true(issue(wrong, 18, accepted, 65536) is Err(_))
+  }
+  let (bytes, _, _) = receipt.wire_usage.unwrap()
+  assert_eq(issue(park, 18, accepted, bytes).unwrap().wire, receipt.wire)
+  assert_true(issue(park, 18, accepted, bytes - 1) is Err(_))
+  assert_true(issue(park, 19, accepted, 65536) is Err(_))
+  assert_true(issue(park, 18, "2026-10-11T00:04:59.999Z", 65536) is Err(_))
+  assert_true(issue(park, 18, "2026-10-11T00:10:00.000Z", 65536) is Err(_))
 }

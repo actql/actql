@@ -1443,6 +1443,7 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
     owner,
     components: [component],
     normalization: None,
+    first_file: false,
   }
   let codec = {
     max_facts: 1000,
@@ -1681,7 +1682,12 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
   )
   assert_true(
     measure_prepared_client_effect_compilation_construction(
-      { owner: foreign, components: [component], normalization: None, },
+      {
+        owner: foreign,
+        components: [component],
+        normalization: None,
+        first_file: false,
+      },
       manifests,
       run_materials_limits().sequence,
       codec,

@@ -59,6 +59,26 @@ pub fn reserve_installed_effect_dependency_group(
 }
 
 ///|
+// Repeated member occurrences still pass their original custody checks. A
+// nominal Artifact alias needs no second body quote or construction.
+fn installed_effect_dependency_repeats_root(
+  artifacts : Array[@publication_host.ClientEffectLocalResultArtifact],
+  index : Int,
+  work : (Int) -> Bool,
+) -> Result[Bool, ClientInstalledManagedRunIssue] {
+  let artifact = artifacts[index]
+  for previous in 0..<index {
+    if !work(1) {
+      return Err(InsufficientCapacity)
+    }
+    if physical_equal(artifacts[previous], artifact) {
+      return Ok(true)
+    }
+  }
+  Ok(false)
+}
+
+///|
 // The same nominal Run and source generation receive every body/root. The
 // cache only shares immutable DATA after exact-wire comparison; physical
 // Source/Result owners and all imported edges remain separate obligations.
@@ -254,11 +274,20 @@ fn prepare_installed_effect_dependency_inventory_original(
         )
     }
   }
+  // Each grow is between synchronous Work segments. Only their quoted
+  // survivors cross that boundary, including Catalog census and body owners.
   let grow = fn(
     required : @execution.ExecutionCapacity,
   ) -> Result[Unit, ClientInstalledManagedRunIssue] {
     retain_installed_effect_dependency_capacity(
-      owner, preparation, admission, plan, ledger, control, required,
+      owner,
+      preparation,
+      admission,
+      plan,
+      ledger,
+      control,
+      required,
+      previous_workspace_retired=true,
     )
   }
   // Artifact wire usage comes from its exact original final encoder. Root
@@ -308,7 +337,7 @@ fn prepare_installed_effect_dependency_inventory_original(
         retained_bytes: 0L,
         workspace_bytes: 0L,
       }).unwrap()
-      for artifact in artifacts {
+      for index, artifact in artifacts {
         if !work(1) {
           return Err(InsufficientCapacity)
         }
@@ -323,6 +352,11 @@ fn prepare_installed_effect_dependency_inventory_original(
           ) !=
           Some(@publication.publication_contract_identity(definition)) {
           return Err(ForeignOriginal)
+        }
+        match installed_effect_dependency_repeats_root(artifacts, index, work) {
+          Ok(true) => continue
+          Ok(false) => ()
+          Err(issue) => return Err(issue)
         }
         let contract = @publication_host.client_effect_local_result_artifact_contract(
           artifact,
@@ -368,7 +402,12 @@ fn prepare_installed_effect_dependency_inventory_original(
   let roots = match
     segment(work => {
       let roots : Array[@publication.CapturedEffectDependencyBody] = []
-      for artifact in artifacts {
+      for index, artifact in artifacts {
+        match installed_effect_dependency_repeats_root(artifacts, index, work) {
+          Ok(true) => continue
+          Ok(false) => ()
+          Err(issue) => return Err(issue)
+        }
         let wire = @publication_host.client_effect_local_result_artifact_json(
           artifact,
         )
@@ -382,9 +421,8 @@ fn prepare_installed_effect_dependency_inventory_original(
             artifact, max_bytes, max_nodes, max_depth,
           ) {
           Ok(root) => {
-            // Members can select the SAME Result. Every Artifact above still
-            // passes original Run/input checks and owns its funded root body;
-            // only this semantic graph's root references are a set.
+            // Distinct Artifact originals still need the exact wire check
+            // when their roots name the same semantic body.
             let kind = @publication.captured_effect_dependency_body_kind(root)
             let cid = @publication.captured_effect_dependency_body_cid(root)
             let mut duplicate = false

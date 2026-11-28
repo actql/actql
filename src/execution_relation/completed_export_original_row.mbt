@@ -24,7 +24,6 @@ fn completed_export_original_row_retained(
   row : CompletedOutputExportOriginalRow,
 ) -> Bool {
   guard row.stream is Some(stream) else { return false }
-  row.canonical is Some(_) &&
   row.index >= 0 &&
   stream.source is Some(_) &&
   !stream.reading &&
@@ -77,6 +76,32 @@ pub fn next_completed_output_export_original_row(
       }
     }
   }
+}
+
+///|
+/// Borrow a typed row from the same measured hash traversal. Its checked
+/// cells stay at the original stream. This consumer does not decode the
+/// emitted JSON or retain a second canonical row.
+pub fn advance_completed_output_export_original_row_measured(
+  stream : CompletedOutputExport,
+  quantum : Int,
+  workspace : Int,
+  fund : (ExecutionCapacity) -> Bool,
+) -> Result[(Bool, CompletedOutputExportOriginalRow?), CompletedExportIssue] {
+  let index = stream.row
+  advance_completed_output_export_measured(stream, quantum, workspace, fund).bind(progress => {
+      guard progress.batch is Some(_) else {
+        return Ok((progress.complete, None))
+      }
+      let row = { stream: Some(stream), index, canonical: None, }
+      if completed_export_original_row_retained(row) {
+        Ok((progress.complete, Some(row)))
+      } else {
+        cancel_completed_output_export(stream)
+        Err(Unavailable)
+      }
+    },
+  )
 }
 
 ///|
@@ -198,22 +223,26 @@ pub fn completed_output_export_original_row_checked_field_usage(
   if !IndexedRows::cell_present(rows, row.index, column) {
     return Err(MissingField)
   }
-  // Both independent value ceilings must fit before rechecking. The returned
-  // usage lets the enclosing Mapping share this same finite budget across
-  // all fields rather than resetting it for each cell.
-  if limits.max_nodes > remaining ||
-    limits.max_text_bytes > remaining - limits.max_nodes {
+  // The row has independent node and text ceilings. The existing runtime
+  // recheck deducts actual work from the caller's shared remaining budget.
+  if remaining == 0 {
     return Err(WorkLimit)
   }
   let value = match IndexedRows::read_cell(rows, row.index, column) {
     Null => Some(@admitted.null_value())
     Number(number) => @admitted.number_value(number)
     Boolean(boolean) => Some(@admitted.boolean_value(boolean))
-    Text(text) => @admitted.text_value(text, limits.max_text_bytes)
+    Text(text) =>
+      @admitted.text_value(text, Int::min(limits.max_text_bytes, remaining - 1))
     Captured(value) => Some(value)
   }
   guard value is Some(value) else { return Err(InvalidValue) }
-  guard @admitted.recheck_runtime_value_usage(value, field.contract, limits)
+  guard @admitted.recheck_runtime_value_usage(
+      value,
+      field.contract,
+      limits,
+      max_work=Some(remaining),
+    )
     is Some((checked, nodes, text)) else {
     return Err(InvalidValue)
   }

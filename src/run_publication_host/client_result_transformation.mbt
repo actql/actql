@@ -206,11 +206,13 @@ pub fn start_result_publication_export(
 pub fn ClientResultTransformationPreparation::advance(
   self : ClientResultTransformationPreparation,
   quantum : Int,
+  before_metadata? : ((@execution.ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Bool, Int), ClientResultTransformationIssue] {
-  @execution.advance_completed_result_relation_export(self.preparation, quantum).map_err(issue => {
-      Output(issue)
-    },
-  )
+  @execution.advance_completed_result_relation_export(
+    self.preparation,
+    quantum,
+    before_metadata~,
+  ).map_err(issue => Output(issue))
 }
 
 ///|

@@ -340,17 +340,9 @@ test "Native submitted Values capture refuses expiry and cancellation after expo
           calls.val += 1
           if calls.val == terminal_call.val {
             if cancel && original.val is Some((host, work)) {
-              host.journal
-              .transaction(() => {
-                let row = host.journal
-                  .retained(work.binding.request)
-                  .unwrap()
-                  .unwrap()
-                host.journal
-                .save({ ..row, cancellation_requested: true, })
-                .map(_ => ())
-              })
-              .unwrap()
+              host.journal.accept_fixture_cancellation(
+                host.journal.retained(work.binding.request).unwrap().unwrap(),
+              )
             }
             if !cancel {
               return "2026-10-11T00:00:00.000Z"

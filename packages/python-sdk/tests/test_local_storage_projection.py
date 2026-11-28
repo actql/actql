@@ -20,9 +20,9 @@ from actql_sdk._local_storage import (
 
 
 class ProjectedAttachmentTests(unittest.TestCase):
-    def store(self, path):
-        return LocalByteStore(path, max_records=8, max_record_bytes=256,
-                              max_payload_bytes=1024)
+    def store(self, path, *, max_records=8, max_record_bytes=256, max_payload_bytes=1024):
+        return LocalByteStore(path, max_records=max_records, max_record_bytes=max_record_bytes,
+                              max_payload_bytes=max_payload_bytes)
 
     def originals(self, store):
         values = []
@@ -163,12 +163,10 @@ class ProjectedAttachmentTests(unittest.TestCase):
     def test_capacity_and_record_count_refusals_keep_original_reservations(self):
         for limit in ('bytes', 'records'):
             with self.subTest(limit=limit), TemporaryDirectory() as directory:
-                with self.store(Path(directory) / 'core.sqlite') as store:
+                limits = (dict(max_record_bytes=32, max_payload_bytes=40)
+                          if limit == 'bytes' else dict(max_records=3))
+                with self.store(Path(directory) / 'core.sqlite', **limits) as store:
                     originals = self.originals(store)
-                    if limit == 'bytes':
-                        store._max_payload_bytes = 40
-                    else:
-                        store._max_records = 3
                     calls = []
 
                     def project(ordinal, consume):
@@ -279,7 +277,7 @@ class ProjectedAttachmentTests(unittest.TestCase):
             writes = 0
 
             def execute(self, sql, *args, **kwargs):
-                if self.armed and sql.startswith('INSERT INTO core_bytes'):
+                if self.armed and sql.startswith('INSERT INTO main.core_bytes'):
                     self.writes += 1
                     if self.writes == 2:
                         raise OSError('Independent projected write failure')

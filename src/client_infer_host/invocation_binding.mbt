@@ -315,6 +315,44 @@ pub fn invocation_binding_matches_run(
 }
 
 ///|
+/// A local publisher needs the complete current original issuer rather than
+/// the component-only binding or a separately supplied metadata Ledger.
+pub fn original_issued_invocation_matches_run(
+  binding : InvocationBinding,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  binding.issuance
+  is Some({ state: { funding: Some(Original(_)), sources, .. }, .. }) &&
+  sources.is_empty() &&
+  invocation_binding_matches_run(binding, compiled, definition)
+}
+
+///|
+/// A Whole Source publisher binds the exact originals retained by the same
+/// completed Model issuer. Equal evidence or another acquisition is foreign.
+pub fn original_issued_whole_source_invocation_matches_run(
+  binding : InvocationBinding,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  source : @publication.RunEvidenceValue,
+  logical : @publication.RunEvidenceValue,
+) -> Bool {
+  guard binding.issuance
+    is Some(
+      { state: { funding: Some(Original(_)), sources: [original], .. }, .. }
+    ) else {
+    return false
+  }
+  let (actual_source, actual_logical, _, _) = @publication.model_source_observation_originals(
+    original,
+  )
+  physical_equal(actual_source, source) &&
+  physical_equal(actual_logical, logical) &&
+  invocation_binding_matches_run(binding, compiled, definition)
+}
+
+///|
 // Cheap post-callback fence over the SAME immutable execution binding. This
 // never caches availability or repeats admitted Definition wire comparison.
 fn invocation_binding_has_original_run(

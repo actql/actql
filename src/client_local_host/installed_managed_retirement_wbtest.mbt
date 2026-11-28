@@ -45,6 +45,7 @@ test "installed managed retirement tombstone rejects new borrows" {
     source_free_captured: None,
     source_free_opening: false,
     sample_start_journal_bytes: 0,
+    effect_debug_map: None,
     publication_invocation_started: false,
     publication_definition: None,
     publication_invocation: None,

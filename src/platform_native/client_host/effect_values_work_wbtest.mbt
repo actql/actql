@@ -152,7 +152,7 @@ test "Native original source-free Effect Work claims and computes once on the sa
   assert_true(@strategy.captured_task_completed(dag, 0))
   let record = journal.retained(request).unwrap().unwrap()
   assert_true(record.physical_start_claimed)
-  assert_false(record.cancellation_requested)
+  assert_false(record.cancellation_requested())
   assert_true(record.checkpoint is None)
   let pins = @strategy.pin_captured_effect_sources(captured, 1).unwrap()
   assert_eq(@strategy.captured_effect_inputs_count(pins), 1)
@@ -341,12 +341,9 @@ test "Native Effect Values rechecks cancellation admitted by its clock callback 
     64,
     1000,
     () => {
-      journal
-      .transaction(() => {
-        let record = journal.retained(request).unwrap().unwrap()
-        journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
-      })
-      .unwrap()
+      journal.accept_fixture_cancellation(
+        journal.retained(request).unwrap().unwrap(),
+      )
       "2026-10-15T00:00:00.000Z"
     },
     () => true,
@@ -362,7 +359,7 @@ test "Native Effect Values rechecks cancellation admitted by its clock callback 
     0,
   )
   assert_true(
-    journal.retained(request).unwrap().unwrap().cancellation_requested,
+    journal.retained(request).unwrap().unwrap().cancellation_requested(),
   )
   effect_values_work_test_stop(captured)
   database.close_checked().unwrap()

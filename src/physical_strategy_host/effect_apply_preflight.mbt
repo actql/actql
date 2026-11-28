@@ -58,6 +58,7 @@ pub fn check_captured_effect_apply_preflight(
   max_rows : Int,
   max_targets : Int,
   max_work : Int,
+  recovery_guards? : @effect.RecoveredEffectTargetGuards,
 ) -> Result[Unit, CapturedEffectApplyPreflightIssue] {
   match
     check_captured_effect_plan_proofs(preview, proofs, max_members, max_work) {
@@ -93,6 +94,7 @@ pub fn check_captured_effect_apply_preflight(
     max_rows,
     max_targets,
     max_work,
+    recovery_guards?,
   )
 }
 
@@ -127,6 +129,7 @@ pub fn check_effect_preview_apply_semantics(
   max_targets : Int,
   max_work : Int,
   recovery_guards? : @effect.RecoveredEffectTargetGuards,
+  selected_member? : Int,
 ) -> Result[Unit, CapturedEffectApplyPreflightIssue] {
   match
     check_effect_preview_current_bindings(
@@ -137,13 +140,20 @@ pub fn check_effect_preview_apply_semantics(
     Err(issue) => return Err(CapturedEffectApplyPreflightIssue::Binding(issue))
   }
   let guard_check = match recovery_guards {
+    None if selected_member is Some(_) => Err(@effect.ForeignRecoveryEvidence)
     None =>
       @effect.check_effect_preview_target_guards(
         identity, guards, max_rows, max_work,
       )
     Some(recovered) =>
       @effect.check_recovered_effect_target_guards(
-        identity, request_scope, recovered, guards, max_rows, max_work,
+        identity,
+        request_scope,
+        recovered,
+        guards,
+        max_rows,
+        max_work,
+        selected_member?,
       )
   }
   match guard_check {

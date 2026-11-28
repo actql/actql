@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/client_infer_host" @infer,
   "actql/actql/client_local_preparation" @input,
   "actql/actql/run_publication_host" @host,
   "actql/actql/sha256" @sha,
@@ -12,6 +13,7 @@ import {
   "actql/actql/execution_authorization" @authorization,
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/client_local_host" @local,
+  "actql/actql/client_row_source_host" @row_host,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host_dispatch" @driver,
   "actql/actql/connectors/local/driver" @managed,

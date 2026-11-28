@@ -684,3 +684,38 @@ pub fn completed_relation_identity_scan_body_receipt(
     None
   }
 }
+
+///|
+/// After a trusted serialized Host has observed synchronous unwind, discard
+/// this original scan's private encoder state. This retires no physical Source,
+/// Store, reservation or other owner's task.
+pub fn cancel_completed_relation_identity_scan_after_unwind(
+  value : CompletedRelationIdentityScan,
+) -> Unit {
+  value.advancing = false
+  if value.stream is Some(stream) {
+    stream.reading = false
+  }
+  cancel_completed_relation_identity_scan(value) |> ignore
+}
+
+///|
+/// Remaining bounded copy work before finishing the same complete body.
+/// Its canonical scan has already emitted the fragments. Finishing copies
+/// them into one String, with a fixed final hash/receipt and delimiter cost.
+pub fn completed_relation_identity_scan_body_finish_work(
+  value : CompletedRelationIdentityScan,
+) -> Int? {
+  guard !value.closed &&
+    !value.advancing &&
+    value.phase is Done &&
+    value.retained_body is Some(parts) else {
+    return None
+  }
+  let work = 64L + 4L * value.retained_body_units + parts.length().to_int64()
+  if work <= 2147483647L {
+    Some(work.to_int())
+  } else {
+    None
+  }
+}

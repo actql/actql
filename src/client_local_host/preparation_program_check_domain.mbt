@@ -175,11 +175,13 @@ struct ClientProgramCheckPreparation[I, P] {
   // Mapping result. This is DATA, never a compiled body, Run or apply permit.
   mut static_effect_check : ClientStaticEffectCheckData?
   mut compiled_effect : @publication_host.PreparedClientEffectComputation?
+  mut submitted_program : @publication_host.ClientSubmittedIntent?
   mut effect_targets : (
     @update_targets.UpdateTargetPublication?,
     @update_targets.StoreTargetPublication?,
     @update_targets.CommandTargetPublication?,
     @publication_host.ClientSourceInput?,
+    @publication_host.ClientExecutionProfile,
   )?
   mut compilation_known_work : Int64
   mut environment_scratch : Int64?
@@ -335,6 +337,7 @@ fn[I, P] new_program_check_preparation(
     effect_candidate: None,
     static_effect_check: None,
     compiled_effect: None,
+    submitted_program: None,
     effect_targets: None,
     compilation_known_work: 0L,
     _observed_semantic_check_calls: 0L,
@@ -443,6 +446,7 @@ fn[I, P] transfer_program_check_input(
   owner.effect_candidate = None
   owner.static_effect_check = None
   owner.compiled_effect = None
+  owner.submitted_program = None
   owner.effect_targets = None
   owner.compilation_known_work = 0L
   owner.binding_inventory = None

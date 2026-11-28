@@ -48,6 +48,8 @@ fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) raise {
     run_namespace: "client_runs",
     source_free_result_policy: None,
     host_current: Some(77),
+    mock_project: None,
+    local_project: None,
     sdk: None,
   }
   let record : StoredSubmissionProjection = {
@@ -58,6 +60,7 @@ fn saved_lookup_validation_dispatch_case(kind : Int) -> (Int, Int) raise {
     saved_result: None,
     saved_snapshot: None,
     append_plan: Idle,
+    append_reader_serial: 0L,
     failure_preparation: None,
     failure_plan: None,
     cancellation_append: None,

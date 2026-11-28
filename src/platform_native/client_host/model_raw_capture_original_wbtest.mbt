@@ -116,10 +116,7 @@ test "Native Raw save requires the claimed uncancelled Run and its original Stor
     is Err(Journal(ForeignRun)),
   )
   let run = journal.retained(request).unwrap().unwrap()
-  journal
-  .transaction(() => journal.save({ ..run, cancellation_requested: true, }))
-  .unwrap()
-  |> ignore
+  journal.accept_fixture_cancellation(run)
   assert_true(
     native_model_raw_run_current(host, request, definition, binding, reads)
     is Err(Journal(ForeignRun)),
@@ -143,24 +140,21 @@ test "Native Model HTTP rejects a durable cancellation after its Run was cached"
   journal.operation_active = true
   let original = journal.retained(request).unwrap().unwrap()
   let reads = journal_test_read_access(reader, [])
-  assert_false(original.cancellation_requested)
+  assert_false(original.cancellation_requested())
   assert_true(journal.recheck_model_run_cut(request, reads) is Ok(_))
 
   let peer = epoch_test_database(name)
   let writer = open_native_client_run_journal(peer, 8).unwrap()
   let current = writer.retained(request).unwrap().unwrap()
-  writer
-  .transaction(() => writer.save({ ..current, cancellation_requested: true, }))
-  .unwrap()
-  |> ignore
+  writer.accept_fixture_cancellation(current)
 
   let cached = journal.retained(request).unwrap().unwrap()
   assert_eq(cached.revision, original.revision)
-  assert_false(cached.cancellation_requested)
+  assert_false(cached.cancellation_requested())
   assert_true(journal.recheck_model_run_cut(request, reads) is Err(ForeignRun))
   let changed = writer.retained(request).unwrap().unwrap()
   assert_true(changed.revision > original.revision)
-  assert_true(changed.cancellation_requested)
+  assert_true(changed.cancellation_requested())
   peer.close_checked().unwrap()
   journal.operation_active = false
   reader.close_checked().unwrap()

@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import wasmtime
 
-from actql_sdk._local_core import LocalCore, _ClosedWasmExports, _CLOSED_WASM_RECEIPT_BYTES, _MEMORY_LIMIT
+from actql_sdk._local_core import LocalCore, _MEMORY_LIMIT
 from actql_sdk._local_host_binding import _InvocationObservation
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_storage import ByteFence, ByteWrite, LocalStorageError, StoredBytes
@@ -32,6 +32,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
         ticket = binding._current.ticket
         module = wasmtime.Module(engine, f'''(module
             (import "test" "current" (func $current (param i32) (result i64)))
+            (import "test" "saved" (func $saved (param i32) (result i64)))
             (import "test" "begin" (func $begin (param i32 i32 i32 i32) (result i32)))
             (import "test" "copy" (func $copy (param i32 i32 i32 i32) (result i32)))
             (import "test" "query" (func $query (param i32) (result i32)))
@@ -62,16 +63,14 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 i32.const {ticket} call $schema i32.const 1 i32.le_u
                 if else unreachable end
                 local.get $negotiate
-                if (result i32)
-                    i32.const 0 call $current i64.const 1 i64.eq
-                else
-                    i32.const 0
+                if
+                    i32.const {ticket} call $saved i32.wrap_i64 local.set $before
                 end
+                local.get $before i32.const 1 i32.eq
                 if (result i32)
-                    i32.const {-ticket} call $current i32.wrap_i64 local.set $before
                     local.get $effect if call $effect drop end
                     local.get $before i32.const 10 i32.mul
-                    i32.const {-ticket} call $current i32.wrap_i64 i32.add
+                    i32.const {ticket} call $saved i32.wrap_i64 i32.add
                 else
                     i32.const 0
                 end)
@@ -94,16 +93,14 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 end
                 local.get $effect if call $effect drop end
                 i32.const 7))''')
-        def legacy_current(ticket):
-            if ticket == 0:
-                self.assertIsNone(core._journal_callbacks(ticket))
-                return -41
-            self.assertGreater(ticket, 0, 'The original supplier cannot answer a real proof query')
-            return core._journal_current_operation(ticket)
+        def unavailable_saved_reader(current_ticket):
+            self.assertEqual(current_ticket, ticket)
+            return 0
 
         definitions = [
-            ('journal_current_operation', legacy_current if legacy_census_supplier
-             else core._journal_current_operation, ['i32'], 'i64', False),
+            ('journal_current_operation', core._journal_current_operation, ['i32'], 'i64', False),
+            ('journal_saved_reader', unavailable_saved_reader if legacy_census_supplier
+             else core._journal_saved_reader, ['i32'], 'i64', False),
             ('journal_begin', core._journal_begin, ['i32'] * 4, 'i32', False),
             ('journal_query_copy', core._journal_query_copy, ['i32'] * 4, 'i32', True),
             ('journal_query', core._journal_query, ['i32'], 'i32', False),
@@ -119,32 +116,14 @@ class ClosedWasmSqlTests(unittest.TestCase):
             for name, callback, params, result, caller in definitions]
         core._instance = wasmtime.Instance(core._store, module, imports)
         core._exports = core._instance.exports(core._store)
-        core._observe_platform_vm(wasmtime)
-        # Production captures this only in LocalCore.__init__, after validating
-        # its full ABI and registering every import through the same wrapper.
-        # This deliberately smaller physical fixture does not claim that ABI.
-        core._closed_wasm_exports = core._closed_wasm_workspace = None
         if capture:
-            core._capture_closed_wasm_exports(wasmtime)
+            core._observe_platform_vm(wasmtime)
         return core, binding, store, path
 
     def run_export(self, core, binding, *, count=1, rows=0, effect=0):
         returned = []
         binding.inspect(lambda _: returned.append(core._call('probe', 'run', count, rows, effect)))
         return returned
-
-    def test_native_export_kind_and_handle_qualify_only_the_original_function(self):
-        core, _, _, _ = self.fixture()
-        receipt = core._closed_wasm_exports
-        export = core._exports['actql_probe_run']
-        self.assertTrue(receipt._qualify('actql_probe_run', export))
-        self.assertFalse(receipt._qualify('memory', core._exports['memory']))
-        self.assertFalse(receipt._qualify('actql_probe_run', lambda *_: 7))
-        foreign = wasmtime.Func(core._store,
-            wasmtime.FuncType([wasmtime.ValType.i64()] + [wasmtime.ValType.i32()] * 3,
-                              [wasmtime.ValType.i32()]), lambda *_: 7)
-        core._exports._extern_map['actql_probe_run'] = foreign
-        self.assertFalse(receipt._qualify('actql_probe_run', foreign))
 
     def test_actual_wasm_journal_schema_reads_keep_the_closed_epoch(self):
         core, binding, store, _ = self.fixture()
@@ -237,7 +216,9 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 ('observe_sdk_terminal', 0, True, 1, 0),
                 ('observe_sdk_terminal', 0, False, 0, 0),
                 ('produce_sdk_terminal_storage', 0, False, 1, 0),
-                ('produce_sdk_read_delivery_storage', 0, False, 1, 0)):
+                ('measure_sdk_read_delivery_storage', 0, False, 1, 0),
+                ('emit_sdk_read_delivery_storage', 0, False, 1, 0),
+                ('validate_sdk_read_delivery_storage', 0, False, 1, 0)):
             with self.subTest(export=export, effect=effect, legacy=legacy, negotiate=negotiate):
                 core, binding, store, _ = self.fixture(census_export=export,
                                                       legacy_census_supplier=legacy)
@@ -282,7 +263,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self._check_proposal_read('produce_sdk_terminal_storage', terminal_precommit=True)
 
     def test_saved_terminal_reader_pair_restarts_after_each_physical_cas(self):
-        export = 'validate_payload_binding'
+        export = 'validate_saved_reader_facts'
         core, binding, store, _ = self.fixture(census_export=export)
         originals = self.terminal_original(store)
         writes = [
@@ -317,7 +298,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self.assertEqual(changes, [start + n for n in (0, 1, 1, 2, 2, 3, 3)])
         self.assertTrue(all(reader is readers[0] for reader in readers))
         self.assertIsNone(readers[0]._terminal_read_baseline(
-            'actql_publication_commit_export_validate_payload_binding'))
+            'actql_publication_commit_export_validate_saved_reader_facts'))
         self.assertIsNone(store._connection._closed_invocation)
 
     def test_saved_terminal_reader_pair_refuses_cas_from_its_effect(self):
@@ -329,7 +310,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
             callbacks[0](write)
             return 0
 
-        export = 'validate_payload_binding'
+        export = 'validate_saved_reader_facts'
         core, binding, store, _ = self.fixture(census_export=export, effect=effect)
         originals = self.terminal_original(store)
 
@@ -394,7 +375,9 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self.assertTrue(all(store.read(write.key) is None for write in writes))
 
     def test_saved_first_delivery_proof_closes_before_writing(self):
-        self._check_proposal_read('produce_sdk_read_delivery_storage')
+        for export in ('measure_sdk_read_delivery_storage', 'emit_sdk_read_delivery_storage'):
+            with self.subTest(export=export):
+                self._check_proposal_read(export)
 
     def test_saved_evidence_proposal_closes_proof_before_writing(self):
         self._check_proposal_read('produce_sdk_read_evidence_decision', insert_only=True)
@@ -422,7 +405,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
                     self.assertEqual(store.compare_exchange(key, None, write.payload), 0)
                 def observe():
                     readers.append(binding._observed_reader)
-                    epochs.append(store._connection._outer_transaction_epoch)
+                    epochs.append(store._connection._transaction_epoch)
                     changes_at_export.append(store._connection.total_changes)
                     observed.append(LocalCore._call(core, 'publication_commit_export', export, effect, 1))
                 def inspect(reader, take):
@@ -466,7 +449,9 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self._reject_write_during_proposal('produce_sdk_terminal_storage')
 
     def test_saved_first_delivery_cannot_write_during_original_wasm_callback(self):
-        self._reject_write_during_proposal('produce_sdk_read_delivery_storage')
+        for export in ('measure_sdk_read_delivery_storage', 'emit_sdk_read_delivery_storage'):
+            with self.subTest(export=export):
+                self._reject_write_during_proposal(export)
 
     def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback(self):
         self._reject_write_during_proposal('produce_sdk_read_evidence_decision', insert_only=True)
@@ -525,29 +510,6 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self.assertEqual(store._connection.total_changes, changes)
         self.assertIsNone(store.read(key))
         self.assertIsNone(store._connection._closed_invocation)
-
-    def test_journal_metadata_assignments_still_poison_closed_epoch(self):
-        for setting in ('application_id', 'user_version'):
-            for assignment in ('equals', 'parentheses'):
-                with self.subTest(setting=setting, assignment=assignment):
-                    held = []
-                    def effect():
-                        _, _, store, _ = held[0]
-                        connection = store._connection
-                        value = sqlite3.Connection.execute(connection,
-                            f'PRAGMA main.{setting}').fetchone()[0]
-                        statement = (f'PRAGMA main.{setting} = {value}' if assignment == 'equals'
-                                     else f'PRAGMA main.{setting}({value})')
-                        # Even writing the identical header value is an effect,
-                        # not one of the exact audited read-only templates.
-                        sqlite3.Connection.execute(connection, statement)
-                        return 0
-                    held.append(self.fixture(effect=effect))
-                    core, binding, store, _ = held[0]
-                    with self.assertRaises(LocalStorageError):
-                        self.run_export(core, binding, effect=1)
-                    self.assertTrue(core._closing)
-                    self.assertIsNone(store._connection._closed_invocation)
 
     def test_many_current_imports_reuse_only_inside_same_real_export(self):
         core, binding, store, _ = self.fixture()
@@ -636,7 +598,7 @@ class ClosedWasmSqlTests(unittest.TestCase):
         self.assertGreater(observed[0], 0)
 
     def test_effect_mutations_refuse_and_release_only_transient_observation(self):
-        for kind in ('row', 'main', 'temp', 'savepoint', 'transaction', 'callback'):
+        for kind in ('row', 'main', 'temp', 'transaction'):
             with self.subTest(kind=kind):
                 held = []
                 def effect():
@@ -646,17 +608,9 @@ class ClosedWasmSqlTests(unittest.TestCase):
                         connection.execute("INSERT INTO core_bytes VALUES ('unexpected', 0, X'01')")
                     elif kind in ('main', 'temp'):
                         connection.execute(f'CREATE {"TEMP " if kind == "temp" else ""}TABLE unexpected(value)')
-                    elif kind == 'savepoint':
-                        connection.execute('SAVEPOINT unexpected')
-                        connection.execute('RELEASE unexpected')
-                    elif kind == 'transaction':
-                        connection.execute('COMMIT')
-                        connection.execute('BEGIN')
                     else:
-                        try:
-                            connection.set_progress_handler(lambda: 0, 1)
-                        except RuntimeError:
-                            pass
+                        store._physical.finish_read()
+                        store._physical.begin_read()
                     return 0
                 held.append(self.fixture(effect=effect))
                 core, binding, store, _ = held[0]
@@ -668,234 +622,6 @@ class ClosedWasmSqlTests(unittest.TestCase):
                 self.assertIsNone(core._invocation_observation)
                 self.assertIsNone(store._connection._closed_invocation)
                 self.assertIsNone(core._journal_callbacks(original.ticket).reader)
-
-    def test_scalar_wrapper_and_replaced_runtime_members_keep_full_checks(self):
-        for kind in ('scalar', 'function', 'method', 'exports_method', 'instance_method'):
-            with self.subTest(kind=kind):
-                core, binding, _, _ = self.fixture()
-                export = core._exports['actql_probe_run']
-                if kind == 'scalar':
-                    core._exports._extern_map['actql_probe_run'] = lambda *args: export(*args)
-                elif kind == 'function':
-                    custom = wasmtime.Func(core._store,
-                        wasmtime.FuncType([wasmtime.ValType.i64()] + [wasmtime.ValType.i32()] * 3,
-                                          [wasmtime.ValType.i32()]),
-                        lambda *args: export(core._store, *args))
-                    core._exports._extern_map['actql_probe_run'] = custom
-                elif kind == 'method':
-                    export.type = export.type
-                elif kind == 'exports_method':
-                    core._exports.get = core._exports.get
-                elif kind == 'instance_method':
-                    core._instance.exports = core._instance.exports
-                original = _SQLiteByteDatabase._snapshot_identity
-                observed = []
-                def snapshot(database):
-                    span = core._invocation_observation
-                    if span is not None and span.admitted:
-                        self.assertIsNone(span.wasm_export)
-                        observed.append(database)
-                    return original(database)
-                with patch.object(_SQLiteByteDatabase, '_snapshot_identity', snapshot):
-                    self.assertEqual(self.run_export(core, binding, count=8), [7])
-                self.assertGreaterEqual(len(observed), 16)
-
-    def test_memory_buffer_helper_override_before_admission_keeps_full_checks(self):
-        for target in ('instance', 'class'):
-            with self.subTest(target=target):
-                core, binding, _, _ = self.fixture()
-                memory = core._exports['memory']
-                original, helper_calls, snapshots = wasmtime.Memory.get_buffer_ptr, [], []
-                def helper(receiver, *args, **kwargs):
-                    self.assertIsNone(core._invocation_observation.wasm_export)
-                    helper_calls.append(True)
-                    return original(receiver, *args, **kwargs)
-                replacement = helper if target == 'class' else lambda *a, **kw: helper(memory, *a, **kw)
-                original_snapshot = _SQLiteByteDatabase._snapshot_identity
-                def snapshot(database):
-                    span = core._invocation_observation
-                    if span is not None and span.admitted:
-                        self.assertIsNone(span.wasm_export)
-                        snapshots.append(database)
-                    return original_snapshot(database)
-                with patch.object(wasmtime.Memory if target == 'class' else memory,
-                                  'get_buffer_ptr', replacement), \
-                        patch.object(_SQLiteByteDatabase, '_snapshot_identity', snapshot):
-                    self.assertEqual(self.run_export(core, binding, count=2, rows=1), [7])
-                self.assertTrue(helper_calls)
-                self.assertGreaterEqual(len(snapshots), 16)
-
-    def test_memory_buffer_helper_override_after_admission_refuses_before_use(self):
-        for target in ('instance', 'class'):
-            with self.subTest(target=target):
-                held, patches, calls = [], [], []
-                def effect():
-                    core, _, _, _ = held[0]
-                    span = core._invocation_observation
-                    self.assertTrue(span.admitted)
-                    self.assertIsNotNone(span.wasm_export)
-                    owner = wasmtime.Memory if target == 'class' else core._exports['memory']
-                    replacement = patch.object(owner, 'get_buffer_ptr',
-                        lambda *_a, **_kw: calls.append(True))
-                    patches.append(replacement)
-                    replacement.start()
-                    return 0
-                held.append(self.fixture(effect=effect))
-                core, binding, store, _ = held[0]
-                try:
-                    with self.assertRaisesRegex(ValueError, 'Wasmtime methods changed'):
-                        self.run_export(core, binding, effect=1)
-                finally:
-                    for replacement in patches:
-                        replacement.stop()
-                self.assertFalse(calls)
-                self.assertTrue(core._closing)
-                self.assertIsNone(store._connection._closed_invocation)
-
-    def test_caller_memory_factory_replacement_cannot_qualify(self):
-        from importlib import import_module
-        for owner, name in ((wasmtime.Memory, '_from_raw'),
-                            (wasmtime.Memory, '__new__'),
-                            (wasmtime.Caller, '__init__'),
-                            (wasmtime.Caller, '_invalidate'),
-                            (wasmtime.Caller, '__getattribute__'),
-                            (import_module('wasmtime._func'), 'wrap_extern')):
-            with self.subTest(name=name):
-                core, _, _, _ = self.fixture()
-                receipt, export = core._closed_wasm_exports, core._exports['actql_probe_run']
-                self.assertTrue(receipt._qualify('actql_probe_run', export))
-                with patch.object(owner, name, lambda *_: None):
-                    self.assertFalse(receipt._qualify('actql_probe_run', export))
-
-    def test_runtime_identity_inspection_does_not_invoke_replacement_descriptor(self):
-        core, _, _, _ = self.fixture()
-        calls = []
-        class Replacement:
-            def __get__(self, instance, owner):
-                calls.append(True)
-                raise AssertionError('Replacement descriptor was invoked')
-        with patch.object(wasmtime.Memory, 'get_buffer_ptr', Replacement()):
-            self.assertFalse(core._closed_wasm_exports._qualify(
-                'actql_probe_run', core._exports['actql_probe_run']))
-        self.assertFalse(calls)
-
-    def test_trace_never_normalizes_large_or_non_pragma_statements(self):
-        class NoNormalization(str):
-            def strip(self, *args):
-                raise AssertionError('Unbounded SQL normalization')
-            def rstrip(self, *args):
-                raise AssertionError('Unbounded SQL normalization')
-            def upper(self):
-                raise AssertionError('Unbounded SQL normalization')
-        connection = _TrackedSQLiteConnection(':memory:')
-        self.addCleanup(connection.close)
-        before = connection._closed_statement_epoch
-        for statement in (
-                "INSERT INTO core_bytes VALUES ('large', 0, X'" + '00' * 32768 + "')",
-                'CREATE TABLE large (' + 'value, ' * 8192 + 'last)',
-                'PRAGMA main.user_version' + ' ' * 65536):
-            connection._trace_transaction(NoNormalization(statement))
-        self.assertEqual(connection._closed_statement_epoch, before + 3)
-
-    def test_replaced_export_during_effect_latches_failure(self):
-        held, failures = [], []
-        def effect():
-            core, _, _, _ = held[0]
-            original = core._exports._extern_map['actql_probe_run']
-            core._exports._extern_map['actql_probe_run'] = lambda *_: 7
-            try:
-                core._invocation_observation._guard_sql()
-            except ValueError as error:
-                failures.append(error)
-            finally:
-                core._exports._extern_map['actql_probe_run'] = original
-            return 0
-        held.append(self.fixture(effect=effect))
-        core, binding, _, _ = held[0]
-        with self.assertRaises(ValueError) as raised:
-            self.run_export(core, binding, effect=1)
-        self.assertIs(raised.exception, failures[0])
-
-    def test_raw_connection_and_cursor_ddl_restore_cannot_evade_closed_epoch(self):
-        for route in ('base', 'cursor', 'thread'):
-            with self.subTest(route=route):
-                held = []
-                def effect():
-                    _, _, store, _ = held[0]
-                    connection = store._connection
-                    # These bypass the overridden Connection.execute. Restoring
-                    # both schema versions must not restore a closed observation.
-                    def mutate():
-                        execute = (connection.cursor().execute if route == 'cursor'
-                                   else lambda sql: sqlite3.Connection.execute(connection, sql))
-                        for schema in ('main', 'temp'):
-                            before = execute(f'PRAGMA {schema}.schema_version').fetchone()[0]
-                            execute(f'CREATE TABLE {schema}.unexpected(value)')
-                            execute(f'DROP TABLE {schema}.unexpected')
-                            execute(f'PRAGMA {schema}.schema_version = {before}')
-                    if route == 'thread':
-                        thread = Thread(target=mutate)
-                        thread.start()
-                        thread.join()
-                    else:
-                        mutate()
-                    return 0
-                held.append(self.fixture(effect=effect))
-                core, binding, store, _ = held[0]
-                with self.assertRaises(LocalStorageError):
-                    self.run_export(core, binding, effect=1)
-                self.assertTrue(core._closing)
-                self.assertIsNone(store._connection._closed_invocation)
-
-    def test_raw_sql_during_an_actual_audited_import_is_sticky(self):
-        # Injection is diagnostic only, at the physical scan. The raw SQL runs
-        # on another thread while the original Wasm export/import is active.
-        for statement in ('CREATE TEMP TABLE concurrent(value)',
-                          'PRAGMA schema_version = 0',
-                          "ATTACH DATABASE ':memory:' AS unexpected"):
-            with self.subTest(statement=statement):
-                core, binding, store, _ = self.fixture()
-                original = _SQLiteByteDatabase.scan_range
-                failures, executed = [], []
-                def scan(database, lower, upper, limit, **kwargs):
-                    if lower.startswith('namespace:5:probe:'):
-                        span = core._invocation_observation
-                        self.assertTrue(span._reuse_sql_snapshot())
-                        def mutate():
-                            try:
-                                sqlite3.Connection.execute(store._connection, statement)
-                                executed.append(True)
-                            except BaseException as error:
-                                failures.append(error)
-                        thread = Thread(target=mutate)
-                        thread.start()
-                        thread.join()
-                    return original(database, lower, upper, limit, **kwargs)
-                with patch.object(_SQLiteByteDatabase, 'scan_range', scan):
-                    with self.assertRaises(LocalStorageError):
-                        self.run_export(core, binding, rows=1)
-                self.assertFalse(failures)
-                self.assertEqual(executed, [True])
-                self.assertTrue(core._closing)
-                self.assertIsNone(store._connection._closed_invocation)
-
-    def test_pre_admission_attempted_mutation_keeps_legacy_route(self):
-        core, binding, store, _ = self.fixture()
-        observed = []
-        original = _SQLiteByteDatabase._snapshot_identity
-        def snapshot(database):
-            span = core._invocation_observation
-            if span is not None:
-                observed.append(span)
-            return original(database)
-        def consume(_):
-            sqlite3.Connection.execute(store._connection,
-                'UPDATE core_bytes SET generation = generation WHERE 0')
-            self.assertEqual(core._call('probe', 'run', 8, 0, 0), 7)
-        with patch.object(_SQLiteByteDatabase, '_snapshot_identity', snapshot):
-            binding.inspect(consume)
-        self.assertTrue(observed)
-        self.assertTrue(all(span.disabled and not span.admitted for span in observed))
 
     def test_file_mutation_still_blocks_effect_and_return(self):
         for effect in (0, 1):
@@ -922,72 +648,6 @@ class ClosedWasmSqlTests(unittest.TestCase):
             self.run_export(core, binding, count=40, rows=1)
         self.assertTrue(core._closing)
         self.assertIsNone(store._connection._closed_invocation)
-
-    def test_receipt_reservation_failure_allocates_no_receipt(self):
-        core, _, _, _ = self.fixture(capture=False)
-        failure = RuntimeError('original workspace refused')
-        with patch.object(core, 'reserve_workspace', side_effect=failure), \
-                patch.object(_ClosedWasmExports, '__init__') as constructor:
-            with self.assertRaises(RuntimeError) as raised:
-                core._capture_closed_wasm_exports(wasmtime)
-        self.assertIs(raised.exception, failure)
-        constructor.assert_not_called()
-        self.assertIsNone(core._closed_wasm_workspace)
-        self.assertIsNone(core._closed_wasm_exports)
-
-    def test_failed_receipt_construction_retains_original_funded_cleanup(self):
-        core, _, _, _ = self.fixture(capture=False)
-        constructor = _ClosedWasmExports.__init__
-        failure = RuntimeError('receipt construction failed after acquisition')
-        retained = []
-        def fail(receipt, receiver, runtime):
-            constructor(receipt, receiver, runtime)
-            retained.append(receipt)
-            raise failure
-        with patch.object(_ClosedWasmExports, '__init__', fail):
-            with self.assertRaises(RuntimeError) as raised:
-                core._capture_closed_wasm_exports(wasmtime)
-        self.assertIs(raised.exception, failure)
-        self.assertIs(core._closed_wasm_exports, retained[0])
-        workspace = core._closed_wasm_workspace
-        self.assertIs(core._loans[workspace.ticket], workspace)
-        self.assertTrue(core.close_workspace(workspace))
-        self.assertIsNone(core._closed_wasm_exports)
-
-    def test_pending_receipt_workspace_prevents_pool_retirement(self):
-        core, _, _, _ = self.fixture()
-        workspace, receipt, scalar = core._closed_wasm_workspace, core._closed_wasm_exports, core._call
-        events = []
-        def call(family, name, *args):
-            if (family, name) == ('workspace', 'close'):
-                events.append('workspace')
-                if len(events) == 1:
-                    return -9
-            if (family, name) == ('buffer', 'close_pool'):
-                events.append('pool')
-                return 0
-            return scalar(family, name, *args)
-        core._call = call
-        with patch.object(core, '_dispose') as dispose:
-            self.assertFalse(LocalCore._close_core(core))
-            self.assertIs(core._closed_wasm_workspace, workspace)
-            self.assertIs(core._closed_wasm_exports, receipt)
-            dispose.assert_not_called()
-            self.assertTrue(LocalCore._close_core(core))
-            dispose.assert_called_once()
-        self.assertEqual(events, ['workspace', 'workspace', 'pool'])
-        self.assertIsNone(core._closed_wasm_workspace)
-        self.assertIsNone(core._closed_wasm_exports)
-
-    def test_metadata_is_bounded_by_the_original_issued_workspace(self):
-        core, _, _, _ = self.fixture()
-        receipt, workspace = core._closed_wasm_exports, core._closed_wasm_workspace
-        self.assertIs(core._loans[workspace.ticket], workspace)
-        self.assertLessEqual(receipt._retained_bytes() + 2048, _CLOSED_WASM_RECEIPT_BYTES)
-        self.assertIs(receipt.mapping, core._exports._extern_map)
-        self.assertIs(receipt.sequence, core._exports._extern_seq)
-        self.assertGreaterEqual(sys.getsizeof(object.__new__(_InvocationObservation)),
-                                len(_InvocationObservation.__slots__) * 8)
 
 
 if __name__ == '__main__':

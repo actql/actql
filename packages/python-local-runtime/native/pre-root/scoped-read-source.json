@@ -10,16 +10,16 @@
   ],
   "patch": {
     "path": "scoped-read-review.patch",
-    "bytes": 68198,
-    "sha256": "6ebff36ae775e2a9df2f6e8b980e51ef60c65dd6a73621b0c3e154bd0a65e769"
+    "bytes": 68037,
+    "sha256": "6196d5005d6d77f2cacfe30555e37dcd15c55c85a00ca55b88da4268660c30f0"
   },
   "inputs": [
     {
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 41465,
-      "sha256": "d043591d81b0988dbd262cec8f4d2fd77afb2a1bd87428350d1555b6137e9493"
+      "bytes": 42921,
+      "sha256": "c27e32ed68d87bc9d660205a8f9b2923b5b934800d91779666d8b6065e1c7c9b"
     },
     {
       "root": "provider",
@@ -221,8 +221,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 43480,
-      "sha256": "159198c39ab20f730bf9bf5fda1f8e4e82ff1d8e73dd1f4623575d3680d0d586"
+      "bytes": 44866,
+      "sha256": "e3df9ce713a65a324e6913944fae4f6f5faaa488e240153ce7dcf0625c017050"
     },
     "owned_capacity.h": {
       "bytes": 7439,

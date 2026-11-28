@@ -1197,19 +1197,66 @@ fn installed_effect_model_unit_result_export_limits(
     return Err(Run(ForeignOriginal))
   }
   let borrow = @strategy.captured_effect_local_result_borrow(result)
+  reserve_installed_effect_result_view(value, plan, request, borrow, managed)
+}
+
+///|
+// Both installed Effect result paths use the same retained view and import
+// geometry. Callers prove nominal ownership before requesting this quote.
+fn reserve_installed_effect_result_view(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledEffectManagedPlan,
+  request : @publication_host.ClientRequestIdentity,
+  borrow : @strategy.CapturedAnyResultBorrow,
+  managed : @execution.ManagedPublicationBridgeLimits?,
+  measured_codec? : Bool = false,
+) -> Result[
+  @publication_host.PublicationOutputExportLimits,
+  ClientEffectUnitPreparationIssue,
+] {
   guard @strategy.captured_any_result_borrow_row_count(borrow) is Some(rows) &&
     client_node_publication_limits_original(
       plan.capacity_plan.exports.wire.max_bytes,
       plan.capacity_plan,
     )
-    is Some(limits) &&
-    @local.local_export_retention_capacity(plan.capacity_plan.exports)
+    is Some(limits) else {
+    return Err(Run(InsufficientCapacity))
+  }
+  // The incremental owner funds metadata and each row before construction.
+  // Only the blocking publication owner retains the original full codec quote.
+  guard (if measured_codec {
+      Some(0L)
+    } else {
+      @local.local_export_retention_capacity(plan.capacity_plan.exports)
+    })
     is Some(codec) else {
     return Err(Run(InsufficientCapacity))
   }
   if managed is Some(_) &&
     !@strategy.captured_any_result_borrow_requires_managed_export(borrow) {
     return Err(Export(ForeignOutput))
+  }
+  let port = @execution.managed_result_occurrence_port(
+    @strategy.captured_any_result_borrow_occurrence(borrow),
+  )
+  let width = @schema.field_count(@results.port_schema(port))
+  let order_terms = @results.port_order_term_count(port)
+  let input = @results.port_input(port)
+  // A captured Unit Result can have a broader upstream relation than the
+  // public graph Result. Apply the same mapping law to the actual local port.
+  guard @pipeline.schema_at(
+      @pipeline.producer_pipeline(input),
+      @pipeline.producer_target(input),
+    )
+    is Some(source_schema) &&
+    client_local_result_port_mapping_work(
+      width,
+      @schema.field_count(source_schema),
+      @results.port_projection_count(port),
+      order_terms,
+    )
+    is Some(mapping) else {
+    return Err(Run(InsufficientCapacity))
   }
   guard completed_unit_result_export_capacity(
       borrow, rows, limits, codec, managed,
@@ -1222,7 +1269,10 @@ fn installed_effect_model_unit_result_export_limits(
     Ok(_) => ()
     Err(issue) => return Err(Run(issue))
   }
-  Ok(limits)
+  Ok({
+    ..limits,
+    max_result_mapping_work: Int::max(limits.max_result_mapping_work, mapping),
+  })
 }
 
 ///|
@@ -1587,4 +1637,14 @@ pub fn reserve_installed_effect_model_unit_body(
     return Err(InsufficientCapacity)
   }
   reserve_effect_unit_publication_capacity(value, plan, request, capacity)
+}
+
+///|
+/// Same measured sealing inventory as the installed private Result compiler.
+/// The public occurrence carries only its own emitted Result metadata shapes.
+pub fn installed_effect_public_result_capacity(
+  shapes : Array[(String, @encode.EncodingConstructionGeometry)],
+  original_cid : String,
+) -> @execution.ExecutionCapacity? {
+  effect_unit_publication_capacity(shapes, original_cid)
 }

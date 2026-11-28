@@ -37,6 +37,45 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
   before_row? : ((String) -> Bool)? = None,
   reserve_row_copy? : ((Int64, Int64) -> Bool)? = None,
 ) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue] {
+  let (operations, completed, result) = match
+    self.effect_result_export_original(captured, inputs, local_result) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (bridge, output) = match
+    self.prepare_publication_bridge_for_original(
+      operations,
+      completed,
+      row_limits,
+      bridge_max_entries,
+      bridge_max_name_bytes,
+      limits,
+      before_row~,
+      reserve_row_copy~,
+    ) {
+    Ok(value) => value
+    Err(MissingOutput) => return Err(MissingOutput)
+    Err(Bridge(issue)) => return Err(Bridge(issue))
+  }
+  self.bind_effect_result_export(
+    captured, inputs, local_result, result, completed, bridge, output, limits,
+  )
+}
+
+///|
+fn LocalValuesExecution::effect_result_export_original(
+  self : LocalValuesExecution,
+  captured : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectInputs,
+  local_result : Int,
+) -> Result[
+  (
+    @local_driver.LocalManagedDispatchOperations[Int],
+    @execution.ManagedCompletedOutput[Int],
+    @strategy.CapturedEffectLocalResult,
+  ),
+  LocalValuesEffectResultExportIssue,
+] {
   if !self.available.val {
     return Err(MissingOutput)
   }
@@ -59,22 +98,21 @@ pub fn LocalValuesExecution::prepare_effect_result_export(
     ) {
     return Err(ForeignInput)
   }
-  let (bridge, output) = match
-    prepare_publication_bridge_for_original(
-      self.available,
-      operations,
-      completed,
-      row_limits,
-      bridge_max_entries,
-      bridge_max_name_bytes,
-      limits,
-      before_row~,
-      reserve_row_copy~,
-    ) {
-    Ok(value) => value
-    Err(MissingOutput) => return Err(MissingOutput)
-    Err(Bridge(issue)) => return Err(Bridge(issue))
-  }
+  Ok((operations, completed, result))
+}
+
+///|
+fn LocalValuesExecution::bind_effect_result_export(
+  self : LocalValuesExecution,
+  captured : @strategy.CapturedEffectRunDAG,
+  inputs : @strategy.CapturedEffectInputs,
+  local_result : Int,
+  result : @strategy.CapturedEffectLocalResult,
+  completed : @execution.ManagedCompletedOutput[Int],
+  bridge : @execution.ManagedPublicationBridge[Int],
+  output : @execution.CompletedOutput,
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue] {
   let occurrence = @strategy.captured_any_result_borrow_occurrence(
     @strategy.captured_effect_local_result_borrow(result),
   )

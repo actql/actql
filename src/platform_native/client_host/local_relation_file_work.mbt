@@ -336,7 +336,7 @@ fn open_original_relation_file_work_selected(
       ) ==
       @publication.publication_contract_identity(definition) &&
       !record.physical_start_claimed &&
-      !record.cancellation_requested &&
+      !record.cancellation_requested() &&
       record.checkpoint is None => ()
     Ok(_) => return Err(unstarted(NeedsOriginalReconciliation))
     Err(issue) => return Err(unstarted(OriginalOperation(issue)))

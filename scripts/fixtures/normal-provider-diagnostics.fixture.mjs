@@ -164,6 +164,35 @@ function diagnosticScalars(value, cleanup = false) {
   return Object.keys(data).length === 0 ? undefined : data;
 }
 
+// Start the observation budget at the physical peer entry. The same wait
+// remains concurrent with cancellation and has a rejection handler from issue.
+export async function observeEnteredCancellation({awaitEntry, wait, cancel, record}) {
+  record('entry_pending');
+  try { await awaitEntry(); }
+  catch (failure) {
+    record('entry_failed');
+    throw failure;
+  }
+  record('entered');
+  let waitFailure;
+  const waiting = wait().then(value => {
+    record('wait_returned');
+    return value;
+  }, failure => {
+    waitFailure = {cause: failure};
+    record('wait_failed');
+  });
+  record('wait_started');
+  try { await cancel(); }
+  catch (failure) {
+    record('cancel_path_failed');
+    throw waitFailure === undefined ? failure : waitFailure.cause;
+  }
+  const result = await waiting;
+  if (waitFailure !== undefined) throw waitFailure.cause;
+  return result;
+}
+
 export function normalProviderDiagnostics({phase, work, write}) {
   const terminals = [], requests = [], failures = [], dispatchFailures = [];
   let calls = 0;

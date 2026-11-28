@@ -24,6 +24,7 @@ pub fn prepare_infer_outcome_handoff(
 /// trusted Relation port or a completed output at the same Step cannot enter.
 struct InferOutcomePort {
   original : TrustedOutputPort[InferOutcomeBinding?]
+  output_origin : OutputWorkspaceOriginal?
 }
 
 ///|
@@ -49,7 +50,14 @@ fn prepare_infer_outcome_port_original(
     } else {
       None
     }
-  }).map(original => { original, })
+  }).map(original => {
+    output_origin: if binding is Some(_) {
+      materialization.state.workspace.growth.bind(growth => growth.output_origin)
+    } else {
+      None
+    },
+    original,
+  })
 }
 
 ///|
@@ -107,4 +115,12 @@ pub fn complete_bound_infer_outcome_port(
   binding : InferOutcomeBinding,
 ) -> Result[CompletedOutput, TrustedOutputIssue] {
   complete_trusted_output(value.original, Some(binding))
+}
+
+///|
+/// Observe the exact metered attachment used by the original bound port.
+pub fn infer_outcome_workspace_original(
+  value : InferOutcomePort,
+) -> OutputWorkspaceOriginal? {
+  value.output_origin
 }

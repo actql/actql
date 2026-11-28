@@ -1,10 +1,11 @@
 ///|
 /// Exact Local connector entry selected from the admitted Project. A Host
 /// still resolves the root and owns currentness, account checks and I/O.
-pub(all) struct ClientProjectLocalFiles {
+pub struct ClientProjectLocalFiles {
+  priv connection : String
+  priv csv_tables : Array[@row_host.LocalCsvTable]
   root : String
   content_version : Bool
-  csv_tables : Array[@row_host.LocalCsvTable]
 }
 
 ///|
@@ -34,37 +35,121 @@ pub fn ClientProjectConnections::local_files(
   max_path_bytes : Int,
   max_depth : Int,
 ) -> Result[ClientProjectLocalFiles, ClientProjectLocalFilesIssue] {
-  guard self.at(index) is Some((_, "local", wire)) &&
-    project_metadata_cursor(@utf8.encode(wire)) is Ok(original) &&
-    @decode.open_object(original) is Ok(entry) &&
-    @decode.lookup(entry, "root") is Some(root) &&
-    project_configuration_text(root) is Some(root) &&
-    @scalar.admit_utf8_length(root, 4096) is Ok(_) else {
+  guard self.at(index) is Some((connection, "local", wire)) else {
     return Err(InvalidLocalFilesConnection)
   }
-  let content_version = match @decode.field(entry, "version") {
-    Missing => false
-    Present(value) if @decode.text(value) == Ok("content") => true
-    _ => return Err(LocalFilesVersionUnavailable)
+  project_local_files_from_entry(
+    connection,
+    wire,
+    max_path_bytes,
+    max_depth,
+    csv_only=false,
+    table_funding=_ => Ok(()),
+    issue=issue => issue,
+  )
+}
+
+///|
+/// Construct the selected Local member under its original Project allowance.
+/// The parse and each exact table projection reserve before construction.
+/// This route accepts file views and CSV tables; each table must be supported.
+pub fn[E] ClientProjectConnections::funded_local_files(
+  self : Self,
+  index : Int,
+  max_path_bytes : Int,
+  max_depth : Int,
+  grow : (@execution.PreparationRepresentationUnits) -> Result[Unit, E],
+  issue : (ClientProjectLocalFilesIssue) -> E,
+) -> Result[ClientProjectLocalFiles, E] {
+  guard self.at(index) is Some((connection, "local", wire)) &&
+    client_project_connections_admission_construction_inventory(wire)
+    is Some(inventory) else {
+    return Err(issue(InvalidLocalFilesConnection))
+  }
+  grow(inventory).bind(_ => {
+    project_local_files_from_entry(
+      connection,
+      wire,
+      max_path_bytes,
+      max_depth,
+      csv_only=true,
+      table_funding=table => {
+        guard @row_host.local_csv_table_construction_inventory(table)
+          is Some(inventory) else {
+          return Err(issue(InvalidLocalFilesConnection))
+        }
+        grow(inventory)
+      },
+      issue~,
+    )
+  })
+}
+
+///|
+fn[E] project_local_files_from_entry(
+  connection : String,
+  wire : String,
+  max_path_bytes : Int,
+  max_depth : Int,
+  csv_only~ : Bool,
+  table_funding~ : (@decode.Cursor) -> Result[Unit, E],
+  issue~ : (ClientProjectLocalFilesIssue) -> E,
+) -> Result[ClientProjectLocalFiles, E] {
+  guard project_metadata_cursor(@utf8.encode(wire)) is Ok(original) &&
+    @decode.lookup_original_field(original, "root") is Some(root) &&
+    @decode.is_text(root) &&
+    project_configuration_text(root) is Some(root) &&
+    @scalar.admit_utf8_length(root, 4096) is Ok(_) else {
+    return Err(issue(InvalidLocalFilesConnection))
+  }
+  let content_version = match
+    @decode.lookup_original_field(original, "version") {
+    None => false
+    Some(value) if @decode.is_text(value) &&
+      @decode.text(value) == Ok("content") => true
+    _ => return Err(issue(LocalFilesVersionUnavailable))
   }
   let csv_tables = []
-  if @decode.lookup(entry, "tables") is Some(tables) &&
+  if @decode.lookup_original_field(original, "tables") is Some(tables) &&
     @decode.object_length(tables) is Some(count) {
+    let mut selected = 0
     for position in 0..<count {
-      guard @decode.field_at(tables, position) is Some((resource, table)) else {
-        return Err(InvalidLocalFilesConnection)
+      guard @decode.field_at(tables, position) is Some((_, table)) else {
+        return Err(issue(InvalidLocalFilesConnection))
       }
-      match
-        @row_host.prepare_local_csv_table(
-          resource, table, max_path_bytes, max_depth,
-        ) {
-        Ok(Some(table)) => csv_tables.push(table)
-        Ok(None) => ()
-        Err(issue) => return Err(CsvTable(issue))
+      if @row_host.local_csv_table_is_selected(table) {
+        selected += 1
+        if selected > @row_host.local_file_max_csv_views() {
+          return Err(issue(InvalidLocalFilesConnection))
+        }
+      } else if csv_only {
+        return Err(issue(InvalidLocalFilesConnection))
       }
     }
+    for position in 0..<count {
+      guard @decode.field_at(tables, position) is Some((resource, table)) else {
+        return Err(issue(InvalidLocalFilesConnection))
+      }
+      if @row_host.local_csv_table_is_selected(table) {
+        match table_funding(table) {
+          Ok(_) => ()
+          Err(cause) => return Err(cause)
+        }
+        match
+          @row_host.prepare_local_csv_table(
+            resource, table, max_path_bytes, max_depth,
+          ) {
+          Ok(Some(table)) => csv_tables.push(table)
+          Ok(None) => return Err(issue(InvalidLocalFilesConnection))
+          Err(cause) => return Err(issue(CsvTable(cause)))
+        }
+      }
+    }
+  } else if csv_only &&
+    @decode.lookup_original_field(original, "tables") is Some(_) {
+    return Err(issue(InvalidLocalFilesConnection))
   }
-  Ok({ root, content_version, csv_tables, })
+  Ok({ connection, root, content_version, csv_tables, })
 }
 
 ///|

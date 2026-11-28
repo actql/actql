@@ -794,7 +794,7 @@ import hashlib, json, pathlib, sys, zipfile
 root = pathlib.Path(sys.argv[1]); (root / 'wheels').mkdir(parents=True)
 source = sys.argv[2]; version = '0.0.3'; wheels = []
 for name, requires in [('actql-sdk', ['httpx==0.28.1', 'rfc8785==0.1.4']),
-                       ('actql-local-runtime', ['wasmtime==38.0.0']),
+                       ('actql-local-runtime', ['wasmtime==51.0.0']),
                        ('actql', ['actql-sdk==0.0.3', 'actql-local-runtime==0.0.3'])]:
     stem = name.replace('-', '_') + '-' + version
     tag = 'py3-none-manylinux_2_28_x86_64' if name == 'actql-local-runtime' else 'py3-none-any'

@@ -18,7 +18,8 @@ struct CompletedRelationSnapshotPreparation {
   mut rows : CompletedExportRows?
   mut order : RowWireOrder?
   mut receipt : CompletedRelationExportReceipt?
-  writer : @encode.Writer
+  mut writer : @encode.Writer?
+  logical_body : Bool
   workspace : RowWorkspace
   mut phase : CompletedSnapshotPhase
   mut row : Int
@@ -31,6 +32,8 @@ struct CompletedRelationSnapshotPreparation {
 }
 
 ///|
+/// A logical-body snapshot emits the existing relation identity preimage in
+/// the same stepped traversal. That form does not construct a field list.
 pub fn start_completed_relation_export_snapshot(
   stream : CompletedOutputExport,
   receipt : CompletedRelationExportReceipt,
@@ -38,6 +41,7 @@ pub fn start_completed_relation_export_snapshot(
   max_nodes : Int,
   max_depth : Int,
   max_workspace_slots : Int,
+  logical_body? : Bool = false,
 ) -> Result[CompletedRelationSnapshotPreparation, CompletedExportIssue] {
   guard receipt.rows.source is Some(source) else { return Err(Closed) }
   if !physical_equal(stream.export_identity, receipt.rows.export_identity) {
@@ -68,7 +72,8 @@ pub fn start_completed_relation_export_snapshot(
     rows: Some(stream.rows),
     order: Some(stream.order),
     receipt: Some(receipt),
-    writer,
+    writer: Some(writer),
+    logical_body,
     workspace,
     phase: Begin,
     row: 0,
@@ -110,13 +115,20 @@ pub fn completed_relation_export_receipt_live(
 fn CompletedRelationSnapshotPreparation::step(
   self : CompletedRelationSnapshotPreparation,
 ) -> Result[Unit, CompletedExportIssue] {
-  guard self.rows is Some(rows) && self.order is Some(order) else {
+  guard self.rows is Some(rows) &&
+    self.order is Some(order) &&
+    self.writer is Some(writer) else {
     return Err(Closed)
   }
-  let writer = self.writer
   try {
     match self.phase {
       Begin => {
+        if self.logical_body {
+          @encode.begin_ordered_object(writer)
+          @encode.ordered_key(writer, "sort")
+          @encode.string_value(writer, "relation")
+          @encode.ordered_key(writer, "value")
+        }
         @encode.begin_array(writer)
         self.phase = Row
       }
@@ -182,8 +194,11 @@ fn CompletedRelationSnapshotPreparation::step(
       }
       End => {
         @encode.end_array(writer)
+        if self.logical_body {
+          @encode.end_object(writer)
+        }
         self.wire = Some(@encode.finish(writer))
-        self.phase = Fields
+        self.phase = if self.logical_body { Done } else { Fields }
       }
       Fields =>
         if self.field == rows.names.length() {
@@ -258,6 +273,7 @@ pub fn CompletedRelationSnapshotPreparation::finish(
   self.rows = None
   self.order = None
   self.receipt = None
+  self.writer = None
   release_slots(self.workspace, self.workspace.live)
   self.closed = true
   Ok((wire, fields))
@@ -282,6 +298,20 @@ pub fn CompletedRelationSnapshotPreparation::cancel(
   self.rows = None
   self.order = None
   self.receipt = None
-  @encode.cancel_writer(self.writer)
+  if self.writer is Some(writer) {
+    @encode.cancel_writer(writer)
+    self.writer = None
+  }
   release_slots(self.workspace, self.workspace.live)
+}
+
+///|
+/// Retire only the original synchronous snapshot after its caller has
+/// unwound. The installed Host serializes its export and cleanup; an
+/// abandoned in-call flag cannot own the Result or keep its writer alive.
+pub fn CompletedRelationSnapshotPreparation::cancel_after_unwind(
+  self : CompletedRelationSnapshotPreparation,
+) -> Unit {
+  self.advancing = false
+  self.cancel()
 }

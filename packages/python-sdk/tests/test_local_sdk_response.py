@@ -212,6 +212,61 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(ValueError): copy.copy(stream).__aiter__()
 
 
+    async def test_explicit_reader_close_stops_then_cancels_same_attempt_once(self):
+        files = files_fixture.ReaderFactsTests()
+        for loss in (False, True):
+            with self.subTest(loss=loss), files.file(b'[{"n":1}]') as (_, root, _, final):
+                stream, _, reader, holder, store, core, request, _, _, _ = self.bridge(root, final)
+                stream._operation = core._host_operation
+                iterator = stream.__aiter__()
+                self.assertEqual(await anext(iterator), b'')
+                calls = []
+
+                def write(original_request, clock, *, cancelled):
+                    self.assertIs(original_request, request)
+                    self.assertTrue(cancelled)
+                    self.assertTrue(reader._closed)
+                    self.assertIsNone(reader._reader)
+                    self.assertIsNone(reader._output)
+                    calls.append(('write', original_request, clock))
+                    if loss:
+                        raise LocalStorageCommitUnknown(store)
+
+                def observe(original_request, clock):
+                    self.assertTrue(reader._closed)
+                    calls.append(('observe', original_request, clock))
+
+                stream._request_reader_cancellation()
+                with patch.object(holder, 'persist_original_terminal', side_effect=write), \
+                     patch.object(holder, 'observe_original_terminal', side_effect=observe), \
+                     patch.object(holder, 'confirm_original_chunk') as confirm:
+                    await stream.aclose()
+                    await stream.aclose()
+                    self.assertEqual(confirm.call_count, 0)
+                self.assertEqual([call[0] for call in calls], ['write', 'observe'] if loss else ['write'])
+                self.assertIs(calls[0][1], request)
+                if loss:
+                    self.assertEqual(calls[1][1:], calls[0][1:])
+                self.assertTrue(holder.close())
+
+    async def test_refused_reader_physical_stop_never_attempts_terminal_write(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, _, reader, holder, _, core, _, _, _, _ = self.bridge(root, final)
+            stream._operation = core._host_operation
+            iterator = stream.__aiter__()
+            self.assertEqual(await anext(iterator), b'')
+            stream._request_reader_cancellation()
+            with patch.object(reader, 'close', return_value=False), \
+                 patch.object(holder, 'persist_original_terminal') as write:
+                with self.assertRaises(RuntimeError):
+                    await stream.aclose()
+                self.assertEqual(write.call_count, 0)
+            with patch.object(holder, 'persist_original_terminal') as write:
+                await stream.aclose()
+                self.assertEqual(write.call_count, 1)
+            self.assertTrue(holder.close())
+
     async def test_saved_response_close_releases_same_area_before_next_saved_read(self):
         # Actual directory custody and stream/payload close; scalar Core ports
         # isolate this lifetime edge, not a complete installed Saved admission.
@@ -326,7 +381,10 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                     closed.append(area)
                 return acknowledged
             try:
-                with patch.object(saved, 'close', side_effect=close_parent):
+                # This scalar fixture owns only the area/cleanup path. The
+                # separately exercised Saved transfer has its actual Store.
+                with (patch.object(saved, 'close', side_effect=close_parent),
+                      patch.object(saved, '_check_transfer_current')):
                     iterator = stream.__aiter__()
                     self.assertEqual(await anext(iterator), b'')
                     with self.assertRaises(LocalFileError):

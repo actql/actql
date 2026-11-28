@@ -16,7 +16,11 @@ fn client_project_model_registry_admission_inventory(
 ) -> (@execution.PreparationRepresentationUnits, Int64)? {
   // The registry parser rejects according to its original input geometry. It
   // does not use the smaller Catalog and Connections projection profile.
-  guard client_project_admission_geometry(wire, 2147483647, 2147483647)
+  guard client_project_admission_geometry(
+      wire,
+      2147483647,
+      max_nodes=2147483647,
+    )
     is Some((bytes, nodes, depth)) &&
     bytes > 0 else {
     return None

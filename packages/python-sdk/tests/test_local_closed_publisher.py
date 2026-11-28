@@ -87,6 +87,40 @@ class ClosedPublisherTests(unittest.TestCase):
         binding.inspect(lambda _: returned.append(core._call('probe', 'run')))
         return returned
 
+    def test_selected_platform_copy_rejects_another_instance_in_the_same_store(self):
+        core, binding, _, _, _, action, _ = self.fixture()
+        memory = core._exports['memory']
+        end = memory.data_len(core._store)
+
+        def original(caller):
+            self.assertIs(core._bulk_memory(caller, end - 1, 1), memory)
+            core._journal_memory_ranges(caller, memory, (end, 0, 4096))
+            with self.assertRaisesRegex(ValueError, 'exceeds its memory'):
+                core._bulk_memory(caller, end, 1)
+            with self.assertRaisesRegex(ValueError, 'journal memory range'):
+                core._journal_memory_ranges(caller, memory, (0, 1, 4096), (end, 1, 4096))
+            return 7
+
+        self.assertEqual(self.run_export(core, binding, action, original), [7])
+
+        def foreign(caller):
+            with self.assertRaises(ValueError):
+                core._bulk_memory(caller, 0, 1)
+            with self.assertRaises(ValueError):
+                core._journal_memory_ranges(caller, memory, (0, 1, 4096))
+            return 9
+
+        store = core._store
+        callback = wasmtime.Func(store, wasmtime.FuncType([], [wasmtime.ValType.i32()]),
+                                 foreign, access_caller=True)
+        with wasmtime.Module(store.engine, f'''(module
+            (import "test" "copy" (func $copy (result i32)))
+            (memory (export "memory") 1 {_MEMORY_LIMIT // 65536})
+            (func (export "run") (result i32) call $copy))''') as module:
+            other = wasmtime.Instance(store, module, [callback])
+            self.assertEqual(other.exports(store)['memory'].data_len(store), end)
+            self.assertEqual(other.exports(store)['run'](store), 9)
+
     def test_nineteen_cycles_keep_every_callback_with_only_entry_effect_exit_graphs(self):
         core, binding, _, _, _, actions, _ = self.fixture()
         output, physical = self.publisher(core, binding)

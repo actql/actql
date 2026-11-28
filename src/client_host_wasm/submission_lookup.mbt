@@ -46,6 +46,12 @@ fn observe_submission_lookup(
   configuration : StoredRunConfiguration,
   original? : @host.ClientSavedSubmissionSnapshot? = None,
   catalog_checked? : Bool = false,
+  effect_state? : Ref[Bytes?]? = None,
+  effect_read_fences? : Array[(String, String, Int64, Bytes)]? = None,
+  read_task_slots? : ((String, Int) -> Result[
+    @host.ClientJournalPhysicalRow?,
+    Int,
+  ])? = None,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
   match submission_lookup_current(value, record, configuration) {
     Ok(_) => ()
@@ -68,6 +74,16 @@ fn observe_submission_lookup(
     physical_journal_row(current.physical, check, 1, table, key)
   }
   let cancellation = () => submission_cancellation_inventory(scan, read)
+  // Saved readers require only their own head. Writers and explicit
+  // cancellation lookup retain the complete operation census.
+  let target_cancellation = configuration.sdk is Some(_) &&
+    (
+      record.kind == 4 ||
+      record.kind == 5 ||
+      record.kind == 7 ||
+      record.kind == 8 ||
+      saved_result_projection_kind(record.kind)
+    )
   // Incremental Saved can reuse the catalog check already made on this
   // same current Reader. Authorization and original row checks still run.
   if !(record.kind == INCREMENTAL_SAVED_RESULT_KIND && catalog_checked) &&
@@ -85,8 +101,37 @@ fn observe_submission_lookup(
       None
     }
   })
-  let inspect_run = row => {
-    submission_run_inspection_with_identity(row, identity)
+  let inspect_run = (row : @host.ClientJournalPhysicalRow) => {
+    if effect_read_fences is Some(fences) &&
+      configuration.mock_project is Some(_) &&
+      row.revision >= 9L {
+      let selected = Ref(None)
+      inspect_saved_effect_checkpoint_candidate(
+        value,
+        record,
+        configuration,
+        current,
+        row,
+        (table, key) => {
+          read(table, key).map(original => {
+            if original is Some(actual) &&
+              !fences.any(item => item.0 == table && item.1 == key) {
+              fences.push((table, key, actual.revision, actual.body))
+            }
+            original
+          })
+        },
+        selected,
+      )
+    } else if effect_state is Some(state) &&
+      configuration.mock_project is Some(_) &&
+      (record.kind == 4 || record.kind == 5 || record.kind == 7) {
+      inspect_saved_effect_checkpoint_candidate(
+        value, record, configuration, current, row, read, state,
+      )
+    } else {
+      submission_run_inspection_with_identity(row, identity)
+    }
   }
   if record.kind == 5 ||
     saved_result_projection_kind(record.kind) ||
@@ -135,6 +180,8 @@ fn observe_submission_lookup(
       inspect_run,
       cancellation,
       original_identity=identity,
+      target_cancellation~,
+      read_task_slots~,
     )
     return match check() {
       Ok(_) => observed
@@ -165,7 +212,10 @@ fn observe_submission_lookup(
     @host.read_client_saved_submission(reference, read, inspect_run, -31) {
     Err(code) => Err(code)
     Ok(snapshot) =>
-      match cancellation() {
+      match
+        confirm_submission_cancellation(
+          snapshot, read, cancellation, target_cancellation,
+        ) {
         Ok(_) => Ok(snapshot)
         Err(code) => Err(code)
       }
@@ -188,6 +238,28 @@ fn observe_submission_lookup(
 }
 
 ///|
+fn confirm_submission_cancellation(
+  snapshot : @host.ClientSavedSubmissionSnapshot?,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, Int],
+  audit : () -> Result[Unit, Int],
+  target : Bool,
+) -> Result[Unit, Int] {
+  if !target {
+    return audit()
+  }
+  // An indexed absence or a preparing Submission has no admitted Run whose
+  // cancellation could affect this read.
+  match snapshot {
+    None => Ok(())
+    Some(original) =>
+      @host.confirm_client_saved_submission_cancellation(original, read, -31).map(_ => {
+          ()
+        },
+      )
+  }
+}
+
+///|
 // Only a completed same-holder caller supplies original. It selects DATA;
 // fresh target rows, nested admission and cancellation still come from the
 // current physical snapshot. Initial/cold callers keep complete admission.
@@ -202,20 +274,37 @@ fn submission_run_reference_snapshot(
     Int,
   ],
   cancellation : () -> Result[Unit, Int],
+  target_cancellation? : Bool = false,
   original_identity? : (
     @host.ClientRequestIdentity,
     @publication.PublicationContract,
   )? = None,
+  read_task_slots? : ((String, Int) -> Result[
+    @host.ClientJournalPhysicalRow?,
+    Int,
+  ])? = None,
 ) -> Result[@host.ClientSavedSubmissionSnapshot?, Int] {
   guard original is Some(before) else {
     let selected = match
       @host.read_client_saved_run_reference(
-        run_namespace, scope, definition, read, inspect_run, -31,
+        run_namespace,
+        scope,
+        definition,
+        read,
+        inspect_run,
+        -31,
+        read_task_slots~,
       ) {
       Ok(value) => value
       Err(code) => return Err(code)
     }
-    return match cancellation() {
+    return match
+      confirm_submission_cancellation(
+        Some(selected),
+        read,
+        cancellation,
+        target_cancellation,
+      ) {
       Ok(_) => Ok(Some(selected))
       Err(code) => Err(code)
     }
@@ -284,7 +373,10 @@ fn submission_run_reference_snapshot(
     Ok(value) => value
     Err(code) => return Err(code)
   }
-  match cancellation() {
+  match
+    confirm_submission_cancellation(
+      observed, read, cancellation, target_cancellation,
+    ) {
     Ok(_) => ()
     Err(code) => return Err(code)
   }
@@ -311,9 +403,15 @@ fn submission_run_reference_snapshot(
 fn submission_lookup_wire(
   snapshot : @host.ClientSavedSubmissionSnapshot?,
   expected? : @host.ClientSubmittedIntent? = None,
+  attachment? : Bool = false,
 ) -> Result[Bytes, Int] {
   try {
-    let writer = @encode.writer(1048576, 8, 1)
+    let limit = if attachment {
+      SAVED_RUN_ATTACHMENT_WIRE_BYTES
+    } else {
+      1048576
+    }
+    let writer = @encode.writer(limit, 8, 1)
     @encode.begin_object(writer)
     if expected is Some(expected) {
       let retained = snapshot.map(snapshot => {
@@ -503,25 +601,28 @@ fn produce_submission_lookup(
     Ok(value) => value
     Err(code) => return code
   }
-  if record.kind == 6 {
-    let wire = match prepare_saved_result_read(value, record, configuration) {
-      Ok(value) => value
-      Err(code) => return code
-    }
-    return supply_saved_result_read(value, record, wire)
-  }
-  let snapshot = match observe_submission_lookup(value, record, configuration) {
+  let effect_state : Ref[Bytes?] = Ref(None)
+  let snapshot = match
+    observe_submission_lookup(
+      value,
+      record,
+      configuration,
+      effect_state=Some(effect_state),
+    ) {
     Ok(value) => value
     Err(code) => return code
   }
   let projected = if record.kind == 11 {
     submission_cancellation_lookup_wire(value, record, configuration, snapshot)
   } else if record.kind == 7 {
-    saved_sdk_run_state_wire(snapshot)
+    match effect_state.val {
+      Some(state) => Ok(state)
+      None => saved_sdk_run_state_wire(snapshot)
+    }
   } else if record.kind == 8 {
     saved_sdk_original_descriptor_wire(snapshot)
   } else {
-    submission_lookup_wire(snapshot, expected~)
+    submission_lookup_wire(snapshot, expected~, attachment=record.kind == 5)
   }
   let wire = match projected {
     Ok(value) => value
@@ -554,9 +655,20 @@ fn validate_submission_lookup(
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
     (
-      (record.kind >= 4 && record.kind <= 8) ||
+      (record.kind >= 4 && record.kind <= 8 && record.kind != 6) ||
       record.kind == 11 ||
-      record.kind == INCREMENTAL_SAVED_RESULT_KIND
+      record.kind == INCREMENTAL_SAVED_RESULT_KIND ||
+      record.kind == SAVED_EFFECT_CHECKPOINT_PAGE_KIND ||
+      record.kind == SAVED_EFFECT_CHECKPOINT_REVIEW_KIND ||
+      record.kind == SAVED_EFFECT_RESOLUTION_PROOF_KIND ||
+      record.kind == SAVED_EFFECT_ATTESTATION_USE_KIND ||
+      record.kind == SAVED_EFFECT_DECISION_KIND ||
+      record.kind == SAVED_EFFECT_DECISION_FIELD_KIND ||
+      record.kind == SAVED_EFFECT_RESUME_KIND ||
+      record.kind == SAVED_EFFECT_APPLICATION_KIND ||
+      saved_effect_file_dispatch_kind(record.kind) ||
+      saved_effect_file_operation_kind(record.kind) ||
+      saved_effect_file_response_kind(record.kind)
     ) &&
     record.produced &&
     !record.output_closed &&
@@ -564,8 +676,78 @@ fn validate_submission_lookup(
     configuration.host_current == Some(current) else {
     return -2
   }
+  if record.kind == SAVED_EFFECT_CHECKPOINT_PAGE_KIND {
+    return validate_saved_effect_checkpoint_page(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_CHECKPOINT_REVIEW_KIND {
+    return validate_saved_effect_checkpoint_review(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_FILE_COMPLETION_KIND {
+    return validate_saved_effect_file_completion(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_FILE_RESPONSE_KIND ||
+    record.kind == SAVED_EFFECT_FILE_TERMINAL_KIND ||
+    record.kind == SAVED_EFFECT_FILE_PUBLISHED_KIND {
+    return match
+      observe_saved_effect_file_journal(value, record, configuration) {
+      Ok(_) => 0
+      Err(code) => code
+    }
+  }
+  if record.kind == SAVED_EFFECT_FILE_RESPONSE_FIELD_KIND {
+    guard record.append_plan is EffectDecisionField(parent) &&
+      value.submissions.get(parent) is Some(holder) else {
+      return -32
+    }
+    return validate_saved_effect_file_field_parent(value, holder, configuration)
+  }
+  if saved_effect_file_operation_kind(record.kind) {
+    return validate_saved_effect_file_operation(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_FILE_DISPATCH_KIND {
+    return match
+      observe_saved_effect_file_dispatch(value, record, configuration) {
+      Ok(_) => 0
+      Err(code) => code
+    }
+  }
+  if record.kind == SAVED_EFFECT_FILE_DISPATCH_FIELD_KIND {
+    guard record.append_plan is EffectDecisionField(parent) &&
+      value.submissions.get(parent) is Some(holder) else {
+      return -32
+    }
+    return match
+      observe_saved_effect_file_dispatch(value, holder, configuration) {
+      Ok(false) => 0
+      Ok(true) => -32
+      Err(code) => code
+    }
+  }
+  if record.kind == SAVED_EFFECT_APPLICATION_KIND {
+    return validate_saved_effect_application(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_RESUME_KIND {
+    return validate_saved_effect_resume_claim(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_DECISION_KIND {
+    return validate_saved_effect_decision(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_DECISION_FIELD_KIND {
+    return validate_saved_effect_decision_field(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_ATTESTATION_USE_KIND {
+    return validate_saved_effect_attestation_use(value, record, configuration)
+  }
+  if record.kind == SAVED_EFFECT_RESOLUTION_PROOF_KIND {
+    return validate_saved_effect_resolution_proof(value, record, configuration)
+  }
   if saved_result_projection_kind(record.kind) {
-    return match validate_saved_result_read(value, record, configuration) {
+    guard saved_result_export_parent(value, handle) is Some((parent, saved)) &&
+      physical_equal(parent, record) else {
+      return -32
+    }
+    return match
+      observe_saved_result_run_control(value, record, configuration, saved) {
       Ok(_) => 0
       Err(code) => code
     }
@@ -578,12 +760,14 @@ fn validate_submission_lookup(
     Ok(value) => value
     Err(code) => return code
   }
+  let effect_state : Ref[Bytes?] = Ref(None)
   let snapshot = match
     observe_submission_lookup(
       value,
       record,
       configuration,
       original=record.saved_snapshot,
+      effect_state=Some(effect_state),
     ) {
     Ok(value) => value
     Err(code) => return code
@@ -591,11 +775,14 @@ fn validate_submission_lookup(
   let projected = if record.kind == 11 {
     submission_cancellation_lookup_wire(value, record, configuration, snapshot)
   } else if record.kind == 7 {
-    saved_sdk_run_state_wire(snapshot)
+    match effect_state.val {
+      Some(state) => Ok(state)
+      None => saved_sdk_run_state_wire(snapshot)
+    }
   } else if record.kind == 8 {
     saved_sdk_original_descriptor_wire(snapshot)
   } else {
-    submission_lookup_wire(snapshot, expected~)
+    submission_lookup_wire(snapshot, expected~, attachment=record.kind == 5)
   }
   let wire = match projected {
     Ok(value) => value

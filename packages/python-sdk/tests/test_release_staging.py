@@ -14,7 +14,7 @@ from unittest.mock import patch
 import zipfile
 
 from image_fixture import ENGINE, IMAGE, RUNTIME_HASH
-from actql_sdk._local_distribution import inspect_local_components, LocalInstallationError
+from actql_sdk._local_distribution import inspect_local_components, LocalInstallationError, WASMTIME_VERSION
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -74,7 +74,7 @@ class ReleaseStagingTests(unittest.TestCase):
         root = self.directory / 'original-artifact'
         root.mkdir()
         body = {'source_sha': SOURCE, 'package_version': SOURCE_VERSION, 'platform': 'darwin-arm64',
-                'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': '38.0.0', 'duckdb_version': 'v1.4.3', 'notices': {}}
+                'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': WASMTIME_VERSION, 'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = ('Independent inert fixture ' + name).encode()
             (root / name).write_bytes(value)
@@ -83,7 +83,7 @@ class ReleaseStagingTests(unittest.TestCase):
             value = ('Independent fixture notice ' + name).encode()
             (root / name).write_bytes(value)
             body['notices'][name] = digest(value)
-        recipe = {'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
+        recipe = {'wasmtime_version': WASMTIME_VERSION, 'runtime_library_sha256': RUNTIME_HASH,
                   'runtime_library_bytes': len(b'independent runtime library fixture'),
                   'provider_library_sha256': None, 'provider_library_bytes': None,
                   'engine_body': ENGINE, 'image_bytes_limit': 1024, 'runtime_allocation': 'platform'}
@@ -93,7 +93,7 @@ class ReleaseStagingTests(unittest.TestCase):
         (root / 'client_host_wasm.cwasm').write_bytes(IMAGE)
         engine = json.dumps(ENGINE, sort_keys=True, separators=(',', ':')).encode()
         body['compiled_image'] = {'source_sha': SOURCE, 'package_version': SOURCE_VERSION,
-            'module_sha256': body['module']['sha256'], 'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': '38.0.0',
+            'module_sha256': body['module']['sha256'], 'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': WASMTIME_VERSION,
             'runtime_library_sha256': RUNTIME_HASH, 'provider_library_sha256': None,
             'platform': 'darwin-arm64', 'engine_body': ENGINE, 'engine_sha256': digest(engine),
             'file': 'client_host_wasm.cwasm', 'bytes': len(IMAGE), 'sha256': digest(IMAGE),
@@ -216,7 +216,7 @@ class ReleaseStagingTests(unittest.TestCase):
             info = stem + '-' + version + '.dist-info/'
             dependencies = {'actql': ['actql-sdk==' + version, 'actql-local-runtime==' + version],
                 'actql-sdk': ['httpx==0.28.1', 'rfc8785==0.1.4'],
-                'actql-local-runtime': ['wasmtime==38.0.0']}[name]
+                'actql-local-runtime': [f'wasmtime=={WASMTIME_VERSION}']}[name]
             with zipfile.ZipFile(path, 'w') as archive:
                 archive.writestr(info + 'METADATA', 'Metadata-Version: 2.4\nName: ' + name + '\nVersion: ' + version + '\n' +
                                  ''.join('Requires-Dist: ' + value + '\n' for value in dependencies))

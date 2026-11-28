@@ -90,9 +90,12 @@ pub fn reserve_payload_writing(
     return -3
   }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, 65536, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      @payload.publication_payload_record_transport_bytes,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }

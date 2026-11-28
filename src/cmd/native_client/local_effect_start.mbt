@@ -78,16 +78,38 @@ fn local_effect_request_identity(
   preparation : @local_host.NativeClientSubmittedPreparation,
   scope : String,
   request_id : String,
+  submitted_input_cid? : String? = None,
 ) -> @run_host.ClientRequestIdentity raise ClientStop {
   guard @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) else {
     stop("LocalEffectPreparationRequired")
   }
-  @run_host.prepare_client_effect_request_identity(
+  // The Native Query checker already bound its exact authored Submission.
+  // Its lowered Effect can use the existing material identity while a
+  // Source-bound Effect still has to match the authored input CID.
+  if submitted_input_cid is Some(expected) &&
+    @local_host.native_client_submitted_preparation_lowered_effect_query(
+      preparation,
+    ) {
+    if @local_host.native_client_submitted_preparation_intent_cid(preparation) !=
+      expected {
+      stop("LocalEffectRequestIdentityUnavailable")
+    }
+    let request = @run_host.prepare_client_original_effect_request_identity(
+      prepared, scope, request_id,
+    ).unwrap_or_else(() => stop("LocalEffectRequestIdentityUnavailable"))
+    let input = @run_host.client_request_input_cid(request)
+    if input != expected &&
+      input != @run_host.source_free_caller_input_intent_cid() {
+      stop("LocalEffectRequestIdentityUnavailable")
+    }
+    return request
+  }
+  @run_host.prepare_client_original_effect_request_identity(
     prepared,
     scope,
     request_id,
-    @run_host.source_free_caller_input_intent_cid(),
+    submitted_input_cid~,
   ).unwrap_or_else(() => stop("LocalEffectRequestIdentityUnavailable"))
 }
 
@@ -210,10 +232,32 @@ fn local_effect_prepare_start(
   crypto : @local_crypto.Library,
   preparation : @local_host.NativeClientSubmittedPreparation,
   reference : @local_host.NativeClientSubmissionReference,
+  submitted : @local_host.NativeClientSubmittedIntentRecord,
   run : LocalRunInstallation,
   scope : String,
   business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
+  let submitted_cid = @run_host.client_submitted_intent_cid(
+    @local_host.native_client_submitted_intent(submitted),
+  )
+  let submitted_reference = @local_host.native_client_submitted_intent_reference(
+    submitted,
+  )
+  if submitted_cid !=
+    @local_host.native_client_submitted_preparation_intent_cid(preparation) ||
+    @local_host.native_client_submission_reference_wire(submitted_reference) !=
+    @local_host.native_client_submission_reference_wire(reference) {
+    stop("LocalEffectRequestIdentityUnavailable")
+  }
+  // Verify the selected Request before choosing its Effect material identity.
+  // Direct setup has its own preparation from the same Submission.
+  let submitted_input_cid = business.map(original => {
+    if !physical_equal(original.preparation, preparation) ||
+      @run_host.client_submitted_intent_cid(original.intent) != submitted_cid {
+      stop("LocalEffectRequestIdentityUnavailable")
+    }
+    submitted_cid
+  })
   local_effect_prepare_start_with_clocks(
     host,
     settings,
@@ -225,6 +269,7 @@ fn local_effect_prepare_start(
     local_utc_now,
     () => @env.now().to_double(),
     business~,
+    submitted_input_cid~,
   )
 }
 
@@ -242,12 +287,18 @@ fn local_effect_prepare_start_with_clocks(
   utc_now : () -> String,
   epoch_now : () -> Double,
   business? : LocalCommandBusinessPreparation? = None,
+  submitted_input_cid? : String? = None,
 ) -> LocalEffectPreflightStatus raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope, business~) {
     stop("LocalSubmissionAuthorizationDenied")
   }
   let request_id = @local_host.native_client_submission_request_id(reference)
-  let request = local_effect_request_identity(preparation, scope, request_id)
+  let request = local_effect_request_identity(
+    preparation,
+    scope,
+    request_id,
+    submitted_input_cid~,
+  )
   let observed_at = utc_now()
   // The existing Owner looks up this exact request before issuing a Policy.
   // A concurrent accepted request selects its saved original, not this clock.

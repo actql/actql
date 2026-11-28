@@ -61,8 +61,15 @@ pub fn admit_client_compilation_manifests(
   if barrier_wire != @environment.compiler_barrier_contract_manifest_wire() {
     return Err(BarrierManifestMismatch)
   }
-  Ok({
+  Ok(packaged_client_compilation_manifests())
+}
+
+///|
+/// Select the compiler identities embedded in this artifact. Supplied
+/// manifest bodies still enter through independent admission above.
+pub fn packaged_client_compilation_manifests() -> ClientCompilationManifests {
+  {
     grammar_manifest_cid: @environment.compiler_grammar_manifest_cid(),
     barrier_contract_manifest_cid: @environment.compiler_barrier_contract_manifest_cid(),
-  })
+  }
 }

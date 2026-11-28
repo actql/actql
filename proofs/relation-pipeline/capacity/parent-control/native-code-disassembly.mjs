@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict';
 
+export function isNativeFunctionSymbol(name) {
+  return !name.startsWith('.') && !name.includes('$bb');
+}
+
 export function nativeFunctionEntries(text) {
   return text.split('\n').map(line => line.match(/^([0-9a-f]+)\s+[tT]\s+(\S+)$/))
-    .filter(match => match && !match[2].startsWith('.') && !match[2].includes('$bb'));
+    .filter(match => match && isNativeFunctionSymbol(match[2]));
 }
 
 // Scheduling only: never shorten a selected function to meet this batch size.

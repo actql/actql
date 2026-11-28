@@ -3,6 +3,7 @@ package "actql/actql/client_infer_host"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/check_environment",
   "actql/actql/client_local_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
@@ -79,6 +80,8 @@ pub fn bind_model_scope(Execution, @model_execution.ModelPreparedCallSet, @run_p
 
 pub fn bind_original_model_preparation(Execution, @run_publication_host.ClientModelReadPreparation, Int64, Int64) -> Result[Unit, Issue]
 
+pub fn bind_original_portable_chat_preflight(Execution, @model_execution.AdmittedStructuredModelProvider, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, ((@model_execution.PreparedModelHttpChatRequest, @model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?)?) -> Result[Unit, Issue]
+
 pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]
 
 pub fn bind_preconsumer_model_unit_observation(InvocationBinding, PreconsumerModelUnitEvidence) -> LocalModelObservation?
@@ -126,6 +129,8 @@ pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
 pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, boundary_only? : Bool, input_prefix? : @execution_relation.GeneratedSequence?, host_await_io? : Bool, original_step? : ((Execution) -> Result[Unit, @connector_sdk.FixedComputeIssue], (Execution, Bool) -> Result[Unit, @connector_sdk.FixedComputeIssue])?) -> @local.ManagedProvider
+
+pub fn composed_local_provider_with_workspace(@run_publication_host.ClientInferOccurrence, Limits, (@execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @execution_relation.GeneratedSequence?) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, boundary_only? : Bool, input_prefix? : @execution_relation.GeneratedSequence?, host_await_io? : Bool, portable_vm? : Bool, original_step? : ((Execution) -> Result[Unit, @connector_sdk.FixedComputeIssue], (Execution, Bool) -> Result[Unit, @connector_sdk.FixedComputeIssue])?) -> @local.ManagedProvider
 
 pub fn consume_original_model_resource_invalidation(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, Issue]
 
@@ -193,7 +198,7 @@ pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenc
 
 pub fn keyed_root_capacity(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?, Limits) -> @execution_relation.ExecutionCapacity?
 
-pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, host_await_io? : Bool, original_step? : ((Execution) -> Result[Unit, @connector_sdk.FixedComputeIssue], (Execution, Bool) -> Result[Unit, @connector_sdk.FixedComputeIssue])?) -> Result[@local.ManagedProviderExecution, Issue]
+pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, host_await_io? : Bool, original_step? : ((Execution) -> Result[Unit, @connector_sdk.FixedComputeIssue], (Execution, Bool) -> Result[Unit, @connector_sdk.FixedComputeIssue])?, output_workspace? : @execution_relation.GeneratedSequence?, fund_original_phases? : Bool, task_workspace? : @physical_strategy_host.TaskOutputWorkspace?) -> Result[@local.ManagedProviderExecution, Issue]
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
@@ -220,6 +225,10 @@ pub fn original_infer_usage_item(OriginalInferUsagePublication, Int) -> (Int, @m
 pub fn original_infer_usage_item_attempt(OriginalInferUsagePublication, Int) -> String?
 
 pub fn original_infer_usage_item_count(OriginalInferUsagePublication) -> Int
+
+pub fn original_issued_invocation_matches_run(InvocationBinding, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
+pub fn original_issued_whole_source_invocation_matches_run(InvocationBinding, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Bool
 
 pub fn original_live_whole_model_egress(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientLocalResultArtifact[@run_publication_host.ClientWholeLocalUnitOriginal, @run_publication_host.ClientLocalUnitResultDefinition[@run_publication_host.ClientWholeLocalUnitOriginal], @physical_strategy_host.CapturedCompletedUnitResultHandoff], @run_publication_host.ClientWholeLocalResultManifest) -> Result[@run_publication_host.ClientWholeModelEgressOriginal, @run_publication_host.ClientInferEgressIssue]
 
@@ -249,6 +258,8 @@ pub fn original_model_unparked_read_capacity_available(Execution, @run_publicati
 
 pub fn original_observation_issuance_metadata_bytes(Execution, ObservationIssuanceLimits) -> Int64?
 
+pub fn original_observation_issuance_slot_count(Execution) -> Int?
+
 pub fn original_whole_model_journal_matches(Execution, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
 
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
@@ -261,6 +272,8 @@ pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
 
+pub fn portable_chat_model_startup_capacity(Limits, @check_environment.ModelResponseProfile, scope? : @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn preconsumer_model_unit_acquired_evidence(PreconsumerModelUnitEvidence) -> @run_publication_host.ClientEffectModelAcquiredEvidence?
 
 pub fn preconsumer_model_unit_dependency_bodies(PreconsumerModelUnitEvidence) -> Array[(String, String, String)]?
@@ -268,6 +281,8 @@ pub fn preconsumer_model_unit_dependency_bodies(PreconsumerModelUnitEvidence) ->
 pub fn preconsumer_model_unit_identity_start_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, retain_body? : Bool) -> @execution_relation.ExecutionCapacity?
 
 pub fn preconsumer_model_unit_observation_capacity(OutputUse, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedRelationExportReceipt, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn prepare_call_settlement_original(Execution, @model_execution.ModelPreparedCallSet, @run_publication.BoundModelInvocationScope) -> Result[ModelCallSettlementOriginal, ModelCallSettlementOriginalIssue]
 
 pub fn prepare_original_infer_capture_usage(Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int64, Int64) -> Result[(Int64, Int64), Issue]
 
@@ -291,7 +306,7 @@ pub fn prepared_input_scope_snapshot(Execution, @model_execution.ModelPreparedCa
 
 pub fn prepared_input_unit_id(Execution, @model_execution.ModelPreparedCallSet) -> String?
 
-pub fn prepared_observation_issuance_metadata_bytes(ObservationIssuanceLimits) -> Int64?
+pub fn prepared_observation_issuance_metadata_bytes(ObservationIssuanceLimits, owners? : Int) -> Int64?
 
 pub fn project_original_infer_capture_usage(Execution, @model_execution.OriginalModelPublicationCapacity, @model_execution.VerifiedModelCapture, Int, Int64, Int64, Int) -> Result[(String, Int64, Int64), Issue]
 
@@ -376,6 +391,8 @@ pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, @
 pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, @client_local_host.ClientInstalledSequenceContracts, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResultPublication, ResultPublicationIssue]
+
+pub fn start_scoped_portable_chat_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.AdmittedStructuredModelProvider, @check_environment.ModelResponseProfileInstallation, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadScope, Int64, Int64, Int64, Int64, (@run_publication_host.ClientModelReadPreparation) -> Unit, sources? : @run_publication_host.ClientInferComposedSources?, prior_input_work? : Int64) -> Result[Execution, Issue]
 
 pub fn start_serialized(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, @execution_relation.CompletedOutput, @model_execution.ModelProvider, Limits) -> Result[Execution, Issue]
 
@@ -488,6 +505,23 @@ pub struct LocalModelObservation {
   held : OutputUse
   issued : ObservationIssuance
   body : @run_publication.CapturedEffectDependencyBody
+}
+
+pub struct ModelCallSettlementOriginal {
+  settlement : @model_execution.ModelCallSettlement
+  slot : Int
+  count : Int
+  scope_cid : String
+  slot_cid : String
+  attempt_cid : String
+  call : @run_publication.RunEvidenceValue
+  leaves : Array[@run_publication.RunEvidenceValue]
+}
+
+pub(all) enum ModelCallSettlementOriginalIssue {
+  ForeignOriginal
+  Capture(@model_execution.ModelExecutionIssue)
+  Evidence(@run_publication.RunEvidenceValueIssue)
 }
 
 pub struct ObservationIssuance {

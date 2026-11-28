@@ -11,6 +11,7 @@
           "operations": [
             "<module>",
             "[P]check_installed_managed_run_admission",
+            "admit_installed_debug_ledger_wire",
             "begin_installed_managed_run",
             "begin_installed_managed_run_source_read",
             "begin_installed_managed_run_source_read_at",
@@ -20,6 +21,8 @@
             "check_installed_managed_run_binding",
             "check_installed_managed_run_original",
             "configure_installed_source_free_preparation",
+            "installed_debug_ledger_read_backing",
+            "installed_debug_ledger_wire_backing",
             "installed_managed_capture_run_requirements",
             "installed_managed_owner_graph",
             "installed_managed_owner_shape_supported",
@@ -49,7 +52,9 @@
             "prepared_installed_managed_source_free_requirements",
             "quiesce_installed_managed_run",
             "require_installed_managed_run",
+            "retire_installed_debug_run_with_ledger",
             "retire_installed_managed_run",
+            "retire_installed_managed_run_impl",
             "source_free_installed_managed_preparation_owned"
           ],
           "exports": [],
@@ -228,6 +233,10 @@
               {
                 "path": "src/client_local_host/source_free_work_boundary_js_wbtest.mbt",
                 "anchor": "test \"source-free work bounds Fragment preparation after independent Program checking\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_handoff_js_wbtest.mbt",
+                "anchor": "restored Local Request retains consumed Ledger history before preparation"
               }
             ]
           }
@@ -238,6 +247,10 @@
         {
           "name": "[P]check_installed_managed_run_admission",
           "declaration": "[ P ] check_installed_managed_run_admission ( admission : @ resources . PreparedRunAdmission [ P ] , prepared : P , ledger : @ resources . Ledger , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "admit_installed_debug_ledger_wire",
+          "declaration": "admit_installed_debug_ledger_wire ( wire : String , ) - > Result [ @ resources . LedgerContinuationState , @ resources . LedgerContinuationIssue , ]"
         },
         {
           "name": "begin_installed_managed_run",
@@ -274,6 +287,14 @@
         {
           "name": "configure_installed_source_free_preparation",
           "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , work_policy ? : @ local_driver . LocalWorkPolicy"
+        },
+        {
+          "name": "installed_debug_ledger_read_backing",
+          "declaration": "installed_debug_ledger_read_backing ( ) - > Int"
+        },
+        {
+          "name": "installed_debug_ledger_wire_backing",
+          "declaration": "installed_debug_ledger_wire_backing ( ) - > Int"
         },
         {
           "name": "installed_managed_capture_run_requirements",
@@ -392,15 +413,23 @@
           "declaration": "require_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "retire_installed_debug_run_with_ledger",
+          "declaration": "retire_installed_debug_run_with_ledger ( value : ClientInstalledManagedRun , ) - > Result [ String ? , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "retire_installed_managed_run",
           "declaration": "retire_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "retire_installed_managed_run_impl",
+          "declaration": "retire_installed_managed_run_impl ( value : ClientInstalledManagedRun , capture_ledger : Bool , ) - > Result [ String ? , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "source_free_installed_managed_preparation_owned",
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "f39bba8fd409d0f084d585bc7c60ab1fe0905c92af4d73def10c2de3cef80715"
+      "sha256": "9070344a4f0569dc09277261d390f844034cab8983b0fe1f83af0c27dfbaefbc"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
@@ -570,7 +599,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0534f1dee70043f004088f00e6e574c4cf61d822b83b0889e6eb2915f86ed18e",
+      "sha256": "0bddf3bab7595d2c34363c686e06ce3c2ea27b2b48b2ad17afd99d028c19d233",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -590,6 +619,10 @@
         {
           "name": "installed_effect_managed_plan_has_host_input",
           "declaration": "installed_effect_managed_plan_has_host_input ( plan : ClientInstalledEffectManagedPlan , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_operation_demand_original_index",
+          "declaration": "installed_effect_operation_demand_original_index ( demand : ClientInstalledEffectOperationDemand , prepared : @ publication_host . PreparedClientEffectComputation , stage : Int , effect_id : String , ) - > Int ?"
         },
         {
           "name": "installed_effect_operation_extent_capacity",
@@ -727,7 +760,8 @@
             "prepared_installed_effect_model_sequence",
             "prepared_installed_effect_source_sequence",
             "resolve_installed_effect_capture_extent",
-            "resolve_installed_effect_id_extent"
+            "resolve_installed_effect_id_extent",
+            "installed_effect_operation_demand_original_index"
           ],
           "exports": [],
           "attributes": {
@@ -771,6 +805,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn installed_effect_operation_demand_original_index("
               }
             ],
             "ownership": [
@@ -1111,7 +1149,7 @@
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "421bd270f11c0d5dc1c57deefd2bda0e3ef2b557184ea6921e57af189a5e6341",
+      "sha256": "cba9959d9017c11a246e388da31f67cb5b35b34164f0297e67398c4b842e1340",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1123,6 +1161,14 @@
         {
           "name": "installed_request_model_compilation_matches",
           "declaration": "installed_request_model_compilation_matches ( prepared : @ publication_host . PreparedClientProgram , compilation : @ publication_host . ClientRunCompilation ? , compiled : @ publication_host . ClientCompiledRun , graph : @ publication_host . ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "open_installed_model_source_free_compute",
+          "declaration": "open_installed_model_source_free_compute ( adopted : ClientInstalledManagedRun , model : ClientInstalledManagedModelPlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "open_installed_model_whole_source_compute",
+          "declaration": "open_installed_model_whole_source_compute ( adopted : ClientInstalledManagedRun , model : ClientInstalledManagedModelPlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , source : @ query . CapturedInputSource , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "prepare_installed_mock_model_capture_plan",
@@ -1160,7 +1206,9 @@
             "prepare_installed_mock_model_plan_owned",
             "prepare_installed_mock_model_source_free_plan",
             "prepare_installed_mock_model_source_free_with_contracts",
-            "prepared_installed_managed_model_requirements"
+            "prepared_installed_managed_model_requirements",
+            "open_installed_model_source_free_compute",
+            "open_installed_model_whole_source_compute"
           ],
           "exports": [],
           "attributes": {
@@ -1180,6 +1228,14 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_plan.mbt",
+                "anchor": "pub fn open_installed_model_whole_source_compute("
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_plan.mbt",
+                "anchor": "pub fn open_installed_model_source_free_compute("
               }
             ],
             "ownership": [
@@ -1759,7 +1815,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "59d87fcc95ea6128840bf417b78fa363c617c9f52ed845d13e477043b609e28a",
+      "sha256": "ece5eec5160d2881cc5df3f8c96eaf131089b855ec0dd64b36c9d106c9799e5e",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1802,7 +1858,7 @@
         },
         {
           "name": "[I]prepare_request_compilation_owned",
-          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
+          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , reserve_invocation_metadata ? : Bool"
         },
         {
           "name": "[I]prepare_request_program_compilation",
@@ -2063,7 +2119,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2aa5bee40daaaf2acf53cab27f90e9038faa388153937181775e365d8a16ce31",
+      "sha256": "4b9bcd951a849554dcb17a3a45fbd8b994c3571068fc7427fdfe594ca0008242",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -2115,6 +2171,10 @@
         {
           "name": "[I]reserve_request_effect_plan",
           "declaration": "[ I ] reserve_request_effect_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[P,C,I]fund_platform_vm_request_effect_plan",
+          "declaration": "[ P , C , I ] fund_platform_vm_request_effect_plan ( owner : ClientRequestPreparation [ I ] , input : I , access : @ resources . BackedExecutionLiveAccess [ P , C , I ] , ) - > Result [ Unit , @ resources . BackedExecutionIssue ]"
         }
       ],
       "contracts": [
@@ -2132,7 +2192,8 @@
             "[I]request_effect_plan_quote",
             "[I]reserve_request_effect_plan",
             "[I,T]prepare_request_effect_model_scopes_owned",
-            "[I]prepare_request_effect_models_read_scopes"
+            "[I]prepare_request_effect_models_read_scopes",
+            "[P,C,I]fund_platform_vm_request_effect_plan"
           ],
           "exports": [],
           "attributes": {
@@ -2190,6 +2251,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body.mbt",
+                "anchor": "pub fn[P, C, I] fund_platform_vm_request_effect_plan("
               }
             ],
             "extension": [

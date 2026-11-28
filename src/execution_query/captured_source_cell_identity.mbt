@@ -186,6 +186,22 @@ pub fn cancel_captured_source_cell_identity(
 }
 
 ///|
+/// Retire only the same in-memory scan after a trusted serialized Host proves
+/// its synchronous call has unwound. The original Source and funding still
+/// require their actual separate close.
+pub fn cancel_captured_source_cell_identity_after_unwind(
+  value : CapturedSourceCellIdentityScan,
+) -> Unit {
+  value.stopped = true
+  value.advancing = false
+  if value.scan is Some(scan) {
+    @execution.cancel_completed_relation_identity_scan_after_unwind(scan)
+    value.scan = None
+  }
+  cancel_captured_source_cell_identity(value) |> ignore
+}
+
+///|
 /// Return exactly the one completed scan's identity and raw preimages. The
 /// scan is severed after this original alias transfer; no second hash/export,
 /// row admission or source read is performed. The paid caller keeps the

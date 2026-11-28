@@ -57,21 +57,58 @@ test "closed Graph bound counts both repeated original definition inputs" {
   )
   let node = @lowering_relation.node_at(prepared, 1).unwrap()
   assert_true(@lowering_relation.node_relation_schema(node) is None)
+  let visits : Array[Int] = []
   assert_eq(
-    @lowering_relation.node_closed_item_count_bound(node, [3, 3]),
+    @lowering_relation.node_closed_item_count_bound(node, 2, index => {
+      visits.push(index)
+      Some(3)
+    }),
     Some(6),
   )
+  assert_eq(visits, [0, 1])
+  let counts = [2, 4]
   assert_eq(
-    @lowering_relation.node_closed_item_count_bound(node, [2, 4]),
+    @lowering_relation.node_closed_item_count_bound(node, 2, index => {
+      counts.get(index)
+    }),
     Some(6),
   )
-  assert_eq(@lowering_relation.node_closed_item_count_bound(node, [3]), None)
+  visits.clear()
   assert_eq(
-    @lowering_relation.node_closed_item_count_bound(node, [-1, 3]),
+    @lowering_relation.node_closed_item_count_bound(node, 1, index => {
+      visits.push(index)
+      Some(3)
+    }),
     None,
   )
+  assert_true(visits.is_empty())
   assert_eq(
-    @lowering_relation.node_closed_item_count_bound(node, [2147483647, 1]),
+    @lowering_relation.node_closed_item_count_bound(node, 2, index => {
+      visits.push(index)
+      if index == 0 {
+        Some(-1)
+      } else {
+        Some(3)
+      }
+    }),
+    None,
+  )
+  assert_eq(visits, [0])
+  assert_eq(
+    @lowering_relation.node_closed_item_count_bound(node, 2, index => {
+      if index == 0 {
+        Some(3)
+      } else {
+        None
+      }
+    }),
+    None,
+  )
+  let overflowing = [2147483647, 1]
+  assert_eq(
+    @lowering_relation.node_closed_item_count_bound(node, 2, index => {
+      overflowing.get(index)
+    }),
     None,
   )
 }

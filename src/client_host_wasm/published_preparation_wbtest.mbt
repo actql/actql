@@ -100,6 +100,7 @@ fn published_preparation_fixture(
     outcome: None,
     source: None,
     source_issue: None,
+    project_request: None,
   }
   value.preparations[2] = record
   (value, record, pool, capacity, slot, environment_slot)

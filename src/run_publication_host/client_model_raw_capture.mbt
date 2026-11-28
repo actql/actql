@@ -337,3 +337,101 @@ pub fn bind_client_model_raw_response(
     authority,
   ).map_err(issue => Evidence(issue))
 }
+
+///|
+/// Select the Raw interval from the original finite SDK Run and its adopted
+/// retention dependencies. The original compilation owns the policy body
+/// for its source-free or acquired Run. It issues no Store receipt.
+pub fn issue_sdk_run_model_raw_capture_policy(
+  run : ClientLocalRunPolicyOriginal,
+  profile : ClientLocalRunPolicyProfile,
+  retention_dependencies : Bytes,
+  request : ClientRequestIdentity,
+  dispatch : ClientInferDispatchAdmission,
+  scope : @publication.BoundModelInvocationScope,
+  response : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  adoption_cid : String,
+  store_authority_cid : String,
+  at : String,
+  whole_sources? : ClientInferComposedSources? = None,
+) -> Result[@publication.BoundModelRawCapturePolicy, ClientModelRawCaptureIssue] {
+  guard run.body.length() <= 8192 &&
+    @sha.digest(run.body) == run.body_digest &&
+    run.request == request &&
+    run.run_definition_cid ==
+    @publication.publication_contract_identity(dispatch.definition) &&
+    run.host_adoption_cid == adoption_cid &&
+    @publication.trusted_clock_not_before(Some(run.issued_at), at) &&
+    @publication.result_retention_capture_bounds(
+      run.retention,
+      profile.retention_contract_cid,
+      profile.metadata_retention_policy_cid,
+      profile.clock_contract_cid,
+      profile.result_policy_cid,
+    )
+    is Some((available, deletion, ceiling, metadata_deletion)) &&
+    client_local_run_policy_retention_bodies(profile, retention_dependencies)
+    is Ok([retention, metadata, clock]) else {
+    return Err(ForeignPolicy)
+  }
+  let data = match whole_sources {
+    None => {
+      guard client_compiled_run_source_free_result_policy_body(
+          dispatch.compiled,
+        )
+        is Some(data) &&
+        @publication.captured_effect_dependency_body_cid(data) ==
+        profile.result_policy_cid else {
+        return Err(ForeignPolicy)
+      }
+      data
+    }
+    Some(sources) => {
+      guard client_infer_composed_sources_matches(
+          sources,
+          dispatch.plan.occurrence,
+        ) &&
+        prepared_client_acquisition_count(dispatch.compiled.owner) == 1 &&
+        client_compiled_run_infer_observation_policy(dispatch.compiled)
+        is Some(policy_cid) &&
+        client_compiled_run_evaluation_policy_body(
+          dispatch.compiled,
+          max_bytes=4096,
+          max_nodes=128,
+          max_depth=8,
+        )
+        is Some(("data_policy", cid, body)) &&
+        cid == policy_cid &&
+        @publication.admit_captured_effect_dependency_body(
+          "data_policy",
+          Some(cid),
+          body,
+          4096,
+          128,
+          8,
+        )
+        is Ok(data) else {
+        return Err(ForeignPolicy)
+      }
+      data
+    }
+  }
+  issue_client_model_raw_capture_policy(
+    dispatch,
+    scope,
+    response,
+    installation,
+    None,
+    store_authority_cid,
+    retention,
+    metadata,
+    clock,
+    data,
+    at,
+    available,
+    deletion,
+    ceiling,
+    metadata_deletion,
+  )
+}

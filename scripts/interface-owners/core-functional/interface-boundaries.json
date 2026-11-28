@@ -10262,7 +10262,7 @@
             "cancellation": [
               {
                 "path": "src/run_publication/interactive_control_receipt.mbt",
-                "anchor": "accepted_at < boundary.expires_at"
+                "anchor": "accepted_at < expires_at"
               }
             ],
             "resources": [
@@ -25680,7 +25680,7 @@
               },
               {
                 "path": "src/connectors/local/managed_provider.mbt",
-                "anchor": "infer_relation_prefix : ("
+                "anchor": "infer_relation_prefix : ManagedInferRelationPrefix?"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -26396,7 +26396,7 @@
               },
               {
                 "path": "src/connectors/local/managed_provider.mbt",
-                "anchor": "infer_relation_prefix : ("
+                "anchor": "infer_relation_prefix : ManagedInferRelationPrefix?"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -46606,7 +46606,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "0534f1dee70043f004088f00e6e574c4cf61d822b83b0889e6eb2915f86ed18e",
+      "sha256": "0bddf3bab7595d2c34363c686e06ce3c2ea27b2b48b2ad17afd99d028c19d233",
       "exports": [],
       "operations": [
         {
@@ -46624,6 +46624,10 @@
         {
           "name": "installed_effect_managed_plan_has_host_input",
           "declaration": "installed_effect_managed_plan_has_host_input ( plan : ClientInstalledEffectManagedPlan , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_operation_demand_original_index",
+          "declaration": "installed_effect_operation_demand_original_index ( demand : ClientInstalledEffectOperationDemand , prepared : @ publication_host . PreparedClientEffectComputation , stage : Int , effect_id : String , ) - > Int ?"
         },
         {
           "name": "installed_effect_operation_extent_capacity",
@@ -46744,6 +46748,7 @@
             "<module>",
             "installed_effect_capacity_within",
             "installed_effect_limits_fit",
+            "installed_effect_operation_demand_original_index",
             "installed_effect_operation_extent_capacity",
             "installed_effect_operation_extent_physical",
             "installed_effect_operation_extent_transfer",
@@ -46834,6 +46839,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_demand.mbt",
+                "anchor": "pub fn installed_effect_operation_demand_original_index("
               }
             ],
             "ownership": [
@@ -48356,7 +48365,7 @@
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
-      "sha256": "421bd270f11c0d5dc1c57deefd2bda0e3ef2b557184ea6921e57af189a5e6341",
+      "sha256": "cba9959d9017c11a246e388da31f67cb5b35b34164f0297e67398c4b842e1340",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -48369,6 +48378,14 @@
         {
           "name": "installed_request_model_compilation_matches",
           "declaration": "installed_request_model_compilation_matches ( prepared : @ publication_host . PreparedClientProgram , compilation : @ publication_host . ClientRunCompilation ? , compiled : @ publication_host . ClientCompiledRun , graph : @ publication_host . ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "open_installed_model_source_free_compute",
+          "declaration": "open_installed_model_source_free_compute ( adopted : ClientInstalledManagedRun , model : ClientInstalledManagedModelPlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "open_installed_model_whole_source_compute",
+          "declaration": "open_installed_model_whole_source_compute ( adopted : ClientInstalledManagedRun , model : ClientInstalledManagedModelPlan , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , source : @ query . CapturedInputSource , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "prepare_installed_mock_model_capture_plan",
@@ -48406,7 +48423,9 @@
             "prepare_installed_mock_model_plan_owned",
             "prepare_installed_mock_model_source_free_plan",
             "prepare_installed_mock_model_source_free_with_contracts",
-            "prepared_installed_managed_model_requirements"
+            "prepared_installed_managed_model_requirements",
+            "open_installed_model_source_free_compute",
+            "open_installed_model_whole_source_compute"
           ],
           "exports": [],
           "attributes": {
@@ -48438,6 +48457,14 @@
               {
                 "path": "src/client_local_host/installed_mock_model_plan.mbt",
                 "anchor": "fn prepare_installed_mock_model_plan_owned("
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_plan.mbt",
+                "anchor": "pub fn open_installed_model_whole_source_compute("
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_plan.mbt",
+                "anchor": "pub fn open_installed_model_source_free_compute("
               }
             ],
             "ownership": [
@@ -53710,16 +53737,28 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "b4cadb2872999a5c1f092597197a2f1a73a52bd8a2e4e9577161443b31d8772d",
+      "sha256": "35e715ea52d21e31777df183058e9a662724edd965fef224abf6bc0872ca8d44",
       "exports": [],
       "operations": [
         {
           "name": "[I]begin_request_capture_managed_run",
-          "declaration": "[ I ] begin_request_capture_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] begin_request_capture_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , transfer ? : ClientRequestCaptureTransfer [ I ] ?"
+        },
+        {
+          "name": "[I]clear_transferred_request_capture",
+          "declaration": "[ I ] clear_transferred_request_capture ( owner : ClientRequestPreparation [ I ] , ) - > Unit"
         },
         {
           "name": "[I]complete_request_capture_preparation",
           "declaration": "[ I ] complete_request_capture_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedCapturePlan , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]observe_request_capture_transfer",
+          "declaration": "[ I ] observe_request_capture_transfer ( transfer : ClientRequestCaptureTransfer [ I ] , ) - > Result [ ClientInstalledManagedRun ? , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]retain_request_capture_transfer",
+          "declaration": "[ I ] retain_request_capture_transfer ( parent : ClientRequestPreparation [ I ] , ) - > Result [ ClientRequestCaptureTransfer [ I ] , ClientInstalledManagedRunIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -53731,7 +53770,10 @@
           "operations": [
             "<module>",
             "[I]begin_request_capture_managed_run",
-            "[I]complete_request_capture_preparation"
+            "[I]clear_transferred_request_capture",
+            "[I]complete_request_capture_preparation",
+            "[I]observe_request_capture_transfer",
+            "[I]retain_request_capture_transfer"
           ],
           "exports": [],
           "attributes": {
@@ -53783,6 +53825,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_capture_body.mbt",
+                "anchor": "Publish custody BEFORE clearing any original parent aliases."
               }
             ],
             "failure": [
@@ -53803,6 +53849,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_capture_body.mbt",
+                "anchor": "pub fn[I] observe_request_capture_transfer("
               }
             ],
             "resources": [
@@ -54163,7 +54213,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2aa5bee40daaaf2acf53cab27f90e9038faa388153937181775e365d8a16ce31",
+      "sha256": "4b9bcd951a849554dcb17a3a45fbd8b994c3571068fc7427fdfe594ca0008242",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -54215,6 +54265,10 @@
         {
           "name": "[I]reserve_request_effect_plan",
           "declaration": "[ I ] reserve_request_effect_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[P,C,I]fund_platform_vm_request_effect_plan",
+          "declaration": "[ P , C , I ] fund_platform_vm_request_effect_plan ( owner : ClientRequestPreparation [ I ] , input : I , access : @ resources . BackedExecutionLiveAccess [ P , C , I ] , ) - > Result [ Unit , @ resources . BackedExecutionIssue ]"
         }
       ],
       "contracts": [
@@ -54228,7 +54282,8 @@
             "[I]continue_request_effect_preparation",
             "[I]request_effect_plan_quote",
             "[I]reserve_request_effect_plan",
-            "[I]finish_request_effect_run_adoption"
+            "[I]finish_request_effect_run_adoption",
+            "[P,C,I]fund_platform_vm_request_effect_plan"
           ],
           "exports": [],
           "attributes": {
@@ -54382,6 +54437,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original text-bound views before sequence lowering"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_body.mbt",
+                "anchor": "pub fn[P, C, I] fund_platform_vm_request_effect_plan("
               }
             ],
             "extension": [
@@ -54916,7 +54975,7 @@
       "operations": [
         {
           "name": "[I,T]prepare_request_model_read_scopes_owned",
-          "declaration": "[ I , T ] prepare_request_model_read_scopes_owned ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , quantity_limits : @ resources . QuantityAmounts ? , bind : ( ClientInstalledManagedModelPlan , @ resources . Ledger , @ resources . OriginalLedgerIdentity , ) - > Result [ T , @ publication_host . ClientModelReadPreparationIssue ] , ) - > Result [ T , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I , T ] prepare_request_model_read_scopes_owned ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , quantity_limits : @ resources . QuantityAmounts ? , bind : ( ClientInstalledManagedModelPlan , @ resources . Ledger , @ resources . OriginalLedgerIdentity , ) - > Result [ T , @ publication_host . ClientModelReadPreparationIssue ] , fund_run ? : ( ( ) - > Result [ Unit , ClientInstalledManagedRunIssue ] ) ?"
         },
         {
           "name": "[I]begin_request_model_managed_run",
@@ -54939,6 +54998,10 @@
           "declaration": "[ I ] prepare_request_model_compilation ( owner : ClientRequestPreparation [ I ] , input : I , graph : @ publication_host . ClientInferPlanGraph , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
         },
         {
+          "name": "[I]prepare_request_model_compilation_owned",
+          "declaration": "[ I ] prepare_request_model_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , graph : @ publication_host . ClientInferPlanGraph , contracts : ClientInstalledSequenceContracts , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , reserve_invocation_metadata ~ : Bool , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]prepare_request_model_read_scope",
           "declaration": "[ I ] prepare_request_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
         },
@@ -54951,6 +55014,10 @@
           "declaration": "[ I ] prepare_request_models_compilation ( owner : ClientRequestPreparation [ I ] , input : I , selected : Array [ @ publication_host . ClientInferPlanGraph ] , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
         },
         {
+          "name": "[I]prepare_request_models_compilation_owned",
+          "declaration": "[ I ] prepare_request_models_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , selected : Array [ @ publication_host . ClientInferPlanGraph ] , contracts : ClientInstalledSequenceContracts , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , reserve_invocation_metadata ~ : Bool , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]prepare_request_node_model_capture_plan",
           "declaration": "[ I ] prepare_request_node_model_capture_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedCapturePlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ environment . DecisionProbabilityProfile ? , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
         },
@@ -54959,8 +55026,24 @@
           "declaration": "[ I ] prepare_request_node_model_source_free_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ environment . DecisionProbabilityProfile ? , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
         },
         {
+          "name": "[I]prepare_request_portable_model_artifact",
+          "declaration": "[ I ] prepare_request_portable_model_artifact ( owner : ClientRequestPreparation [ I ] , input : I , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[P,C,I]fund_request_portable_model_run",
+          "declaration": "[ P , C , I ] fund_request_portable_model_run ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , access : @ resources . BackedExecutionLiveAccess [ P , C , I ] , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[P,C,I]prepare_request_portable_model_read_scope",
+          "declaration": "[ P , C , I ] prepare_request_portable_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , access : @ resources . BackedExecutionLiveAccess [ P , C , I ] , quantity_limits : @ resources . QuantityAmounts , ) - > Result [ @ publication_host . ClientModelReadScope , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "bind_request_single_model_read_scope",
           "declaration": "bind_request_single_model_read_scope ( plan : ClientInstalledManagedModelPlan , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ @ publication_host . ClientModelReadScope , @ publication_host . ClientModelReadPreparationIssue , ]"
+        },
+        {
+          "name": "request_model_module_invocation_matches",
+          "declaration": "request_model_module_invocation_matches ( phase : ClientRequestPreparationPhase , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Bool"
         }
       ],
       "contracts": [
@@ -54978,7 +55061,13 @@
             "[I]prepare_request_models_compilation",
             "[I]prepare_request_node_model_capture_plan",
             "[I]prepare_request_node_model_source_free_plan",
-            "bind_request_single_model_read_scope"
+            "bind_request_single_model_read_scope",
+            "[I]prepare_request_model_compilation_owned",
+            "[I]prepare_request_models_compilation_owned",
+            "[I]prepare_request_portable_model_artifact",
+            "[P,C,I]fund_request_portable_model_run",
+            "[P,C,I]prepare_request_portable_model_read_scope",
+            "request_model_module_invocation_matches"
           ],
           "exports": [],
           "attributes": {
@@ -55220,6 +55309,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_portable_model_artifact("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[P, C, I] prepare_request_portable_model_read_scope("
               }
             ],
             "extension": [
@@ -55302,11 +55399,11 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "f29cd37e1d919f6f8455cab5c4eb479657e33dcc3e207a57f957691b36157caa"
+      "sha256": "c1f3ffb952bb3e181c07f6b391fd525d232189b4141bb32894fa796bc06a364c"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "ee6c956aad683a2c9d13e5f82af7e1a4b2a929eacd358c754485bbe4280345c6",
+      "sha256": "133db792fa95c1e0784cd1d9ab08cd3dd60e9540903f687f3a60e8feb5fe89ba",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -56495,7 +56592,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "517dba9b116ff0fa6dedd57611ebe79f6a472769884d170de0b257709a7a7be9",
+      "sha256": "7fa72d19700f557dc1fc7a07a128a467b24fe4a8ff824589bc56832b5f07a757",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -56514,7 +56611,11 @@
         },
         {
           "name": "[I]begin_request_preparation_original",
-          "declaration": "[ I ] begin_request_preparation_original ( initial : ClientPreparationInitial [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
+          "declaration": "[ I ] begin_request_preparation_original ( initial : ClientPreparationInitial [ I ] , input : I , policy : ClientLocalResourcePolicy , recovered ? : @ resources . LedgerContinuationState ?"
+        },
+        {
+          "name": "[I]begin_restored_request_preparation",
+          "declaration": "[ I ] begin_restored_request_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , saved : @ resources . LedgerContinuationState , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]prepare_request_check_preparation_owned",
@@ -57251,7 +57352,8 @@
         {
           "operations": [
             "[I]begin_backed_request_preparation",
-            "[I]begin_request_preparation_original"
+            "[I]begin_request_preparation_original",
+            "[I]begin_restored_request_preparation"
           ],
           "exports": [],
           "attributes": {
@@ -57275,6 +57377,10 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission.mbt",
                 "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_parent.mbt",
+                "anchor": "pub fn[I] begin_restored_request_preparation("
               }
             ],
             "ownership": [
@@ -59058,7 +59164,7 @@
           "exports": []
         }
       ],
-      "sha256": "59d87fcc95ea6128840bf417b78fa363c617c9f52ed845d13e477043b609e28a",
+      "sha256": "ece5eec5160d2881cc5df3f8c96eaf131089b855ec0dd64b36c9d106c9799e5e",
       "exports": [],
       "operations": [
         {
@@ -59099,7 +59205,7 @@
         },
         {
           "name": "[I]prepare_request_compilation_owned",
-          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
+          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , reserve_invocation_metadata ? : Bool"
         },
         {
           "name": "[I]prepare_request_program_compilation",
@@ -65877,7 +65983,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "e968eb8b2228ac41045688efe5e4e755cd451d14a11a0656ef1719c038af5a48",
+      "sha256": "9dc5324fee70064b51c7cd0f96e1de3978ecbb47a841a0d59ddc3f79a62a72d8",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -65889,6 +65995,10 @@
         {
           "name": "[A]with_managed_scratch_use",
           "declaration": "[ A ] with_managed_scratch_use ( uses : Ref [ Int ] , release : ( ) - > Unit , action : ( ) - > A , ) - > A"
+        },
+        {
+          "name": "[T]grow_local_finalization_workspace",
+          "declaration": "[ T ] grow_local_finalization_workspace ( setup : LocalManagedDispatchConfiguration [ T ] , execution : @ strategy . TaskExecution , working : Int64 , transport : Int64 , imported : Int64 , metadata : Int64 , ) - > Result [ Unit , LocalDispatchIssue ]"
         },
         {
           "name": "[T]install_local_managed_input_read",
@@ -65937,6 +66047,10 @@
         {
           "name": "[T]start_local_managed_dispatch",
           "declaration": "[ T ] start_local_managed_dispatch ( setup : LocalManagedDispatchConfiguration [ T ] , retained_relation ? : Bool"
+        },
+        {
+          "name": "[T]with_local_managed_continuation_relation",
+          "declaration": "[ T ] with_local_managed_continuation_relation ( operations : LocalManagedDispatchOperations [ T ] , visit : ( @ execution . ManagedCompletedOutput [ T ] , @ execution . CompletedOutput , ( ) - > Bool , ) - > Unit , ) - > Bool"
         },
         {
           "name": "bind_physical_operation_input",
@@ -66012,7 +66126,8 @@
             "local_managed_snapshot_reload_extent",
             "local_relation_snapshot_reload_capacity",
             "managed_row_transfer_bytes",
-            "start_local_managed_dispatch_node"
+            "start_local_managed_dispatch_node",
+            "[T]with_local_managed_continuation_relation"
           ],
           "exports": [],
           "attributes": {
@@ -66610,12 +66725,17 @@
               {
                 "path": "src/connectors/local/driver/managed_import_scalar_overlap_wbtest.mbt",
                 "anchor": "test \"finalization diagnostic retains original module and task slots before the adapter call\""
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "paused Debug borrows the full original Relation from its completed Driver"
               }
             ]
           }
         },
         {
           "operations": [
+            "[T]grow_local_finalization_workspace",
             "[T]local_managed_canonical_transfer_quote",
             "local_managed_import_working_overlap",
             "local_managed_logical_work_diagnostic_capacity",
@@ -72121,7 +72241,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -72832,7 +72952,7 @@
               },
               {
                 "path": "adapters/host-node/request-model-material-resources.test.mjs",
-                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
+                "anchor": "test('Effect Model reserves execution and dependency materials through its same Request before readers'"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -89187,7 +89307,7 @@
     },
     {
       "module": "src/run_publication_host/client_effect_program.mbt",
-      "sha256": "bab79694a4b89f8ee7eb57d38116b7a64b04304637c454be9573bc71c06f59d9",
+      "sha256": "98a54fcb282aced8263fed4bc629d5bc3fab1fd0d62258f0b44db69258f1d9e9",
       "exports": [],
       "operations": [
         {
@@ -89245,6 +89365,10 @@
         {
           "name": "prepare_client_effect_task_sequence",
           "declaration": "prepare_client_effect_task_sequence ( value : PreparedClientEffectComputation , task : Int , contracts : @ execution . RegisteredRelationContracts , contexts : Array [ @ execution . FragmentRuntimeContext ] , limits : @ lower . SequenceLimits , max_work : Int , max_entries : Int , prepared_sequence ? : @ lower . PreparedSequence ?"
+        },
+        {
+          "name": "prepare_client_static_effect_debug_graph",
+          "declaration": "prepare_client_static_effect_debug_graph ( prepared : PreparedClientEffectComputation , max_tasks : Int , max_work : Int , ) - > Result [ @ strategy . CheckedDAG , @ strategy . GraphIssue ]"
         },
         {
           "name": "prepare_parsed_client_effect_computation",
@@ -89352,7 +89476,8 @@
             "prepared_client_effect_run_graph",
             "clear_prepared_client_effect_custody_after_cleanup",
             "prepared_client_effect_sequence_limits",
-            "prepared_client_effect_task_sequence_limits"
+            "prepared_client_effect_task_sequence_limits",
+            "prepare_client_static_effect_debug_graph"
           ],
           "exports": [],
           "attributes": {
@@ -89597,6 +89722,10 @@
           "declaration": "handoff_client_model_read_capacity ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( @ resources . Ledger , @ resources . CapacityReservation ) , ClientModelReadPreparationIssue , ]"
         },
         {
+          "name": "prepare_claimed_client_model_read",
+          "declaration": "prepare_claimed_client_model_read ( scope : ClientModelReadScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , retain : ( ClientModelReadPreparation ) - > Unit , ) - > Result [ ( ClientModelReadPreparation , ClientModelReadConsumer ) , ClientModelReadPreparationIssue , ]"
+        },
+        {
           "name": "prepare_client_model_read",
           "declaration": "prepare_client_model_read ( scope : ClientModelReadScope , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ClientModelReadPreparation , ClientModelReadPreparationIssue ]"
         },
@@ -89631,7 +89760,8 @@
             "handoff_client_model_read_capacity",
             "prepare_client_model_read",
             "settle_client_model_read",
-            "stop_client_model_read"
+            "stop_client_model_read",
+            "prepare_claimed_client_model_read"
           ],
           "exports": [],
           "attributes": {
@@ -89705,6 +89835,10 @@
               {
                 "path": "src/run_publication_host/client_model_read_preparation.mbt",
                 "anchor": "pub fn grow_client_model_read_preparation_consumer_span("
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_preparation.mbt",
+                "anchor": "the caller's existing cleanup slot before attempting its one-shot claim."
               }
             ],
             "synchronization": [
@@ -89827,7 +89961,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "4777838ce2351d61f5c0c370236e66827a505fb30e29a7fafff69a1b6ee494a7"
+      "sha256": "674c03eff42007a661ededb975b17b76c1600a172aa114227ed92523b4a222b5"
     },
     {
       "module": "src/run_publication_host/client_ordered_sequence.mbt",
@@ -90617,7 +90751,7 @@
           }
         }
       ],
-      "sha256": "0199b66790ddf214c325f44c6b0a02de40a30d00a94149d52d76328c2ca881ed",
+      "sha256": "aefe5b8b2f24d955028f132238b457ba97c1338bedd74aeb9332ef8e526c9852",
       "exports": [],
       "operations": [
         {
@@ -100544,7 +100678,7 @@
           }
         }
       ],
-      "sha256": "cdf695ffbd41885df9fed8b70b16597c17da9102959e98ce44d75de396fbba64",
+      "sha256": "ffeebe206d14487831f3fb84354b6d05ab093d86d666e21f4830f02f25e50cb1",
       "operations": [
         {
           "name": "platform_buffer_issue",
@@ -103458,7 +103592,7 @@
                 "anchor": "test \"saved Model constructors share original restoration reservation"
               },
               {
-                "path": "adapters/host-node/request-model-recovery.test.mts",
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "test('same recovery finish waits for its actual dispatch reclamation"
               },
               {
@@ -103778,15 +103912,15 @@
         },
         {
           "name": "[T]original_read_child_origin",
-          "declaration": "[ T ] original_read_child_origin ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , handed_off : Bool , ) - > T ?"
+          "declaration": "[ T ] original_read_child_origin ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , handed_off : Bool , output_workspace ? : StartedTaskWorkspace ?"
         },
         {
           "name": "[T]original_read_children_current",
-          "declaration": "[ T ] original_read_children_current ( claim : FundedReadClaim [ T ] ) - > Bool"
+          "declaration": "[ T ] original_read_children_current ( claim : FundedReadClaim [ T ] , output_workspace ? : StartedTaskWorkspace ?"
         },
         {
           "name": "[T]original_read_children_snapshot_matches",
-          "declaration": "[ T ] original_read_children_snapshot_matches ( claim : FundedReadClaim [ T ] , ) - > Bool"
+          "declaration": "[ T ] original_read_children_snapshot_matches ( claim : FundedReadClaim [ T ] , output_workspace ? : StartedTaskWorkspace ?"
         },
         {
           "name": "[T]settle_original_read_child",
@@ -103935,7 +104069,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "e42392d27f0d2f4dafcd9f04a91fb86dfa47af2ba9245e8e9df67a81d864f1ff"
+      "sha256": "43015e829ce37f05980f322e6a11a783ad34ef5fe8e3ef678aed905412bb42a2"
     },
     {
       "module": "src/run_publication_host/client_model_read_group.mbt",
@@ -104156,6 +104290,10 @@
           "declaration": "[ I ] reserve_request_models_plan_projection ( owner : ClientRequestPreparation [ I ] , input : I , count : Int , node_physical ? : Bool"
         },
         {
+          "name": "[P,C,I]prepare_request_portable_models_read_scopes",
+          "declaration": "[ P , C , I ] prepare_request_portable_models_read_scopes ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , access : @ resources . BackedExecutionLiveAccess [ P , C , I ] , quantity_limits : @ resources . QuantityAmounts , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "bind_request_multiple_model_read_scopes",
           "declaration": "bind_request_multiple_model_read_scopes ( plan : ClientInstalledManagedModelPlan , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ publication_host . ClientModelReadPreparationIssue , ]"
         },
@@ -104194,7 +104332,8 @@
             "request_model_group_quantity_limits",
             "node_quantities_length_matches",
             "request_model_plan_has_node_quantities",
-            "request_planned_node_quantities"
+            "request_planned_node_quantities",
+            "[P,C,I]prepare_request_portable_models_read_scopes"
           ],
           "exports": [],
           "attributes": {
@@ -104476,6 +104615,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Original Model inventory construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_models_plan.mbt",
+                "anchor": "pub fn[P, C, I] prepare_request_portable_models_read_scopes("
               }
             ],
             "extension": [
@@ -104566,7 +104709,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "830c78aa7bd287d16b6ddd790cdc457766143235f7adb11bf30b9a3acab407b0"
+      "sha256": "b76c00dd8268f6dcdaeedbaa4a3aa54d96fcd4bf3dc312a90be83830ce1f3bd2"
     },
     {
       "module": "src/run_publication_host/client_model_read_consumer.mbt",
@@ -111590,7 +111733,7 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization.mbt",
-      "sha256": "3f905a9af68fc9e23597b96becf0fedeac77665223fd63bd6cb98651facb26d6",
+      "sha256": "8eb7934577e51418bf692d2c86376737ffc66634f0f26ddd5e964a0c8a46db8b",
       "exports": [],
       "operations": [
         {
@@ -111658,8 +111801,16 @@
           "declaration": "prepared_client_local_normalization_evidence ( owner : PreparedClientProgram , value : ClientLocalNormalization , ) - > Result [ @ publication . RunEvidenceValue , ClientLocalNormalizationIssue ]"
         },
         {
+          "name": "prepared_client_local_normalization_retirement_matches",
+          "declaration": "prepared_client_local_normalization_retirement_matches ( owner : PreparedClientProgram , ) - > Bool"
+        },
+        {
           "name": "restore_prepared_client_local_normalization",
           "declaration": "restore_prepared_client_local_normalization ( owner : PreparedClientProgram , original : ClientLocalNormalization , wire : String , catalog_cid : String , ) - > Result [ @ publication . RunEvidenceValue , ClientLocalNormalizationIssue ]"
+        },
+        {
+          "name": "retire_prepared_client_local_normalization_after_cleanup",
+          "declaration": "retire_prepared_client_local_normalization_after_cleanup ( owner : PreparedClientProgram , ) - > Unit"
         }
       ],
       "responsibilityFacet": "primary",
@@ -111685,7 +111836,9 @@
             "local_normalization_inventory_matches",
             "local_unary_timestamp_catalog_cid",
             "prepared_client_local_normalization_evidence",
-            "restore_prepared_client_local_normalization"
+            "prepared_client_local_normalization_retirement_matches",
+            "restore_prepared_client_local_normalization",
+            "retire_prepared_client_local_normalization_after_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -112249,7 +112402,7 @@
     },
     {
       "module": "src/run_publication_host/client_local_normalization_preparation.mbt",
-      "sha256": "0760efe9de5498a03e79e95215c93cd98bc5af4db8b9839d965f1f063f1035e2",
+      "sha256": "07a77bc33cd9f0a222be85cb86165ae94cc4cca088fbdd71d50e06e307c9e1e4",
       "exports": [],
       "operations": [
         {
@@ -112549,7 +112702,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_preparation.mbt",
-      "sha256": "208870ade4d5979a3c0ffc0ffe8977e4c9e32e754aba249c8592f0dbba6a35e0",
+      "sha256": "cc16d7059b5d82ed7108ceaff4cde930ff55a5abc44ab8e0df418460f755cca0",
       "exports": [],
       "operations": [
         {
@@ -112559,6 +112712,10 @@
         {
           "name": "native_client_submitted_preparation_intent_cid",
           "declaration": "native_client_submitted_preparation_intent_cid ( value : NativeClientSubmittedPreparation , ) - > String"
+        },
+        {
+          "name": "native_client_submitted_preparation_lowered_effect_query",
+          "declaration": "native_client_submitted_preparation_lowered_effect_query ( value : NativeClientSubmittedPreparation , ) - > Bool"
         },
         {
           "name": "prepare_native_client_submitted_program",
@@ -112574,6 +112731,7 @@
             "<module>",
             "native_client_submitted_preparation",
             "native_client_submitted_preparation_intent_cid",
+            "native_client_submitted_preparation_lowered_effect_query",
             "prepare_native_client_submitted_program"
           ],
           "exports": [],
@@ -112645,7 +112803,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "7530436f6ab4ae7ee22be291497adc43211a6f16622f70ef1310c03ff46a5234",
+      "sha256": "e3327adb44e211bb0aad9fd6367ebc7917828a51c03e82ecfe51fb3e6ca7c2ba",
       "exports": [],
       "operations": [
         {
@@ -113557,7 +113715,7 @@
             "failure": [
               {
                 "path": "src/client_local_host/installed_relation_sample_start.mbt",
-                "anchor": "guard profile.start_mode is PausedEntry"
+                "anchor": "guard profile.start_mode is (PausedEntry | PausedBeforeBreakpoint"
               }
             ],
             "cancellation": [
@@ -113569,7 +113727,7 @@
             "resources": [
               {
                 "path": "src/physical_strategy_host/task_control.mbt",
-                "anchor": "let checked = @resources.grow_capacity_reservation("
+                "anchor": "@resources.grow_capacity_reservation("
               }
             ],
             "extension": [
@@ -113735,7 +113893,7 @@
             "resources": [
               {
                 "path": "src/physical_strategy_host/task_control.mbt",
-                "anchor": "let checked = @resources.grow_capacity_reservation("
+                "anchor": "@resources.grow_capacity_reservation("
               }
             ],
             "extension": [
@@ -113817,7 +113975,7 @@
             "extension": [
               {
                 "path": "src/client_local_host/installed_relation_sample_start.mbt",
-                "anchor": "installed_relation_sample_control_tuple(principal, connection, false)"
+                "anchor": "installed_debug_control_tuple(principal, connection, false)"
               }
             ],
             "verification": [
@@ -113879,7 +114037,7 @@
             "resources": [
               {
                 "path": "src/physical_strategy_host/task_control.mbt",
-                "anchor": "let bytes = captured_task_control_construction_bytes(tasks)"
+                "anchor": "captured_task_control_construction_bytes(tasks)"
               }
             ],
             "extension": [
@@ -120153,7 +120311,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_files_work.mbt",
-      "sha256": "7ed9de5920b07ec30abe863b1105bbba3c8b6caeac631121a5e6729204ccb589",
+      "sha256": "6a8559ac501eec6a329f20e74bab6475d64d52249fe80b900ddc84f07ace8769",
       "exports": [],
       "operations": [
         {
@@ -120456,7 +120614,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_relation_file_work.mbt",
-      "sha256": "08897bedf10442add68c70421d9462f9a2a9d68a049bcd5a83b83ece2c42a420",
+      "sha256": "5b18ea6b90ba4d25f57503bc4a46c3bf6a0f52dc59fdcb459e0ab34782d94e07",
       "exports": [],
       "operations": [
         {

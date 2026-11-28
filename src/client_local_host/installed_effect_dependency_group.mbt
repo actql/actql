@@ -2,6 +2,7 @@
 priv enum ClientEffectDependencyWireShape {
   Emitted(@encode.EncodingConstructionGeometry)
   OriginalRelation(@encode.EncodingConstructionGeometry)
+  RetainedRoot(@publication.CapturedEffectDependencyBody)
   Observed(@source.JsonSourceGeometry)
 }
 
@@ -141,6 +142,42 @@ fn prepare_funded_effect_dependency_inventory(
           }
           continue
         }
+        // A root admitted by this same dependency group already owns its
+        // canonical body. Reuse it only under the same exact consumer limits
+        // and full wire comparison; Result and Effect member custody is separate.
+        if kind == "result_artifact" && identity is Some(cid) {
+          let mut original : @publication.CapturedEffectDependencyBody? = None
+          for root in roots {
+            if !work(1) {
+              return Err(InsufficientCapacity)
+            }
+            if @publication.captured_effect_dependency_body_kind(root) == kind &&
+              @publication.captured_effect_dependency_body_cid(root) == cid {
+              if !work(wire.length()) {
+                return Err(InsufficientCapacity)
+              }
+              if @publication.captured_effect_dependency_body_json(root) != wire {
+                return Err(ForeignOriginal)
+              }
+              if @publication.captured_effect_dependency_body_wire_usage(root)
+                is Some((bytes, nodes, depth)) {
+                if bytes > max_bytes || nodes > max_nodes || depth > max_depth {
+                  return Err(Unsupported)
+                }
+                original = Some(root)
+              }
+              break
+            }
+          }
+          if original is Some(root) {
+            let input = { kind, identity, wire, shape: RetainedRoot(root), }
+            if selected is Some(key) {
+              seen[key] = input
+            }
+            values.push(input)
+            continue
+          }
+        }
         let existing = match (cached, selected) {
           (Some(cache), Some(key)) => cache.get(key)
           _ => None
@@ -236,7 +273,7 @@ fn prepare_funded_effect_dependency_inventory(
         let added = match input.shape {
           // The SAME controller already retained its raw/canonical/parser quota
           // before producing this exact emitted wire. Do not buy it twice.
-          Emitted(_) => None
+          Emitted(_) | RetainedRoot(_) => None
           // Unlike static emitted bodies, the exported Relation has only its
           // original text prefix so far. Buy the complete parser/body packet
           // on this same controller before admission; never treat it as prepaid.
@@ -247,7 +284,8 @@ fn prepare_funded_effect_dependency_inventory(
               geometry, max_bytes, max_nodes, max_depth,
             )
         }
-        if !(input.shape is Emitted(_)) && added is None {
+        if !(input.shape is Emitted(_) || input.shape is RetainedRoot(_)) &&
+          added is None {
           return Err(InsufficientCapacity)
         }
         if added is Some(added) {
@@ -300,32 +338,39 @@ fn prepare_funded_effect_dependency_inventory(
         if !work(1) {
           return Err(InsufficientCapacity)
         }
-        // Strict parser/admission/hash/canonical comparison all run. Debit the
-        // actual borrowed wire span before each bounded codec traversal, with
-        // scalar construction work bounded by its observed value inventory.
-        for _ in 0..<6 {
-          if !work(input.wire.length()) {
-            return Err(InsufficientCapacity)
+        let body = match input.shape {
+          RetainedRoot(original) => original
+          _ => {
+            // Strict parser/admission/hash/canonical comparison all run. Debit the
+            // actual borrowed wire span before each bounded codec traversal, with
+            // scalar construction work bounded by its observed value inventory.
+            for _ in 0..<6 {
+              if !work(input.wire.length()) {
+                return Err(InsufficientCapacity)
+              }
+            }
+            let nodes = match input.shape {
+              Emitted(g) | OriginalRelation(g) => g.nodes
+              Observed(g) => Int::min(g.node_upper, max_nodes)
+              RetainedRoot(_) => return Err(ForeignOriginal)
+            }
+            if !work(nodes) {
+              return Err(InsufficientCapacity)
+            }
+            let body = match
+              @publication.admit_captured_effect_dependency_body(
+                input.kind,
+                input.identity,
+                input.wire,
+                max_bytes,
+                max_nodes,
+                max_depth,
+              ) {
+              Ok(body) => body
+              Err(_) => return Err(Unsupported)
+            }
+            body
           }
-        }
-        let nodes = match input.shape {
-          Emitted(g) | OriginalRelation(g) => g.nodes
-          Observed(g) => Int::min(g.node_upper, max_nodes)
-        }
-        if !work(nodes) {
-          return Err(InsufficientCapacity)
-        }
-        let body = match
-          @publication.admit_captured_effect_dependency_body(
-            input.kind,
-            input.identity,
-            input.wire,
-            max_bytes,
-            max_nodes,
-            max_depth,
-          ) {
-          Ok(body) => body
-          Err(_) => return Err(Unsupported)
         }
         let cid = @publication.captured_effect_dependency_body_cid(body)
         if !work(input.kind.length() + 1) || !work(cid.length()) {

@@ -32,6 +32,14 @@ BORROWED_IMPORTS = {
         'physical_journal_copy_row', {
             'key_buffer': 'FixedArray[Byte]', 'body_buffer': 'FixedArray[Byte]',
         }),
+    'journal_saved_identity_header': ('src/client_host_wasm/journal_observation.mbt',
+        'physical_journal_saved_identity_header', {
+            'keys_buffer': 'Bytes', 'header_buffer': 'FixedArray[Byte]',
+        }),
+    'journal_task_material_header': ('src/client_host_wasm/journal_observation.mbt',
+        'physical_journal_task_material_header', {
+            'run_key_buffer': 'Bytes', 'header_buffer': 'FixedArray[Byte]',
+        }),
 }
 PUBLIC = re.compile(r'^pub fn (\w+)\((.*?)\)\s*->\s*(\w+)\s*\{', re.S | re.M)
 IMPORT = re.compile(r'^fn (\w+)\(([^()]*)\)\s*->\s*(\w+)\s*=\s*"actql_host"\s*"([^"]+)"', re.S | re.M)
@@ -47,6 +55,24 @@ FAMILIES = (
 
 def unit(symbol: str, name: str) -> str:
     """Name the existing scalar domain, without copying Owner validation."""
+    if symbol == 'actql_host.journal_saved_identity_header':
+        if name == 'ordinal':
+            return 'zero-based Saved Submission then Run under one original physical Reader'
+        if name == 'keys_bytes':
+            return 'exactly 142 bytes for the original Submission and Run keys in ordinal order'
+        if name in ('submission_bytes', 'run_bytes'):
+            return 'exact admitted original row bytes, checked before physical body copy'
+    if symbol == 'actql_host.journal_query_header' and name == 'mode':
+        return '0 scan, 1 point, 2 named key census, 3 selected epoch authenticator'
+    if symbol == 'actql_host.journal_task_material_header' and name == 'ordinal':
+        return 'next zero-based slot of the exact original Run; ordinal 3 is the absence sentinel'
+    if symbol == 'actql_host.journal_saved_reader' and name == 'ticket':
+        return 'positive original current ticket; same uninterrupted physical reader observation only'
+    if symbol == 'actql_publication_commit_export_validate_saved_reader_facts':
+        if name in ('result', 'binding_index'):
+            return 'zero-based coordinate 0..7 in the same original Saved Result and binding inventories'
+        if name == 'observation':
+            return 'same-instance sealed physical observation input handle; valid for the original reader only'
     if name == 'nonce':
         return 'positive instance nonce; identity only, not authority'
     if name.endswith('_bytes') or name in {
@@ -67,6 +93,8 @@ def unit(symbol: str, name: str) -> str:
     if name in {'start', 'index', 'byte'}:
         return ('byte value0..255' if name == 'byte' else
                 'zero-based position in ' + symbol + '; original Owner bounds')
+    if name == 'http_status' and symbol == 'actql_task_finish_model_request':
+        return 'observed complete HTTP status 200..599, or 0 without response custody'
     if name in {'kind', 'ordinal', 'field', 'stage', 'binding_index', 'eof', 'mode'}:
         return 'closed selector/flag of ' + symbol + '; unknown refused by original Owner'
     if name in {'ticket', 'physical_ticket', 'physical_input'} or (
@@ -401,7 +429,6 @@ def render_contract(root: Path = ROOT) -> str:
         functions[direction] = entries
     return json.dumps({'abi_version': model['version'], 'import_module': 'actql_host',
                        **functions}, ensure_ascii=False, indent=2) + '\n'
-
 
 
 def render_rust(root: Path = ROOT) -> str:

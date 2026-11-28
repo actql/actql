@@ -4,6 +4,7 @@ fn sdk_terminal_prepare(
   encoding : LocalSDKPayloadEncoding,
   at : String,
   rows : Map[String, @host.ClientJournalPhysicalRow],
+  cancelled? : Bool = false,
 ) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[String]] {
   encoding.prepare_terminal_from_store(
     fixture.preflight,
@@ -20,6 +21,7 @@ fn sdk_terminal_prepare(
     16,
     (table, key) => Ok(rows.get(table + "|" + key)),
     () => Ok(()),
+    cancelled~,
   )
 }
 
@@ -52,7 +54,11 @@ fn sdk_terminal_saved_rows(
   rows : Map[String, @host.ClientJournalPhysicalRow],
   terminal : LocalSDKDeliveryTerminal,
 ) -> Unit {
-  for contract in [terminal.receipt, terminal.record] {
+  let contracts = [terminal.record]
+  if terminal.receipt is Some(receipt) {
+    contracts.push(receipt)
+  }
+  for contract in contracts {
     let cid = @publication.publication_contract_identity(contract)
     rows.set("publication_contract|" + cid, {
       key: cid,
@@ -193,7 +199,7 @@ test "SDK terminal refuses absent head partial contracts and query or current fa
   )
   rows.remove(
     "publication_contract|" +
-    @publication.publication_contract_identity(terminal.receipt),
+    @publication.publication_contract_identity(terminal.receipt.unwrap()),
   )
   |> ignore
   assert_true(
@@ -231,5 +237,67 @@ test "SDK terminal rejects changed successor generation and retains original exp
       () => Ok(()),
     )
     is Err(ChangedOriginal),
+  )
+}
+
+///|
+test "SDK cancelled terminal preserves only confirmed prefix and same original head" {
+  let fixture = sdk_read_fixture()
+  defer (fixture.cleanup)()
+  let encoding = sdk_payload_encoding_fixture(fixture)
+  let rows = sdk_payload_codec_rows(fixture)
+  encoding.sink.offer(b"{\"n\":1}\n", false).unwrap()
+  assert_eq(encoding.confirm_chunk(), Ok(8L))
+  encoding.sink.offer(b"{\"n\":2}\n", true).unwrap()
+  let at = "2026-10-13T00:00:06.000Z"
+  let terminal = sdk_terminal_prepare(
+    fixture,
+    encoding,
+    at,
+    rows,
+    cancelled=true,
+  ).unwrap()
+  assert_true(terminal.receipt is None)
+  assert_true(encoding.confirm_chunk() is Err(Sink(DeliverySinkClosed)))
+  assert_true(
+    sdk_terminal_prepare(fixture, encoding, at, rows) is Err(ChangedOriginal),
+  )
+  let cached = sdk_terminal_prepare(
+    fixture,
+    encoding,
+    "2026-10-13T00:00:07.000Z",
+    rows,
+    cancelled=true,
+  ).unwrap()
+  assert_true(physical_equal(terminal, cached))
+  guard @json.parse(@publication.publication_contract_json(terminal.record))
+    is Object(body) else {
+    fail("Expected original cancelled record")
+  }
+  assert_eq(body.get("state"), Some(@json.to_json("cancelled")))
+  assert_eq(body.get("sequence"), Some(@json.parse("1")))
+  assert_eq(body.get("confirmed_byte_count"), Some(@json.parse("8")))
+  assert_eq(body.get("possible_unconfirmed_max_bytes"), Some(@json.parse("8")))
+  assert_eq(body.get("exposure"), Some(@json.to_json("unknown_additional")))
+  assert_true(body.get("result_delivery_receipt_cid") is None)
+  let read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, String] = (
+    table,
+    key,
+  ) => Ok(rows.get(table + "|" + key))
+  let packet = terminal.storage_from_store(read, () => Ok(())).unwrap()
+  guard @json.parse(packet) is Array(entries) else {
+    fail("Expected cancelled original terminal array")
+  }
+  assert_eq(entries.length(), 2)
+  assert_true(
+    sdk_terminal_observe(fixture, terminal, read, () => Ok(()))
+    is Err(UnresolvedOriginal),
+  )
+  sdk_terminal_saved_rows(rows, terminal)
+  assert_true(
+    sdk_terminal_observe(fixture, terminal, read, () => Ok(())) is Ok(_),
+  )
+  assert_true(
+    terminal.storage_from_store(read, () => Ok(())) is Err(UnresolvedOriginal),
   )
 }

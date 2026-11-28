@@ -24,7 +24,9 @@ compiler = importlib.util.module_from_spec(spec); spec.loader.exec_module(compil
 
 class ImageCompilerTests(unittest.TestCase):
     def setUp(self):
-        self.case = originals.LocalArtifactProducerTests(); self.case.setUp(); self.addCleanup(self.case.doCleanups)
+        self.case = originals.LocalArtifactProducerTests()
+        self.addCleanup(self.case.doCleanups)
+        self.case.setUp()
         self.stack = ExitStack(); self.addCleanup(self.stack.close)
         self.stack.enter_context(patch.object(compiler, 'ROOT', self.case.source))
         self.stack.enter_context(patch.object(compiler.sys, 'platform', 'darwin'))

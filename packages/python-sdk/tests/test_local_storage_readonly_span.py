@@ -169,7 +169,7 @@ class ReadOnlySpanTests(unittest.TestCase):
         self.assertIs(outer.exception, original)
         self.assertFalse(store._connection.in_transaction)
 
-    def test_restoring_schema_cookie_cannot_hide_ddl_from_unchanged_reader(self):
+    def test_schema_change_before_or_during_check_latches_original_failure(self):
         for schema, when in (('main', 'before'), ('temp', 'during')):
             with self.subTest(schema=schema, when=when):
                 store, fences = self.fixture()
@@ -180,15 +180,14 @@ class ReadOnlySpanTests(unittest.TestCase):
                 def consume(reader):
                     baseline = original_snapshot(database)
                     control = connection._transaction_epoch
-                    statements = connection._closed_statement_epoch
-                    cookie = baseline[3][0 if schema == 'main' else 1]
+                    schema_index = 0 if schema == 'main' else 1
 
                     def mutate():
                         connection.execute(f'CREATE TABLE {schema}.replacement (value BLOB)')
-                        connection.execute(f'PRAGMA {schema}.schema_version = {cookie}')
-                        self.assertEqual(original_snapshot(database), baseline)
+                        observed = original_snapshot(database)
+                        self.assertEqual(observed[:3], baseline[:3])
+                        self.assertNotEqual(observed[3][schema_index], baseline[3][schema_index])
                         self.assertEqual(connection._transaction_epoch, control)
-                        self.assertGreater(connection._closed_statement_epoch, statements)
 
                     def observe(actual):
                         self.assertIs(actual, database)
@@ -214,7 +213,7 @@ class ReadOnlySpanTests(unittest.TestCase):
                 self.assertFalse(connection.in_transaction)
 
     def test_transaction_replacement_and_supplier_replacement_are_rejected(self):
-        for mutation in ('commit', 'restart', 'raw_commit', 'raw_rollback',
+        for mutation in ('commit', 'restart', 'rollback', 'rollback_restart',
                          'adapter', 'connection', 'store_connection'):
             with self.subTest(mutation=mutation):
                 store, fences = self.fixture()
@@ -227,14 +226,10 @@ class ReadOnlySpanTests(unittest.TestCase):
                         database.commit()
                         if mutation == 'restart':
                             database.begin_read()
-                    elif mutation in ('raw_commit', 'raw_rollback'):
-                        statement = '/* original boundary */ ' + (
-                            'COMMIT' if mutation == 'raw_commit' else 'ROLLBACK')
-                        # Re-execute identical statements to exercise SQLite's
-                        # prepared statement cache, not only first preparation.
-                        for _ in range(2):
-                            connection.execute(statement)
-                            connection.execute('-- next original transaction\n BEGIN')
+                    elif mutation in ('rollback', 'rollback_restart'):
+                        database.rollback()
+                        if mutation == 'rollback_restart':
+                            database.begin_read()
                     elif mutation == 'adapter':
                         store._physical = object()
                     elif mutation == 'connection':
@@ -366,7 +361,7 @@ class ReadOnlySpanTests(unittest.TestCase):
             observed = store._physical._snapshot_identity()
             self.assertEqual(observed[1], original[1])
             self.assertGreater(observed[2], original[2])
-            self.assertEqual(connection._transaction_epoch, control + 3)
+            self.assertEqual(connection._transaction_epoch, control)
             # General readers still re-fence the unchanged control row in the
             # same outer transaction after rolling back a temporary mutation.
             reader.current()
@@ -375,88 +370,55 @@ class ReadOnlySpanTests(unittest.TestCase):
         with self.assertRaises(LocalStorageError):
             self.inspect(store, fences, consume)
 
-    def test_outer_epoch_distinguishes_rollback_to_and_savepoint_restart(self):
+    def test_observation_does_not_require_sqlite_trace(self):
         connection = sqlite3.connect(':memory:', isolation_level=None,
                                      factory=_TrackedSQLiteConnection)
         self.addCleanup(connection.close)
-        connection.execute('SAVEPOINT "TO"')
-        outer = connection._outer_transaction_epoch
-        control = connection._transaction_epoch
-        for statement in ('SAVEPOINT nested', 'ROLLBACK /* ignored */ TO nested',
-                          'ROLLBACK TRANSACTION /* ignored */ TO nested', 'RELEASE nested'):
-            connection.execute(statement)
-            self.assertEqual(connection._outer_transaction_epoch, outer)
-            control += 1
-            self.assertEqual(connection._transaction_epoch, control)
-        connection.execute('RELEASE "TO"')
-        self.assertFalse(connection.in_transaction)
-        connection.execute('/* new outer */ SAVEPOINT "BEGIN"')
-        self.assertEqual(connection._outer_transaction_epoch, outer + 1)
-        connection.execute('ROLLBACK /* TO inside a comment is not a keyword */ TRANSACTION')
-        self.assertEqual(connection._outer_transaction_epoch, outer + 2)
-        connection.execute('BEGIN')
-        self.assertEqual(connection._outer_transaction_epoch, outer + 3)
-        connection.execute('ROLLBACK')
-
-    def test_savepoint_without_writes_also_invalidates_explicit_read_only_span(self):
-        store, fences = self.fixture()
-        def consume(reader):
-            original = store._physical._snapshot_identity()
-            for statement in ('SAVEPOINT held', 'ROLLBACK TO held', 'RELEASE held'):
-                store._connection.execute(statement)
-            self.assertEqual(store._physical._snapshot_identity(), original)
-            reader.current()
-            reader.check_unchanged(reader)
-            self.fail('Savepoint control escaped the explicit write-free check')
-        with self.assertRaises(LocalStorageError):
-            self.inspect(store, fences, consume)
-
-    def test_trace_registration_preserves_tracking_and_user_statements(self):
-        connection = sqlite3.connect(':memory:', isolation_level=None,
-                                     factory=_TrackedSQLiteConnection)
-        self.addCleanup(connection.close)
+        database = _SQLiteByteDatabase(connection)
         first, second = [], []
         for callback in (first.append, second.append, None):
             connection.set_trace_callback(callback)
-            before = connection._transaction_epoch
-            for statement in (' \n/* comment */ BEGIN', '-- comment\n SAVEPOINT held',
-                              'ROLLBACK TO held', 'RELEASE held', 'END'):
-                connection.execute(statement)
-                self.assertGreater(connection._transaction_epoch, before)
+            for start, finish in ((database.begin_read, database.finish_read),
+                                  (database.begin_immediate, database.commit)):
                 before = connection._transaction_epoch
-            for statement in ('SELECT 1', "SELECT 'BEGIN COMMIT ROLLBACK'",
-                              '-- BEGIN\n SELECT 2', '/* COMMIT */ SELECT 3'):
-                connection.execute(statement)
-                self.assertEqual(connection._transaction_epoch, before)
+                start()
+                self.assertTrue(connection.in_transaction)
+                self.assertEqual(connection._transaction_epoch, before + 1)
+                connection.execute("SELECT 'BEGIN COMMIT ROLLBACK'").fetchone()
+                self.assertEqual(connection._transaction_epoch, before + 1)
+                finish()
+                self.assertFalse(connection.in_transaction)
+                self.assertEqual(connection._transaction_epoch, before + 2)
         self.assertEqual(first, second)
-        self.assertIn('ROLLBACK TO held', first)
-        with self.assertRaises(TypeError):
-            connection.set_trace_callback(object())
-        before = connection._transaction_epoch
-        connection.execute('BEGIN')
-        self.assertGreater(connection._transaction_epoch, before)
-        connection.execute('ROLLBACK')
+        self.assertEqual(first, [
+            'BEGIN', "SELECT 'BEGIN COMMIT ROLLBACK'", 'ROLLBACK',
+            'BEGIN IMMEDIATE', "SELECT 'BEGIN COMMIT ROLLBACK'", 'COMMIT',
+        ])
 
-    def test_recursive_trace_transaction_sql_is_tracked_and_exceptions_stay_sqlite_owned(self):
+    def test_owned_boundary_inside_diagnostic_callback_advances_epoch(self):
         connection = sqlite3.connect(':memory:', isolation_level=None,
                                      factory=_TrackedSQLiteConnection)
         self.addCleanup(connection.close)
-        connection.execute('BEGIN')
+        database = _SQLiteByteDatabase(connection)
+        database.begin_read()
         invoked = False
+
         def trace(statement):
             nonlocal invoked
             if not invoked:
                 invoked = True
-                connection.execute('COMMIT')
-                connection.execute('BEGIN')
+                database.commit()
+                database.begin_read()
                 raise RuntimeError('SQLite owns diagnostic callback exceptions')
+
         connection.set_trace_callback(trace)
         before = connection._transaction_epoch
         self.assertEqual(connection.execute('SELECT 1').fetchone(), (1,))
-        self.assertEqual(connection._transaction_epoch, before + 2)
         self.assertTrue(invoked)
+        self.assertTrue(connection.in_transaction)
+        self.assertEqual(connection._transaction_epoch, before + 2)
         connection.set_trace_callback(None)
-        connection.execute('ROLLBACK')
+        database.finish_read()
 
 
 if __name__ == '__main__':

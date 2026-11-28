@@ -801,7 +801,8 @@ pub fn[I] begin_request_content_managed_run(
   owner : ClientRequestPreparation[I],
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  guard owner.phase == ProgramBodyReady &&
+  guard !owner.debug_plan_read &&
+    owner.phase == ProgramBodyReady &&
     owner.input is Some(input) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&

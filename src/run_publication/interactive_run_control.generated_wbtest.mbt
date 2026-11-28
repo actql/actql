@@ -136,7 +136,61 @@ test "interactive identity 4: explanation_facts" {
 }
 
 ///|
-test "interactive identity 5: control_request_intent" {
+test "interactive identity 5: control_command" {
+  let value = seal_run_evidence_value(
+    "control_command", "{\"effect_write\":{\"effect_preview_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"member_preview_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"unit_id\":\"write-opportunities\"},\"expected_control_revision\":18,\"operation\":\"confirm_write\",\"operation_id\":\"original-write\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-command/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:a07be3c832a5d069362d9b49c1ef019fce139461e231b5c7ce880cb7b46967ae",
+  )
+  let restored = admit_run_evidence_value(
+    "control_command", "{\"effect_write\":{\"effect_preview_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"member_preview_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"unit_id\":\"write-opportunities\"},\"expected_control_revision\":18,\"operation\":\"confirm_write\",\"operation_id\":\"original-write\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"self_cid\":\"sha256:a07be3c832a5d069362d9b49c1ef019fce139461e231b5c7ce880cb7b46967ae\",\"version\":\"actql-control-command/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:a07be3c832a5d069362d9b49c1ef019fce139461e231b5c7ce880cb7b46967ae",
+  )
+  assert_true(
+    parse_interactive_run_control_shape(
+      "control_command", "{\"effect_write\":{\"effect_preview_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"member_preview_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"unit_id\":\"write-opportunities\"},\"expected_control_revision\":18,\"operation\":\"confirm_write\",\"operation_id\":\"original-write\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"self_cid\":\"sha256:a07be3c832a5d069362d9b49c1ef019fce139461e231b5c7ce880cb7b46967ae\",\"version\":\"actql-control-command/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive identity 6: control_command" {
+  let value = seal_run_evidence_value(
+    "control_command", "{\"expected_control_revision\":18,\"interval\":{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\"},\"guards\":null,\"until\":\"breakpoint\"},\"operation\":\"resume\",\"operation_id\":\"original-command\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-command/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:5d34ac33a33d4907fcb7c6860e5fc6618b12ad4ed2f30072c2e5dbe5c2acf3dc",
+  )
+  let restored = admit_run_evidence_value(
+    "control_command", "{\"expected_control_revision\":18,\"interval\":{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\"},\"guards\":null,\"until\":\"breakpoint\"},\"operation\":\"resume\",\"operation_id\":\"original-command\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"self_cid\":\"sha256:5d34ac33a33d4907fcb7c6860e5fc6618b12ad4ed2f30072c2e5dbe5c2acf3dc\",\"version\":\"actql-control-command/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:5d34ac33a33d4907fcb7c6860e5fc6618b12ad4ed2f30072c2e5dbe5c2acf3dc",
+  )
+  assert_true(
+    parse_interactive_run_control_shape(
+      "control_command", "{\"expected_control_revision\":18,\"interval\":{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\"},\"guards\":null,\"until\":\"breakpoint\"},\"operation\":\"resume\",\"operation_id\":\"original-command\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"self_cid\":\"sha256:5d34ac33a33d4907fcb7c6860e5fc6618b12ad4ed2f30072c2e5dbe5c2acf3dc\",\"version\":\"actql-control-command/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive identity 7: control_request_intent" {
   let value = seal_run_evidence_value(
     "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:bfaf0bf9b06cb598cdc3f7d56d23745e7bc6b5277bd9320e632c51a4f1cf8b50\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
     20000, 2000, 32,
@@ -163,7 +217,7 @@ test "interactive identity 5: control_request_intent" {
 }
 
 ///|
-test "interactive identity 6: resolved_control_profile" {
+test "interactive identity 8: resolved_control_profile" {
   let value = seal_run_evidence_value(
     "resolved_control_profile", "{\"breakpoints\":[],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:bfaf0bf9b06cb598cdc3f7d56d23745e7bc6b5277bd9320e632c51a4f1cf8b50\",\"logical_map_cid\":\"sha256:867d5e152bedc53aa4d4015b25da927eef2589c59d127040ee7b4f6af16fbf14\",\"requested_profile_cid\":\"sha256:bfaf0bf9b06cb598cdc3f7d56d23745e7bc6b5277bd9320e632c51a4f1cf8b50\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
     20000, 2000, 32,
@@ -190,7 +244,7 @@ test "interactive identity 6: resolved_control_profile" {
 }
 
 ///|
-test "interactive identity 7: logical_map" {
+test "interactive identity 9: logical_map" {
   let value = seal_run_evidence_value(
     "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
     20000, 2000, 32,
@@ -217,7 +271,7 @@ test "interactive identity 7: logical_map" {
 }
 
 ///|
-test "interactive identity 8: control_admission" {
+test "interactive identity 10: control_admission" {
   let value = seal_run_evidence_value(
     "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:867d5e152bedc53aa4d4015b25da927eef2589c59d127040ee7b4f6af16fbf14\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8ae769f4a12476cb618e0c5fe8944330fe634fdb04ad59156905252e6959631\",\"resolved_profile_cid\":\"sha256:ca3bd661efba7c8d414a565bf10164ba85edc2b70704af1375d537c4eef74e78\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
     20000, 2000, 32,
@@ -244,7 +298,7 @@ test "interactive identity 8: control_admission" {
 }
 
 ///|
-test "interactive identity 9: sample_source_generation" {
+test "interactive identity 11: sample_source_generation" {
   let value = seal_run_evidence_value(
     "sample_source_generation", "{\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"committed_generation\":\"13\",\"compiled_plan_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"logical_map_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"output_port_id\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"producer_occurrence\":{\"attempt_sequence\":\"7\",\"kind\":\"first_physical_start\",\"start_revision\":\"2\"},\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"step_id\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"version\":\"actql-sample-source-generation/0.1\"}",
     20000, 2000, 32,
@@ -271,7 +325,7 @@ test "interactive identity 9: sample_source_generation" {
 }
 
 ///|
-test "interactive identity 10: sample_original_capture" {
+test "interactive identity 12: sample_original_capture" {
   let value = seal_run_evidence_value(
     "sample_original_capture", "{\"control_admission_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"max_artifacts\":20,\"max_bytes\":\"65536\",\"max_items\":50,\"required\":false,\"resolved_profile_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"source_generation_cid\":\"sha256:e88380374921cbcaf946fdffef85bf082821812664aaf6b5aa81a35dbf401b3f\",\"strategy\":\"execution_prefix\",\"ttl_seconds\":300,\"version\":\"actql-sample-original-capture/0.1\"}",
     20000, 2000, 32,
@@ -298,7 +352,7 @@ test "interactive identity 10: sample_original_capture" {
 }
 
 ///|
-test "interactive identity 11: sample_emission_provenance" {
+test "interactive identity 13: sample_emission_provenance" {
   let value = seal_run_evidence_value(
     "sample_emission_provenance", "{\"completeness\":\"unknown\",\"ordering_evidence_cid\":null,\"original_capture_cid\":\"sha256:34b2a40b0785c69e84e99af845685ba58aa95dde1a42bdee6c9fb9ec1b3eb217\",\"relation_prefix_cid\":\"sha256:d99a3579f96c2e4e42e9893971082746920e75437a2cd69e978dffe7677d2508\",\"sampled_items\":\"1\",\"source_generation_cid\":\"sha256:e88380374921cbcaf946fdffef85bf082821812664aaf6b5aa81a35dbf401b3f\",\"total\":{\"kind\":\"unknown\",\"reason\":\"count_not_observed\",\"unit\":\"rows\"},\"truncation\":\"unknown\",\"version\":\"actql-sample-emission-provenance/0.1\"}",
     20000, 2000, 32,
@@ -325,7 +379,7 @@ test "interactive identity 11: sample_emission_provenance" {
 }
 
 ///|
-test "interactive identity 12: sample_reference" {
+test "interactive identity 14: sample_reference" {
   let value = seal_run_evidence_value(
     "sample_reference", "{\"emission_provenance_cid\":\"sha256:ccef7cc55d8a62f1d15808e90563d318c3876da5ae10665c14e60cc8cb6673a6\",\"original_capture_cid\":\"sha256:34b2a40b0785c69e84e99af845685ba58aa95dde1a42bdee6c9fb9ec1b3eb217\",\"output_port_id\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-sample-reference/0.1\"}",
     20000, 2000, 32,
@@ -352,7 +406,7 @@ test "interactive identity 12: sample_reference" {
 }
 
 ///|
-test "interactive identity 13: sample_adoption_receipt" {
+test "interactive identity 15: sample_adoption_receipt" {
   let value = seal_run_evidence_value(
     "sample_adoption_receipt", "{\"adoption\":\"retained_relation_prefix\",\"expires_at_epoch_ms\":\"1795389900000\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"sample_ref_cid\":\"sha256:acdfb48c3b78d17888ead1f6acb3bddd7907c7ea792f5118c537aa015db0f561\",\"version\":\"actql-sample-adoption-receipt/0.1\"}",
     20000, 2000, 32,
@@ -379,10 +433,10 @@ test "interactive identity 13: sample_adoption_receipt" {
 }
 
 ///|
-test "interactive positive 0: controlled_run_state" {
+test "interactive positive 0: control_interval" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_interval", "{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\"},\"guards\":null,\"until\":\"breakpoint\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -393,7 +447,7 @@ test "interactive positive 0: controlled_run_state" {
 test "interactive positive 1: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -404,7 +458,7 @@ test "interactive positive 1: controlled_run_state" {
 test "interactive positive 2: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -415,7 +469,7 @@ test "interactive positive 2: controlled_run_state" {
 test "interactive positive 3: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -426,7 +480,7 @@ test "interactive positive 3: controlled_run_state" {
 test "interactive positive 4: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -437,7 +491,7 @@ test "interactive positive 4: controlled_run_state" {
 test "interactive positive 5: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -448,7 +502,7 @@ test "interactive positive 5: controlled_run_state" {
 test "interactive positive 6: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -459,7 +513,7 @@ test "interactive positive 6: controlled_run_state" {
 test "interactive positive 7: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -470,7 +524,7 @@ test "interactive positive 7: controlled_run_state" {
 test "interactive positive 8: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -481,7 +535,7 @@ test "interactive positive 8: controlled_run_state" {
 test "interactive positive 9: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":true,\"control_revision\":17,\"expiry_pending\":true,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":true,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -492,6 +546,17 @@ test "interactive positive 9: controlled_run_state" {
 test "interactive positive 10: controlled_run_state" {
   assert_true(
     parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive positive 11: controlled_run_state" {
+  assert_true(
+    parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":19,\"expiry_pending\":false,\"pause_pending\":false,\"resume_origin\":{\"command_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"continuation_generation_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"fence_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"kind\":\"manual\"},\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
@@ -500,7 +565,7 @@ test "interactive positive 10: controlled_run_state" {
 }
 
 ///|
-test "interactive positive 11: sample_relation" {
+test "interactive positive 12: sample_relation" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_relation", "{\"columns\":[{\"name\":\"p\",\"position\":0,\"required\":false,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"kind\":\"relation\",\"ordering_evidence_cid\":null,\"rows\":[[{\"presence\":\"present\",\"value\":null,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],[{\"presence\":\"absent\"}],[{\"presence\":\"present\",\"value\":\"é\\r\\né\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}]],\"schema_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-relation/0.1\"}",
@@ -511,7 +576,7 @@ test "interactive positive 11: sample_relation" {
 }
 
 ///|
-test "interactive positive 12: sample_graph" {
+test "interactive positive 13: sample_graph" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_graph", "{\"edges\":[{\"definition_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"domain_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"dst_identity_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"key\":[{\"value\":1,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"label\":{\"presence\":\"absent\"},\"properties\":[],\"src_identity_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\"},{\"definition_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"domain_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"dst_identity_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"identity_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"key\":[{\"value\":2,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"label\":{\"presence\":\"present\",\"value\":null,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"},\"properties\":[],\"src_identity_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\"}],\"graph_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"kind\":\"graph\",\"nodes\":[],\"topology_complete\":false,\"version\":\"actql-sample-graph/0.1\"}",
@@ -522,7 +587,7 @@ test "interactive positive 12: sample_graph" {
 }
 
 ///|
-test "interactive positive 13: sample_vectors" {
+test "interactive positive 14: sample_vectors" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_vectors", "{\"items\":[{\"components\":[{\"index\":0,\"value\":0.5},{\"index\":1,\"value\":0}],\"components_complete\":false,\"dimension\":1536,\"key\":[{\"value\":\"q\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"},{\"value\":1,\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"}],\"precision\":\"float64\"}],\"kind\":\"vectors\",\"vectors_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-vectors/0.1\"}",
@@ -533,7 +598,7 @@ test "interactive positive 13: sample_vectors" {
 }
 
 ///|
-test "interactive positive 14: sample_events" {
+test "interactive positive 15: sample_events" {
   assert_true(
     parse_interactive_run_control_shape(
       "sample_events", "{\"clock_evidence_cid\":null,\"events_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"identity_role\":\"event_id\",\"kind\":\"events\",\"late_evidence_cid\":null,\"occurrences\":[{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}},{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}}],\"order_proven\":false,\"ordering_evidence_cid\":null,\"time_role\":\"event_time\",\"version\":\"actql-sample-events/0.1\",\"watermark_evidence_cid\":null,\"window_evidence_cid\":null}",
@@ -544,7 +609,7 @@ test "interactive positive 14: sample_events" {
 }
 
 ///|
-test "interactive positive 15: run_sample" {
+test "interactive positive 16: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"state\":\"forbidden\"}", 20000, 2000, 32,
@@ -554,7 +619,7 @@ test "interactive positive 15: run_sample" {
 }
 
 ///|
-test "interactive positive 16: run_sample" {
+test "interactive positive 17: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"state\":\"expired\"}", 20000, 2000, 32,
@@ -564,7 +629,7 @@ test "interactive positive 16: run_sample" {
 }
 
 ///|
-test "interactive positive 17: run_sample" {
+test "interactive positive 18: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"reason\":\"selection_required\",\"state\":\"unavailable\"}",
@@ -575,7 +640,7 @@ test "interactive positive 17: run_sample" {
 }
 
 ///|
-test "interactive positive 18: run_sample" {
+test "interactive positive 19: run_sample" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_sample", "{\"reason\":\"evicted\",\"state\":\"unavailable\"}", 20000,
@@ -586,7 +651,7 @@ test "interactive positive 18: run_sample" {
 }
 
 ///|
-test "interactive positive 19: control_operation_lookup" {
+test "interactive positive 20: control_operation_lookup" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_operation_lookup", "{\"reason\":\"bounded_history_expired\",\"state\":\"history_unavailable\"}",
@@ -597,7 +662,7 @@ test "interactive positive 19: control_operation_lookup" {
 }
 
 ///|
-test "interactive positive 20: control_money" {
+test "interactive positive 21: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"0\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -608,7 +673,7 @@ test "interactive positive 20: control_money" {
 }
 
 ///|
-test "interactive positive 21: control_money" {
+test "interactive positive 22: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9007199254740993\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -619,7 +684,7 @@ test "interactive positive 21: control_money" {
 }
 
 ///|
-test "interactive positive 22: control_money" {
+test "interactive positive 23: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9223372036854775806\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -630,7 +695,7 @@ test "interactive positive 22: control_money" {
 }
 
 ///|
-test "interactive positive 23: control_money" {
+test "interactive positive 24: control_money" {
   assert_true(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9223372036854775807\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -641,7 +706,7 @@ test "interactive positive 23: control_money" {
 }
 
 ///|
-test "interactive positive 24: explanation_facts" {
+test "interactive positive 25: explanation_facts" {
   assert_true(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -652,7 +717,7 @@ test "interactive positive 24: explanation_facts" {
 }
 
 ///|
-test "interactive positive 25: run_explanation_view" {
+test "interactive positive 26: run_explanation_view" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_explanation_view", "{\"explanation\":{\"facts\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"},\"state\":\"projected\"},\"run_ref\":{\"authorityScopeCid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"namespaceId\":\"original-namespace\",\"runDefinitionCid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"version\":\"actql-run-explanation-view/0.1\"}",
@@ -663,7 +728,7 @@ test "interactive positive 25: run_explanation_view" {
 }
 
 ///|
-test "interactive positive 26: run_explanation_view" {
+test "interactive positive 27: run_explanation_view" {
   assert_true(
     parse_interactive_run_control_shape(
       "run_explanation_view", "{\"explanation\":{\"reason\":\"not_retained\",\"state\":\"not_projected\"},\"run_ref\":{\"authorityScopeCid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"namespaceId\":\"original-namespace\",\"runDefinitionCid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"version\":\"actql-run-explanation-view/0.1\"}",
@@ -674,10 +739,21 @@ test "interactive positive 26: run_explanation_view" {
 }
 
 ///|
-test "interactive negative 0: controlled_run_state" {
+test "interactive negative 0: control_interval" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":null,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_interval", "{\"guards\":null,\"until\":\"breakpoint\"}", 20000, 2000,
+      32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 1: control_interval" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "control_interval", "{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\"},\"guards\":null,\"until\":\"terminal\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -685,10 +761,10 @@ test "interactive negative 0: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 1: controlled_run_state" {
+test "interactive negative 2: control_interval" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_interval", "{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"missing-map\"},\"guards\":null,\"until\":\"breakpoint\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -696,10 +772,10 @@ test "interactive negative 1: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 2: controlled_run_state" {
+test "interactive negative 3: control_interval" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":\"unknown\",\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_interval", "{\"breakpoint_selection\":{\"before_step_ids\":[],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\"},\"guards\":null,\"until\":\"breakpoint\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -707,10 +783,10 @@ test "interactive negative 2: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 3: controlled_run_state" {
+test "interactive negative 4: control_interval" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":null,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_interval", "{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\"},\"guards\":null,\"until\":\"breakpoint\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -718,21 +794,10 @@ test "interactive negative 3: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 4: controlled_run_state" {
+test "interactive negative 5: control_interval" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":0,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
-      20000, 2000, 32,
-    )
-    is Ok(_),
-  )
-}
-
-///|
-test "interactive negative 5: controlled_run_state" {
-  assert_false(
-    parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":\"unknown\",\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_interval", "{\"breakpoint_selection\":{\"before_step_ids\":[\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"],\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"position\":\"after\"},\"guards\":null,\"until\":\"breakpoint\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -743,7 +808,7 @@ test "interactive negative 5: controlled_run_state" {
 test "interactive negative 6: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":null,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":null,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -754,7 +819,7 @@ test "interactive negative 6: controlled_run_state" {
 test "interactive negative 7: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":0,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -765,7 +830,7 @@ test "interactive negative 7: controlled_run_state" {
 test "interactive negative 8: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":\"unknown\",\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":\"unknown\",\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -773,10 +838,10 @@ test "interactive negative 8: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 9: control_profile" {
+test "interactive negative 9: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"effect\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:871edfaeaa6ed37ff3ddbb314c064a9664ef96c1079db0dc3311519afe311295\",\"version\":\"actql-control-profile/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":null,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -784,10 +849,10 @@ test "interactive negative 9: control_profile" {
 }
 
 ///|
-test "interactive negative 10: control_profile" {
+test "interactive negative 10: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"unregistered_operator\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:83cddf804d91061411f6758268edf59fb9e43ffd05e876e49df7c97bad219954\",\"version\":\"actql-control-profile/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":0,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -798,7 +863,7 @@ test "interactive negative 10: control_profile" {
 test "interactive negative 11: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":\"17\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":\"unknown\",\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -809,7 +874,7 @@ test "interactive negative 11: controlled_run_state" {
 test "interactive negative 12: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":2147483648,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":null,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -820,7 +885,7 @@ test "interactive negative 12: controlled_run_state" {
 test "interactive negative 13: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":0,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -831,7 +896,7 @@ test "interactive negative 13: controlled_run_state" {
 test "interactive negative 14: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":19,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"resume_origin\":{\"command_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"continuation_generation_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"fence_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"kind\":\"manual\"},\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "controlled_run_state", "{\"cleanup_pending\":\"unknown\",\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -839,10 +904,10 @@ test "interactive negative 14: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 15: controlled_run_state" {
+test "interactive negative 15: control_profile" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"stop_reason\":\"pause\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"effect\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:871edfaeaa6ed37ff3ddbb314c064a9664ef96c1079db0dc3311519afe311295\",\"version\":\"actql-control-profile/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -850,10 +915,10 @@ test "interactive negative 15: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 16: controlled_run_state" {
+test "interactive negative 16: control_profile" {
   assert_false(
     parse_interactive_run_control_shape(
-      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"previous_stop_reason\":\"entry\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"select\":{\"by\":\"operator\",\"operator\":\"unregistered_operator\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"self_cid\":\"sha256:83cddf804d91061411f6758268edf59fb9e43ffd05e876e49df7c97bad219954\",\"version\":\"actql-control-profile/0.1\"}",
       20000, 2000, 32,
     )
     is Ok(_),
@@ -864,6 +929,72 @@ test "interactive negative 16: controlled_run_state" {
 test "interactive negative 17: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":\"17\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 18: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":2147483648,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 19: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 20: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":19,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"resume_origin\":{\"command_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"continuation_generation_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"fence_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"kind\":\"manual\"},\"run_id\":\"original\",\"status\":\"resuming\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 21: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"stop_reason\":\"pause\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 22: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
+      "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"previous_stop_reason\":\"entry\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"pause\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive negative 23: controlled_run_state" {
+  assert_false(
+    parse_interactive_run_control_shape(
       "controlled_run_state", "{\"boundary\":{\"consumed_boundary_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"cleanup_pending\":false,\"control_revision\":18,\"expires_at\":\"2026-10-11T00:10:00.000Z\",\"expiry_pending\":false,\"matched_breakpoints\":[],\"pause_pending\":false,\"paused_at\":\"2026-10-11T00:00:00.000Z\",\"run_id\":\"original\",\"status\":\"paused\",\"stop_reason\":\"breakpoint\",\"ttl_policy_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
       20000, 2000, 32,
     )
@@ -872,7 +1003,7 @@ test "interactive negative 17: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 18: run_sample" {
+test "interactive negative 24: run_sample" {
   assert_false(
     parse_interactive_run_control_shape(
       "run_sample", "{\"count\":1,\"kind\":\"graph\",\"state\":\"forbidden\"}", 20000,
@@ -883,7 +1014,7 @@ test "interactive negative 18: run_sample" {
 }
 
 ///|
-test "interactive negative 19: run_sample" {
+test "interactive negative 25: run_sample" {
   assert_false(
     parse_interactive_run_control_shape(
       "run_sample", "{\"source\":{},\"state\":\"expired\"}", 20000, 2000, 32,
@@ -893,7 +1024,7 @@ test "interactive negative 19: run_sample" {
 }
 
 ///|
-test "interactive negative 20: control_quantity" {
+test "interactive negative 26: control_quantity" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_quantity", "{\"kind\":\"unknown\",\"reason\":\"unobserved\",\"unit\":\"rows\",\"value\":\"0\"}",
@@ -904,7 +1035,7 @@ test "interactive negative 20: control_quantity" {
 }
 
 ///|
-test "interactive negative 21: control_quantity" {
+test "interactive negative 27: control_quantity" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_quantity", "{\"basis_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"bound\",\"scope_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"unit\":\"bytes\",\"value\":\"01\"}",
@@ -915,7 +1046,7 @@ test "interactive negative 21: control_quantity" {
 }
 
 ///|
-test "interactive negative 22: control_quantity" {
+test "interactive negative 28: control_quantity" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_quantity", "{\"basis_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"bound\",\"scope_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"unit\":\"bytes\",\"value\":\"1\\n\"}",
@@ -926,7 +1057,7 @@ test "interactive negative 22: control_quantity" {
 }
 
 ///|
-test "interactive negative 23: sample_relation" {
+test "interactive negative 29: sample_relation" {
   assert_false(
     parse_interactive_run_control_shape(
       "sample_relation", "{\"columns\":[{\"name\":\"p\",\"position\":0,\"required\":false,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"kind\":\"graph\",\"ordering_evidence_cid\":null,\"rows\":[[{\"presence\":\"present\",\"value\":null,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],[{\"presence\":\"absent\"}],[{\"presence\":\"present\",\"value\":\"é\\r\\né\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}]],\"schema_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-relation/0.1\"}",
@@ -937,7 +1068,7 @@ test "interactive negative 23: sample_relation" {
 }
 
 ///|
-test "interactive negative 24: sample_relation" {
+test "interactive negative 30: sample_relation" {
   assert_false(
     parse_interactive_run_control_shape(
       "sample_relation", "{\"columns\":[{\"name\":\"p\",\"position\":0,\"required\":false,\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"kind\":\"relation\",\"ordering_evidence_cid\":null,\"rows\":[[{\"presence\":\"absent\",\"value\":null}]],\"schema_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-sample-relation/0.1\"}",
@@ -948,7 +1079,7 @@ test "interactive negative 24: sample_relation" {
 }
 
 ///|
-test "interactive negative 25: sample_events" {
+test "interactive negative 31: sample_events" {
   assert_false(
     parse_interactive_run_control_shape(
       "sample_events", "{\"clock_evidence_cid\":null,\"events_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"identity_role\":\"event_id\",\"kind\":\"events\",\"late_evidence_cid\":null,\"occurrences\":[{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}},{\"key\":[{\"value\":\"same-id\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}],\"occurrence_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"payload\":{\"presence\":\"present\",\"value\":{\"v\":1},\"value_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\"},\"timestamp\":{\"presence\":\"present\",\"value\":\"2026-10-11T00:00:00.000Z\",\"value_contract_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\"}}],\"order_proven\":true,\"ordering_evidence_cid\":null,\"time_role\":\"event_time\",\"version\":\"actql-sample-events/0.1\",\"watermark_evidence_cid\":null,\"window_evidence_cid\":null}",
@@ -959,7 +1090,7 @@ test "interactive negative 25: sample_events" {
 }
 
 ///|
-test "interactive negative 26: control_interval" {
+test "interactive negative 32: control_interval" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_interval", "{\"guards\":null,\"until\":\"automatically_retry\"}",
@@ -970,7 +1101,7 @@ test "interactive negative 26: control_interval" {
 }
 
 ///|
-test "interactive negative 27: control_money" {
+test "interactive negative 33: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"9223372036854775808\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -981,7 +1112,7 @@ test "interactive negative 27: control_money" {
 }
 
 ///|
-test "interactive negative 28: control_money" {
+test "interactive negative 34: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"00\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -992,7 +1123,7 @@ test "interactive negative 28: control_money" {
 }
 
 ///|
-test "interactive negative 29: control_money" {
+test "interactive negative 35: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"+1\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1003,7 +1134,7 @@ test "interactive negative 29: control_money" {
 }
 
 ///|
-test "interactive negative 30: control_money" {
+test "interactive negative 36: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"-1\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1014,7 +1145,7 @@ test "interactive negative 30: control_money" {
 }
 
 ///|
-test "interactive negative 31: control_money" {
+test "interactive negative 37: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1e3\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1025,7 +1156,7 @@ test "interactive negative 31: control_money" {
 }
 
 ///|
-test "interactive negative 32: control_money" {
+test "interactive negative 38: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\" 1\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1036,7 +1167,7 @@ test "interactive negative 32: control_money" {
 }
 
 ///|
-test "interactive negative 33: control_money" {
+test "interactive negative 39: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1.0\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1047,7 +1178,7 @@ test "interactive negative 33: control_money" {
 }
 
 ///|
-test "interactive negative 34: control_money" {
+test "interactive negative 40: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\\n\",\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1058,7 +1189,7 @@ test "interactive negative 34: control_money" {
 }
 
 ///|
-test "interactive negative 35: control_money" {
+test "interactive negative 41: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":1,\"currency\":\"USD\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1069,7 +1200,7 @@ test "interactive negative 35: control_money" {
 }
 
 ///|
-test "interactive negative 36: control_money" {
+test "interactive negative 42: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"usd\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1080,7 +1211,7 @@ test "interactive negative 36: control_money" {
 }
 
 ///|
-test "interactive negative 37: control_money" {
+test "interactive negative 43: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"US\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1091,7 +1222,7 @@ test "interactive negative 37: control_money" {
 }
 
 ///|
-test "interactive negative 38: control_money" {
+test "interactive negative 44: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"USDA\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1102,7 +1233,7 @@ test "interactive negative 38: control_money" {
 }
 
 ///|
-test "interactive negative 39: control_money" {
+test "interactive negative 45: control_money" {
   assert_false(
     parse_interactive_run_control_shape(
       "control_money", "{\"amount_micro\":\"1\",\"currency\":\"USD\\n\",\"scope_cids\":[\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"],\"tariff_revision_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"valid_until\":\"2026-10-11T00:00:00.000Z\"}",
@@ -1113,7 +1244,7 @@ test "interactive negative 39: control_money" {
 }
 
 ///|
-test "interactive negative 40: controlled_run_state" {
+test "interactive negative 46: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
@@ -1124,7 +1255,7 @@ test "interactive negative 40: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 41: controlled_run_state" {
+test "interactive negative 47: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":null,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
@@ -1135,7 +1266,7 @@ test "interactive negative 41: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 42: controlled_run_state" {
+test "interactive negative 48: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":-1,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
@@ -1146,7 +1277,7 @@ test "interactive negative 42: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 43: controlled_run_state" {
+test "interactive negative 49: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":0.5,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
@@ -1157,7 +1288,7 @@ test "interactive negative 43: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 44: controlled_run_state" {
+test "interactive negative 50: controlled_run_state" {
   assert_false(
     parse_interactive_run_control_shape(
       "controlled_run_state", "{\"cleanup_pending\":false,\"control_revision\":17,\"expiry_pending\":false,\"legacy_state\":{\"control\":{\"cancellation_requested\":false,\"physical_stop\":\"unknown\",\"revision\":17},\"next_action\":{\"kind\":\"none\"},\"result_availability\":{},\"result_available\":false,\"revision\":9007199254740992,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-run-state/0.1\"},\"pause_pending\":false,\"run_id\":\"original\",\"status\":\"running\",\"updated_at\":\"2026-10-11T00:00:00.000Z\",\"version\":\"actql-controlled-run-state/0.1\"}",
@@ -1168,7 +1299,7 @@ test "interactive negative 44: controlled_run_state" {
 }
 
 ///|
-test "interactive negative 45: explanation_facts" {
+test "interactive negative 51: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"},\"value\":\"private\"}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1179,7 +1310,7 @@ test "interactive negative 45: explanation_facts" {
 }
 
 ///|
-test "interactive negative 46: explanation_facts" {
+test "interactive negative 52: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"},\"value_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\"}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1190,7 +1321,7 @@ test "interactive negative 46: explanation_facts" {
 }
 
 ///|
-test "interactive negative 47: explanation_facts" {
+test "interactive negative 53: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"length\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1201,7 +1332,7 @@ test "interactive negative 47: explanation_facts" {
 }
 
 ///|
-test "interactive negative 48: explanation_facts" {
+test "interactive negative 54: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"byte_length\":\"private\",\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1212,7 +1343,7 @@ test "interactive negative 48: explanation_facts" {
 }
 
 ///|
-test "interactive negative 49: explanation_facts" {
+test "interactive negative 55: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"text\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1223,7 +1354,7 @@ test "interactive negative 49: explanation_facts" {
 }
 
 ///|
-test "interactive negative 50: explanation_facts" {
+test "interactive negative 56: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"source\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1234,7 +1365,7 @@ test "interactive negative 50: explanation_facts" {
 }
 
 ///|
-test "interactive negative 51: explanation_facts" {
+test "interactive negative 57: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"prompt\":\"private\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1245,7 +1376,7 @@ test "interactive negative 51: explanation_facts" {
 }
 
 ///|
-test "interactive negative 52: explanation_facts" {
+test "interactive negative 58: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"max_utf8_bytes\":17,\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1256,7 +1387,7 @@ test "interactive negative 52: explanation_facts" {
 }
 
 ///|
-test "interactive negative 53: explanation_facts" {
+test "interactive negative 59: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"max_codepoints\":17,\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1267,7 +1398,7 @@ test "interactive negative 53: explanation_facts" {
 }
 
 ///|
-test "interactive negative 54: explanation_facts" {
+test "interactive negative 60: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"enumeration\":17,\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1278,7 +1409,7 @@ test "interactive negative 54: explanation_facts" {
 }
 
 ///|
-test "interactive negative 55: explanation_facts" {
+test "interactive negative 61: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"contract_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1289,7 +1420,7 @@ test "interactive negative 55: explanation_facts" {
 }
 
 ///|
-test "interactive negative 56: explanation_facts" {
+test "interactive negative 62: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"prompt\":\"private\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1300,7 +1431,7 @@ test "interactive negative 56: explanation_facts" {
 }
 
 ///|
-test "interactive negative 57: explanation_facts" {
+test "interactive negative 63: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"source_body\":\"private\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1311,7 +1442,7 @@ test "interactive negative 57: explanation_facts" {
 }
 
 ///|
-test "interactive negative 58: explanation_facts" {
+test "interactive negative 64: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"can_execute\":\"private\",\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1322,7 +1453,7 @@ test "interactive negative 58: explanation_facts" {
 }
 
 ///|
-test "interactive negative 59: explanation_facts" {
+test "interactive negative 65: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"sample\":\"private\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1333,7 +1464,7 @@ test "interactive negative 59: explanation_facts" {
 }
 
 ///|
-test "interactive negative 60: explanation_facts" {
+test "interactive negative 66: explanation_facts" {
   assert_false(
     parse_interactive_run_control_shape(
       "explanation_facts", "{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"values\",\"row_count\":9,\"schema\":{\"fields\":[]}},\"operator\":\"values\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"}",
@@ -1344,7 +1475,7 @@ test "interactive negative 60: explanation_facts" {
 }
 
 ///|
-test "interactive negative 61: run_explanation_view" {
+test "interactive negative 67: run_explanation_view" {
   assert_false(
     parse_interactive_run_control_shape(
       "run_explanation_view", "{\"explanation\":{\"facts\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"disclosure\":\"structural\",\"logical_map_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"parameter_values_cid\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"program_definition_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"self_cid\":\"sha256:2b741894a384a3376f73ccc64cb1649a412b47000874881860511f3ae119a682\",\"steps\":[{\"input_ports\":[\"sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"],\"key\":{\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\",\"stage_ordinal\":0,\"version\":\"actql-logical-step-key/0.1\"},\"meaning\":{\"kind\":\"filter\",\"predicate\":{\"nodes\":[{\"children\":[1,2],\"form\":\"operation\",\"operator\":\"gt\",\"type\":{\"kind\":\"boolean\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"field\",\"name\":\"id\",\"scope\":\"fields\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}},{\"form\":\"literal_redacted\",\"type\":{\"kind\":\"number\",\"nullable\":false,\"projection\":\"shape_and_nullability\"}}],\"root\":0,\"state\":\"projected\"}},\"operator\":\"filter\",\"output_ports\":[\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"],\"step_id\":\"sha256:eead8c6ef087723003d9b8913cdec681f4cf1f4b748e9c3911af71ea51fbcbf8\"}],\"version\":\"actql-explanation-facts/0.1\"},\"reason\":\"not_retained\",\"state\":\"not_projected\"},\"run_ref\":{\"authorityScopeCid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"namespaceId\":\"original-namespace\",\"runDefinitionCid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\"},\"version\":\"actql-run-explanation-view/0.1\"}",
@@ -2148,6 +2279,377 @@ test "interactive Sample target binding overlapping selectors retain one origina
     20000, 2000, 32,
   ).unwrap()
   assert_true(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding name resolves to the original Step" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8b2a4a93f2ac8b91a77d771f979e8791331efbc6f69a49fbccba66984a3a350\",\"resolved_profile_cid\":\"sha256:4bd800b0f8c74c3a4eb9006d2e1d76d69111278987c1b35d7b595b807d2bd3b8\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_true(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+  guard @json.object_field(value3.value, "steps") is Some(@json.Array(steps)) else {
+    fail("missing original steps")
+  }
+  assert_eq(
+    check_interactive_breakpoint_projection(
+      value0.value,
+      value2.value,
+      steps,
+      6,
+    ),
+    Ok(()),
+  )
+  assert_eq(
+    check_interactive_breakpoint_projection(
+      value0.value,
+      value2.value,
+      steps,
+      5,
+    ),
+    Err(RunEvidenceInvalidLimits),
+  )
+}
+
+///|
+test "interactive breakpoint binding an existing unrelated Step cannot replace the original" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8b2a4a93f2ac8b91a77d771f979e8791331efbc6f69a49fbccba66984a3a350\",\"resolved_profile_cid\":\"sha256:c85ceb8e947a138e00323375b017a97d7348aab6b756691beecc0354839be917\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_false(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding an effective target cannot be omitted" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8b2a4a93f2ac8b91a77d771f979e8791331efbc6f69a49fbccba66984a3a350\",\"resolved_profile_cid\":\"sha256:3220b552585d102d65950351aa151a8abe9c47552db168e82804c1deec867ceb\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_false(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding an unselected gate cannot be inserted" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"},{\"gate_kind\":\"effect_set\",\"kind\":\"gate\",\"position\":\"before\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8b2a4a93f2ac8b91a77d771f979e8791331efbc6f69a49fbccba66984a3a350\",\"resolved_profile_cid\":\"sha256:82663dcc1ffa993378cf2f072919446bd57d3d0884d62820763290bb5dfc2493\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_false(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding the original position cannot be changed" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"after\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8b2a4a93f2ac8b91a77d771f979e8791331efbc6f69a49fbccba66984a3a350\",\"resolved_profile_cid\":\"sha256:383990d4acffb1267cc486c99d4468778b0fbd1d47df4969ed50dae534f85231\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_false(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding operator and id select the same original once" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"operator\",\"operator\":\"select\"}},{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"id\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:b9ad60211738a7208d3bef485f2dba7f775928e7b4c02a825f4b83e5b70f9851\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:b9ad60211738a7208d3bef485f2dba7f775928e7b4c02a825f4b83e5b70f9851\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:b9ad60211738a7208d3bef485f2dba7f775928e7b4c02a825f4b83e5b70f9851\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:31bf6d83d7c99507f791833bfed3774f23ef9d694b50872a9a2da0fdcb1ec0cf\",\"resolved_profile_cid\":\"sha256:72151a475da0c49ddf5ec6d15298eaf6002b4c5da5cb7bb3059028d84495808d\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_true(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding duplicate resolved points cannot cover a missing original" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}},{\"gate_kind\":\"effect_set\",\"kind\":\"gate\",\"position\":\"before\"}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:416f8da4cff5234b17678fadc3220184a8ebffc04d477653fb36c204b310a88e\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"},{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:416f8da4cff5234b17678fadc3220184a8ebffc04d477653fb36c204b310a88e\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:416f8da4cff5234b17678fadc3220184a8ebffc04d477653fb36c204b310a88e\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:d0253e4c95cd7ceae1a5130ae6a4d71dcf72232f6f2bbeb41442d098bf8c322b\",\"resolved_profile_cid\":\"sha256:43998979c3c7548999df43f07fc5e0d182a5cea00a089e71c9df91ec5abb1547\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_false(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding a requested original gate is retained" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}},{\"gate_kind\":\"effect_set\",\"kind\":\"gate\",\"position\":\"before\"}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:416f8da4cff5234b17678fadc3220184a8ebffc04d477653fb36c204b310a88e\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"},{\"gate_kind\":\"effect_set\",\"kind\":\"gate\",\"position\":\"before\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:416f8da4cff5234b17678fadc3220184a8ebffc04d477653fb36c204b310a88e\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:416f8da4cff5234b17678fadc3220184a8ebffc04d477653fb36c204b310a88e\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:d0253e4c95cd7ceae1a5130ae6a4d71dcf72232f6f2bbeb41442d098bf8c322b\",\"resolved_profile_cid\":\"sha256:75e805c9e1ec3d4f834201cbdbeaad4225e837831870a28c1e634bd8b0009152\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_true(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding an ambiguous name cannot choose one original" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"computed\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"logical_map_cid\":\"sha256:d3b6eac61aec9e8e613142ae8c950a6481c50f920c369208b2d27053530d2989\",\"requested_profile_cid\":\"sha256:631b14a446afd8253711070d7113e9813a89d858f6b0adcfa2811b376676e4aa\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:d3b6eac61aec9e8e613142ae8c950a6481c50f920c369208b2d27053530d2989\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:b8b2a4a93f2ac8b91a77d771f979e8791331efbc6f69a49fbccba66984a3a350\",\"resolved_profile_cid\":\"sha256:f10f0d1524a6c0d055d9fbfdbc957681481cdf4d757bcf7636709bce019d93c8\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_false(
+    check_interactive_admission_binding(
+      value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      20000, 2000, 32,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "interactive breakpoint binding a missing name cannot resolve to an existing Step" {
+  let plan = seal_publication_contract(
+    "compiled_plan", "{\"aoa_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"aoa_ir_version\":\"0.1\",\"aoa_logical_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"compiler_version\":\"0.1\",\"executable_plan_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"program_semantics_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"version\":\"actql-compiled-plan/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value0 = seal_run_evidence_value(
+    "control_profile", "{\"execution\":{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"select\":{\"by\":\"name\",\"name\":\"unused\"}}],\"default_until\":\"terminal\",\"guards\":null,\"stop_on_entry\":false},\"retain\":{},\"version\":\"actql-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value1 = seal_run_evidence_value(
+    "control_request_intent", "{\"expected_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"legacy_request_fingerprint_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"requested_profile_cid\":\"sha256:81c8e2a454c2f6d7b919cf023f650fe229416fb6313b46f7c37b4c153c7093f8\",\"submission_ref\":{\"epoch\":{\"authenticator\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"epochNonce\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":2,\"notBefore\":1,\"version\":\"actql-submission-epoch/0.1\"},\"nonce\":\"original-request\"},\"version\":\"actql-control-request-intent/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value2 = seal_run_evidence_value(
+    "resolved_control_profile", "{\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}],\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"effective_profile_cid\":\"sha256:81c8e2a454c2f6d7b919cf023f650fe229416fb6313b46f7c37b4c153c7093f8\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"requested_profile_cid\":\"sha256:81c8e2a454c2f6d7b919cf023f650fe229416fb6313b46f7c37b4c153c7093f8\",\"sample_output_port_ids\":[],\"version\":\"actql-resolved-control-profile/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value3 = seal_run_evidence_value(
+    "logical_map", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"program_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"steps\":[{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"input_port_ordinal\":0,\"kind\":\"input_output\"},\"self_cid\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"answer\"],\"operator\":null,\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:abbcfe1695d0131a6ea1bce21d849de09b3f861fd66a7456ff8274ac1faa0ce2\",\"port_ordinal\":0,\"role\":\"input\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}},{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:a231373ceaedc02373d14b4ed788390f5f0961e1b1d561085b7fea28278821b4\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"input_port_ordinal\":0,\"kind\":\"stage_input\",\"stage_ordinal\":1}}],\"step_id\":\"sha256:783641dbc77abc7291465c218c6270228415f6d432d50aff0d4b19a2c080e82b\",\"stop_reason\":\"not_installed\"},{\"can_stop_after\":false,\"can_stop_before\":false,\"key\":{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"occurrence\":{\"kind\":\"operation\",\"operation_ordinal\":0},\"self_cid\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stage_ordinal\":1,\"version\":\"actql-logical-step-key/0.1\"},\"names\":[\"computed\"],\"operator\":\"select\",\"ports\":[{\"can_sample\":false,\"carrier\":\"relation\",\"carrier_contract_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"port_ordinal\":0,\"role\":\"output\",\"sample_reason\":\"not_installed\",\"source\":{\"kind\":\"logical_output\",\"output_port_id\":\"sha256:84c92423fcff8339ca72446d0221e408e438c25096c4d6bef14783b8ea02fece\",\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\"}}],\"step_id\":\"sha256:c061d0b34a4d3f85959270c7a70e4863cf4ade33f65e48b09f45c740b403404c\",\"stop_reason\":\"not_installed\"}],\"version\":\"actql-logical-map/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  let value4 = seal_run_evidence_value(
+    "control_admission", "{\"compiled_plan_cid\":\"sha256:e601408109081ed6fef39782d17940a2a216d9166ba0e249f370769410fe6c22\",\"logical_map_cid\":\"sha256:4e0ea61c05fa4269b0f806dc4d3eb66a4e11ea3a56f545a6bd66168023594191\",\"policy_revision_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"request_intent_cid\":\"sha256:0ec361871bcab4c0043b7e0558fa656be6193844c3f509bd14ef23825e29ed05\",\"resolved_profile_cid\":\"sha256:1c13a1e24ab11acd77298185d3f52c29fd8004b33a3b4a343c83f722b0eff607\",\"run_ref\":{\"authorityScopeCid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"namespaceId\":\"workspace:test\",\"runDefinitionCid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"version\":\"actql-control-admission/0.1\"}",
+    20000, 2000, 32,
+  ).unwrap()
+  assert_false(
     check_interactive_admission_binding(
       value1, value0, value0, value2, value3, value4, plan, "workspace:test", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       20000, 2000, 32,

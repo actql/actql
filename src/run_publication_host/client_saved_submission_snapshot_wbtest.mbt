@@ -12,6 +12,7 @@ fn saved_snapshot_run() -> ClientRunJournalInspection {
     request: admission.0,
     definition: saved_submission_definition(),
     checkpoint: None,
+    cancellation_head: None,
     task_materials_cid: None,
   }
 }
@@ -446,4 +447,31 @@ test "retained material saved reader retains original construction and physical 
   )
   assert_eq(chunks.val, 8)
   assert_eq(validators.val, 2)
+}
+
+///|
+test "target cancellation reads only a checked Run's accepted head" {
+  let ready = saved_snapshot_inspect(
+      saved_snapshot_rows(saved_submission_ready),
+    )
+    .unwrap()
+    .unwrap()
+  let preparing_rows = saved_snapshot_rows(saved_submission_preparing)
+  let preparing = read_client_saved_submission(
+      saved_snapshot_reference(),
+      (table, key) => inventory_read(preparing_rows, table, key),
+      _ => Err("unexpected Run"),
+      "custody",
+    )
+    .unwrap()
+    .unwrap()
+  let read = (_, _) => Err("unexpected cancellation read")
+  assert_true(
+    confirm_client_saved_submission_cancellation(ready, read, "custody")
+    is Ok(true),
+  )
+  assert_true(
+    confirm_client_saved_submission_cancellation(preparing, read, "custody")
+    is Ok(false),
+  )
 }

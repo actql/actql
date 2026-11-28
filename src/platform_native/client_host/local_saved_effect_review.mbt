@@ -48,9 +48,12 @@ pub fn NativeLocalJournalCapture::prepare_saved_effect_review(
         // Receiver, returned Some/Result and the restoration callback. All
         // input identity/Store/String fields remain original borrowed values.
         // The restoration child retains one original material reference.
-        record_headers: 9L,
-        reference_slots: 37L,
-        scalar_words: 8L,
+        // Approval alone adds the retained input proof and Some (2H/3R/1W)
+        // plus the restoration slot (1R). The current reread coholds its
+        // own proof and Some (2H/3R/1W) and returned pair (1H/2R).
+        record_headers: 14L,
+        reference_slots: 46L,
+        scalar_words: 10L,
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       }),

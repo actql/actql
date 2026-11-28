@@ -11,12 +11,54 @@ fn[I] static_debug_entry_probe(
   prepared : @publication_host.PreparedClientProgram,
   max_tasks : Int,
   work : Int,
+  original_split? : Bool = false,
+) -> Result[(Bool, Int), @resources.PreparationCapacityIssue] {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let checked = @strategy.graph_program(graph)
+  with_static_debug_graph_probe(
+    capacity,
+    input,
+    @checked.unit_count(checked),
+    max_tasks,
+    work,
+    observed => {
+      @publication_host.measure_client_debug_graph_construction(
+        checked, max_tasks, work, observed,
+      )
+    },
+    (remaining, boundary_work) => {
+      if original_split {
+        prove_static_debug_original_operations(graph, boundary_work)
+      } else {
+        probe_static_debug_graph(
+          graph,
+          checked,
+          @checked.unit_count(checked),
+          max_tasks,
+          remaining,
+          boundary_work,
+        )
+      }
+    },
+  )
+}
+
+///|
+fn[I, P] with_static_debug_graph_probe(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  stages : Int,
+  max_tasks : Int,
+  work : Int,
+  measure : (Ref[Int64]) -> Result[
+    (Int64, Int),
+    @publication_host.ClientProgramPreparationIssue,
+  ],
+  probe : (Int, Int64) -> Bool,
 ) -> Result[(Bool, Int), @resources.PreparationCapacityIssue] {
   if work < 8 || max_tasks < 1 {
     return Ok((false, 0))
   }
-  let graph = @publication_host.prepared_client_graph(prepared)
-  let checked = @strategy.graph_program(graph)
   let base = match
     @resources.preparation_capacity_working_extents(capacity, input) {
     Err(issue) => return Err(issue)
@@ -34,15 +76,11 @@ fn[I] static_debug_entry_probe(
   }
   let eligible = {
     let observed = Ref(0L)
-    match
-      @publication_host.measure_client_debug_graph_construction(
-        checked, max_tasks, work, observed,
-      ) {
+    match measure(observed) {
       Err(_) => false
       Ok((bytes, remaining)) => {
         // One forward owner lookup and the final entry check have separate
         // finite work. The remapper gets only the remaining allowance.
-        let stages = @checked.unit_count(checked)
         // Measurement already proves the expanded task count fits
         // the node ceiling. Compute a conservative split from the actual
         // observed work (which includes at least one visit per step).
@@ -69,11 +107,7 @@ fn[I] static_debug_entry_probe(
             capacity, input, peak_r, peak_e,
           )
           is Ok(_) {
-          probe_static_debug_graph(
-            graph,
-            checked,
-            stages,
-            max_tasks,
+          probe(
             remaining - boundary_work.to_int(),
             boundary_work - stages.to_int64(),
           )
@@ -95,6 +129,45 @@ fn[I] static_debug_entry_probe(
     Err(issue) => Err(issue)
     Ok(_) => Ok((eligible, work))
   }
+}
+
+///|
+// The explicit Debug Plan already owns the split graph. Check every original
+// forward occurrence once, in the same funded observation as entry eligibility.
+fn prove_static_debug_original_operations(
+  graph : @strategy.CheckedDAG,
+  work : Int64,
+) -> Bool {
+  let checked = @strategy.graph_program(graph)
+  let stages = @checked.unit_count(checked)
+  let tasks = @strategy.graph_task_count(graph)
+  let extent = 1L +
+    stages.to_int64() +
+    7L * tasks.to_int64() +
+    @strategy.graph_data_count(graph).to_int64() +
+    @strategy.graph_control_count(graph).to_int64()
+  guard tasks > 0 &&
+    @strategy.graph_captured_prefix(graph) == 0 &&
+    extent <= work &&
+    @strategy.graph_source_free_inputs_complete(graph) else {
+    return false
+  }
+  let mut expected = 0
+  for stage in 0..<stages {
+    guard @checked.unit_pipeline(checked, stage) is Some(pipeline) else {
+      return false
+    }
+    let count = @pipeline.step_count(pipeline)
+    guard count > 0 && count <= tasks - expected else { return false }
+    for step in 0..<count {
+      if @strategy.checked_task_control_operation_task(graph, stage, step) !=
+        Some(expected) {
+        return false
+      }
+      expected += 1
+    }
+  }
+  expected == tasks
 }
 
 ///|
@@ -369,6 +442,7 @@ pub fn[I] request_prepared_static_explanation(
   max_work : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
   debug_entry_installed? : Bool = false,
+  effect_debug_entry_installed? : Bool = false,
 ) -> Result[
   ClientRequestStaticEffectExplanation,
   ClientRequestStaticContextIssue,
@@ -383,6 +457,7 @@ pub fn[I] request_prepared_static_explanation(
       max_depth,
       max_work,
       infers~,
+      debug_entry_installed=effect_debug_entry_installed,
     )
   } else {
     prepare_static_pure_explanation_facets(

@@ -614,6 +614,10 @@ fn advance_model(
     state.reservations.get(state.progress.slot) is Some(reservation) else {
     return @bounded.Failed(CallEntryRefused, 1, 1)
   }
+  if state.physical_plans.get(state.progress.slot)
+    is Some({ invocation: AsynchronousHttpChat(_, None), .. }) {
+    return @bounded.Failed(CallEntryRefused, 1, 1)
+  }
   // Historical/restored outcome branches above consume their original DATA
   // without another answer file. Only an actual NEW Mock Slot needs answers,
   // before any new IO duty, attempt or entered-call responsibility is claimed.
@@ -796,15 +800,21 @@ fn advance_model(
   // the installed foreign invocation loses its response or throws.
   if state.physical_plans.get(state.progress.slot) is Some(plan) &&
     plan.invocation
-    is (Asynchronous(start)
-    | AsynchronousHttpChat(_, start)
-    | AsynchronousMeasuredHttpChat(_, start)
-    | AsynchronousSavedStructured(_, start, _)) {
+    is (Asynchronous(_)
+    | AsynchronousHttpChat(_, _)
+    | AsynchronousMeasuredHttpChat(_, _)
+    | AsynchronousSavedStructured(_, _, _)) {
     guard send_gate is Some(gate) else {
       retire_model_entering(state)
       return @bounded.Failed(CallEntryRefused, 1, 1)
     }
-    let started = start(gate.entry)
+    let started = match plan.invocation {
+      AsynchronousHttpChat(request, Some(start)) => start(request, gate.entry)
+      Asynchronous(start)
+      | AsynchronousMeasuredHttpChat(_, start)
+      | AsynchronousSavedStructured(_, start, _) => start(gate.entry)
+      _ => None
+    }
     // A callback cannot replace custody that it already registered under the
     // original entered attempt. On a bad returned view, cleanup drains that
     // original operation but never admits a fabricated response or new send.
@@ -1315,7 +1325,9 @@ fn advance_model_execution_owned(
           !state.unknown_calls.contains(state.progress.slot) &&
           (
             (state.enter_call is None && state.enter_persistence is None) ||
-            state.dispatch_admission is None
+            state.dispatch_admission is None ||
+            state.physical_plans.get(state.progress.slot)
+            is Some({ invocation: AsynchronousHttpChat(_, None), .. })
           )
         )
       ) {

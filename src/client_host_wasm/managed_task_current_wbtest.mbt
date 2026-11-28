@@ -196,6 +196,8 @@ fn unstarted_cleanup_fixture(
     run_namespace: "local",
     source_free_result_policy: None,
     host_current: None,
+    mock_project: None,
+    local_project: None,
     sdk: None,
   }
   value.runs[4] = {
@@ -224,6 +226,11 @@ fn unstarted_cleanup_fixture(
     invoked: true,
     outcome: Some(Ok(start)),
     sdk_step: None,
+    file_managed: None,
+    model_file: None,
+    mock_managed: None,
+    mock_effect_compute: None,
+    mock_effect_compute_started: false,
   }
   value.computes[6] = {
     origin: SourceFree(4, 5),

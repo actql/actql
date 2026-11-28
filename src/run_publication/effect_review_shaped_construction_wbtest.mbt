@@ -26,12 +26,21 @@ test "review constructor bounds preserve the observed complete101-row projection
     strings: 5406,
     text_units: 267145,
   }
-  let output = review_original_output_bound(input, 1, 101, 262144, 65536, 64).unwrap()
+  let output = review_original_output_bound(
+    input, 1, 101, 262144, 65536, 64, false,
+  ).unwrap()
   // Independent complete output observation, including its real self-CID.
   assert_true(output.bytes >= 247266 && output.nodes >= 5280)
   assert_true(output.objects >= 1014 && output.arrays >= 6)
   assert_true(output.fields >= 5174 && output.strings >= 4056)
   assert_eq(output.bytes, 262144)
+  let debug = review_original_output_bound(
+    input, 1, 101, 262144, 65536, 64, true,
+  ).unwrap()
+  assert_eq(debug.nodes, output.nodes + 4)
+  assert_eq(debug.fields, output.fields + 4)
+  assert_eq(debug.objects, output.objects + 1)
+  assert_eq(debug.bytes, output.bytes)
   let (returned, temporary) = review_original_inventory_for_geometry(
     input, 1, 101, 262144, 65536, 64,
   ).unwrap()
@@ -43,7 +52,9 @@ test "review constructor bounds preserve the observed complete101-row projection
   )
   // The original policy still bounds the renderer. Smaller policy/failing
   // prefixes keep the general category quote, never an invented empty shape.
-  assert_true(review_original_output_bound(input, 1, 101, 32, 2, 1) is None)
+  assert_true(
+    review_original_output_bound(input, 1, 101, 32, 2, 1, false) is None,
+  )
   assert_true(
     review_original_inventory_for_geometry(input, 1, 101, 32, 2, 1) is Some(_),
   )

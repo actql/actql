@@ -103,6 +103,7 @@ class SnapshotTransportTests(unittest.TestCase):
                 store.compare_exchange('epoch', None, b'original-epoch')
                 store.compare_exchange(store.namespaced_key('original', 'one'), None, b'original-row')
                 armed, calls, rows = [], [], []
+                original_failure = []
                 def current():
                     if armed:
                         calls.append(True)
@@ -110,13 +111,17 @@ class SnapshotTransportTests(unittest.TestCase):
                             store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
                 def inspect(reader):
                     armed.append(True)
-                    with self.assertRaises(LocalStorageError):
+                    with self.assertRaises(LocalStorageError) as first:
                         reader.read('original', 'one', rows.append)
                     armed.clear()
-                    with self.assertRaises(ValueError): reader.current()
-                with self.assertRaises(ValueError):
+                    original_failure.append(first.exception)
+                    with self.assertRaises(LocalStorageError) as second:
+                        reader.current()
+                    self.assertIs(second.exception, first.exception)
+                with self.assertRaises(LocalStorageError) as returned:
                     store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                         inspect=inspect, current=current)
+                self.assertIs(returned.exception, original_failure[0])
                 self.assertEqual(len(calls), stop)
                 self.assertEqual(len(rows), int(stop == 3))
                 self.assertFalse(store._physical.in_transaction)
@@ -186,7 +191,7 @@ class SnapshotTransportTests(unittest.TestCase):
                 max_record_bytes=4096, max_payload_bytes=16384)
             self.addCleanup(store.close)
             store.compare_exchange('epoch', None, b'original-epoch')
-            mutate = []
+            mutate, original_failure = [], []
             def current():
                 if mutate:
                     store._connection.execute('UPDATE core_bytes SET generation=1 WHERE key=?', ('epoch',))
@@ -198,11 +203,15 @@ class SnapshotTransportTests(unittest.TestCase):
                 mutate.clear()
                 store._connection.execute('UPDATE core_bytes SET generation=0 WHERE key=?', ('epoch',))
                 # Repairing fixture bytes does not unpoison an original reader.
-                with self.assertRaises(ValueError): reader.current()
+                with self.assertRaises(LocalStorageError) as second:
+                    reader.current()
+                self.assertIs(second.exception, caught.exception)
+                original_failure.append(caught.exception)
                 self.assertIn('metadata changed', str(caught.exception))
-            with self.assertRaises(ValueError):
+            with self.assertRaises(LocalStorageError) as returned:
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=current)
+            self.assertIs(returned.exception, original_failure[0])
 
     def test_snapshot_reuse_rechecks_unrelated_writes_and_refuses_replaced_transaction(self):
         from actql_sdk._local_storage import LocalStorageError
@@ -344,14 +353,18 @@ class SnapshotTransportTests(unittest.TestCase):
             def consume(row):
                 rows.append(row)
                 store._connection.execute('CREATE TEMP TABLE core_bytes(key TEXT, generation INTEGER, payload BLOB)')
+            original_failure = []
             def inspect(reader):
-                with self.assertRaises(LocalStorageError):
+                with self.assertRaises(LocalStorageError) as first:
                     reader.read('original', 'one', consume)
-                with self.assertRaises(ValueError): reader.current()
-            # The second attempted use is the existing poisoned-reader refusal.
-            with self.assertRaises(ValueError):
+                original_failure.append(first.exception)
+                with self.assertRaises(LocalStorageError) as second:
+                    reader.current()
+                self.assertIs(second.exception, first.exception)
+            with self.assertRaises(LocalStorageError) as returned:
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
+            self.assertIs(returned.exception, original_failure[0])
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0][1].payload, b'original-row')
             self.assertFalse(store._physical.in_transaction)
@@ -364,6 +377,7 @@ class SnapshotTransportTests(unittest.TestCase):
                 max_record_bytes=4096, max_payload_bytes=16384)
             self.addCleanup(store.close)
             store.compare_exchange('epoch', None, b'original-epoch')
+            original_failure = []
             def inspect(reader):
                 reader.read('original', 'one', lambda _: None)
                 def deny(action, name, argument, database, *_):
@@ -371,14 +385,17 @@ class SnapshotTransportTests(unittest.TestCase):
                             and name == 'schema_version' and database == 'temp' else sqlite3.SQLITE_OK)
                 store._connection.set_authorizer(deny)
                 try:
-                    with self.assertRaises(sqlite3.DatabaseError): reader.current()
+                    with self.assertRaises(sqlite3.DatabaseError) as first: reader.current()
                 finally:
                     store._connection.set_authorizer(None)
-                with self.assertRaises(ValueError): reader.current()
-            # The second attempted use is the existing poisoned-reader refusal.
-            with self.assertRaises(ValueError):
+                original_failure.append(first.exception)
+                with self.assertRaises(sqlite3.DatabaseError) as second:
+                    reader.current()
+                self.assertIs(second.exception, first.exception)
+            with self.assertRaises(sqlite3.DatabaseError) as returned:
                 store.inspect_namespaces((ByteFence('epoch', 0, b'original-epoch'),),
                     inspect=inspect, current=lambda: None)
+            self.assertIs(returned.exception, original_failure[0])
             self.assertFalse(store._physical.in_transaction)
             self.assertEqual(store.read('epoch').payload, b'original-epoch')
 
@@ -416,11 +433,19 @@ class SnapshotTransportTests(unittest.TestCase):
             self.addCleanup(foreign.close)
             foreign.execute('CREATE TABLE core_bytes(key TEXT, generation INTEGER, payload BLOB)')
             foreign.execute('INSERT INTO core_bytes VALUES(?,?,?)', ('epoch', 0, b'original-epoch'))
+            # The original Store's singleton usage row counts as one mutation.
+            foreign.execute('UPDATE core_bytes SET payload=payload WHERE key=?', ('epoch',))
+            for schema in ('main', 'temp'):
+                version, = store._connection.execute(f'PRAGMA {schema}.schema_version').fetchone()
+                foreign.execute(f'PRAGMA {schema}.schema_version={version}')
             foreign.execute('BEGIN')
             def inspect(reader):
                 reader.read('original', 'one', lambda _: None)
                 original = store._physical._connection
                 self.assertEqual(foreign.total_changes, original.total_changes)
+                for schema in ('main', 'temp'):
+                    self.assertEqual(foreign.execute(f'PRAGMA {schema}.schema_version').fetchone(),
+                                     original.execute(f'PRAGMA {schema}.schema_version').fetchone())
                 store._physical._connection = foreign
                 try:
                     with self.assertRaises(LocalStorageError): reader.current()

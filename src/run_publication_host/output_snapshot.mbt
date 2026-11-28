@@ -27,7 +27,8 @@ pub fn PublicationOutputExport::start_captured_snapshot(
   guard self.retained_effect_result_available() &&
     self.receipt is Some(receipt) &&
     self.definition is Some(_) &&
-    self.artifact is Some(_) else {
+    self.artifact is Some(_) &&
+    self.declared_fields is Some(_) else {
     return Err(InvalidState)
   }
   let emission = match
@@ -81,12 +82,19 @@ pub fn PublicationOutputSnapshotPreparation::advance(
           Ok((done, work)) => {
             used += work
             if done {
-              let (wire, fields) = match emission.finish() {
+              let (wire, exported_fields) = match emission.finish() {
                 Ok(value) => value
                 Err(issue) => {
                   self.cancel()
                   return Err(Output(issue))
                 }
+              }
+              // The checked Result owns presentation order. The execution
+              // export still supplies canonical row bytes and its width.
+              guard parent.declared_fields is Some(fields) &&
+                fields.length() == exported_fields.length() else {
+                self.cancel()
+                return Err(InvalidState)
               }
               let admission = match
                 @publication.start_captured_result_snapshot(
@@ -156,12 +164,34 @@ pub fn PublicationOutputSnapshotPreparation::finish(
 pub fn PublicationOutputSnapshotPreparation::cancel(
   self : PublicationOutputSnapshotPreparation,
 ) -> Unit {
+  self.cancel_snapshot_original(false)
+}
+
+///|
+/// The installed Host has unwound the synchronous advance before calling
+/// this boundary. An interrupted child can no longer keep its writer alive.
+pub fn PublicationOutputSnapshotPreparation::cancel_after_unwind(
+  self : PublicationOutputSnapshotPreparation,
+) -> Unit {
+  self.cancel_snapshot_original(true)
+}
+
+///|
+fn PublicationOutputSnapshotPreparation::cancel_snapshot_original(
+  self : PublicationOutputSnapshotPreparation,
+  unwound : Bool,
+) -> Unit {
   if self.closed {
     return
   }
   self.closed = true
   match self.phase {
-    Export(emission) => emission.cancel()
+    Export(emission) =>
+      if unwound {
+        emission.cancel_after_unwind()
+      } else {
+        emission.cancel()
+      }
     Admit(admission) => admission.cancel()
     Done => ()
   }

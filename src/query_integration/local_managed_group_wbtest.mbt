@@ -1243,7 +1243,7 @@ fn run_local_managed_group_case(
       ),
     )
     let received = @strategy.captured_pending_task_input_output(
-      run, second_task, 0,
+      run, second_task, input,
     ).unwrap()
     assert_true(physical_equal(original, received))
   }

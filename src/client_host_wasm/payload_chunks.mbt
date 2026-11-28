@@ -2,6 +2,7 @@
 priv enum StoredPayloadReplayIssue {
   Output(@host.PublicationOutputExportIssue)
   Buffer(@buffers.BufferIssue)
+  Current(Int)
 }
 
 ///|
@@ -9,6 +10,7 @@ fn payload_replay_issue_code(issue : StoredPayloadReplayIssue) -> Int {
   match issue {
     Output(issue) => if issue is InvalidState { -33 } else { -32 }
     Buffer(issue) => issue_code(issue)
+    Current(code) => code
   }
 }
 
@@ -51,8 +53,7 @@ pub fn start_payload_replay(
   guard selected(nonce) is Some(value) &&
     value.payload_requests.get(handle) is Some(record) &&
     value.publications.get(record.publication) is Some(parent) &&
-    value.publication_preflights.get(parent.preflight)
-    is Some({ preflight: Some(preflight), .. }) &&
+    value.publication_preflights.get(parent.preflight) is Some(preflight) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -63,22 +64,99 @@ pub fn start_payload_replay(
   if !payload_replay_current(value, record, current_configuration) {
     return -32
   }
+  if record.replay_issue is Some(issue) {
+    return payload_replay_issue_code(issue)
+  }
   if record.replay is Some(_) {
     return 0
   }
-  match
-    @local_run.prepare_local_preflight_payload_replay(
-      preflight,
-      record.index,
-      parent.publications[record.index],
-      request,
-      current.account,
-    ) {
+  let replay = match preflight.origin {
+    ComputePublicationPreflight({ prepared: Some(original), .. }) =>
+      @local_run.prepare_local_preflight_payload_replay(
+        original,
+        record.index,
+        parent.publications[record.index],
+        request,
+        current.account,
+      ).map_err(_ => -32)
+    FilePublicationPreflight(file) =>
+      with_sdk_file_payload_result(
+        value,
+        parent,
+        file,
+        record.index,
+        current.account,
+        (original, result, recheck) => {
+          @local_run.prepare_local_captured_task_payload_replay(
+            original,
+            record.index,
+            result,
+            request,
+            recheck,
+          )
+        },
+      )
+    SavedEffectPublicationPreflight({ prepared: Some(original), .. }) => {
+      guard original.snapshot(record.index) is Some(snapshot) else {
+        return -32
+      }
+      if record.replay_capacity is Some(_) {
+        return -33
+      }
+      let (bytes, _, depth) = @publication.captured_result_snapshot_payload_extent(
+        snapshot,
+      )
+      let chunk = Int::min(bytes, 65536)
+      guard chunk > 0 &&
+        @host.client_protocol_metadata_construction_bytes(
+          chunk,
+          64L + 8L * depth.to_int64(),
+          copies=2,
+        )
+        is Some((working, _)) &&
+        @resources.reserve_capacity(value.root, 0L, working) is Ok(capacity) else {
+        return -4
+      }
+      record.replay_capacity = Some(capacity)
+      @host.prepare_captured_snapshot_payload_replay(snapshot, chunk).map_err(_ => {
+        -32
+      })
+    }
+    _ => Err(-2)
+  }
+  match replay {
     Ok(replay) => {
       record.replay = Some(replay)
+      if parent.file is Some(file) {
+        let code = if record.closing {
+          -5
+        } else {
+          sdk_file_capture_publication_current(
+            value,
+            parent,
+            file,
+            current.account,
+          )
+        }
+        if code != 0 {
+          record.replay_issue = Some(Current(code))
+          return code
+        }
+      }
+      if parent.saved_effect is Some(effect) {
+        let code = saved_effect_publication_preflight_current(
+          value,
+          effect,
+          current.account,
+        )
+        if code != 0 {
+          record.replay_issue = Some(Current(code))
+          return code
+        }
+      }
       0
     }
-    Err(_) => -32
+    Err(code) => code
   }
 }
 
@@ -92,6 +170,7 @@ pub fn reserve_payload_chunk(
   guard selected(nonce) is Some(value) &&
     value.payload_requests.get(request) is Some(record) &&
     value.publications.get(record.publication) is Some({ closing: false, .. }) &&
+    record.request is Some(original) &&
     record.replay is Some(_) else {
     return -2
   }
@@ -117,8 +196,14 @@ pub fn reserve_payload_chunk(
     value.workspaces.values().any(pair => pair.0 == physical_ticket) {
     return -3
   }
+  // A replay chunk is bounded by both the existing chunk ceiling and the
+  // measured size of the entire original payload behind this request.
+  let limit = Int64::min(
+    65536L,
+    @payload.publication_payload_request_max_bytes(original),
+  ).to_int()
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, 65536, physical_copy_bytes, () => {
+    @buffers.reserve_output_buffer(value.pool, limit, physical_copy_bytes, () => {
       physical_input_cleanup(physical_ticket) == 0
     }) {
     Ok(slot) => slot
@@ -177,20 +262,48 @@ pub fn produce_payload_chunk(
   }
   match next {
     Err(issue) => record.replay_issue = Some(Output(issue))
-    Ok((wire, final_chunk)) =>
-      match
-        @buffers.supply_buffer_output(
-          value.pool,
-          chunk.slot,
-          @utf8.encode(wire),
-        ) {
-        Err(issue) => record.replay_issue = Some(Buffer(issue))
-        Ok(_) => {
-          chunk.produced = true
-          chunk.final_chunk = final_chunk
-          record.replay_ended = final_chunk
+    Ok((wire, final_chunk)) => {
+      if value.publications.get(record.publication)
+        is Some({ file: Some(file), .. } as parent) {
+        let code = if record.closing || chunk.closing {
+          -5
+        } else {
+          match value.run_configurations.get(current_configuration) {
+            Some(current) =>
+              sdk_file_capture_publication_current(
+                value,
+                parent,
+                file,
+                current.account,
+              )
+            None => -35
+          }
+        }
+        if code != 0 {
+          record.replay_issue = Some(Current(code))
         }
       }
+      if value.publications.get(record.publication)
+        is Some({ saved_effect: Some(_), .. }) &&
+        !payload_replay_current(value, record, current_configuration) {
+        record.replay_issue = Some(Current(-32))
+      }
+      if record.replay_issue is None {
+        match
+          @buffers.supply_buffer_output(
+            value.pool,
+            chunk.slot,
+            @utf8.encode(wire),
+          ) {
+          Err(issue) => record.replay_issue = Some(Buffer(issue))
+          Ok(_) => {
+            chunk.produced = true
+            chunk.final_chunk = final_chunk
+            record.replay_ended = final_chunk
+          }
+        }
+      }
+    }
   }
   chunk.pending = false
   match record.replay_issue {

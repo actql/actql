@@ -450,6 +450,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
         request: record.request,
         definition: record.definition,
         checkpoint: record.checkpoint.map(value => value.effect_ledger),
+        cancellation_head: record.cancellation_head,
         task_materials_cid: record.task_materials_cid,
       })
     },
@@ -591,14 +592,10 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
       row => self.inspect_submitted_intent_row(row, reads~),
       row => {
         let record = match
-          read_run_record(
+          self.admit_retained_record(
+            row.key,
             { body: row.body, revision: row.revision, },
-            companion_read=Some((self.database, reads)),
-            before_construction=run_decode_construction(self.database, reads),
-            before_metadata_construction=run_metadata_construction(
-              self.database,
-              reads,
-            ),
+            reads~,
           ) {
           Ok(value) => value
           Err(_) => return Err(CustodyLost)
@@ -607,6 +604,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
           request: record.request,
           definition: record.definition,
           checkpoint: record.checkpoint.map(value => value.effect_ledger),
+          cancellation_head: record.cancellation_head,
           task_materials_cid: record.task_materials_cid,
         })
       },

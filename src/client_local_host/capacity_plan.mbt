@@ -441,7 +441,7 @@ fn client_local_capacity_plan(
     None
   }
   let metadata_quote = client_local_result_metadata_quote(
-    graph, scalar_values, result_envelope, 1,
+    graph, scalar_values, publication, 1,
   )
   // Unavailable Plans carry no usable metadata amount and cannot pass either
   // the typed constructor refusal or the original Plan matcher below.
@@ -656,19 +656,24 @@ fn client_local_capacity_plan_matches(
 fn client_local_result_metadata_quote(
   graph : @strategy.CheckedDAG?,
   scalar_values : Bool,
-  envelope : ClientLocalResultEnvelope?,
+  publication : ClientLocalResultPublicationPlan?,
   rows : Int,
 ) -> ClientLocalMetadataQuote {
   guard graph is Some(original) else { return MetadataNotApplicable }
   if !scalar_values || @strategy.graph_result_count(original) == 0 {
     return MetadataQuoted(client_local_cleanup_retained_bytes())
   }
-  guard envelope is Some(original_envelope) else { return MetadataUnavailable }
+  guard publication is Some(layout) &&
+    layout.envelope is Some(original_envelope) else {
+    return MetadataUnavailable
+  }
+  // The same checked publication layout has already measured each original
+  // Result schema, retaining its finite upper bound on unproved geometry.
   match
     client_local_result_metadata_retained(
       original_envelope,
       rows,
-      client_node_publication_schema_bytes(),
+      layout.schema_bytes,
     ) {
     Some(bytes) => MetadataQuoted(bytes)
     None => MetadataUnavailable

@@ -319,7 +319,7 @@ test "default correspondence consumes the existing Local audit work without wide
     _issue_prepared_client_legacy_local_normalization(defaulted)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(defaulted.local_normalization is None)
+  assert_true(defaulted.local_normalization is NormalizationNotIssued)
   let implicit_else = local_supplied_parameter_preparation(
     @source_frontend.Sql,
     "{\"id\":{\"type\":\"number\",\"default\":7}}",
@@ -330,7 +330,7 @@ test "default correspondence consumes the existing Local audit work without wide
     _issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
-  assert_true(implicit_else.local_normalization is None)
+  assert_true(implicit_else.local_normalization is NormalizationNotIssued)
 }
 
 ///|

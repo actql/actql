@@ -4,6 +4,7 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_join_shape" @join,

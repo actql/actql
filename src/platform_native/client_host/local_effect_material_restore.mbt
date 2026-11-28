@@ -70,6 +70,7 @@ fn restore_original_effect_material_packet(
     Unit,
     @host.ClientEffectRunMaterialsIssue,
   ])? = None,
+  retained_submission_input? : @host.ClientEffectRetainedSubmissionInput? = None,
 ) -> Result[@host.ClientEffectRunMaterials, @host.ClientEffectRunMaterialsIssue] {
   let materials = match
     @host.admit_client_effect_run_materials(
@@ -81,6 +82,7 @@ fn restore_original_effect_material_packet(
       limits,
       effect_limits,
       expected_request=Some(original.request),
+      retained_submission_input~,
       before_compilation~,
       request_value_policies~,
     ) {
@@ -112,6 +114,54 @@ fn restore_original_effect_material_packet(
 }
 
 ///|
+// Only the actual approval restoration borrows the authenticated Submission
+// in the existing lookup. The ordinary material reader returns the old packet.
+fn NativeLocalHostConnection::read_submitted_effect_approval_material_original(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+) -> Result[
+  (
+    NativeClientRetainedEffectMaterials,
+    @host.ClientEffectRetainedSubmissionInput?,
+  ),
+  NativeClientSubmittedEffectMaterialsIssue,
+] {
+  self.read_submitted_effect_material_original(
+    crypto,
+    principal,
+    connection,
+    reference,
+    request,
+    now,
+    (observed, original, admission) => {
+      let packet = match observed {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if @host.client_request_input_cid(packet.request) ==
+        @host.source_free_caller_input_intent_cid() {
+        return Ok((packet, None))
+      }
+      match
+        @host.prepare_client_effect_retained_submission_input(
+          original.reference.original,
+          original.intent,
+          packet.request,
+          admission.run_definition_cid,
+        ) {
+        Ok(input) => Ok((packet, Some(input)))
+        Err(_) => Err(CustodyLost)
+      }
+    },
+  )
+}
+
+///|
 // SAME independent current/custody relookup after pure construction, including
 // failed construction. Neither an earlier read nor an equal CID refreshes it.
 fn NativeLocalHostConnection::require_original_effect_material_current(
@@ -123,13 +173,26 @@ fn NativeLocalHostConnection::require_original_effect_material_current(
   request : @host.ClientRequestIdentity,
   now : Double,
   original : NativeClientRetainedEffectMaterials,
+  retained_submission_input? : @host.ClientEffectRetainedSubmissionInput? = None,
 ) -> Result[Unit, NativeClientSubmittedEffectMaterialsIssue] {
-  let current = match
-    self.lookup_submitted_effect_material_original(
-      crypto, principal, connection, reference, request, now,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  let current = match retained_submission_input {
+    None =>
+      match
+        self.lookup_submitted_effect_material_original(
+          crypto, principal, connection, reference, request, now,
+        ) {
+        Ok(packet) => packet
+        Err(issue) => return Err(issue)
+      }
+    Some(_) =>
+      match
+        self.read_submitted_effect_approval_material_original(
+          crypto, principal, connection, reference, request, now,
+        ) {
+        Ok((packet, input)) if input == retained_submission_input => packet
+        Ok(_) => return Err(Journal(CustodyLost))
+        Err(issue) => return Err(issue)
+      }
   }
   if current.materials_wire != original.materials_wire ||
     current.materials_cid != original.materials_cid ||

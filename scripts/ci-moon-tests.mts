@@ -4,13 +4,13 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {availableParallelism} from 'node:os';
-import {resolve} from 'node:path';
+import {basename, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readMoonTestPlan} from './ci-moon-test-plan.mjs';
 import {validateSelection} from './ci-targets.mjs';
 import type {CiPlan} from './ci-targets.mjs';
 import {runFocusedTests} from './test-execution.mjs';
-import {portableMoonTestCount} from './native-core-test-selection.mjs';
+import {portableMoonTestCount, portableMoonTestFiles} from './native-core-test-selection.mjs';
 import {readCiInput} from './ci-input.mjs';
 
 type PlanOptions = {cwd?: string; git?: (args: string[]) => string; discover?: typeof readMoonTestPlan};
@@ -19,6 +19,7 @@ type NativeOptions = PlanOptions & {readEvent?: (path: string) => PullRequestEve
 type RunOptions = PlanOptions & {
   count?: (args: string[], backend: string) => number;
   run?: (kind: 'moon', args: readonly string[], options: {cwd: string}) => ReturnType<typeof runFocusedTests>;
+  runWasm?: typeof runCoreWasmTests;
 };
 
 export function originalMoonTestPlan(plan: CiPlan, base: string, {cwd = process.cwd(),
@@ -42,9 +43,48 @@ export function nativeMoonPackages(environment = process.env, {cwd = process.cwd
   return originalMoonTestPlan(plan, base, {cwd, ...options}).packages;
 }
 
+const physicalWasmPackage = 'src/client_host_wasm';
+
+export function runCoreWasmTests(paths: readonly string[] | undefined, {cwd = process.cwd(),
+  inventory = portableMoonTestFiles, run = runFocusedTests, execute = execFileSync}: {
+  cwd?: string;
+  inventory?: typeof portableMoonTestFiles;
+  run?: typeof runFocusedTests;
+  execute?: typeof execFileSync;
+} = {}) {
+  const common = ['--deny-warn', '-j', String(availableParallelism())];
+  const original = inventory(cwd, [...common, ...(paths ?? [])], 'wasm');
+  const requested = paths && new Set(paths);
+  const records = requested ? original.filter(record => requested.has(record.source)) : original;
+  assert(records.length > 0, 'No original Wasm tests selected');
+  const host = records.filter(record => record.directory === physicalWasmPackage);
+  const ordinary = records.filter(record => record.directory !== physicalWasmPackage);
+  const args = ['--target', 'wasm', ...common];
+  if (ordinary.length) {
+    // Explicit original files avoid a directory selector reaching the Host
+    // package through another package's nested paths.
+    const files = [...new Set(ordinary.map(record => record.source))].sort();
+    const result = run('moon', [...args, ...files], {cwd, expectedTests: ordinary.length});
+    if (result !== 0) return result;
+  }
+  if (host.length) {
+    for (const {entry} of host) {
+      const [, kind] = JSON.parse(entry[0]) as [string, string];
+      assert.equal(kind, 'whitebox', 'An additional physical Wasm test driver needs an explicit Host route');
+    }
+    const files = [...new Set(host.map(record => basename(record.source)))].sort();
+    execute('moon', ['test', ...args, '--debug', '--build-only', physicalWasmPackage], {cwd, stdio: 'inherit'});
+    const driver = join(cwd, '_build/wasm/debug/test/client_host_wasm');
+    execute(process.execPath, [fileURLToPath(new URL('./test-python-local-metadata-wasm.mjs', import.meta.url)),
+      join(driver, 'client_host_wasm.whitebox_test.wasm'), join(driver, '__whitebox_test_info.json'),
+      '--debug', String(host.length), ...files], {cwd, stdio: 'inherit'});
+  }
+  return 0;
+}
+
 export function runMoonTests(plan: CiPlan, target: string, base: string, {cwd = process.cwd(), git, discover,
   count = (args, backend) => portableMoonTestCount(cwd, args, backend),
-  run = runFocusedTests}: RunOptions = {}) {
+  run = runFocusedTests, runWasm = runCoreWasmTests}: RunOptions = {}) {
   assert(['js', 'wasm'].includes(target), 'Native uses its original compiler/profile entrance');
   const scope = originalMoonTestPlan(plan, base, {cwd, git, discover});
   const args = ['--target', target, '--deny-warn', '-j', String(availableParallelism())];
@@ -54,13 +94,20 @@ export function runMoonTests(plan: CiPlan, target: string, base: string, {cwd = 
   // complete nonzero suite, rather than claiming a zero-test success.
   if (runnable === 0) {
     console.log(`Moon ${target}: no runnable selected compiler cases; retaining the full backend suite`);
-    return run('moon', args, {cwd});
+    return target === 'wasm' ? runWasm(undefined, {cwd}) : run('moon', args, {cwd});
+  }
+  if (target === 'wasm' && scope.files.some(path => path.startsWith(physicalWasmPackage + '/'))) {
+    return runWasm(scope.files, {cwd});
   }
   return run('moon', [...args, ...scope.files], {cwd});
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  assert.equal(process.env.GITHUB_EVENT_NAME, 'pull_request');
-  const payload: PullRequestEvent = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, 'utf8'));
-  process.exitCode = runMoonTests(readCiInput('CI_PLAN') as CiPlan, process.argv[2], payload.pull_request.base.sha);
+  if (process.argv[2] === 'wasm' && process.argv[3] === '--all' && process.argv.length === 4) {
+    process.exitCode = runCoreWasmTests(undefined);
+  } else {
+    assert.equal(process.env.GITHUB_EVENT_NAME, 'pull_request');
+    const payload: PullRequestEvent = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, 'utf8'));
+    process.exitCode = runMoonTests(readCiInput('CI_PLAN') as CiPlan, process.argv[2], payload.pull_request.base.sha);
+  }
 }

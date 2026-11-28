@@ -125,7 +125,10 @@ test "publication row projection checks each actual changed successor and cancel
   assert_true(result.0.physical_start_claimed)
   assert_eq(calls.val, 1)
   let cancelled = @host.client_run_journal_row_body(
-    { ..started, cancellation_requested: true, },
+    {
+      ..started,
+      cancellation_head: binding_fixture_cancellation_head(started_body),
+    },
     local_run_policy_originals=finite,
     run_observation_originals=observation,
   ).unwrap()

@@ -19,7 +19,7 @@ from actql_sdk._local_image_recipe import _recipe_from_original
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_native_holding import (_NativeHoldingLease,
     NativeHoldingRetirementError, NativeHoldingScopeError)
-from image_fixture import ORIGINAL, IMAGE, ENGINE
+from image_fixture import ENGINE, FIXTURE_WASMTIME_VERSION, IMAGE, ORIGINAL
 import test_local_distribution as distribution_fixture
 
 RESOURCES = LocalCoreResources(0, 8, 0, 0, 0, 16 * 1024 * 1024 + 65536)
@@ -134,7 +134,7 @@ class InstalledImageTests(unittest.TestCase):
         self.assertEqual(self.config.strategy, 'cranelift')
         calls = dict(self.events)
         self.assertEqual(calls['wasmtime_config_target_set'][1].value, b'aarch64-apple-darwin')
-        for name in ('wasm_gc', 'wasm_component_model', 'async_support'):
+        for name in ('wasm_gc', 'wasm_component_model'):
             self.assertIs(calls['wasmtime_config_' + name + '_set'][1], False)
         for name in ('total_gc_heaps', 'total_component_instances', 'total_stacks'):
             self.assertEqual(calls['wasmtime_pooling_allocation_config_' + name + '_set'][1], 0)
@@ -168,7 +168,7 @@ class InstalledImageTests(unittest.TestCase):
         components = case.inspect()
         library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
         library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
-        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        distribution = SimpleNamespace(version=FIXTURE_WASMTIME_VERSION, locate_file=lambda _: case.directory)
         with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution), \
                 patch('actql_sdk._local_engine.hashlib.sha256', wraps=hashlib.sha256) as hashes:
             original = _checked_installed_image(components)
@@ -186,7 +186,7 @@ class InstalledImageTests(unittest.TestCase):
         components.image.write_bytes(changed)
         case.body['compiled_image']['sha256'] = hashlib.sha256(changed).hexdigest()
         case.write_manifest()
-        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        distribution = SimpleNamespace(version=FIXTURE_WASMTIME_VERSION, locate_file=lambda _: case.directory)
         with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution), \
                 patch('actql_sdk._local_engine._load_selected_image',
                       side_effect=AssertionError('capture before original binding')) as capture:
@@ -199,7 +199,7 @@ class InstalledImageTests(unittest.TestCase):
         library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
         library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
         components.image.write_bytes(IMAGE[:-1] + b'X')
-        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        distribution = SimpleNamespace(version=FIXTURE_WASMTIME_VERSION, locate_file=lambda _: case.directory)
         with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution):
             with self.assertRaises(LocalInstallationError): _checked_installed_image(components)
 
@@ -208,7 +208,7 @@ class InstalledImageTests(unittest.TestCase):
         components = case.inspect()
         library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
         library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
-        distribution = SimpleNamespace(version='38.0.0', locate_file=lambda _: case.directory)
+        distribution = SimpleNamespace(version=FIXTURE_WASMTIME_VERSION, locate_file=lambda _: case.directory)
         with patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution):
             original = _checked_installed_image(components)
             self.assertEqual(original.encoded, IMAGE)
@@ -224,7 +224,7 @@ class InstalledImageTests(unittest.TestCase):
         components = case.inspect()
         library = case.directory / 'darwin-aarch64/_libwasmtime.dylib'
         library.parent.mkdir(); library.write_bytes(b'independent runtime library fixture')
-        distribution = SimpleNamespace(version='38.0.0', locate_file=Mock(return_value=case.directory))
+        distribution = SimpleNamespace(version=FIXTURE_WASMTIME_VERSION, locate_file=Mock(return_value=case.directory))
         from importlib import import_module
         imports = []
         def guarded_import(name, *args, **options):
@@ -232,7 +232,7 @@ class InstalledImageTests(unittest.TestCase):
                 imports.append(name)
                 raise AssertionError('Runtime package imported before library integrity admission')
             return import_module(name, *args, **options)
-        with patch('actql_sdk._local_engine.metadata.version', return_value='38.0.0'), \
+        with patch('actql_sdk._local_engine.metadata.version', return_value=FIXTURE_WASMTIME_VERSION), \
                 patch('actql_sdk._local_engine.metadata.distribution', return_value=distribution), \
                 patch('importlib.import_module', side_effect=guarded_import):
             self.assertEqual(_platform_runtime_library(components.image_recipe), library)
@@ -288,7 +288,8 @@ class InstalledImageTests(unittest.TestCase):
                          ['module', 'module', 'engine', 'store'])
 
     def test_installed_host_routes_only_to_image_constructor(self):
-        components = object(); core = Mock()
+        components = SimpleNamespace(model_crypto=None)
+        core = Mock()
         core._host_operation.return_value = nullcontext()
         with TemporaryDirectory() as directory, \
                 patch('actql_sdk._local_product.installed_local_components', return_value=components), \

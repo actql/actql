@@ -11,6 +11,7 @@ struct CapturedDAG {
   outputs : Array[CommittedTaskOutput?]
   done : Array[Bool]
   lifetimes : Array[TaskLifetime]
+  mut effect_pin_admission : CapturedEffectPinAdmission?
   effect_dependency_outputs : Array[Bool]
   resources : Array[TaskRetention?]
   join_limits : Array[Array[(Int, Int64)]]
@@ -1154,6 +1155,7 @@ fn open_checked_dag(
       retained_task == Some(task) || retained_tasks.contains(task)
     }),
     lifetimes,
+    effect_pin_admission: None,
     effect_dependency_outputs: Array::make(count, false),
     resources,
     join_limits,

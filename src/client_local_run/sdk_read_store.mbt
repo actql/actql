@@ -65,7 +65,7 @@ fn[E] sdk_read_store_observation(
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   current : () -> Result[Unit, E],
 ) -> Result[
-  (LocalSDKReadOriginals, @host.ClientJournalPhysicalRow?),
+  (LocalSDKReadOriginals, LocalSDKReadEvidenceDecision),
   LocalSDKReadStoreIssue[E],
 ] {
   match current() {
@@ -115,7 +115,12 @@ fn[E] sdk_read_store_observation(
     @publication.publication_contract_json(original.materials.manifest) {
     return Err(ChangedEvidence)
   }
-  Ok((original, row))
+  let evidence = match row {
+    Some(row) => LocalSDKReadEvidenceDecision::Retained(row)
+    None =>
+      LocalSDKReadEvidenceDecision::Append({ key, body: packet, revision: 0L, })
+  }
+  Ok((original, evidence))
 }
 
 ///|
@@ -143,34 +148,71 @@ pub fn[E] issue_local_sdk_read_grant_for_source(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if saved is None {
+  if saved is Append(_) {
     return Err(MissingEvidence)
   }
-  let actual = original.materials
-  let (principal, _, purpose, _, _, max_bytes, max_uses) = @publication.local_sdk_result_read_selection_parameters(
-    selection,
-  )
   let grant = match
-    @publication.issue_result_read_grant(
-      actual.index,
-      actual.manifest,
-      [result_name],
-      [format],
-      principal,
-      purpose,
-      original.ceiling.1,
-      max_bytes,
-      max_uses,
-      @host.client_local_run_policy_original_read_expires_at(finite),
-      original.authorization.1,
-      original.egress.1,
-      65536,
-      8192,
-      64,
+    issue_sdk_read_grant_for_original(
+      original, finite, selection, result_name, format,
     ) {
     Ok(grant) => grant
     Err(issue) => return Err(Grant(issue))
   }
+  match
+    check_sdk_read_original_current(
+      original, source, account, owner, view, result_name, max_results, current,
+    ) {
+    Ok(_) => Ok(grant)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+fn issue_sdk_read_grant_for_original(
+  original : LocalSDKReadOriginals,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  result_name : String,
+  format : String,
+) -> Result[
+  @publication.PublicationContract,
+  @publication.DeliveryIssuanceIssue,
+] {
+  let actual = original.materials
+  let (principal, _, purpose, _, _, max_bytes, max_uses) = @publication.local_sdk_result_read_selection_parameters(
+    selection,
+  )
+  @publication.issue_result_read_grant(
+    actual.index,
+    actual.manifest,
+    [result_name],
+    [format],
+    principal,
+    purpose,
+    original.ceiling.1,
+    max_bytes,
+    max_uses,
+    @host.client_local_run_policy_original_read_expires_at(finite),
+    original.authorization.1,
+    original.egress.1,
+    65536,
+    8192,
+    64,
+  )
+}
+
+///|
+fn[E] check_sdk_read_original_current(
+  original : LocalSDKReadOriginals,
+  source : LocalSDKReadSource,
+  account : @authorization.AdmittedAccountConfiguration,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  max_results : Int,
+  current : () -> Result[Unit, E],
+) -> Result[Unit, LocalSDKReadStoreIssue[E]] {
+  let actual = original.materials
   match current() {
     Err(issue) => Err(Observation(issue))
     Ok(_) =>
@@ -190,7 +232,7 @@ pub fn[E] issue_local_sdk_read_grant_for_source(
             @publication.publication_contract_json(actual.manifest) {
             Err(ChangedEvidence)
           } else {
-            Ok(grant)
+            Ok(())
           }
         }
       }
@@ -225,21 +267,13 @@ pub fn[E] prepare_local_sdk_read_evidence_for_source(
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKReadEvidenceDecision, LocalSDKReadStoreIssue[E]] {
-  let (original, saved) = match
+  match
     sdk_read_store_observation(
       source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match saved {
-    Some(row) => Ok(Retained(row))
-    None =>
-      match local_sdk_read_evidence_packet(original) {
-        Err(issue) => Err(Preparation(issue))
-        Ok((key, body)) => Ok(Append({ key, body, revision: 0L, }))
-      }
+    Ok((_, evidence)) => Ok(evidence)
+    Err(issue) => Err(issue)
   }
 }
 

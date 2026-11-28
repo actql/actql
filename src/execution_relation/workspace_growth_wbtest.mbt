@@ -8,6 +8,7 @@ fn working_growth_fixture(
     live_ceiling: 1000L,
     reserve,
     reserve_retained: None,
+    output_origin: None,
     slots: 0,
     logical: 0L,
     text: 0L,
@@ -353,4 +354,61 @@ test "working attachment cannot enlarge an explicit workspace from Fragment valu
   assert_eq(calls.val, 0)
   release_slots(workspace, 8)
   assert_eq(workspace.live, 0)
+}
+
+///|
+test "metered output origins distinguish separate attachments of the same sequence" {
+  let sequence = prepared_sequence(row_owner(",{\"select\":[\"a\"]}"))
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    ["select_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let limits : SequenceExecutionLimits = {
+    rows: run_limits(),
+    max_work: 100000,
+    max_frames: 100,
+  }
+  let reserve = _ => abort("attachment must not grow or spend")
+  assert_true(generated_output_workspace_original(generated) is None)
+  let first = bind_generated_workspace_growth(
+    generated,
+    limits,
+    1000000L,
+    reserve,
+    track_output_origin=true,
+  ).unwrap()
+  let second = bind_generated_workspace_growth(
+    generated,
+    limits,
+    1000000L,
+    reserve,
+    track_output_origin=true,
+  ).unwrap()
+  let original = generated_output_workspace_original(first).unwrap()
+  assert_true(
+    same_output_workspace_original(
+      original,
+      generated_output_workspace_original(first).unwrap(),
+    ),
+  )
+  assert_false(
+    same_output_workspace_original(
+      original,
+      generated_output_workspace_original(second).unwrap(),
+    ),
+  )
+  assert_true(
+    bind_generated_workspace_growth(
+      first,
+      limits,
+      1000000L,
+      reserve,
+      track_output_origin=true,
+    )
+    is Err(InvalidLimits),
+  )
 }

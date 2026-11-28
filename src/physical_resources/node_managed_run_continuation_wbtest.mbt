@@ -59,7 +59,21 @@ test "Node managed continuation imports one same original and reports preserved 
   // physical cleanup. Retire only the original child; never zero its report,
   // reset history or acquire another admission on an idempotent cleanup call.
   let cumulative = ledger_usage(ledger)
+  assert_true(
+    stopped_node_managed_run_ledger_state(admission, ledger)
+    is Err(ChangedOriginal),
+  )
   assert_eq(cleanup_node_managed_run_admission(admission), Ok(()))
+  let stopped = stopped_node_managed_run_ledger_state(admission, ledger).unwrap()
+  assert_eq(
+    encode_ledger_continuation_state(stopped),
+    Ok(continuation_test_wire()),
+  )
+  let foreign = create_ledger(limits).unwrap()
+  assert_true(
+    stopped_node_managed_run_ledger_state(admission, foreign)
+    is Err(ChangedOriginal),
+  )
   assert_eq(reports.val.unwrap(), cumulative)
   assert_eq(ledger_usage(ledger), cumulative)
   assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 3L)

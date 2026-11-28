@@ -27,6 +27,8 @@ class OriginalLocalCheck:
         self._key = secrets.token_bytes(32)
         self._inputs: list[_Input] = []
         self._outputs: list[_Output] = []
+        self._project_environment: _Output | None = None
+        self._project_environment_ready = False
         self._closing = False
 
     def _nominal(self) -> None:
@@ -34,20 +36,76 @@ class OriginalLocalCheck:
             raise ValueError('Copied original Local Check')
         self._host._nominal()
 
+    def _mock_environment_original(self, project: _Output, configuration: int) -> _Output:
+        return self._project_environment_original(project, configuration, local=False)
+
+    def _project_environment_original(self, project: _Output, configuration: int, *,
+                                      local: bool, portable: bool = False) -> _Output:
+        host = self._host
+        installation = host._active()
+        observe = (host._required_local_project_input if local else
+                   self._portable_project_original if portable else host._original_project_bootstrap)
+        if observe() is not project:
+            raise ValueError('Original Local Check project changed')
+        if self._project_environment is None:
+            base = host._base_check_environment()
+            packet: dict[str, object] = {'project': project.handle, 'base': base.handle,
+                                        'configuration': configuration}
+            if not local and not portable and host._project_runtime_cid is not None:
+                original, files = host._project_configuration, host._project_files
+                if original is None or files is None:
+                    raise ValueError('Original Mock Project installation is unavailable')
+                packet['installation'] = {'runtime_bundle_cid': host._project_runtime_cid,
+                                          'data_path': str(original.mock_data_path(files, project))}
+            source = host._copy(wire_bytes(packet))  # type: ignore[no-untyped-call]
+            self._inputs.append(source)
+            output = host._reserve(lambda: host._core.reserve_original_metadata(
+                source, 7, cleanup=lambda: True))
+            self._project_environment = output
+
+            def bind(current: _Output) -> None:
+                host._core.produce_original_metadata(output, current=current)
+
+            installation.binding.inspect(bind)
+            if observe() is not project:
+                raise ValueError('Original Local Check project changed')
+            self._project_environment_ready = True
+        if not self._project_environment_ready:
+            raise ValueError('Original Local Check environment construction is retained')
+        return self._project_environment
+
+    def _portable_project_original(self) -> _Output:
+        host = self._host
+        installation = host._active()
+        original = installation._portable_chat_output
+        files = host._project_files
+        if original is None or files is None:
+            raise ValueError('Original Portable Chat Check installation is unavailable')
+        host._core._owned_output(original, 'original')
+        files.current()
+        return original
+
     def _project(self, kind: int, packet: dict[str, Any]) -> bytes:
         self._nominal()
         if self._closing:
             raise ValueError('Original Local Check is closing')
         host = self._host
         installation = host._active()
-        environment = host._original_check_environment()
         configuration = host._configuration
         if configuration is None:
             raise ValueError('Original Local Check configuration is unavailable')
+        local = host._original_local_project_input()
+        portable = installation._portable_chat_output is not None
+        observe_project = (host._required_local_project_input if local is not None else
+                           self._portable_project_original if portable else host._original_project_bootstrap)
+        project = observe_project() if host._project_configuration is not None else None
+        environment = (host._original_check_environment().handle if project is None else
+                       self._project_environment_original(project, configuration.handle,
+                           local=local is not None, portable=portable).handle)
         source = host._copy(wire_bytes(packet))  # type: ignore[no-untyped-call]
         self._inputs.append(source)
         output = host._reserve(lambda: host._core.reserve_client_check(
-            environment.handle, configuration.handle, source, kind,
+            environment, configuration.handle, source, kind,
             cleanup=lambda: True))
         self._outputs.append(output)
         captured: list[bytes] = []
@@ -57,6 +115,8 @@ class OriginalLocalCheck:
             captured.append(host._core.read_client_check(output, current))
 
         installation.binding.inspect(observe)
+        if project is not None and observe_project() is not project:
+            raise ValueError('Original Local Check project changed')
         if not host._core.close_client_check(output):
             raise RuntimeError('Original Local Check output cleanup is pending')
         self._outputs.remove(output)
@@ -79,7 +139,8 @@ class OriginalLocalCheck:
         metadata = _object(self._project(0, {}), 262144)
         fields = {'compiler', 'checking_context', 'reason_schema_cid',
                   'outcome_schema_cid', 'audience', 'connection'}
-        if set(metadata) != fields or any(type(value) is not str for value in metadata.values()):
+        if (set(metadata) not in (fields, fields | {'publication_context'})
+                or any(type(value) is not str for value in metadata.values())):
             raise ValueError('Invalid original Local Check context metadata')
         bound = {**metadata, 'version': 'actql-check-context/0.1',
             'disclosure_policy': 'actql-check-disclosure/0.1',
@@ -136,6 +197,11 @@ class OriginalLocalCheck:
             if not self._host._core.close_client_check(output):
                 return False
             self._outputs.remove(output)
+        if self._project_environment is not None:
+            if not self._host._core.close_original_metadata(self._project_environment):
+                return False
+            self._project_environment = None
+            self._project_environment_ready = False
         for source in tuple(reversed(self._inputs)):
             if not self._host._core.close_input(source):
                 return False

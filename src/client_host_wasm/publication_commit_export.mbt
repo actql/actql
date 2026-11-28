@@ -6,18 +6,26 @@ priv enum PublicationCommitExportProjection {
   Schema(Int, Int)
   ObservedIndex(Int)
   ObservedRunState(Int)
-  SDKRunState(Int, Int)
   SDKMeasuredRunState(Int, Int, Int, Bool)
   SDKReadOriginal(Int, Int, Int, Int)
   SDKReadEvidence(Int, Int, Int)
   SDKReadGrant(Int, Int, Int)
   SDKReadEvidenceDecision(Int, Int)
   SDKReadDeliveryStorage(Int, Int)
+  SDKReadDeliveryBody(Int)
   SDKReadDeliveryLookup(Int, Int)
+  SDKLiveReturnControl(Int)
   SDKPayloadChunk(Int, Int, Int)
   SDKPayloadReceipt(Int)
-  SDKTerminalStorage(Int)
+  SDKTerminalStorage(Int, Bool, SDKTerminalPhase)
   InspectedReference(Int)
+} derive(Eq)
+
+///|
+priv enum SDKTerminalPhase {
+  Staged
+  Validated
+  Committed
 } derive(Eq)
 
 ///|
@@ -33,6 +41,11 @@ priv struct StoredPublicationCommitExport {
   mut closing : Bool
   mut output_closed : Bool
   mut state_borrow : @buffers.BufferBorrow?
+  mut sdk_delivery_prepared : (
+    Int,
+    @local_run.LocalSDKReadDeliveryPreparation,
+    Bool,
+  )?
   mut sdk_delivery_first : @local_run.LocalSDKReadDeliveryPreparation?
   mut sdk_payload_outcome : Result[@local_run.LocalSDKPayloadEncoding, Int]?
   mut sdk_payload_tick_borrow : @buffers.BufferBorrow?
@@ -44,7 +57,7 @@ priv struct StoredPublicationCommitExport {
   mut sdk_payload_terminal : @local_run.LocalSDKDeliveryTerminal?
   mut sdk_run_state_update : @host.ClientSavedRunStateUpdate?
   mut sdk_run_state_update_capacity : @resources.CapacityReservation?
-  mut sdk_run_state_transport : @resources.CapacityReservation?
+  mut sdk_transport_capacity : @resources.CapacityReservation?
 }
 
 ///|
@@ -124,6 +137,7 @@ pub fn reserve_bounded_publication_commit_export(
     closing: false,
     output_closed: false,
     state_borrow: None,
+    sdk_delivery_prepared: None,
     sdk_delivery_first: None,
     sdk_payload_outcome: None,
     sdk_payload_tick_borrow: None,
@@ -135,7 +149,7 @@ pub fn reserve_bounded_publication_commit_export(
     sdk_payload_terminal: None,
     sdk_run_state_update: None,
     sdk_run_state_update_capacity: None,
-    sdk_run_state_transport: None,
+    sdk_transport_capacity: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -156,6 +170,45 @@ fn publication_commit_export_view(
   ),
   Int,
 ] {
+  checked_publication_commit_view(value, parent, () => {
+    if parent.file is Some(file) {
+      // Each projected field reobserves the selected original Run, Task and
+      // locator. The physical precommit still checks the complete journal
+      // in this same writer before the Store can commit.
+      let status = sdk_file_capture_publication_current(
+        value,
+        parent,
+        file,
+        account,
+        selected_file_projection=true,
+      )
+      if status == 0 {
+        Ok(())
+      } else {
+        Err(status)
+      }
+    } else if publication_current(value, parent, account) {
+      Ok(())
+    } else {
+      Err(-32)
+    }
+  })
+}
+
+///|
+/// Borrow the same completed view only inside a caller's original current
+/// check. The check's selected purpose cannot change or advance the view.
+fn checked_publication_commit_view(
+  value : Instance,
+  parent : StoredPublication,
+  current : () -> Result[Unit, Int],
+) -> Result[
+  (
+    @publication.PublicationCommitPreparation,
+    @publication.PublicationCommitReadView,
+  ),
+  Int,
+] {
   if value.closing || value.runtime_closing || parent.closing {
     return Err(-5)
   }
@@ -164,13 +217,17 @@ fn publication_commit_export_view(
     !parent.pending &&
     parent.commit is Some(commit) &&
     parent.commit_view is Some(view) &&
-    parent.commit_index is Some(index_entry) &&
-    publication_current(value, parent, account) &&
-    commit.view_contract(view, 7) is Ok(original_index) &&
-    physical_equal(original_index, index_entry) else {
+    parent.commit_index is Some(index_entry) else {
     return Err(-32)
   }
-  Ok((commit, view))
+  current().bind(_ => {
+    if commit.view_contract(view, 7) is Ok(original_index) &&
+      physical_equal(original_index, index_entry) {
+      Ok((commit, view))
+    } else {
+      Err(-32)
+    }
+  })
 }
 
 ///|
@@ -210,7 +267,7 @@ pub fn publication_commit_export_result_count(
     return -2
   }
   match publication_commit_export_view(value, parent, current.account) {
-    Ok(_) => parent.publications.length()
+    Ok(_) => publication_result_count(parent)
     Err(code) => code
   }
 }
@@ -529,13 +586,13 @@ pub fn produce_publication_commit_schema(
     Ok(_) => ()
   }
   if result < 0 ||
-    result >= parent.publications.length() ||
+    result >= publication_result_count(parent) ||
     field < 0 ||
     field > 2 {
     return -3
   }
   guard value.publication_preflights.get(parent.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) else {
+    is Some({ closing: false, .. } as preflight) else {
     return -32
   }
   let projection = PublicationCommitExportProjection::Schema(result, field)
@@ -543,20 +600,42 @@ pub fn produce_publication_commit_schema(
     return -33
   }
   // Recheck the original receipt even when this output was produced earlier.
-  let text = match
-    @local_run.local_preflight_result_schema_field(
-      preflight,
-      result,
-      parent.publications[result],
-      current.account,
-      if field == 1 {
-        Wire
-      } else {
-        Identity
-      },
-    ) {
+  fn schema(
+    selected : @local_run.LocalResultSchemaField,
+  ) -> Result[String, Int] {
+    match preflight.origin {
+      ComputePublicationPreflight({ prepared: Some(original), .. }) =>
+        @local_run.local_preflight_result_schema_field(
+          original,
+          result,
+          parent.publications[result],
+          current.account,
+          selected,
+        ).map_err(_ => -32)
+      FilePublicationPreflight(file) =>
+        with_sdk_file_payload_result(
+          value,
+          parent,
+          file,
+          result,
+          current.account,
+          (original, row, recheck) => {
+            @local_run.local_captured_task_result_schema_field(
+              original, result, row, selected, recheck,
+            )
+          },
+        )
+      SavedEffectPublicationPreflight({ prepared: Some(original), .. }) =>
+        match original.result_schema(result, selected is Wire) {
+          Some(wire) => Ok(wire)
+          None => Err(-32)
+        }
+      _ => Err(-32)
+    }
+  }
+  let text = match schema(if field == 1 { Wire } else { Identity }) {
     Ok(text) => text
-    Err(_) => return -32
+    Err(code) => return code
   }
   if record.produced {
     return 0
@@ -565,16 +644,9 @@ pub fn produce_publication_commit_schema(
     return -33
   }
   let text = if field == 2 {
-    let wire = match
-      @local_run.local_preflight_result_schema_field(
-        preflight,
-        result,
-        parent.publications[result],
-        current.account,
-        Wire,
-      ) {
+    let wire = match schema(Wire) {
       Ok(wire) => wire
-      Err(_) => return -32
+      Err(code) => return code
     }
     match publication_storage_extent(text, wire) {
       Ok(descriptor) => descriptor
@@ -738,6 +810,56 @@ pub fn retire_publication_sdk_delivery_output(
 }
 
 ///|
+/// This terminal entrance is called by the trusted serialized Host only
+/// after synchronous unwind. Each original child still needs its physical
+/// close and reservation settlement.
+pub fn begin_publication_sdk_delivery_preparation_cleanup(
+  nonce : Int64,
+  publication : Int,
+  first_handle : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.publications.contains(publication) else {
+    return -2
+  }
+  retire_interrupted_sdk_delivery_preparation(value, publication, first_handle)
+}
+
+///|
+fn retire_interrupted_sdk_delivery_preparation(
+  value : Instance,
+  publication : Int,
+  first_handle : Int,
+) -> Int {
+  guard value.commit_exports.get(first_handle) is Some(first) &&
+    first.publication == publication else {
+    return -2
+  }
+  match first.projection {
+    None if !first.pending => return 0
+    Some(SDKReadDeliveryStorage(_, _)) => ()
+    _ => return -2
+  }
+  // The emitted holder can own later payload/clock calls. Their pending
+  // latch is outside this interrupted-construction entrance.
+  if first.produced || first.sdk_delivery_first is Some(_) {
+    return if first.pending { -33 } else { 0 }
+  }
+  value.closing = true
+  first.closing = true
+  first.pending = false
+  for child in value.commit_exports.values() {
+    if child.publication == publication &&
+      child.sdk_payload_parent == Some(first_handle) &&
+      child.projection == Some(SDKReadDeliveryBody(first_handle)) {
+      child.closing = true
+      child.pending = false
+    }
+  }
+  0
+}
+
+///|
 pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(handle) is Some(record) else {
@@ -777,10 +899,10 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
     }
     record.state_borrow = None
   }
-  if record.sdk_run_state_transport is Some(capacity) {
+  if record.sdk_transport_capacity is Some(capacity) {
     match @resources.settle_capacity(value.root, capacity) {
       Err(_) => return -4
-      Ok(_) => record.sdk_run_state_transport = None
+      Ok(_) => record.sdk_transport_capacity = None
     }
   }
   record.sdk_run_state_update = None
@@ -790,7 +912,34 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
       Ok(_) => record.sdk_run_state_update_capacity = None
     }
   }
+  if value.publications.get(record.publication)
+    is Some({ file: Some(file), .. }) &&
+    file.state_export == Some(handle) {
+    file.state_export = None
+  }
   value.commit_exports.remove(handle) |> ignore
   value.copies.remove(handle) |> ignore
   0
+}
+
+///|
+// The exact original output retains this synchronous construction on failure.
+fn[T] with_sdk_export_transport_capacity(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  working : Int64,
+  encode : () -> Result[T, Int],
+) -> Result[T, Int] {
+  guard output.sdk_transport_capacity is None else { return Err(-4) }
+  let capacity = match @resources.reserve_capacity(value.root, 0L, working) {
+    Ok(capacity) => capacity
+    Err(_) => return Err(-4)
+  }
+  output.sdk_transport_capacity = Some(capacity)
+  let result = encode()
+  match @resources.settle_capacity(value.root, capacity) {
+    Ok(_) => output.sdk_transport_capacity = None
+    Err(_) => if result is Ok(_) { return Err(-4) }
+  }
+  result
 }

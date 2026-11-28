@@ -28,7 +28,16 @@ fn stop_interest_fixture(
   let snapshot = targeted_original(rows)
   let row = @host.client_saved_submission_run_row(snapshot).unwrap()
   let original = submission_run_row_original_with_identity(row, None).unwrap()
-  let run = { ..original, cancellation_requested: requested, }
+  let run = if requested {
+    let body = submission_identity_wire.replace(
+      old="\"cancellation_head\":null",
+      new="\"cancellation_head\":{\"observed_revision\":\"18\",\"record_key\":\"3ec097f4b1602404e88a04cfe7da4c13504e50a5358aae9e3841039c77f6ebcd\"}",
+    )
+    let head = @host.decode_client_run_journal_row(@utf8.encode(body)).unwrap().cancellation_head
+    { ..original, cancellation_head: head, }
+  } else {
+    original
+  }
   let census : () -> Result[(Int, Int64), Int] = () => Ok((0, 0L))
   let plan = @host.prepare_client_cancellation_journal_append(
     run.request,
@@ -43,7 +52,7 @@ fn stop_interest_fixture(
       request: actual.1.request,
       definition: actual.1.definition,
       revision: actual.0.revision,
-      cancellation_requested: actual.1.cancellation_requested,
+      cancellation_requested: actual.1.cancellation_requested(),
       publication_binding: actual.1.publication_binding,
     },
     _ => Ok(None),
@@ -59,6 +68,56 @@ fn stop_interest_fixture(
     publication: sdk_publication_observation_original(run),
     confirmed: true,
   }
+}
+
+///|
+test "accepted Wasm cancellation writes the same head in the original four-row candidate" {
+  let retained = stop_interest_fixture(false, false)
+  let writes = cancellation_candidate_writes(retained.plan.unwrap()).unwrap()
+  // Independent SHA-256 of canonical [installed namespace, authority,
+  // requested cancel id]. The Run's physical revision advances 19 to 20.
+  let receipt_key = "f21c42f01f3276a44e3a0f4f61433294e119952dca67f73fcc009853390fd182"
+  assert_eq(writes.map(write => (write.0, write.1, write.2)), [
+    ("client_runs", retained.run.0.key, Some(19L)),
+    ("client_cancellations", receipt_key, None),
+    ("client_cancel_originals", receipt_key, None),
+    ("client_cancel_custody", "issued", Some(0L)),
+  ])
+  let body = @utf8.decode(writes[0].3)
+  assert_true(
+    body.has_prefix(
+      "{\"cancellation_head\":{\"observed_revision\":\"20\",\"record_key\":\"" +
+      receipt_key +
+      "\"},",
+    ),
+  )
+  let run = @host.decode_client_run_journal_row(writes[0].3).unwrap()
+  let original = @host.observe_client_accepted_cancellation_head(
+    run.cancellation_head.unwrap(),
+    "scope",
+    {
+      request: run.request,
+      definition: run.definition,
+      revision: 20L,
+      cancellation_requested: run.cancellation_requested(),
+      publication_binding: run.publication_binding,
+    },
+    (table, key) => {
+      Ok(
+        writes
+        .iter()
+        .find_first(write => write.0 == table && write.1 == key)
+        .map(write => {
+          (
+            { key, revision: 0L, body: write.3, } :
+            @host.ClientJournalPhysicalRow)
+        }),
+      )
+    },
+    -31,
+  ).unwrap()
+  assert_eq(original.cancel_id, "stop-original")
+  assert_eq(original.observed_revision, 20L)
 }
 
 ///|

@@ -224,13 +224,11 @@ fn journal_inspect_run_with_observation(
   before_observation : (() -> Unit)?,
 ) -> Result[@host.ClientRunJournalInspection, Int] {
   let retained = cell.bind(cell => cell.observation)
-  let admitted = if retained is Some(_) || decoded.2 is None {
-    false
-  } else {
+  let admitted = if retained is None && decoded.2 is Some(wire) {
     match
       (
         cell,
-        journal_observation_construction_capacity(),
+        journal_observation_construction_capacity(wire),
         journal_decode_row_capacity(row),
       ) {
       (Some(cell), Some((retention, execution)), Some((base, outer))) =>
@@ -251,6 +249,8 @@ fn journal_inspect_run_with_observation(
         }
       _ => false
     }
+  } else {
+    false
   }
   let capture : ((@host.ClientRunObservationOriginals) -> Unit)? = if admitted &&
     cell is Some(cell) {
@@ -293,6 +293,7 @@ fn journal_inspect_run_with_observation(
     request: record.request,
     definition: record.definition,
     checkpoint: None,
+    cancellation_head: record.cancellation_head,
     task_materials_cid: record.task_materials_cid,
   })
 }

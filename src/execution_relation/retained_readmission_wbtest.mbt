@@ -357,3 +357,175 @@ test "retained metadata facts bind exact preparation and descriptor without call
   )
   assert_eq(calls.val, 0)
 }
+
+///|
+test "retained logical Relation readmission verifies typed order and schema on the receiving port" {
+  let owner = capture_fixture()
+  let body = "{\"sort\":\"relation\",\"value\":[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]}"
+  let wire = row_wire_limits()
+  let schema_limits = schema_identity_limits()
+  let decode = retained_row_test_limits()
+  let values = stream_value_limits()
+  let rows = read_retained_logical_relation(
+    owner,
+    Step(1),
+    input_cursor(body),
+    2,
+    decode,
+    values,
+    () => true,
+  ).unwrap()
+  let schema = identify_relation_schema(
+    admitted_output_schema(rows),
+    schema_limits,
+  ).unwrap()
+  let expected : RetainedLogicalRelationIdentity = {
+    relation_cid: "sha256:" + @sha.text_hex(body).unwrap(),
+    relation_bytes: @utf8.encode(body).length(),
+    schema_cid: relation_schema_cid(schema),
+    schema_bytes: relation_schema_usage(schema).0,
+    rows: 2,
+  }
+  let preparation = content_read_preparation(owner)
+  let original = Ref(true)
+  let verified = fn(proof : Ref[Bool]) {
+    if physical_equal(proof, original) && original.val {
+      Some(rows)
+    } else {
+      None
+    }
+  }
+  let spent = Ref(0)
+  let work = fn(count : Int) {
+    spent.val += count
+    true
+  }
+  let restored = readmit_trusted_retained_relation(
+    preparation,
+    Step(1),
+    expected,
+    wire,
+    schema_limits,
+    work,
+    original,
+    verified,
+  ).unwrap()
+  assert_true(spent.val > 0)
+  let one_short = Ref(spent.val - 1)
+  assert_true(
+    readmit_trusted_retained_relation(
+      preparation,
+      Step(1),
+      expected,
+      wire,
+      schema_limits,
+      count => {
+        if one_short.val < count {
+          false
+        } else {
+          one_short.val -= count
+          true
+        }
+      },
+      original,
+      verified,
+    )
+    is Err(Limit),
+  )
+  assert_true(completed_output_matches_port(restored, owner, Step(1)))
+  assert_true(restored.completion.readmitted)
+  assert_false(completed_output_matches_inputs(restored, []))
+  assert_true(completed_cell(restored, 1, 1) is Some(Text("😀")))
+  let receiver = typed_receiver(owner, "[{\"select\":[\"n\"]}]")
+  let bound = bind_completed_input(receiver, 0, owner, restored).unwrap()
+  let read = prepare_producer_read(receiver, bound, 1000, 10000).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(receiver),
+    [],
+    ["select_0"],
+    10000,
+    1000,
+  ).unwrap()
+  let consumer = execute_fixed_producer_input(
+    generated,
+    read,
+    compute_test_limits(),
+  ).unwrap()
+  let next = completed_output(consumer, Step(0)).unwrap()
+  assert_true(completed_cell(next, 0, 0) is Some(Number(1)))
+  assert_true(completed_cell(next, 1, 0) is Some(Number(2)))
+  let reversed = "{\"sort\":\"relation\",\"value\":[{\"n\":2,\"s\":\"😀\"},{\"n\":1,\"s\":\"é\"}]}"
+  let replacement = {
+    ..expected,
+    relation_cid: "sha256:" + @sha.text_hex(reversed).unwrap(),
+  }
+  assert_true(
+    readmit_trusted_retained_relation(
+      preparation,
+      Step(1),
+      replacement,
+      wire,
+      schema_limits,
+      work,
+      original,
+      verified,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    readmit_trusted_retained_relation(
+      preparation,
+      Step(1),
+      { ..expected, schema_cid: expected.relation_cid, },
+      wire,
+      schema_limits,
+      work,
+      original,
+      verified,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    readmit_trusted_retained_relation(
+      content_read_preparation(capture_fixture()),
+      Step(1),
+      expected,
+      wire,
+      schema_limits,
+      work,
+      original,
+      verified,
+    )
+    is Err(ForeignOutput),
+  )
+  assert_true(
+    readmit_trusted_retained_relation(
+      preparation,
+      Step(1),
+      expected,
+      wire,
+      schema_limits,
+      work,
+      Ref(true),
+      verified,
+    )
+    is Err(Unverified),
+  )
+  assert_true(
+    readmit_trusted_retained_relation(
+      preparation,
+      Step(1),
+      expected,
+      wire,
+      schema_limits,
+      _ => false,
+      original,
+      verified,
+    )
+    is Err(Limit),
+  )
+  original.val = false
+  assert_true(completed_cell(restored, 0, 0) is None)
+  assert_false(producer_read_available(read))
+}

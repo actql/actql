@@ -21,6 +21,28 @@ fn NativeClientRunJournal::cancellation_test_operation(
 }
 
 ///|
+// A race fixture commits through the real cancellation transaction before
+// returning to its caller. It does not rewrite the Run control state directly.
+fn NativeClientRunJournal::accept_fixture_cancellation(
+  self : NativeClientRunJournal,
+  record : NativeClientRunRecord,
+) -> Unit {
+  let result = self
+    .cancel_operation(
+      record.request,
+      "namespace-a",
+      "fixture-cancellation",
+      record.revision.to_int(),
+      () => true,
+      { binding: record.publication_binding, observe: _ => Ok(false), },
+    )
+    .unwrap()
+  guard result.action == @host.AcceptCancellation else {
+    abort("fixture did not admit the original cancellation")
+  }
+}
+
+///|
 fn cancellation_test_run(
   name : String,
 ) -> (@sqlite.Database, NativeClientRunJournal, @host.ClientRequestIdentity) {
@@ -34,6 +56,259 @@ fn cancellation_test_run(
   |> ignore
   journal.reserve_dispatch(request, true).unwrap() |> ignore
   (database, journal, request)
+}
+
+///|
+fn old_cancellation_run_row(
+  database : @sqlite.Database,
+  key : String,
+  requested : Bool,
+) -> @sqlite.NativeJournalValue {
+  let original = database.read("client_runs", key).unwrap()
+  let wire = @utf8.decode(original.body) catch {
+    _ => abort("fixture Run UTF-8")
+  }
+  guard wire.find(",\"checkpoint\":") is Some(position) else {
+    abort("fixture Run lacks its canonical Checkpoint field")
+  }
+  let legacy = @utf8.encode(
+    "{\"cancellation_requested\":" +
+    (if requested { "true" } else { "false" }) +
+    wire[position:].to_owned(),
+  )
+  database
+  .compare_exchange("client_runs", key, original.revision, legacy)
+  .unwrap()
+  |> ignore
+  database.read("client_runs", key).unwrap()
+}
+
+///|
+test "Native reopens exact old uncancelled and accepted Run originals without rewriting or replay" {
+  for requested in [false, true] {
+    let name = if requested {
+      "old-client-accepted-cancellation"
+    } else {
+      "old-client-uncancelled-run"
+    }
+    let (database, journal, request) = cancellation_test_run(name)
+    let original_run = journal.retained(request).unwrap().unwrap()
+    let namespace_id = @publication.run_definition_namespace(
+      original_run.definition,
+    ).unwrap()
+    let accepted = if requested {
+      Some(
+        journal
+        .cancellation_test_operation(
+          request,
+          namespace_id,
+          "old-original",
+          1,
+          () => true,
+          () => false,
+        )
+        .unwrap(),
+      )
+    } else {
+      None
+    }
+    let key = @host.client_request_scope_cid(request)
+    let legacy = old_cancellation_run_row(database, key, requested)
+    database.close_checked().unwrap()
+    let reopened = epoch_test_database(name)
+    let retained = open_native_client_run_journal(reopened, 8).unwrap()
+    assert_true(run_journal_custody(reopened, 8) is Ok(_))
+    guard retained.lookup(request, true) is Ok(Retained(run)) else {
+      fail("legacy original missing")
+    }
+    assert_eq(run.cancellation_requested(), requested)
+    assert_eq(run.revision, legacy.revision)
+    if accepted is Some(original) {
+      assert_eq(
+        run.cancellation_head.unwrap().observed_revision,
+        original.observed_revision,
+      )
+      assert_false(retained.claim_physical_start(request, true).unwrap())
+      let repeated = retained
+        .cancellation_test_operation(
+          request,
+          namespace_id,
+          "old-original",
+          1,
+          () => true,
+          () => abort("a replay must not observe a new terminal disposition"),
+        )
+        .unwrap()
+      assert_eq(
+        @host.client_cancellation_journal_row_body(repeated),
+        @host.client_cancellation_journal_row_body(original),
+      )
+      assert_eq(
+        reopened.read("client_cancel_custody", "issued").unwrap().body,
+        b"1",
+      )
+    }
+    let unchanged = reopened.read("client_runs", key).unwrap()
+    assert_eq(
+      (unchanged.revision, unchanged.body),
+      (legacy.revision, legacy.body),
+    )
+    reopened.close_checked().unwrap()
+  }
+}
+
+///|
+test "Native old requested Run refuses a missing or changed original witness" {
+  for missing in [true, false] {
+    let name = if missing {
+      "old-cancellation-missing-witness"
+    } else {
+      "old-cancellation-changed-witness"
+    }
+    let (database, journal, request) = cancellation_test_run(name)
+    let original_run = journal.retained(request).unwrap().unwrap()
+    let namespace_id = @publication.run_definition_namespace(
+      original_run.definition,
+    ).unwrap()
+    journal
+    .cancellation_test_operation(
+      request,
+      namespace_id,
+      "old-original",
+      1,
+      () => true,
+      () => false,
+    )
+    .unwrap()
+    |> ignore
+    let head = journal.retained(request).unwrap().unwrap().cancellation_head.unwrap()
+    let key = @host.client_request_scope_cid(request)
+    let legacy = old_cancellation_run_row(database, key, true)
+    if missing {
+      let table = @utf8.encode("client_cancel_originals")
+      let key = @utf8.encode(head.record_key)
+      assert_true(
+        submitted_test_remove_record(
+          database,
+          table,
+          table.length(),
+          key,
+          key.length(),
+        ),
+      )
+    } else {
+      database
+      .compare_exchange(
+        "client_cancel_originals",
+        head.record_key,
+        0L,
+        b"foreign",
+      )
+      .unwrap()
+      |> ignore
+    }
+    assert_true(journal.lookup(request, true) is Err(CustodyLost))
+    assert_true(run_journal_custody(database, 8) is Err(CustodyLost))
+    let unchanged = database.read("client_runs", key).unwrap()
+    assert_eq(
+      (unchanged.revision, unchanged.body),
+      (legacy.revision, legacy.body),
+    )
+    database.close_checked().unwrap()
+  }
+}
+
+///|
+test "Native old requested Run refuses an ambiguous accepted history" {
+  let (database, journal, request) = cancellation_test_run(
+    "old-cancellation-ambiguous",
+  )
+  let run = journal.retained(request).unwrap().unwrap()
+  let namespace_id = @publication.run_definition_namespace(run.definition).unwrap()
+  let accepted = journal
+    .cancellation_test_operation(
+      request,
+      namespace_id,
+      "old-original",
+      1,
+      () => true,
+      () => false,
+    )
+    .unwrap()
+  let key = @host.client_request_scope_cid(request)
+  let legacy = old_cancellation_run_row(database, key, true)
+  let authority = @host.client_request_authority_scope_cid(request)
+  let identity = @host.prepare_client_cancellation_identity(
+    namespace_id,
+    authority,
+    "other-original",
+    run.definition,
+    1,
+  ).unwrap()
+  let duplicate = { ..accepted, cancel_id: "other-original", identity, }
+  let duplicate_key = @host.client_cancellation_journal_index(
+    namespace_id,
+    authority,
+    duplicate.cancel_id,
+  ).unwrap()
+  let duplicate_body = @host.client_cancellation_journal_row_body(duplicate).unwrap()
+  database
+  .insert("client_cancellations", duplicate_key, duplicate_body)
+  .unwrap()
+  |> ignore
+  database
+  .insert(
+    "client_cancel_originals",
+    duplicate_key,
+    @utf8.encode(@sha.hex(duplicate_body)),
+  )
+  .unwrap()
+  |> ignore
+  database
+  .compare_exchange("client_cancel_custody", "issued", 1L, b"2")
+  .unwrap()
+  |> ignore
+  assert_true(journal.lookup(request, true) is Err(CustodyLost))
+  let unchanged = database.read("client_runs", key).unwrap()
+  assert_eq(
+    (unchanged.revision, unchanged.body),
+    (legacy.revision, legacy.body),
+  )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native old requested Run does not borrow another Run's accepted history" {
+  let (database, journal, request) = cancellation_test_run(
+    "old-cancellation-foreign",
+  )
+  let (foreign, prepared, compiled, definition) = journal_test_run(
+    "foreign-cancel-request", "foreign-cancel-run",
+  )
+  let namespace_id = @publication.run_definition_namespace(definition).unwrap()
+  journal.bind_run(foreign, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  journal.reserve_dispatch(foreign, true).unwrap() |> ignore
+  journal
+  .cancellation_test_operation(
+    foreign,
+    namespace_id,
+    "other-original",
+    1,
+    () => true,
+    () => false,
+  )
+  .unwrap()
+  |> ignore
+  let key = @host.client_request_scope_cid(request)
+  let legacy = old_cancellation_run_row(database, key, true)
+  assert_true(journal.lookup(request, true) is Err(CustodyLost))
+  let unchanged = database.read("client_runs", key).unwrap()
+  assert_eq(
+    (unchanged.revision, unchanged.body),
+    (legacy.revision, legacy.body),
+  )
+  database.close_checked().unwrap()
 }
 
 ///|
@@ -72,7 +347,7 @@ test "Native cancellation keeps immutable original operation across replay and r
   guard journal.lookup(request, true) is Ok(Retained(run)) else {
     fail("Run missing")
   }
-  assert_true(run.cancellation_requested)
+  assert_true(run.cancellation_requested())
   assert_false(run.physical_start_claimed)
   assert_true(run.checkpoint is None)
   assert_false(journal.claim_physical_start(request, true).unwrap())
@@ -299,8 +574,43 @@ test "Native cancellation commit loss is looked up without deriving a retry from
     guard journal.lookup(request, true) is Ok(Retained(run)) else {
       fail("Run missing")
     }
-    assert_eq(run.cancellation_requested, reply_lost)
+    assert_eq(run.cancellation_requested(), reply_lost)
     assert_eq(run.revision, if reply_lost { 2L } else { 1L })
+    let key = cancellation_index(
+      "namespace-a",
+      @host.client_request_authority_scope_cid(request),
+      "original",
+    ).unwrap()
+    if reply_lost {
+      guard run.cancellation_head is Some(head) &&
+        lookup is OriginalCancellation(original) else {
+        fail("accepted cancellation head missing")
+      }
+      assert_eq(head.record_key, key)
+      assert_eq(head.observed_revision, 2L)
+      let receipt = reopened.read("client_cancellations", key).unwrap()
+      let witness = reopened.read("client_cancel_originals", key).unwrap()
+      let issued = reopened.read("client_cancel_custody", "issued").unwrap()
+      assert_eq(receipt.revision, 0L)
+      assert_eq(
+        receipt.body,
+        @host.client_cancellation_journal_row_body(original).unwrap(),
+      )
+      assert_eq(witness.revision, 0L)
+      assert_eq(witness.body, @utf8.encode(@sha.hex(receipt.body)))
+      assert_eq(issued.revision, 1L)
+      assert_eq(issued.body, b"1")
+    } else {
+      assert_true(
+        reopened.read("client_cancellations", key) is Err(@sqlite.NotFound),
+      )
+      assert_true(
+        reopened.read("client_cancel_originals", key) is Err(@sqlite.NotFound),
+      )
+      let issued = reopened.read("client_cancel_custody", "issued").unwrap()
+      assert_eq(issued.revision, 0L)
+      assert_eq(issued.body, b"0")
+    }
     reopened.close_checked().unwrap()
   }
 }
@@ -395,6 +705,70 @@ test "Native original cancellation refuses missing altered or lost witness custo
 }
 
 ///|
+test "Native cancellation head cannot be removed by an ordinary Run CAS" {
+  let (database, journal, request) = cancellation_test_run(
+    "client-cancel-head-cas",
+  )
+  journal.accept_fixture_cancellation(
+    journal.retained(request).unwrap().unwrap(),
+  )
+  let key = @host.client_request_scope_cid(request)
+  let current = journal.retained(request).unwrap().unwrap()
+  let before = database.read("client_runs", key).unwrap()
+  assert_true(current.cancellation_head is Some(_))
+  assert_true(
+    journal.transaction(() => {
+      journal.save({ ..current, cancellation_head: None, })
+    })
+    is Err(CustodyLost),
+  )
+  let after = database.read("client_runs", key).unwrap()
+  assert_eq(after.revision, before.revision)
+  assert_eq(after.body, before.body)
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native cancellation audit detects an accepted head after receipt and witness loss" {
+  let (database, journal, request) = cancellation_test_run(
+    "client-cancel-orphan-head",
+  )
+  journal.accept_fixture_cancellation(
+    journal.retained(request).unwrap().unwrap(),
+  )
+  let original = journal.retained(request).unwrap().unwrap()
+  guard original.cancellation_head is Some(head) else {
+    fail("original accepted cancellation head missing")
+  }
+  let run_key = @host.client_request_scope_cid(request)
+  let before = database.read("client_runs", run_key).unwrap()
+  for
+    (table, key) in [
+      ("client_cancellations", head.record_key),
+      ("client_cancel_originals", head.record_key),
+      ("client_cancel_custody", "issued"),
+    ] {
+    let table = @utf8.encode(table)
+    let key = @utf8.encode(key)
+    assert_true(
+      submitted_test_remove_record(
+        database,
+        table,
+        table.length(),
+        key,
+        key.length(),
+      ),
+    )
+  }
+  database.insert("client_cancel_custody", "issued", b"0").unwrap() |> ignore
+  assert_true(run_journal_custody(database, 8) is Err(CustodyLost))
+  let after = database.read("client_runs", run_key).unwrap()
+  assert_eq(after.revision, before.revision)
+  assert_eq(after.body, before.body)
+  database.close_checked().unwrap()
+}
+
+///|
 test "Native already-terminal cancellation records exact result without a stop or revision change" {
   let (database, journal, request) = cancellation_test_run(
     "client-cancel-terminal",
@@ -414,7 +788,7 @@ test "Native already-terminal cancellation records exact result without a stop o
   guard journal.lookup(request, true) is Ok(Retained(run)) else {
     fail("Run missing")
   }
-  assert_false(run.cancellation_requested)
+  assert_false(run.cancellation_requested())
   assert_false(run.physical_start_claimed)
   assert_eq(run.revision, 1L)
   database.close_checked().unwrap()
@@ -514,7 +888,7 @@ test "Native publication fence permits only original readback and blocks nested 
     fail("Run missing")
   }
   assert_eq(after.revision, before.revision)
-  assert_false(after.cancellation_requested)
+  assert_false(after.cancellation_requested())
   database.close_checked().unwrap()
 }
 

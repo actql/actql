@@ -59,6 +59,8 @@ pub fn join_nullability(Contract, Contract, Int) -> Contract? raise RelationErro
 
 pub fn join_nullability_usage(Contract, Contract, Int) -> (Contract?, Int) raise RelationError
 
+pub fn json_schema_emission_bounded_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn key_comparable(Contract, Contract) -> Bool
 
 pub fn nonnull_resource_ref_kind(Contract) -> String?

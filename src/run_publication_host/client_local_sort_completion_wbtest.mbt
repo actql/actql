@@ -143,5 +143,5 @@ test "a journal exceeding original limits refuses atomically without an empty fa
     _issue_prepared_client_legacy_local_normalization(original)
     is Err(Evidence(_)),
   )
-  assert_true(original.local_normalization is None)
+  assert_true(original.local_normalization is NormalizationNotIssued)
 }
