@@ -469,7 +469,7 @@ export async function observePythonReleaseTarget(directory, expectedSha256, targ
   const target = fixed.manifest.request.targets.find(value => value.id === targetId);
   assert(target?.ecosystem === 'pypi', 'Select one complete original Python target');
   const cohort = fixed.manifest.cohorts.find(value => value.targetId === targetId);
-  assert.equal(cohort.kind, 'python-wheels');
+  assert(cohort.kind === 'python-wheels' || cohort.kind === 'python-wheel-pair');
   const artifacts = fixed.manifest.artifacts.filter(value => value.targetId === targetId);
   const startedAt = new Date().toISOString(), observations = [], issues = [], requests = [];
   for (const artifact of artifacts) {

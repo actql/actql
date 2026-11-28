@@ -9,11 +9,13 @@ import {basename, join, resolve} from 'node:path';
 import {admitReleaseRequest} from './release-policy.mjs';
 import type {ReleaseEcosystem, ReleasePolicy, ReleaseRequest} from './release-policy.mjs';
 import type {releaseVersion} from './release-version.mjs';
+import {readPythonReleasePair} from './release-python-wheel-pair.mjs';
 
 type BoundedFile = {path: string; bytes?: number; sha256?: string};
 type FileIdentity = Required<BoundedFile>;
-type Cohort = FileIdentity & {targetId: string; kind: 'node-npm' | 'native-npm' | 'native-standalone' | 'python-wheels';
-  verification: string};
+type Cohort = FileIdentity & {targetId: string; verification: string} & (
+  {kind: 'node-npm' | 'native-npm' | 'native-standalone' | 'python-wheels'; originalManifests?: never} |
+  {kind: 'python-wheel-pair'; originalManifests: FileIdentity[]});
 type ReleaseArtifact = FileIdentity & {
   targetId: string; ecosystem: ReleaseEcosystem; name: string; version: string; file: string; integrity?: string;
 };
@@ -97,13 +99,15 @@ export async function verifyReleaseSet(directory: string, {expectedSha256}: {exp
   assert.deepEqual(manifest.cohorts.map(value => value.targetId), selected.request.targets.map(value => value.id));
   const keys = new Set();
   for (const cohort of manifest.cohorts) {
-    exact(cohort, ['targetId', 'kind', 'path', 'bytes', 'sha256', 'verification']);
+    exact(cohort, ['targetId', 'kind', 'path', 'bytes', 'sha256', 'verification',
+      ...(cohort.kind === 'python-wheel-pair' ? ['originalManifests'] : [])]);
     assert(cohort.path.startsWith(`${cohort.targetId}/`));
     const actual = await digest(await originalFile(directory, cohort.path));
     assert.equal(actual.bytes, cohort.bytes); assert.equal(actual.sha256, cohort.sha256);
-    const child: unknown = JSON.parse(await readFile(await originalFile(directory, cohort.path), 'utf8'));
     const target = selected.request.targets.find(value => value.id === cohort.targetId);
     assert(target, 'Missing original cohort target');
+    const child: unknown = cohort.kind === 'python-wheel-pair' ? undefined :
+      JSON.parse(await readFile(await originalFile(directory, cohort.path), 'utf8'));
     let identities: ReleaseArtifact[];
     if (cohort.kind === 'node-npm' || cohort.kind === 'native-npm') {
       const npm = child as NpmCohort;
@@ -123,9 +127,26 @@ export async function verifyReleaseSet(directory: string, {expectedSha256}: {exp
       assert.deepEqual(native.platforms, target.platforms); assert.deepEqual(native.requestedProfiles, target.profiles);
       identities = [...native.archives, native.checksums].map(item => ({targetId: target.id, ecosystem: 'native', name: item.name,
         version: item.version, file: item.file, bytes: item.bytes, sha256: item.sha256, path: `${target.id}/${item.file}`}));
+    } else if (cohort.kind === 'python-wheel-pair') {
+      assert.equal(cohort.path, `${target.id}/python-release-pair.json`);
+      const original = await checkedBytes(directory, cohort, 4 * 1024 * 1024);
+      const {receipts, wheels} = readPythonReleasePair(original, selected.request.source.commit, selected.version.version, target);
+      assert(Array.isArray(cohort.originalManifests) && cohort.originalManifests.length === receipts.length,
+        'Both original Python cohort manifests must be retained');
+      for (const [index, receipt] of receipts.entries()) {
+        const originalManifest: FileIdentity | undefined = cohort.originalManifests[index];
+        assert(originalManifest);
+        exact(originalManifest, ['path', 'bytes', 'sha256']);
+        assert.equal(originalManifest.path, `${target.id}/${receipt.platform}/cohort.json`);
+        assert.equal(originalManifest.sha256, receipt.manifestSha256, 'Foreign original Python cohort digest');
+        await checkedBytes(directory, originalManifest, 4 * 1024 * 1024);
+      }
+      identities = wheels.map(({distribution, ...item}) => ({...item, targetId: target.id, ecosystem: 'pypi',
+        name: distribution, version: selected.version.pythonVersion, path: `${target.id}/${item.file}`}));
     } else {
       const python = child as PythonCohort;
       assert.equal(cohort.kind, 'python-wheels'); assert.equal(target.ecosystem, 'pypi');
+      assert(selected.version.version !== '0.0.3', 'v0.0.3 Python release requires the original two-platform pair');
       assert.equal(python.source_sha, selected.request.source.commit);
       assert.equal(python.package_version, selected.version.pythonVersion);
       assert(target.platforms.includes(python.platform));
@@ -138,7 +159,9 @@ export async function verifyReleaseSet(directory: string, {expectedSha256}: {exp
   }
   for (const target of selected.request.targets) {
     const records = manifest.artifacts.filter(value => value.targetId === target.id);
-    assert.deepEqual(records.map(value => value.name), target.packages);
+    const names = records.map(value => value.name);
+    const pair = manifest.cohorts.find(value => value.targetId === target.id)?.kind === 'python-wheel-pair';
+    assert.deepEqual(pair ? [...new Set(names)] : names, target.packages);
     for (const record of records) {
       exact(record, ['targetId', 'ecosystem', 'name', 'version', 'file', 'bytes', 'sha256', 'path',
         ...(target.ecosystem === 'npm' ? ['integrity'] : [])]);

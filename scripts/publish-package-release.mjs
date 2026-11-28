@@ -386,17 +386,26 @@ async function pythonPublishSelection(directory, expectedSha256, targetId, pytho
   assert.equal(target?.ecosystem, 'pypi'); assert.equal(target.destination, 'https://upload.pypi.org/legacy/');
   assert.deepEqual(target.packages, pythonProjects, 'Use the complete original three-project Python cohort');
   assert(fixed.review?.executionScope.publish.includes(targetId), 'Python publication needs its bound proposed scope and evidence');
-  const child = fixed.manifest.cohorts.find(value => value.targetId === targetId); assert.equal(child.kind, 'python-wheels');
-  // This is the original cold wheel owner, executed only from the protected
-  // immutable validator checkout, not executable code supplied by a candidate.
-  const output = JSON.parse(execFileSync(python, [fileURLToPath(new URL('./python_release_cohort.py', import.meta.url)),
-    '--verify-directory', dirname(join(resolve(directory), child.path)), '--source', fixed.manifest.request.source.commit,
-    '--version', fixed.manifest.release.pythonVersion, '--frozen-layout'],
-  {encoding: 'utf8', timeout: 60_000, maxBuffer: 4 * 1024 * 1024}));
-  assert.equal(output.manifest_sha256, child.sha256);
-  assert.deepEqual(target.platforms, [output.cohort.platform], 'No unverified extra Python platform can inherit this single original cohort');
+  const child = fixed.manifest.cohorts.find(value => value.targetId === targetId);
+  assert(child.kind === 'python-wheels' || child.kind === 'python-wheel-pair');
+  const paired = child.kind === 'python-wheel-pair';
+  const wheelDirectory = dirname(join(resolve(directory), child.path));
+  const manifests = paired ? child.originalManifests : [child];
+  const platforms = [];
+  // The same cold wheel owner reads each original manifest and the actual fixed
+  // wheel bytes. It runs from the protected immutable validator checkout.
+  for (const original of manifests) {
+    const output = JSON.parse(execFileSync(python, [fileURLToPath(new URL('./python_release_cohort.py', import.meta.url)),
+      '--verify-directory', dirname(join(resolve(directory), original.path)), '--source', fixed.manifest.request.source.commit,
+      '--version', fixed.manifest.release.pythonVersion, '--frozen-layout',
+      ...(paired ? ['--frozen-wheels', wheelDirectory] : [])],
+    {encoding: 'utf8', timeout: 60_000, maxBuffer: 4 * 1024 * 1024}));
+    assert.equal(output.manifest_sha256, original.sha256, 'Cold verifier did not read the selected original Python cohort');
+    platforms.push(output.cohort.platform);
+  }
+  assert.deepEqual(platforms.sort(), [...target.platforms].sort(), 'Cold verification must cover every selected Python platform');
   await verifyReleaseSet(directory, {expectedSha256});
-  return {fixed, target, uses, artifacts: fixed.manifest.artifacts.filter(value => value.targetId === targetId)};
+  return {fixed, target, uses, paired, artifacts: fixed.manifest.artifacts.filter(value => value.targetId === targetId)};
 }
 
 export async function pythonPublishPlan(directory, expectedSha256, targetId, python, actionRevision) {
@@ -459,24 +468,31 @@ export async function publishPythonReleaseProject(options) {
   };
   await record('preflight.json', initial);
   const fresh = await observe(); await record('before.json', fresh); valid(fresh);
-  const item = selected.artifacts.find(value => value.name === project); assert(item);
-  const current = fresh.observations.find(value => value.file === item.file);
-  let actionState = 'already-identical', attestation = null;
-  if (current.state === 'absent') {
-    for (const dependency of pythonDependencies(project)) assert(fresh.observations.some(value =>
-      value.name === dependency && value.state === 'present'), 'Facade publication waits for exact original SDK and runtime public bytes');
-    const captured = await readFrozenReleaseArtifact(directory, expectedSha256, targetId, item.file);
+  const states = new Map(fresh.observations.map(value => [value.file, value.state]));
+  const projectWheels = selected.artifacts.filter(value => value.name === project);
+  assert(projectWheels.length && projectWheels.every(item => states.has(item.file)), 'Missing original project observation');
+  const missing = projectWheels.filter(item => states.get(item.file) === 'absent');
+  let actionState = 'already-identical';
+  const attestations = [];
+  if (missing.length) {
+    const dependencies = selected.artifacts.filter(value => pythonDependencies(project).includes(value.name));
+    assert(dependencies.every(item => states.get(item.file) === 'present'),
+      'Facade publication waits for exact original SDK and runtime public bytes');
     const payload = join(attempt, 'payload'); await mkdir(payload, {mode: 0o700}); await syncDirectory(attempt);
-    const path = join(payload, item.file); await writePrivateOriginal(path, captured.bytes, 0o400);
-    assert.deepEqual(await readdir(payload), [item.file]);
+    for (const item of missing) {
+      const captured = await readFrozenReleaseArtifact(directory, expectedSha256, targetId, item.file);
+      await writePrivateOriginal(join(payload, item.file), captured.bytes, 0o400);
+    }
+    assert.deepEqual((await readdir(payload)).sort(), missing.map(item => item.file).sort());
     const inputs = Object.freeze({'packages-dir': payload, 'repository-url': selected.target.destination,
       'verify-metadata': 'true', 'skip-existing': 'false', attestations: 'true'});
     const action = Object.freeze({uses: selected.uses, with: inputs});
+    const payloadIdentity = selected.paired ? {artifacts: missing} : {artifact: missing[0]};
     await record('intent.json', {schemaVersion: 'actql-python-publish-intent/0.1', at: new Date().toISOString(),
-      manifestSha256: expectedSha256, targetId, project, attemptId, artifact: item, action,
+      manifestSha256: expectedSha256, targetId, project, attemptId, ...payloadIdentity, action,
       outcome: 'unknown-until-original-job-terminal-and-public-byte-readback'});
     let reply;
-    try {reply = await runProjectJob(action, {manifestSha256: expectedSha256, targetId, project, artifact: structuredClone(item)});}
+    try {reply = await runProjectJob(action, {manifestSha256: expectedSha256, targetId, project, ...structuredClone(payloadIdentity)});}
     catch (failure) {
       try {await record('unknown.json', {state: 'unknown', reason: 'original-job-response-lost'});}
       catch (cleanup) {throw retainOriginalPublisherFailure(cleanup, failure);}
@@ -494,24 +510,32 @@ export async function publishPythonReleaseProject(options) {
       targetId, project, code, signal, stdout, stderr,
       commandSucceeded: code === 0 && signal === null, confirmation: 'unobserved'});
     assert(code === 0 && signal === null, `Original PyPI outcome unconfirmed; preserve ${attempt}`);
-    assert.deepEqual(await readFile(path), captured.bytes, 'Publisher changed original wheel bytes');
-    const original = await lstat(path); assert(original.isFile() && !original.isSymbolicLink() && (original.mode & 0o777) === 0o400);
-    const sidecar = `${item.file}.publish.attestation`;
-    assert.deepEqual((await readdir(payload)).sort(), [item.file, sidecar].sort(), 'Original action attestation missing or unselected payload appeared');
-    const sidecarPath = join(payload, sidecar), stat = await lstat(sidecarPath);
-    assert(stat.isFile() && !stat.isSymbolicLink() && stat.size > 0 && stat.size <= 4 * 1024 * 1024);
-    const bytes = await readFile(sidecarPath); assert.equal(bytes.length, stat.size);
-    attestation = {file: sidecar, bytes: bytes.length, sha256: digest(bytes),
-      qualification: 'raw original publisher output; cryptographic identity, PyPI provenance and owner acceptance not established by this receipt'};
-    await record('attestation.json', attestation);
+    assert.deepEqual((await readdir(payload)).sort(), missing.flatMap(item =>
+      [item.file, `${item.file}.publish.attestation`]).sort(),
+    'Original action attestation missing or unselected payload appeared');
+    for (const item of missing) {
+      const path = join(payload, item.file), original = await lstat(path);
+      assert(original.isFile() && !original.isSymbolicLink() && (original.mode & 0o777) === 0o400);
+      const {bytes: captured} = await readFrozenReleaseArtifact(directory, expectedSha256, targetId, item.file);
+      assert.deepEqual(await readFile(path), captured, 'Publisher changed original wheel bytes');
+      const sidecar = `${item.file}.publish.attestation`, sidecarPath = join(payload, sidecar), stat = await lstat(sidecarPath);
+      assert(stat.isFile() && !stat.isSymbolicLink() && stat.size > 0 && stat.size <= 4 * 1024 * 1024);
+      const bytes = await readFile(sidecarPath); assert.equal(bytes.length, stat.size);
+      attestations.push({file: sidecar, bytes: bytes.length, sha256: digest(bytes),
+        qualification: 'raw original publisher output; cryptographic identity, PyPI provenance and owner acceptance not established by this receipt'});
+    }
+    await record('attestation.json', selected.paired ? attestations : attestations[0]);
     const after = await observe(); await record('after.json', after); valid(after);
-    assert(after.observations.some(value => value.file === item.file && value.state === 'present'),
-      `Original job returned but public bytes remain unconfirmed; preserve ${attempt}`);
+    const present = new Set(after.observations.filter(value => value.state === 'present').map(value => value.file));
+    assert(projectWheels.every(item => present.has(item.file)) &&
+      selected.artifacts.filter(value => pythonDependencies(project).includes(value.name)).every(item => present.has(item.file)),
+    `Original job returned but public bytes remain unconfirmed; preserve ${attempt}`);
     actionState = 'command-and-public-bytes-confirmed';
   }
   await verifyReleaseSet(directory, {expectedSha256});
   const summary = {schemaVersion: 'actql-python-publish-attempt/0.1', manifestSha256: expectedSha256,
-    targetId, project, attemptId, at: new Date().toISOString(), state: actionState, attestation,
+    targetId, project, attemptId, at: new Date().toISOString(), state: actionState,
+    ...(selected.paired ? {attestations} : {attestation: attestations[0] ?? null}),
     qualification: 'one-project same-byte protocol only; not owner approval, trust/image isolation, signature verification, public install or complete release acceptance'};
   await record('summary.json', summary); return {...summary, receiptDirectory: attempt};
 }

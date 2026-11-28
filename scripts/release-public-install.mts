@@ -5,7 +5,8 @@ import {createHash} from 'node:crypto';
 import {readFile, lstat, readdir, realpath} from 'node:fs/promises';
 import {join, resolve, dirname, isAbsolute, basename, relative, sep} from 'node:path';
 import {inventory, nodePackages, nodeReleaseIncludesProvider, verifyPackageRelease} from './package-release.mjs';
-import {verifyReleaseSet} from './release-set-verification.mjs';
+import {checkedBytes, verifyReleaseSet} from './release-set-verification.mjs';
+import {readPythonReleasePair} from './release-python-wheel-pair.mjs';
 import {releaseVersion} from './release-version.mjs';
 
 type NodeManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
@@ -31,6 +32,34 @@ export function pythonReleaseInstallSelection(args: string[]) {
   return {directory: resolve(args[0]), manifestSha256: args[1], targetId: args[2],
     python: args[3], consumer: resolve(args[4]), kind: 'public-pypi',
     manager: args.length === 7 ? 'uv' : 'pip', uv: args.length === 7 ? args[6] : null};
+}
+
+export async function verifyPythonPublicReleaseBinding(selection: FixedSelection, actualPlatform: string) {
+  const fixed = await verifyReleaseSet(selection.directory, {expectedSha256: selection.manifestSha256});
+  const target = fixed.manifest.request.targets.find(value => value.id === selection.targetId);
+  assert.equal(target?.ecosystem, 'pypi');
+  assert.equal(target.destination, 'https://upload.pypi.org/legacy/');
+  assert.deepEqual(target.packages, ['actql-sdk', 'actql-local-runtime', 'actql']);
+  assert(target.platforms.includes(actualPlatform) && target.profiles.includes('local'));
+  const cohort = fixed.manifest.cohorts.find(value => value.targetId === target.id);
+  assert(cohort?.kind === 'python-wheels' || cohort?.kind === 'python-wheel-pair');
+  const approved = fixed.manifest.artifacts.filter(value => value.targetId === target.id).map(value =>
+    ({name: value.name, version: value.version, path: join(selection.directory, value.path), bytes: value.bytes, sha256: value.sha256}));
+  const plan = {manifestSha256: fixed.sha256, targetId: target.id};
+  if (cohort.kind === 'python-wheels') {
+    assert.equal(actualPlatform, 'darwin-arm64', 'Legacy Python consumer selects only Darwin arm64');
+    return {fixed, target, cohort, original: cohort, plan: {...plan, artifacts: approved}};
+  }
+  assert(cohort.kind === 'python-wheel-pair');
+  const bytes = await checkedBytes(selection.directory, cohort, 4 * 1024 * 1024);
+  const pair = readPythonReleasePair(bytes, fixed.manifest.request.source.commit, fixed.manifest.release.version, target);
+  const selectedIndex = pair.receipts.findIndex(value => value.platform === actualPlatform);
+  const selected = pair.receipts[selectedIndex], original = cohort.originalManifests[selectedIndex];
+  assert(selected && original, 'Missing selected original Python platform cohort');
+  const files = new Set(Object.values(selected.wheels).map(item => item.file));
+  const artifacts = approved.filter(value => files.has(basename(value.path)));
+  assert.deepEqual(artifacts.map(value => value.name), target.packages, 'Incomplete selected platform install plan');
+  return {fixed, target, cohort, original, plan: {...plan, artifacts, approvedArtifacts: approved, platform: actualPlatform}};
 }
 
 export function pythonPublicConsumerEnvironment(parent: NodeJS.ProcessEnv, root: string, interpreter: string) {

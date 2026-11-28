@@ -8,6 +8,7 @@ import {basename, dirname, join, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {admitReleaseRequest} from './release-policy.mjs';
 import {releaseVersion} from './release-version.mjs';
+import {openPythonReleasePair} from './release-python-wheel-pair.mjs';
 import {requireNativeCohortPackageVersions} from './native-cli-artifact-reader.mjs';
 import {promotionPlan, nativeLatestPromotionPlan} from './release-channels.mjs';
 import {nodeReleaseIncludesProvider} from './package-release.mjs';
@@ -19,7 +20,23 @@ export {verifyReleaseSet} from './release-set-verification.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const json = value => Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+async function readPythonPairCohort(descriptor, target, request) {
+  exact(descriptor, ['targetId', 'kind', 'directory', 'pairSha256', 'producerArchives']);
+  digestText(descriptor.pairSha256);
+  exact(descriptor.producerArchives, ['linux-x64', 'darwin-arm64']);
+  const directory = resolve(descriptor.directory);
+  const manifestFile = 'python-release-pair.json';
+  const bytes = await checkedBytes(directory, {path: manifestFile, sha256: descriptor.pairSha256}, 4 * 1024 * 1024);
+  const originals = await openPythonReleasePair(bytes, request.source.commit, request.version, target,
+    descriptor.producerArchives);
+  const records = originals.wheels.map(({distribution, ...wheel}) =>
+    ({name: distribution, version: request.version, ...wheel}));
+  return {directory, manifestFile, bytes, records, originals,
+    qualification: 'original paired release evidence and exact ordinary wheel archive bytes'};
+}
+
 async function readCohort(descriptor, target, request, python) {
+  if (descriptor.kind === 'python-wheel-pair') return readPythonPairCohort(descriptor, target, request);
   exact(descriptor, ['targetId', 'kind', 'directory']);
   const directory = resolve(descriptor.directory);
   assert((await lstat(directory)).isDirectory() && !(await lstat(directory)).isSymbolicLink());
@@ -42,6 +59,7 @@ async function readCohort(descriptor, target, request, python) {
     qualification = 'existing complete ecosystem release verifier; install/platform/public acceptance remains separate';
   } else if (descriptor.kind === 'python-wheels') {
     assert.equal(target.ecosystem, 'pypi'); manifestFile = 'cohort.json';
+    assert(request.version !== '0.0.3', 'v0.0.3 Python release requires the original two-platform pair');
     const expected = releaseVersion(request.version);
     const output = JSON.parse(execFileSync(python, [join(root, 'scripts/python_release_cohort.py'),
       '--verify-directory', directory, '--source', request.source.commit, '--version', expected.pythonVersion],
@@ -77,29 +95,61 @@ export async function freezeReleaseSet({request, policy, cohorts, destination, p
   assert(Array.isArray(cohorts)); assert.equal(cohorts.length, request.targets.length, 'Every selected target needs its original cohort');
   assert.equal(new Set(cohorts.map(value => value.targetId)).size, cohorts.length);
   const inputs = [];
+  let primary;
   // Full existing verification completes BEFORE creating output or copying.
-  for (const target of request.targets) {
-    const descriptor = cohorts.find(value => value.targetId === target.id); assert(descriptor, 'Missing selected cohort');
-    inputs.push({target, kind: descriptor.kind, ...(await readCohort(descriptor, target, selected.request, python))});
+  try {
+    for (const target of request.targets) {
+      const descriptor = cohorts.find(value => value.targetId === target.id); assert(descriptor, 'Missing selected cohort');
+      inputs.push({target, kind: descriptor.kind, ...(await readCohort(descriptor, target, selected.request, python))});
+    }
+    return await writeFixedReleaseSet(inputs, selected, policy, destination);
+  } catch (error) {
+    primary = {error};
+    throw error;
+  } finally {
+    const closed = await Promise.allSettled(inputs.flatMap(input => input.originals ? [input.originals.close()] : []));
+    const cleanup = closed.flatMap(result => result.status === 'rejected' ? [result.reason] : []);
+    if (primary && cleanup.length) {
+      throw new AggregateError([primary.error, ...cleanup], 'Release set preparation and archive close failed',
+        {cause: primary.error});
+    }
+    if (cleanup.length === 1) throw cleanup[0];
+    if (cleanup.length > 1) throw new AggregateError(cleanup, 'Failed to close release set archives');
   }
+}
+
+async function writeFixedReleaseSet(inputs, selected, policy, destination) {
   destination = resolve(destination); await mkdir(destination);
   const groups = [], artifacts = [];
   for (const input of inputs) {
-    const {target, kind, directory, records, bytes, manifestFile, qualification} = input;
+    const {target, kind, directory, records, bytes, manifestFile, qualification, originals} = input;
     const group = join(destination, target.id); await mkdir(group);
     await writeFile(join(group, manifestFile), bytes, {flag: 'wx'});
-    groups.push({targetId: target.id, kind, path: `${target.id}/${manifestFile}`, bytes: bytes.length,
-      sha256: hash(bytes), verification: qualification});
+    const child = {targetId: target.id, kind, path: `${target.id}/${manifestFile}`, bytes: bytes.length,
+      sha256: hash(bytes), verification: qualification};
+    if (originals) {
+      const manifests = [];
+      for (const {platform, bytes: original} of originals.manifests) {
+        await mkdir(join(group, platform));
+        const path = `${target.id}/${platform}/cohort.json`;
+        await writeFile(join(destination, path), original, {flag: 'wx'});
+        manifests.push({path, bytes: original.length, sha256: hash(original)});
+      }
+      child.originalManifests = manifests;
+    }
+    groups.push(child);
     for (const record of records) {
       const output = join(group, record.file);
-      await copyFile(await originalFile(directory, record.sourceFile), output, constants.COPYFILE_EXCL);
+      if (originals) await writeFile(output, await originals.readWheel(record.file), {flag: 'wx'});
+      else await copyFile(await originalFile(directory, record.sourceFile), output, constants.COPYFILE_EXCL);
       const actual = await digest(output);
       assert.equal(actual.bytes, record.bytes); assert.equal(actual.sha256, record.sha256);
       if (target.ecosystem === 'npm') assert.equal(actual.integrity, record.integrity);
       const {sourceFile, ...identity} = record;
       artifacts.push({targetId: target.id, ecosystem: target.ecosystem, ...identity, path: `${target.id}/${record.file}`});
     }
-    assert.deepEqual(await readFile(await originalFile(directory, manifestFile)), bytes, 'Original cohort changed while freezing');
+    if (originals) await checkedBytes(directory, {path: manifestFile, bytes: bytes.length, sha256: hash(bytes)}, 4 * 1024 * 1024);
+    else assert.deepEqual(await readFile(await originalFile(directory, manifestFile)), bytes, 'Original cohort changed while freezing');
   }
   const manifest = {schemaVersion: 'actql-release-set/0.1', release: selected.version,
     request: selected.request, policy: structuredClone(policy),
@@ -126,7 +176,8 @@ export async function prepareReleaseReview({directory, expectedSha256, reviewFil
   // created. Partial output on an I/O failure stays original failed evidence.
   await verifyReleaseSet(directory, {expectedSha256});
   await mkdir(destination);
-  for (const item of [...fixed.manifest.cohorts, ...fixed.manifest.artifacts]) {
+  const children = fixed.manifest.cohorts.flatMap(item => [item, ...(item.originalManifests ?? [])]);
+  for (const item of [...children, ...fixed.manifest.artifacts]) {
     const output = join(destination, item.path); await mkdir(dirname(output), {recursive: true});
     await copyFile(await originalFile(directory, item.path), output, constants.COPYFILE_EXCL);
     const actual = await digest(output); assert.equal(actual.bytes, item.bytes); assert.equal(actual.sha256, item.sha256);

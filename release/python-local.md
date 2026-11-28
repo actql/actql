@@ -121,10 +121,14 @@ node scripts/test-python-release-install.mjs \
 `python` is the original target id, not a default or a replacement interpreter.
 The last directory must be new and outside the repository/fixed artifacts.
 This launcher never produces a wheel or image, publishes, selects a version,
-repairs a missing artifact or resumes a failed acceptance state. The current
-normal runtime remains macOS arm64 only; Linux/other platforms refuse before
-installation. The review-only Linux pre-root source does not qualify a Linux
-engine, normal provider, image or wheel.
+repairs a missing artifact or resumes a failed acceptance state.
+
+The historical single-cohort consumer selects Darwin arm64. For a paired
+`0.0.3` release, run the same command separately on Linux x64 and Darwin arm64
+with the same fixed directory contents and digest. The verifier checks all
+four public wheel originals and installs the SDK, facade and runtime selected
+for the actual platform. Each platform retains its own installed execution,
+Saved and close evidence.
 
 The complete original wheel reader runs on the retained fixed layout. Anonymous
 PyPI metadata and actual remote wheel bytes must match every selected artifact
@@ -196,17 +200,63 @@ version or finished B cohort is selected by these test fixtures.
 
 ## Exact-byte Python publication protocol
 
+### Freeze the accepted pair
+
+For `0.0.3`, retain the authenticated `python-release-pair.json` from the
+selected successful release-candidate run and the exact Linux and Darwin wheel
+producer archives that it identifies. The pair binds their source, version,
+run attempt, archive and cohort digests, and the four wheel identities.
+Use the externally retained digest of the authenticated pair.
+
+Add a `python-wheel-pair` cohort for the request's Python target. Its platform
+selection is Linux x64 and Darwin arm64, and the project order is
+`actql-sdk`, `actql-local-runtime`, `actql`.
+
+```json
+{
+  "targetId": "python",
+  "kind": "python-wheel-pair",
+  "directory": "/absolute/authenticated-pair-directory",
+  "pairSha256": "<externally-retained-pair-sha256>",
+  "producerArchives": {
+    "linux-x64": "/absolute/original-linux-wheel-acceptance.zip",
+    "darwin-arm64": "/absolute/original-darwin-wheel-acceptance.zip"
+  }
+}
+```
+
+Pass that descriptor in the request's cohort array to the existing freezer.
+
+```sh
+node scripts/release.mjs freeze request.json cohorts.json /absolute/new-preparation
+```
+
+The fixed set retains both original cohort manifests, the shared SDK and
+facade wheels, and each platform's runtime wheel. Bind the independent
+prepublication acceptance and proposed project operations through the
+existing release review.
+
+```sh
+node scripts/release.mjs review /absolute/fixed-preparation "$PREPARATION_SHA256" \
+  review-request.json /absolute/new-reviewed-set
+```
+
+Give the reviewed directory and its externally retained digest to the
+independently protected executor for its approval and execution checks.
+
+### Plan and observe the project jobs
+
 The existing publisher Owner exposes a read-only preparation command:
 
 ```sh
 node scripts/release.mjs python-publish-plan <fixed-directory> <externally-retained-SHA256> <python-target-id> <absolute-verifier-python> <protected-PyPA-action-commit>
 ```
 
-This calls the original complete frozen-wheel verifier, preserves the shared
-SemVer-to-PEP440 projection and requires the original three-project target.
-Only its actually verified platform may be selected; an extra Linux platform
-cannot inherit a macOS cohort. The plan is DATA with execution unavailable.
-No product version or action revision is chosen automatically.
+This calls the original complete frozen-wheel verifier and preserves the shared
+SemVer-to-PEP440 projection. For `0.0.3`, both original platform manifests must
+verify against the same fixed four-wheel set. The historical single-cohort
+target still selects one platform. The plan records the selected bytes and
+project order with execution unavailable.
 
 `publishPythonReleaseProject` in the existing publisher module is a reusable
 protocol for the separately protected executor. It has no default job runner,
@@ -216,11 +266,12 @@ the exact source, evidence, version, proposed scope and bytes using the actual
 protected immutable validator and exclusive execution service.
 
 Each invocation addresses one project and one original fixed manifest. SDK and
-runtime have separate jobs; a new facade upload requires both dependency wheels
-to be public with their exact original bytes. This dependency graph is not
-permission for concurrent mutations: the protected executor still serializes
-actual release operations across repositories. Whole-target preflight and a
-fresh before-send observation stop on unknown/conflicting or foreign files.
+runtime have separate jobs. A paired runtime job stages the original absent
+runtime wheels for its two platforms. A new facade upload requires the SDK and
+both runtime wheels to be public with their exact original bytes. The protected
+executor serializes actual release operations across repositories. Whole-target
+preflight and a fresh before-send observation stop on unknown, conflicting or
+foreign files.
 Already-identical public bytes are not sent again. An earlier attempt requires
 the original explicit same-byte recovery scope; a changed version, source,
 wheel, digest or scope needs a distinct candidate and owner decision.
@@ -228,16 +279,17 @@ wheel, digest or scope needs a distinct candidate and owner decision.
 The same private receipt writer used by npm records an immutable attempt,
 read-only exact wheel copy and synced intent before invoking the supplied
 project job. Its payload directory must be in the original mounted publisher
-workspace and use a literal Unix path accepted by the selected action. Exactly
-one project's wheel enters that directory. There is no source build, new wheel,
-`--skip-existing`, bump, overwrite or alternate index. A lost response remains
+workspace and use a literal Unix path accepted by the selected action. Only
+the exact absent wheels for that project enter the directory. There is no
+source build, new wheel, `--skip-existing`, bump, overwrite or alternate index.
+A lost response remains
 Unknown. The executor retains the SAME live job/handle until terminal; it cannot
 start another job because observation timed out. On later authorized recovery,
 original public bytes are reobserved before any possible send.
 
 Original terminal output, command success, public-byte confirmation and raw
-attestation output are separate records. The wheel is checked again after the
-job, and only its newly generated bounded regular attestation sidecar is allowed.
+attestation output are separate records. Each submitted wheel is checked again
+after the job and must have its own bounded regular attestation sidecar.
 A sidecar digest does not verify its signature, publisher identity or PyPI
 provenance. A successful command without exact public readback does not finish
 the attempt. Failed attempts, outputs and original intents remain unchanged.
