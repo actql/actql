@@ -182,7 +182,7 @@ const pythonWheelInputs = new Set([
   'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
   'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
   'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
-  'scripts/python_interface_inventory.py', 'scripts/release-version.mjs',
+  'scripts/python_interface_inventory.py', 'scripts/release-version.mjs', 'scripts/release-version.mts',
   'scripts/setup-moonbit.mjs', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
 ]);
 const wheelPlatforms = Object.freeze([
@@ -200,7 +200,7 @@ const wheelBuildInputs = new Set([
   'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
   'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
   'scripts/python_interface_inventory.py', 'scripts/python_wasm_table_geometry.py',
-  'scripts/release-version.mjs', 'spec/contracts/core-wasm-abi.generated.json',
+  'scripts/release-version.mjs', 'scripts/release-version.mts', 'spec/contracts/core-wasm-abi.generated.json',
 ]);
 const ciWorkflow = '.github/workflows/ci.yml';
 
