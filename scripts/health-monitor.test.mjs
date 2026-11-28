@@ -13,7 +13,7 @@ import {compareReports, finishReport, markdown, summarize, exitStatus, digest, m
 import {parseArguments, requiredQuickMetrics, missingReleaseInputs, recordGuardExit, applyComparison, environmentIdentity, verifyPythonInstalledAfter, verifyNativeInstalledAfter, fixtureIdentities} from './health-monitor.mjs';
 import {packDistributionPackages} from './measure-distribution-artifacts.mjs';
 import {formalCollectorVerdict, pythonRuntimeIdentity, assertPythonCollectorRuntime, pythonInstalledInventory} from './health-monitor-release.mjs';
-import {quickNodeMetrics,execute,distributionMetrics,mockWorkflowMetrics,observeInstalledHealthNodeModules} from './health-monitor-adapters.mjs';
+import {quickNodeMetrics,execute,distributionMetrics,mockWorkflowMetrics,observeInstalledHealthNodeModules,prepareHealthPackages} from './health-monitor-adapters.mjs';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {twoModelDealReviewFiles} from './fixtures/deal-review-two-models.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
@@ -964,6 +964,38 @@ test('source/config and gated workflow declare exact Quick 10/5 and fail closed'
   assert.deepEqual(selected.stdout.trimEnd().split('\n'),
     ['--experimental-strip-types', 'scripts/prepare-packed-client-install-cache.mts', cache]);
   assert.equal(await readFile(envFile, 'utf8'), `ACTQL_TEST_NPM_CACHE=${cache}\n`);
+});
+test('Health package install passes the prefetched cache through the Quick command port', async t => {
+  const scratch = await mkdtemp(join(tmpdir(), 'actql-health-install-cache-'));
+  t.after(() => rm(scratch, {recursive: true, force: true}));
+  const source = {sha: 'a'.repeat(40), dirty: false};
+  const retained = join(scratch, 'ordinary-operation-packages.json');
+  const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'].map(name => ({
+    name: '@actql/' + name, file: name + '.tgz'}));
+  await writeFile(retained, JSON.stringify({sourceSha: source.sha, packages}));
+  const before = process.env.ACTQL_TEST_NPM_CACHE;
+  try {
+    for (const [lane, cache] of [['local', undefined], ['scheduled', join(scratch, 'health-npm-cache')]]) {
+      const root = join(scratch, lane);
+      await mkdir(root);
+      if (cache === undefined) delete process.env.ACTQL_TEST_NPM_CACHE;
+      else process.env.ACTQL_TEST_NPM_CACHE = cache;
+      const stopped = new Error('Stop before the real npm install');
+      await assert.rejects(prepareHealthPackages({repository: scratch, root, source, retained,
+        command(name, args, options) {
+          assert.equal(name, 'npm');
+          assert.equal(options.cwd, join(root, 'consumer'));
+          assert.equal(options.name, 'install-node');
+          assert.deepEqual(args, ['install', '--offline', ...(cache === undefined ? [] : ['--cache', cache]),
+            '--ignore-scripts', '--no-audit', '--no-fund', '--no-save', '--omit=optional',
+            ...packages.map(row => join(scratch, row.file))]);
+          throw stopped;
+        }}), error => error === stopped);
+    }
+  } finally {
+    if (before === undefined) delete process.env.ACTQL_TEST_NPM_CACHE;
+    else process.env.ACTQL_TEST_NPM_CACHE = before;
+  }
 });
 test('invalid flags and missing Release fixtures are explicit rather than a successful stub', () => {
   assert.throws(() => parseArguments(['compare', '--base', 'x']));
