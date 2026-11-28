@@ -103786,7 +103786,7 @@
             "synchronization": [
               {
                 "path": "src/platform_native/client_host/model_saved_settlement_read.mbt",
-                "anchor": "pub fn NativeClientMockModelWork::read_completed_model_dependency_in_original_read("
+                "anchor": "fn NativeClientMockModelWork::read_completed_model_dependency_in_original_read("
               },
               {
                 "path": "src/platform_native/client_host/model_saved_dependent_unknown.mbt",

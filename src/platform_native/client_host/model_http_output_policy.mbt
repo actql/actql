@@ -262,6 +262,7 @@ priv struct NativeRetainedModelDependencies {
   inputs : NativeWholeModelResultInputs
   ports : Array[NativeRetainedModelDependencyPort]
   producers : Array[NativeCompletedModelDependencyOriginal?]
+  mut finish_started : Bool
   mut scope : (
     @host.ClientInferCallScope,
     @publication.BoundModelInvocationScope,
@@ -283,6 +284,7 @@ pub fn NativeClientMockModelWork::requires_model_output_dependencies(
 fn native_retained_model_dependency_capacity(
   producers : Int,
   ports : Int,
+  in_read~ : Bool,
 ) -> (Int64, Int64)? {
   let producers = producers.to_int64()
   let ports = ports.to_int64()
@@ -292,20 +294,38 @@ fn native_retained_model_dependency_capacity(
     is Some(proof_array) &&
     @execution.preparation_array_representation(1L, ports, true)
     is Some(port_array) &&
-    @execution.compose_preparation_representation([
-      proof_array,
-      port_array,
-      proof_array,
-      port_array,
-      port_array,
-      {
-        record_headers: 20L + 7L * ports + 2L * producers,
-        reference_slots: 39L + 23L * ports + 3L * producers,
-        scalar_words: 12L + 9L * ports,
-        owned_utf16_units: 142L,
-        owned_wire_bytes: 0L,
+    @execution.compose_preparation_representation(
+      if in_read {
+        // The pending Work, snapshot arrays, per-port records and original
+        // producer references remain held by the original Journal Read.
+        [
+          proof_array,
+          port_array,
+          {
+            record_headers: 7L + 2L * ports + 2L * producers,
+            reference_slots: 16L + 9L * ports + 3L * producers,
+            scalar_words: 5L + 3L * ports,
+            owned_utf16_units: 0L,
+            owned_wire_bytes: 0L,
+          },
+        ]
+      } else {
+        // The original Compute retains Reader and egress members plus the
+        // later exact receiving Scope and Entry dependency vectors.
+        [
+          proof_array,
+          port_array,
+          port_array,
+          {
+            record_headers: 13L + 5L * ports,
+            reference_slots: 23L + 14L * ports,
+            scalar_words: 8L + 6L * ports,
+            owned_utf16_units: 142L,
+            owned_wire_bytes: 0L,
+          },
+        ]
       },
-    ])
+    )
     is Some(inventory) &&
     @execution.preparation_representation_cost(inventory) is Some(bytes) else {
     return None
@@ -319,9 +339,9 @@ fn native_retained_model_dependency_capacity(
 }
 
 ///|
-/// Authenticate selected producers at the old HostRead boundary. The
-/// complete dependency inventory is held on B only after every original
-/// point and every receiving port has been checked.
+/// Authenticate the durable producers in the original HostRead. The
+/// resulting observation does not admit B until its actual Source and Reader
+/// originals have been checked in the restored Compute.
 pub fn NativeClientMockModelWork::read_model_output_dependencies_in_original_read(
   self : Self,
   works : Array[NativeClientMockModelWork],
@@ -330,16 +350,10 @@ pub fn NativeClientMockModelWork::read_model_output_dependencies_in_original_rea
 ) -> Result[Unit, NativeClientMockModelIssue] {
   guard self.provider_role is PortableHttp(receiver) &&
     receiver.installation.run_policy.egress is NativeEgressPending(pending) &&
-    !self.closing &&
-    !self.closed &&
-    !self.open_attempted &&
     !self.advancing &&
     receiver.dependencies is None &&
     works.length() == completions.length() &&
-    physical_equal(receiver.installation.capture, self.capture) &&
-    physical_equal(self.capture.session.settings, pending.settings) &&
-    pending.settings.files.any(file => physical_equal(file, pending.original)) &&
-    @host.client_infer_pending_egress_matches(pending.selection, self.graph) &&
+    self.model_dependency_boundaries_current(receiver, pending) &&
     pending.declarations.length() ==
     @host.client_infer_pending_egress_result_count(pending.selection) else {
     return Err(Egress(ForeignOwner))
@@ -349,7 +363,11 @@ pub fn NativeClientMockModelWork::read_model_output_dependencies_in_original_rea
     self.advancing = false
   }
   let count = pending.declarations.length()
-  guard native_retained_model_dependency_capacity(works.length(), count)
+  guard native_retained_model_dependency_capacity(
+      works.length(),
+      count,
+      in_read=true,
+    )
     is Some((bytes, block)) else {
     return Err(Original(ConfigurationLimit))
   }
@@ -385,10 +403,98 @@ pub fn NativeClientMockModelWork::read_model_output_dependencies_in_original_rea
     inputs,
     ports,
     producers: Array::make(works.length(), None),
+    finish_started: false,
     scope: None,
     entry_dependency: None,
     egress: None,
     entered: None,
+  }
+  let limit = Int64::min(self.capture.max_snapshot_bytes, 1048576L).to_int()
+  for port in ports {
+    if staged.producers[port.producer_index] is Some(_) {
+      continue
+    }
+    match
+      port.producer.read_completed_model_dependency_in_original_read(
+        port.held,
+        limit,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(original) => staged.producers[port.producer_index] = Some(original)
+    }
+  }
+  match self.capture.check_current_in_original_read() {
+    Ok(_) => ()
+    Err(issue) => return Err(Original(issue))
+  }
+  guard self.model_dependency_boundaries_current(receiver, pending) &&
+    receiver.dependencies is None &&
+    native_retained_model_dependencies_match(staged, works, completions, inputs) else {
+    return Err(Egress(ForeignOwner))
+  }
+  receiver.dependencies = Some(staged)
+  Ok(())
+}
+
+///|
+fn NativeClientMockModelWork::model_dependency_boundaries_current(
+  self : Self,
+  receiver : NativeClientModelHttpWork,
+  pending : NativeModelHttpPendingEgress,
+) -> Bool {
+  !self.closing &&
+  !self.closed &&
+  !self.open_attempted &&
+  self.provider_role is PortableHttp(current) &&
+  physical_equal(current, receiver) &&
+  receiver.installation.run_policy.egress is NativeEgressPending(selected) &&
+  physical_equal(selected, pending) &&
+  physical_equal(receiver.installation.capture, self.capture) &&
+  physical_equal(self.capture.session.settings, pending.settings) &&
+  pending.settings.files.any(file => physical_equal(file, pending.original)) &&
+  @host.client_infer_pending_egress_matches(pending.selection, self.graph)
+}
+
+///|
+/// The real retained File Sources can be observed once the original Compute
+/// has resumed. Resolve exactly the already authenticated producers and
+/// staged Readers here, before the receiving task registers or opens.
+pub fn NativeClientMockModelWork::finish_model_output_dependencies_after_original_read(
+  self : Self,
+  works : Array[NativeClientMockModelWork],
+  completions : Array[@infer.OutputUse?],
+  inputs : NativeWholeModelResultInputs,
+  fund : (@execution.ExecutionCapacity) -> Bool,
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard self.provider_role is PortableHttp(receiver) &&
+    receiver.installation.run_policy.egress is NativeEgressPending(pending) &&
+    receiver.dependencies is Some(staged) &&
+    !self.advancing &&
+    !staged.finish_started &&
+    self.model_dependency_boundaries_current(receiver, pending) &&
+    native_retained_model_dependencies_match(staged, works, completions, inputs) else {
+    return Err(Egress(ForeignOwner))
+  }
+  self.advancing = true
+  staged.finish_started = true
+  defer {
+    self.advancing = false
+  }
+  let count = staged.ports.length()
+  guard native_retained_model_dependency_capacity(
+      works.length(),
+      count,
+      in_read=false,
+    )
+    is Some((bytes, _)) &&
+    @execution.execution_capacity(bytes, bytes) is Some(quote) &&
+    fund(quote) else {
+    return Err(Original(ConfigurationLimit))
+  }
+  guard self.model_dependency_boundaries_current(receiver, pending) &&
+    receiver.dependencies is Some(current) &&
+    physical_equal(current, staged) else {
+    return Err(Egress(ForeignOwner))
   }
   let members : Array[
     (
@@ -397,45 +503,31 @@ pub fn NativeClientMockModelWork::read_model_output_dependencies_in_original_rea
       @environment.DataClassification,
     ),
   ] = Array(capacity=count)
-  let limit = Int64::min(self.capture.max_snapshot_bytes, 1048576L).to_int()
-  for port in ports {
-    let producer_egress = match staged.producers[port.producer_index] {
-      Some(original) => {
-        let actual = match
-          @infer.original_live_whole_model_egress(
-            port.held,
-            port.producer.compiled,
-            port.producer.definition,
-            port.producer.graph,
-            port.artifact,
-            port.manifest,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(Egress(issue))
-        }
-        if @host.client_whole_model_egress_original_classification(actual) !=
-          @host.client_whole_model_egress_original_classification(
-            original.egress,
-          ) {
-          return Err(Egress(ChangedObservation))
-        }
-        actual
-      }
-      None =>
-        match
-          port.producer.read_completed_model_dependency_in_original_read(
-            port.held,
-            limit,
-            port.artifact,
-            port.manifest,
-          ) {
-          Err(issue) => return Err(issue)
-          Ok(original) => {
-            staged.producers[port.producer_index] = Some(original)
-            original.egress
-          }
-        }
+  for port in staged.ports {
+    guard staged.producers.get(port.producer_index) is Some(Some(original)) &&
+      physical_equal(original.producer, port.producer) &&
+      physical_equal(original.held, port.held) else {
+      return Err(Egress(ForeignOwner))
     }
+    let producer_egress = match
+      @infer.original_live_whole_model_egress(
+        port.held,
+        port.producer.compiled,
+        port.producer.definition,
+        port.producer.graph,
+        port.artifact,
+        port.manifest,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Egress(issue))
+    }
+    let classification = @host.client_whole_model_egress_original_classification(
+      producer_egress,
+    )
+    if original.classification is Some(prior) && prior != classification {
+      return Err(Egress(ChangedObservation))
+    }
+    original.classification = Some(classification)
     guard @host.prepare_client_infer_whole_result_reader(
         self.graph.occurrence,
         port.declaration.input,
@@ -459,20 +551,14 @@ pub fn NativeClientMockModelWork::read_model_output_dependencies_in_original_rea
     Ok(value) => value
     Err(issue) => return Err(Egress(issue))
   }
-  match self.capture.check_current_in_original_read() {
-    Ok(_) => ()
-    Err(issue) => return Err(Original(issue))
-  }
-  if self.closing ||
-    self.closed ||
-    self.open_attempted ||
-    !native_retained_model_dependencies_match(
-      staged, works, completions, inputs,
-    ) {
+  guard self.model_dependency_boundaries_current(receiver, pending) &&
+    receiver.dependencies is Some(current) &&
+    physical_equal(current, staged) &&
+    native_retained_model_dependency_readers_current(staged) &&
+    native_retained_model_dependencies_match(staged, works, completions, inputs) else {
     return Err(Egress(ForeignOwner))
   }
   staged.egress = Some(egress)
-  receiver.dependencies = Some(staged)
   Ok(())
 }
 
@@ -516,15 +602,23 @@ fn NativeClientMockModelWork::model_output_dependency_egress_current(
   guard self.provider_role is PortableHttp(receiver) &&
     receiver.dependencies is Some(staged) &&
     physical_equal(staged, original) &&
+    staged.egress is Some(_) &&
     self.current_step() is Ok((account, at)) &&
     self.model_output_dependency_issuers_current(account, at) else {
     return false
   }
+  native_retained_model_dependency_readers_current(staged) &&
+  native_retained_model_dependency_producers_current(staged)
+}
+
+///|
+fn native_retained_model_dependency_readers_current(
+  staged : NativeRetainedModelDependencies,
+) -> Bool {
   staged.ports.all(port => {
     port.reader is Some(reader) &&
     @host.client_infer_whole_result_reader_retained(reader)
-  }) &&
-  native_retained_model_dependency_producers_current(staged)
+  })
 }
 
 ///|
@@ -552,9 +646,7 @@ fn native_retained_model_dependencies_match(
       position == port.position &&
       physical_equal(artifact, port.artifact) &&
       physical_equal(manifest, port.manifest) &&
-      physical_equal(read, port.read) &&
-      port.reader is Some(reader) &&
-      @host.client_infer_whole_result_reader_retained(reader) else {
+      physical_equal(read, port.read) else {
       return false
     }
   }
@@ -596,7 +688,8 @@ pub fn NativeClientMockModelWork::model_output_dependency_reader(
   input : Int,
 ) -> @host.ClientInferWholeResultReaderOriginal? {
   guard self.provider_role is PortableHttp(receiver) &&
-    receiver.dependencies is Some(staged) else {
+    receiver.dependencies is Some(staged) &&
+    staged.egress is Some(_) else {
     return None
   }
   for port in staged.ports {
@@ -631,6 +724,7 @@ fn NativeClientMockModelWork::bind_model_output_dependency_scope(
     return Ok(())
   }
   guard receiver.dependencies is Some(staged) &&
+    staged.egress is Some(_) &&
     staged.scope is None &&
     staged.entry_dependency is None &&
     native_retained_model_dependency_call_scope_matches(staged, scope) else {
@@ -730,6 +824,8 @@ pub fn NativeClientMockModelWork::check_model_output_dependency_ports(
     !self.open_attempted &&
     !self.advancing &&
     receiver.dependencies is Some(staged) &&
+    staged.egress is Some(_) &&
+    native_retained_model_dependency_readers_current(staged) &&
     native_retained_model_dependencies_match(staged, works, completions, inputs) else {
     return Err(Egress(ForeignOwner))
   }

@@ -899,7 +899,7 @@ fn LocalCommandBusinessPreparation::open_file_work(
           model.completions.get(index).bind(value => value)
         },
         retention: run.retention,
-        retain: (task, results) => {
+        retain: (task, results, fund) => {
           guard business.model_run is Some(original) &&
             physical_equal(original, model) &&
             model.whole_inputs is Some(inputs) &&
@@ -909,7 +909,7 @@ fn LocalCommandBusinessPreparation::open_file_work(
             return false
           }
           if !self.retain_model_output_dependencies(
-              business, model, task, results,
+              business, model, task, results, fund,
             ) ||
             !(business.model_run is Some(current) &&
             physical_equal(current, model)) ||

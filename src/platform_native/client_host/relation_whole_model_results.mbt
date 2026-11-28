@@ -69,7 +69,11 @@ pub(all) struct NativeWholeModelResults {
   scope : (Int) -> @host.ClientModelReadScope?
   completed : (Int) -> @infer.OutputUse?
   retention : @publication.PublicationContract
-  retain : (Int, NativeWholeModelResultInputs) -> Bool
+  retain : (
+    Int,
+    NativeWholeModelResultInputs,
+    (@execution.ExecutionCapacity) -> Bool,
+  ) -> Bool
 }
 
 ///|
@@ -776,7 +780,7 @@ fn NativeClientRelationFileWork::stage_whole_model_results(
   self
   .require_current()
   .bind(_ => {
-    if !(configuration.retain)(task, selected_results) {
+    if !(configuration.retain)(task, selected_results, funding.retain) {
       return Err(native_whole_model_binding_issue(ReceiverRetain))
     }
     self.require_current()

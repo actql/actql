@@ -218,12 +218,12 @@ type NativeCompletedModelDependencySlot = (Int, String, String, String)
 ///|
 /// One completed producer's authenticated durable references. Multiple
 /// receiving ports may borrow this observation. It grants no dispatch.
-struct NativeCompletedModelDependencyOriginal {
+priv struct NativeCompletedModelDependencyOriginal {
   producer : NativeClientMockModelWork
   held : @infer.OutputUse
   scope : @publication.BoundModelInvocationScope
   slots : Array[NativeCompletedModelDependencySlot]
-  egress : @host.ClientWholeModelEgressOriginal
+  mut classification : @environment.DataClassification?
 }
 
 ///|
@@ -260,12 +260,10 @@ fn native_completed_model_dependency_capacity(count : Int) -> (Int64, Int64)? {
 /// Authenticate all entered successful slots on this one completed Work.
 /// Borrow the same Journal transaction and stored Raw/bundle for every point.
 /// The retained summary contains original references and no response bytes.
-pub fn NativeClientMockModelWork::read_completed_model_dependency_in_original_read(
+fn NativeClientMockModelWork::read_completed_model_dependency_in_original_read(
   self : Self,
   held : @infer.OutputUse,
   maximum_bundle_bytes : Int,
-  artifact : @host.ClientWholeLocalResultArtifact,
-  manifest : @host.ClientWholeLocalResultManifest,
 ) -> Result[NativeCompletedModelDependencyOriginal, NativeClientMockModelIssue] {
   guard !self.closing &&
     !self.closed &&
@@ -424,16 +422,6 @@ pub fn NativeClientMockModelWork::read_completed_model_dependency_in_original_re
     .observe_model_step_in_original_read(physical=true, under_advance=true)
     .bind(_ => self.completed_dependency_current(held, registration))
     .bind(_ => {
-      @infer.original_live_whole_model_egress(
-        held,
-        self.compiled,
-        self.definition,
-        self.graph,
-        artifact,
-        manifest,
-      ).map_err(issue => NativeClientMockModelIssue::Egress(issue))
-    })
-    .bind(egress => {
       guard self.scope is Some(current) &&
         physical_equal(current, scope) &&
         http.registration is Some(current) &&
@@ -441,7 +429,7 @@ pub fn NativeClientMockModelWork::read_completed_model_dependency_in_original_re
         @infer.stopped_attempt_count(active) == Some(count) else {
         return Err(ForeignOriginal)
       }
-      Ok({ producer: self, held, scope, slots, egress, })
+      Ok({ producer: self, held, scope, slots, classification: None, })
     })
   })
 }

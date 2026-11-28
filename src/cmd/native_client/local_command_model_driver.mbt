@@ -149,6 +149,7 @@ fn LocalCommandBusinessPreparation::retain_model_output_dependencies(
   model : LocalCommandModelRun,
   task : Int,
   inputs : @local_host.NativeWholeModelResultInputs,
+  fund : (@execution.ExecutionCapacity) -> Bool,
 ) -> Bool {
   for index, graph in model.graphs {
     if @run_host.client_infer_occurrence_coordinates(graph.occurrence).0 != task {
@@ -158,31 +159,44 @@ fn LocalCommandBusinessPreparation::retain_model_output_dependencies(
     if !work.requires_model_output_dependencies() {
       return true
     }
-    try {
-      self.with_model_driver_read(
-        business,
-        () => {
-          let retained = work.read_model_output_dependencies_in_original_read(
-            business.model_work,
-            model.completions,
-            inputs,
+    self.with_model_driver_read(
+      business,
+      () => {
+        let retained = work.read_model_output_dependencies_in_original_read(
+          business.model_work,
+          model.completions,
+          inputs,
+        )
+        if retained is Err(issue) {
+          native_model_dependency_read_failure(
+            13,
+            native_dependency_body_reason(issue),
           )
-          if retained is Err(issue) {
-            native_model_dependency_read_failure(
-              13,
-              native_dependency_body_reason(issue),
-            )
-          }
-          self.original.require_model_step(retained)
-        },
-        trace_dependency=true,
-      )
-      return true
-    } catch {
+        }
+        self.original.require_model_step(retained)
+      },
+      trace_dependency=true,
+    ) catch {
       ClientStop(message) => {
         native_model_dependency_read_failure(13, 0)
         self.original.retain_primary(CommandApplication(message))
         return false
+      }
+    }
+    return try {
+      self.original.require_model_step(
+        work.finish_model_output_dependencies_after_original_read(
+          business.model_work,
+          model.completions,
+          inputs,
+          fund,
+        ),
+      )
+      true
+    } catch {
+      ClientStop(message) => {
+        self.original.retain_primary(CommandApplication(message))
+        false
       }
     }
   }
