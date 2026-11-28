@@ -1067,6 +1067,16 @@ pub fn NativeClientMockModelWork::save_http_raw_in_original_read(
 }
 
 ///|
+fn NativeClientModelHttpWork::retire_output_dependencies(self : Self) -> Unit {
+  if self.dependencies is Some(staged) {
+    // The admission's current check retains staged. Retire that edge after
+    // the original Model has closed so it cannot retain the Work and Store.
+    staged.egress = None
+  }
+  self.dependencies = None
+}
+
+///|
 /// Stop and retire only the original Model children. The caller separately
 /// retires its Scope, Native frame, captured Read and SQLite/Store resources.
 /// A Core cleanup ACK is not any of those physical acknowledgements.
@@ -1099,7 +1109,7 @@ pub fn NativeClientMockModelWork::close(
     match self.active {
       None => {
         if self.provider_role is PortableHttp(work) {
-          work.dependencies = None
+          work.retire_output_dependencies()
         }
         self.lookup_entries = None
         self.first_start = None
@@ -1179,7 +1189,7 @@ pub fn NativeClientMockModelWork::close(
           // own edge only after the Model confirms retirement. Any pending
           // Store child still owns its exact registration and cleanup.
           work.registration = None
-          work.dependencies = None
+          work.retire_output_dependencies()
         }
         self.lookup_entries = None
         self.active = None
