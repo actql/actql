@@ -22,9 +22,9 @@ if (view) {
   view.next.ref.runDefinitionCid = 'changed';
   void operation; void read;
 }
-const state: 'preparing' | 'running' | 'waiting_checkpoint' | 'resuming' |
-  'needs_reconciliation' | 'succeeded' | 'failed' | 'cancelled' = runStateProtocol.statuses[0];
-void state;
+const states: readonly ('preparing' | 'running' | 'waiting_checkpoint' | 'resuming' |
+  'needs_reconciliation' | 'succeeded' | 'failed' | 'cancelled')[] = runStateProtocol.statuses;
+void states;
 
 const formatted: string | undefined = formatRunObservationFailure(new Error(), {format: 'json', locale: 'ja', maxBytes: 65536});
 // @ts-expect-error Observation display cannot authorize retries or execution.

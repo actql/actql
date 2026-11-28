@@ -12,6 +12,8 @@ pub struct LocalComputeHost {
 enum LocalComputePublication {
   SourceFree(@local.ClientLocalRequirements)
   CapturedSource(@local.ClientLocalRequirements)
+  SourceFreeModel(@local.ClientInstalledManagedRun)
+  WholeSourceModel(@local.ClientInstalledManagedRun)
 }
 
 ///|
@@ -204,12 +206,35 @@ pub fn local_compute_wasm_publication_limits(
     SourceFree(original) => original.wasm_publication_limits(host.plan.prepared)
     CapturedSource(original) =>
       original.wasm_publication_limits(host.plan.prepared)
+    SourceFreeModel(adopted) | WholeSourceModel(adopted) =>
+      @local.installed_model_wasm_publication_limits(
+        adopted,
+        host.plan.prepared,
+      )
   }
 }
 
 ///|
 pub fn local_compute_run(host : LocalComputeHost) -> @strategy.CapturedDAG {
   @driver.dispatch_driver_run(@builtin.configured_host_driver(host.setup))
+}
+
+///|
+/// Borrow the original configured Model Run, if this Compute owns one.
+/// Its capture and later publication remain separate from task activation.
+pub fn local_compute_model_run(
+  host : LocalComputeHost,
+) -> @local.ClientInstalledManagedRun? {
+  match host.publication {
+    SourceFreeModel(original) | WholeSourceModel(original) => Some(original)
+    SourceFree(_) | CapturedSource(_) => None
+  }
+}
+
+///|
+/// The configured Model owns a checked Whole input on its physical DAG.
+pub fn local_compute_uses_whole_model_source(host : LocalComputeHost) -> Bool {
+  host.publication is WholeSourceModel(_)
 }
 
 ///|
@@ -310,7 +335,9 @@ pub fn start_local_compute_task(
     Ok(value) => value
     Err(issue) => return Err(Obligations(issue))
   }
-  let dispatch = if captured_source_profile(local_run_prepared(host.plan)) {
+  let whole_model = local_compute_uses_whole_model_source(host)
+  let captured_source = captured_source_profile(local_run_prepared(host.plan))
+  let dispatch = if whole_model || captured_source {
     guard @builtin.configured_local_module(
         @builtin.configured_host_modules(host.setup),
       )
@@ -320,7 +347,7 @@ pub fn start_local_compute_task(
     let available = []
     let mut index = 0
     for producer in @strategy.captured_next_managed_producers(run) {
-      if producer == 0 {
+      if producer == 0 && !whole_model {
         available.push(@managed.local_managed_captured_relation_input())
       } else if producer == -1 {
         available.push(@managed.local_managed_supplied_relation_input())

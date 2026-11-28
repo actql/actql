@@ -1143,10 +1143,10 @@ fn public_effect_mapping_closure(
     public_effect_plan_limits(),
   ).unwrap()
   assert_eq(
-    @strategy.checked_effect_preview_source_indexes(
+    @strategy.checked_effect_preview_member_indexes(
       checked_run, bound_run_preview, 4,
     ).unwrap(),
-    [Some(0), None],
+    [0, 1],
   )
   let reordered_preview = public_effect_preview_for_static(
     static_candidate,
@@ -1165,13 +1165,13 @@ fn public_effect_mapping_closure(
     public_effect_plan_limits(),
   ).unwrap()
   assert_eq(
-    @strategy.checked_effect_preview_source_indexes(
+    @strategy.checked_effect_preview_member_indexes(
       checked_run, reordered_owner, 4,
     ).unwrap(),
-    [None, Some(0)],
+    [1, 0],
   )
   assert_true(
-    @strategy.checked_effect_preview_source_indexes(
+    @strategy.checked_effect_preview_member_indexes(
       checked_run, bound_run_preview, 3,
     )
     is Err(PreviewWorkLimit),
@@ -1188,7 +1188,7 @@ fn public_effect_mapping_closure(
     public_effect_plan_limits(),
   ).unwrap()
   assert_true(
-    @strategy.checked_effect_preview_source_indexes(
+    @strategy.checked_effect_preview_member_indexes(
       checked_run, duplicate_preview, 4,
     )
     is Err(ForeignCandidate),

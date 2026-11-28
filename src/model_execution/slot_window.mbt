@@ -241,7 +241,7 @@ fn cancel_model_slot_phase(progress : ModelSlotProgress) -> Unit {
 // if one Unknown/failed cleanup must keep its duty. Never abandon its siblings.
 fn cleanup_model_window_calls(state : ModelState) -> Bool {
   guard state.slot_window is Some(window) else {
-    return cleanup_model_physical_call(state)
+    return cleanup_model_physical_call(state) && cleanup_model_entering(state)
   }
   let mut complete = true
   for frame in window.frames {
@@ -250,12 +250,8 @@ fn cleanup_model_window_calls(state : ModelState) -> Bool {
       if !cleanup_model_physical_call(state) {
         complete = false
       }
-      if frame.progress.entry is Some(entry) {
-        if entry.persistence is Some(operation) && operation.terminal is None {
-          complete = false
-        } else {
-          retire_model_entering(state)
-        }
+      if !cleanup_model_entering(state) {
+        complete = false
       }
     }
   }

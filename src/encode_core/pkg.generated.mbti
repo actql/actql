@@ -109,7 +109,7 @@ pub fn measurement_operation_construction_extent() -> MeasurementOperationConstr
 
 pub fn measuring_writer(Int, Int, Int) -> Writer raise EncodeFailure
 
-pub fn measuring_writer_construction_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
+pub fn measuring_writer_construction_extent(Int, Int, unordered_depth? : Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn null_value(Writer) -> Unit raise EncodeFailure
 

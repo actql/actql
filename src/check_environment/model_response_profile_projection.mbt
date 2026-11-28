@@ -196,3 +196,25 @@ fn emit_normalized_response_profile(
   @encode.string_value(writer, "actql-model-response-profile/0.1")
   @encode.end_object(writer)
 }
+
+///|
+/// Match the physical declaration to the normalized Task and selected route.
+/// The installed runtime is independently checked before dispatch.
+pub fn model_response_profile_matches_normalized_chat(
+  profile : ModelResponseProfile,
+  task : NormalizedPublicModelTask,
+  endpoint : String,
+) -> Bool {
+  task.mock_profile is None &&
+  profile.kind == StructuredGenerate &&
+  profile.task_cid == task.task_cid &&
+  profile.input_schema_cid == task.declaration.input.cid &&
+  profile.output_schema_cid == task.declaration.output.cid &&
+  profile.installation.endpoint == endpoint &&
+  profile.installation.http_method == "POST" &&
+  !profile.installation.streaming &&
+  profile.installation.sdk is None &&
+  profile.installation.completion_basis == "generation_finish" &&
+  profile.probability_source is None &&
+  profile.probability_profile_cid is None
+}

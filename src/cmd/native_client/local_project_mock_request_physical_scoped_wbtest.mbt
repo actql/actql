@@ -600,11 +600,39 @@ fn native_mock_readme_request_payload(
                   is Err(@run_host.UnknownClassification),
                 )
               }
+              let submitted_input_cid = @run_host.client_submitted_intent_cid(
+                intent,
+              )
+              assert_true(
+                @local_host.native_client_submitted_preparation_lowered_effect_query(
+                  preparation,
+                ),
+              )
               let request = local_effect_request_identity(
                 preparation,
                 "sha256:" + "a".repeat(64),
                 "original-readme-request",
+                submitted_input_cid=Some(submitted_input_cid),
               )
+              assert_eq(
+                @run_host.client_request_input_cid(request),
+                @run_host.source_free_caller_input_intent_cid(),
+              )
+              try {
+                ignore(
+                  local_effect_request_identity(
+                    preparation,
+                    "sha256:" + "a".repeat(64),
+                    "original-readme-request",
+                    submitted_input_cid=Some("sha256:" + "b".repeat(64)),
+                  ),
+                )
+                fail("a foreign authored Submission cannot select this Request")
+              } catch {
+                ClientStop(message) =>
+                  assert_eq(message, "LocalEffectRequestIdentityUnavailable")
+                other => raise other
+              }
               let source_inputs = if effect_source_inputs {
                 let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
                   prepared, 1000000,
@@ -2208,6 +2236,19 @@ fn native_shared_file_effect_observes_and_previews(
   let direct = @run_host.select_client_effect_direct_acquisition_occurrences(
     prepared, 1000000,
   ).unwrap()
+  let submitted_input_cid = @run_host.client_submitted_intent_cid(intent)
+  assert_false(
+    @local_host.native_client_submitted_preparation_lowered_effect_query(
+      preparation,
+    ),
+  )
+  let request = local_effect_request_identity(
+    preparation,
+    "sha256:" + "a".repeat(64),
+    "original-request",
+    submitted_input_cid=Some(submitted_input_cid),
+  )
+  assert_eq(@run_host.client_request_input_cid(request), submitted_input_cid)
   let original = local_effect_first_compilation(
     preparation,
     "sha256:" + "a".repeat(64),
@@ -2216,6 +2257,7 @@ fn native_shared_file_effect_observes_and_previews(
     "original-request",
     "2026-10-10T00:00:00.000Z",
     "2099-01-01T00:00:00.000Z",
+    request=Some(request),
     source_inputs=project.prepare_effect_sources(prepared, direct),
   )
   assert_true(original.model_compiled is None)

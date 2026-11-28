@@ -3,7 +3,7 @@
 /// The first terminal time/body stays immutable across lost-response lookup.
 struct LocalSDKDeliveryTerminal {
   first : LocalSDKReadDeliveryPreparation
-  receipt : @publication.PublicationContract
+  receipt : @publication.PublicationContract?
   record : @publication.PublicationContract
   head_key : String
   original_head : Bytes
@@ -43,6 +43,7 @@ pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_for_source(
   max_results : Int,
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   current : () -> Result[Unit, E],
+  cancelled? : Bool = false,
 ) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]] {
   match
     validate_local_sdk_payload_encoding_source_current(
@@ -68,31 +69,61 @@ pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_for_source(
   if self.terminal is Some(original) {
     // An unattempted cached proposal does not acquire a new terminal timestamp.
     // An attempted/unknown write uses observation, never this preparation path.
-    return Ok(original)
+    return if cancelled == (original.receipt is None) {
+      Ok(original)
+    } else {
+      Err(ChangedOriginal)
+    }
   }
-  let receipt = match self.confirm_finished() {
-    Ok(receipt) => receipt
-    Err(issue) => return Err(Encoding(issue))
+  let (receipt, confirmed, exposure, outstanding, delivered) = if cancelled {
+    if self.issue is Some(issue) {
+      return Err(Encoding(issue))
+    }
+    let (confirmed, offered) = match self.sink.stop_unaccepted_offer() {
+      Ok(prefix) => prefix
+      Err(issue) => return Err(Encoding(Sink(issue)))
+    }
+    let exposure = if offered is None { "exact" } else { "unknown_additional" }
+    (None, confirmed, exposure, offered, None)
+  } else {
+    let receipt = match self.confirm_finished() {
+      Ok(receipt) => receipt
+      Err(issue) => return Err(Encoding(issue))
+    }
+    let summary = match self.sink.confirm_finished() {
+      Ok(summary) => summary
+      Err(issue) => return Err(Encoding(Sink(issue)))
+    }
+    if !summary.delivered_sha256.has_prefix("sha256:") {
+      return Err(ChangedOriginal)
+    }
+    (
+      Some(receipt),
+      summary.confirmed_bytes,
+      "exact",
+      None,
+      Some(summary.delivered_sha256[7:].to_owned()),
+    )
   }
-  let summary = match self.sink.confirm_finished() {
-    Ok(summary) => summary
-    Err(issue) => return Err(Encoding(Sink(issue)))
-  }
-  if summary.confirmed_bytes < 0L ||
-    summary.confirmed_bytes > 65536L ||
-    !summary.delivered_sha256.has_prefix("sha256:") {
+  if confirmed < 0L || confirmed > 65536L {
     return Err(ChangedOriginal)
   }
   let record = match
     @publication.issue_delivery_record(
       self.first.attempt,
       Some(self.first.streaming),
-      "succeeded",
-      summary.confirmed_bytes.to_int(),
-      "exact",
-      None,
-      Some(summary.delivered_sha256[7:].to_owned()),
-      Some(receipt),
+      if cancelled {
+        @publication.delivery_failure_terminal_state(
+          @publication.prepare_delivery_failure_terminal(true),
+        )
+      } else {
+        "succeeded"
+      },
+      confirmed.to_int(),
+      exposure,
+      outstanding,
+      delivered,
+      receipt,
       None,
       observed_at,
       [],
@@ -103,14 +134,16 @@ pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_for_source(
     Ok(record) => record
     Err(issue) => return Err(Issuance(issue))
   }
-  match
-    @publication.validate_delivery_success_evidence(
-      self.first.attempt,
-      receipt,
-      record,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Issuance(issue))
+  if receipt is Some(success) {
+    match
+      @publication.validate_delivery_success_evidence(
+        self.first.attempt,
+        success,
+        record,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Issuance(issue))
+    }
   }
   let terminal : LocalSDKDeliveryTerminal = {
     first: self.first,
@@ -138,7 +171,12 @@ pub fn[E] LocalSDKDeliveryTerminal::storage_from_store(
     Err(issue) => return Err(Query(issue))
     Ok(_) => ()
   }
-  for contract in [self.receipt, self.record] {
+  let contracts = []
+  if self.receipt is Some(receipt) {
+    contracts.push(receipt)
+  }
+  contracts.push(self.record)
+  for contract in contracts {
     let key = @publication.publication_contract_identity(contract)
     match read("publication_contract", key) {
       Err(issue) => return Err(Query(issue))
@@ -163,27 +201,23 @@ pub fn[E] LocalSDKDeliveryTerminal::storage_from_store(
   try {
     let writer = @encode.writer(1048576, 64, 6)
     @encode.begin_array(writer)
-    for
-      (table, key, revision, body) in [
-        (
-          "publication_contract",
-          @publication.publication_contract_identity(self.receipt),
-          None,
-          @publication.publication_contract_json(self.receipt),
-        ),
-        (
-          "publication_contract",
-          @publication.publication_contract_identity(self.record),
-          None,
-          @publication.publication_contract_json(self.record),
-        ),
-        (
-          "delivery_record_head",
-          self.head_key,
-          Some(0L),
-          @publication.publication_contract_json(self.record),
-        ),
-      ] {
+    let rows = contracts.map(contract => {
+      (
+        "publication_contract",
+        @publication.publication_contract_identity(contract),
+        (None : Int64?),
+        @publication.publication_contract_json(contract),
+      )
+    })
+    rows.push(
+      (
+        "delivery_record_head",
+        self.head_key,
+        Some(0L),
+        @publication.publication_contract_json(self.record),
+      ),
+    )
+    for (table, key, revision, body) in rows {
       @encode.begin_object(writer)
       @encode.key(writer, "body")
       @encode.string_value(writer, body)
@@ -241,11 +275,12 @@ pub fn[E] LocalSDKDeliveryTerminal::observe_for_source(
     @publication.publication_contract_json(self.first.attempt) {
     return Err(ChangedOriginal)
   }
-  guard saved.receipt is Some(receipt) && saved.record is Some(record) else {
+  guard saved.record is Some(record) else { return Err(UnresolvedOriginal) }
+  if saved.action == @publication.DeliveryRejectUnresolvedAttempt {
     return Err(UnresolvedOriginal)
   }
-  if @publication.publication_contract_json(receipt) !=
-    @publication.publication_contract_json(self.receipt) ||
+  if saved.receipt.map(@publication.publication_contract_json) !=
+    self.receipt.map(@publication.publication_contract_json) ||
     @publication.publication_contract_json(record) !=
     @publication.publication_contract_json(self.record) {
     return Err(ChangedOriginal)
@@ -285,6 +320,7 @@ pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(
   max_results : Int,
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   current : () -> Result[Unit, E],
+  cancelled? : Bool = false,
 ) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]] {
   self.prepare_terminal_for_source(
     live_sdk_read_source(preflight, selection~),
@@ -301,6 +337,7 @@ pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(
     max_results,
     read,
     current,
+    cancelled~,
   )
 }
 

@@ -125,13 +125,10 @@ test "Native retained preparation start witness refuses cancellation accepted du
   let mut accepted = false
   let current = () => {
     if !accepted {
-      journal
-      .transaction(() => {
-        let record = journal.retained(request).unwrap().unwrap()
-        accepted = true
-        journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
-      })
-      .unwrap()
+      journal.accept_fixture_cancellation(
+        journal.retained(request).unwrap().unwrap(),
+      )
+      accepted = true
     }
     true
   }
@@ -148,7 +145,7 @@ test "Native retained preparation start witness refuses cancellation accepted du
     fail("original cancelled preparation Work missing")
   }
   assert_true(record.physical_start_claimed)
-  assert_true(record.cancellation_requested)
+  assert_true(record.cancellation_requested())
   assert_true(record.checkpoint is None)
   assert_false(journal.claim_physical_start(request, true).unwrap())
   // Cancellation acceptance is not physical-stop or terminal cleanup evidence.

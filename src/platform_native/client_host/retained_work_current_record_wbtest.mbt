@@ -46,19 +46,16 @@ test "Native retained work current observes cancellation performed by its curren
     true
   }).unwrap()
   let outcome = start.require_current(journal, request, () => {
-    journal
-    .transaction(() => {
-      let record = journal.retained(request).unwrap().unwrap()
-      journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
-    })
-    .unwrap()
+    journal.accept_fixture_cancellation(
+      journal.retained(request).unwrap().unwrap(),
+    )
     true
   })
   assert_true(outcome is Err(NeedsOriginalReconciliation))
   guard journal.lookup(request, true) is Ok(Retained(record)) else {
     fail("Original cancellation missing")
   }
-  assert_true(record.cancellation_requested)
+  assert_true(record.cancellation_requested())
   assert_true(record.physical_start_claimed)
   database.close_checked().unwrap()
 }

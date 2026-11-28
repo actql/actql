@@ -9,12 +9,20 @@ struct PlatformVMWorkingCapacity {
   mut execution : Int64
   mut closing : Bool
   mut region_issued : Bool
+  // Only the same prepared File Run can bind this exact extension route.
+  mut fund_transfer : ((Int64, Int64, Int64) -> Result[Unit, LedgerIssue])?
 }
 
 ///|
 fn platform_vm_working_original(
   owner : PlatformVMWorkingCapacity,
 ) -> Result[Unit, ImportedChildLedgerIssue] {
+  if owner.original is None &&
+    owner.closing &&
+    owner.allocation.released &&
+    physical_equal(owner.vm.capacity, owner.allocation.owner) {
+    return Err(Unavailable)
+  }
   guard owner.original is Some(original) &&
     physical_equal(owner, original) &&
     physical_equal(owner.vm.capacity, owner.allocation.owner) else {
@@ -58,6 +66,7 @@ pub fn reserve_platform_vm_working_capacity(
     execution,
     closing: false,
     region_issued: false,
+    fund_transfer: None,
   }
   owner.original = Some(owner)
   Ok(owner)
@@ -180,5 +189,12 @@ pub fn close_platform_vm_working_capacity_after_cleanup(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
-  release_shared_capacity(owner.allocation).map_err(issue => Resource(issue))
+  release_shared_capacity(owner.allocation)
+  .map(_ => {
+    owner.fund_transfer = None
+    // The allocation has returned and no borrow remains. Release the
+    // self-reference while keeping the original terminal refusal.
+    owner.original = None
+  })
+  .map_err(issue => Resource(issue))
 }

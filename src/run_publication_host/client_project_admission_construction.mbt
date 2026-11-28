@@ -4,11 +4,12 @@
 fn client_project_admission_geometry(
   wire : String,
   max_bytes : Int,
-  max_nodes : Int,
+  max_nodes? : Int = 2147483647,
 ) -> (Int, Int, Int)? {
   guard @scalar.admit_utf8_length(wire, max_bytes) is Ok(bytes) else {
     return None
   }
+  // Bound the quote by the selected reader geometry and the input extent.
   let mut nodes = 1L
   let mut depth = 0
   let mut maximum = 0
@@ -42,7 +43,7 @@ fn client_project_admission_geometry(
   Some(
     (
       bytes,
-      Int64::min(max_nodes.to_int64(), nodes).to_int(),
+      Int64::min(Int::min(bytes, max_nodes).to_int64(), nodes).to_int(),
       Int::min(16, Int::max(1, maximum)),
     ),
   )
@@ -53,10 +54,7 @@ fn client_project_admission_construction_inventory(
   wire : String,
   connection_entries : Bool,
 ) -> @execution.PreparationRepresentationUnits? {
-  // The existing funded entry bounds bytes. The document reader derives its
-  // node allowance from those bytes, so the quote must cover the same shape.
-  let max_bytes = 65536
-  guard client_project_admission_geometry(wire, max_bytes, max_bytes)
+  guard client_project_admission_geometry(wire, 65536)
     is Some((bytes, nodes, depth)) &&
     @decode.preserving_json_admission_construction_inventory(
       Int::max(1, bytes),

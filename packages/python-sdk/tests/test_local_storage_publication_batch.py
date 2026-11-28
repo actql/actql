@@ -107,7 +107,7 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
             armed = False
             writes = 0
             def execute(self, sql, *args, **kwargs):
-                if self.armed and sql.startswith('INSERT INTO core_bytes'):
+                if self.armed and sql.startswith('INSERT INTO main.core_bytes'):
                     self.writes += 1
                     if self.writes == 2:
                         raise OSError('Independent second metadata failure')
@@ -130,7 +130,7 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
             armed = False
             writes = 0
             def execute(self, sql, *args, **kwargs):
-                if self.armed and sql.startswith('INSERT INTO core_bytes'):
+                if self.armed and sql.startswith('INSERT INTO main.core_bytes'):
                     self.writes += 1
                 result = super().execute(sql, *args, **kwargs)
                 if sql == 'COMMIT' and self.armed:

@@ -18,6 +18,7 @@ from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
 import test_local_distribution as fixture
+from image_fixture import FIXTURE_ABI
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -45,7 +46,7 @@ class CapacityOriginalTests(unittest.TestCase):
     def stage(self):
         encoded = self.installed()
         (self.directory / '_local_host_capacity.json').write_bytes(encoded)
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 89,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': FIXTURE_ABI,
             'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
             'host_capacity_sha256': hashlib.sha256(encoded).hexdigest()}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))

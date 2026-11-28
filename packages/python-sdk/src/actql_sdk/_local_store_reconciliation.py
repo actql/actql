@@ -7,9 +7,9 @@ from typing import Literal, TypeVar
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_core import LocalResultProgress, _Input, _Output
 from ._local_host_binding import OriginalHostBinding
-from ._local_observation_transfer import OriginalObservationTransfer
+from ._local_observation_transfer import OriginalObservationTransfer, _ObservationSource
 from ._local_reader_facts import OriginalReaderFacts
-from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes, _NamespaceReader
+from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes
 
 _T = TypeVar('_T')
 
@@ -37,14 +37,12 @@ class OriginalStoreReconciliation:
     No Source, Compute, Run, write, automatic lookup retry or replay is started.
     """
 
-    # Set only by an attempted exact phase; absence still identifies legacy.
-    _prepare_counts: tuple[int, int, int, int, int]
-
     def __init__(self, projection: OriginalCommitProjection, facts: tuple[OriginalReaderFacts, ...],
                  store: LocalByteStore,
                  originals: tuple[tuple[ByteFence, CapacityReservation], ...],
                  publisher: _Output, lookup: OriginalObservationTransfer,
-                 response: OriginalObservationTransfer) -> None:
+                 response: OriginalObservationTransfer, *,
+                 effect_points: tuple[ByteFence, ...] = ()) -> None:
         if (type(projection) is not OriginalCommitProjection
                 or type(facts) is not tuple or not facts
                 or any(type(fact) is not OriginalReaderFacts or fact._projection is not projection
@@ -68,11 +66,13 @@ class OriginalStoreReconciliation:
         self._facts = facts
         self._store = store
         self._originals = originals
+        self._effect_points = effect_points
         self._publisher: _Output | None = publisher
         self._lookup: OriginalObservationTransfer | None = lookup
         self._response: OriginalObservationTransfer | None = response
         self._entered = False
         self._active = False
+        self._exact_response = False
         self._binding: OriginalHostBinding | None = None
         self._saved_current: Callable[[], None] | None = None
         # Physical write-attempt guards belong to this original Store custody,
@@ -111,8 +111,10 @@ class OriginalStoreReconciliation:
             value._original = value
             value._projection, value._facts = projection, facts
             value._store, value._originals = store, originals
+            value._effect_points = ()
             value._publisher = value._lookup = value._response = None
             value._entered, value._active, value._binding = True, False, binding
+            value._exact_response = False
             value._saved_current = current
             value._sdk_evidence_request_attempts = set()
             value._sdk_evidence_key_attempts = set()
@@ -164,16 +166,15 @@ class OriginalStoreReconciliation:
         try:
             read(key, consume)
         except sqlite3.Error as error:
-            # The fixed driver may suspend only its optimization for this named
-            # failure-reporting continuation. It never retries the failed read.
-            phase = getattr(self._projection._core, '_reconciliation_prepare', None)
-            if phase is not None:
-                phase.query_failed(self, error)
-            # Run this while the original projection loan is still live. Do not
-            # erase the physical failure or let the Store's latched reader pass.
-            self._before_lookup()
-            if self._response is not None:
-                self._response.transfer_query_failure()
+            # Preserve the actual physical cause if the failure report
+            # cannot run in this same protected frame.
+            try:
+                self._before_lookup()
+                if self._response is not None:
+                    self._response.transfer_query_failure()
+            except BaseException as observation:
+                if observation is not error:
+                    raise error from observation
             raise
 
     def prepare(self, *, binding: OriginalHostBinding | None = None) -> None:
@@ -197,41 +198,29 @@ class OriginalStoreReconciliation:
             self._entered = self._active = True
             try:
                 with self._serialized_facts():
-                    # The defining modules already retained their original
-                    # method records. Lazy dispatch avoids a module cycle in
-                    # either import order without capturing current overrides.
-                    from ._local_reconciliation_prepare import _ENTRY_FUNCTIONS
-                    if binding is not None and _ENTRY_FUNCTIONS[0](self, binding):
-                        self._store._inspect_original_reconciliation_prepare(self)
-                    elif binding is None:
+                    if binding is None:
                         self._store.inspect_publication_projected_attached(
                             self._inspect, self._originals,
                             current=lambda: self._before_lookup())
                     else:
-                        with binding.fenced() as fences:
+                        with binding.fenced() as selected:
                             self._store.inspect_publication_projected_inspected(
-                                self._inspect, self._originals, fences,
+                                self._inspect, self._originals, selected,
                                 namespace=lambda reader, consume:
                                     binding.inspect_reader(reader, lambda _: consume()),
                                 current=binding._current_observer,
-                                before_lookup=lambda: self._before_lookup())
+                                before_lookup=self._before_lookup,
+                                _retain_task_points=self._lookup._retain_task_points,
+                                _effect_points=self._effect_points)
             finally:
                 self._active = False
-
-    def _prepare_closed(self, reader: _NamespaceReader) -> None:
-        """Only the original Store drives this fixed nonsaved preparation."""
-        binding = self._binding
-        if binding is None:
-            raise ValueError('Original prepare binding is unavailable')
-        from ._local_reconciliation_prepare import _ENTRY_FUNCTIONS
-        _ENTRY_FUNCTIONS[1](self, binding, reader)
 
     def _inspect(self, read: Callable[[str, Callable[[StoredBytes | None], object]], None]) -> None:
         lookup, response = self._lookup, self._response
         if lookup is None or response is None:
             raise ValueError('Saved read has no live publication lookup transfer')
-        reference: _Input | None = None
-        index: _Input | None = None
+        reference: _ObservationSource | None = None
+        index: _ObservationSource | None = None
         def reference_row(row: StoredBytes | None) -> None:
             nonlocal reference
             if row is None:
@@ -260,10 +249,12 @@ class OriginalStoreReconciliation:
             raise LocalStorageError('Original stored index transfer is incomplete')
         self._before_lookup()
         lookup.transfer_lookup_inputs(reference, index)
-        def retain_index(raw: bytes) -> None:
-            response.retain_source(raw)
-        lookup.consume_source(index, retain_index)
-        actual_index = response.pending_sources[0]
+        exact = self._projection._core.publication_observation_exact_index(
+            self._projection._publication, self._projection._configuration)
+        if not exact:
+            def retain_index(raw: bytes) -> None:
+                response.retain_source(raw)
+            lookup.consume_source(index, retain_index)
         fields: tuple[Literal['request', 'attempt'], ...] = ('request', 'attempt')
         for field in fields:
             def contract_row(row: StoredBytes | None) -> None:
@@ -272,9 +263,27 @@ class OriginalStoreReconciliation:
                 response.retain_source(row.payload)
             self._projection.project_stored_contract_lookup_key(
                 field, lambda key: self._query(read, key, contract_row))
-        _, request, attempt = response.pending_sources
         self._before_lookup()
-        response.transfer_stored_inputs(request, attempt, actual_index)
+        if exact:
+            request, attempt = response.pending_sources
+            response.transfer_exact_stored_inputs(request, attempt)
+            self._exact_response = True
+        else:
+            actual_index, request, attempt = response.pending_sources
+            response.transfer_stored_inputs(request, attempt, actual_index)
+
+    def retire_exact_transports(self) -> bool:
+        """Retire only completed staging. The checked Index stays owned."""
+        self._nominal()
+        if not self._exact_response:
+            return True
+        projection = self._projection
+        with projection._core._lock:
+            if self._active or not self._entered or self._response is None or self._lookup is None:
+                raise ValueError('Original exact Store observation is unavailable')
+            if not projection._core.retire_publication_exact_observation_transport(projection._publication):
+                return False
+            return self._response.close() and self._lookup.retire_staging_workspace()
 
     def advance(self, quantum: int) -> LocalResultProgress:
         """Advance the same Owner's total work budget under current physical facts."""
@@ -451,14 +460,3 @@ class OriginalStoreReconciliation:
         if len(captured) != 1:
             raise RuntimeError('Incomplete original Store current observation')
         return captured[0]
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(OriginalStoreReconciliation, (
-        '_before_lookup', '_inspect', '_nominal',
-        '_prepare_closed', '_query', '_serialized_facts',
-        '_validate_facts', 'prepare',
-    )),
-)

@@ -64,7 +64,7 @@ class _SelectedImageRecipe:
             body = _closed(json.loads(self.engine_body, object_pairs_hook=_pairs), (
                 'target', 'cpu_features', 'consume_fuel', 'strategy',
                 'parallel_compilation', 'allocation', 'pooling', 'wasm_gc',
-                'wasm_component_model', 'async_support', 'memory_reservation',
+                'wasm_component_model', 'memory_reservation',
                 'memory_guard_size', 'memory_reservation_for_growth', 'max_wasm_stack'))
             # An explicit baseline target avoids compilation for the producer's
             # detected CPU. Actual pinned compiler/config validation is separate.
@@ -76,7 +76,6 @@ class _SelectedImageRecipe:
                     or body['parallel_compilation'] is not False
                     or body['allocation'] != 'pooling'
                     or body['wasm_gc'] is not False or body['wasm_component_model'] is not False
-                    or body['async_support'] is not False
                     or any(type(body[key]) is not int for key in ('memory_reservation',
                         'memory_guard_size', 'memory_reservation_for_growth', 'max_wasm_stack'))
                     or body['memory_reservation'] != 16 * 1024 * 1024

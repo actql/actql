@@ -12,7 +12,7 @@ import tomllib
 import unittest
 from unittest.mock import patch
 
-from image_fixture import IMAGE, ORIGINAL, descriptor
+from image_fixture import FIXTURE_ABI, FIXTURE_WASMTIME_VERSION, IMAGE, ORIGINAL, descriptor
 
 from actql_sdk._local_distribution import (
     inspect_local_components, installed_local_components, load_local_module, LocalInstallationError,
@@ -30,7 +30,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.enterContext(patch('actql_sdk._local_distribution.sys.platform', 'darwin'))
         self.enterContext(patch('actql_sdk._local_distribution.platform.machine', return_value='arm64'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-                     'platform': 'darwin-arm64', 'core_abi': 89, 'wasmtime_version': '38.0.0',
+                     'platform': 'darwin-arm64', 'core_abi': FIXTURE_ABI, 'wasmtime_version': FIXTURE_WASMTIME_VERSION,
                      'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = b'fixture component ' + name.encode()
@@ -180,11 +180,11 @@ class LocalDistributionTests(unittest.TestCase):
         # Independent current/prior ABI pins distinguish the release fence
         # from the image recipe fence; older ABI87 remains incompatible too.
         for release_abi, image_abi, reason in (
-                (88, 89, 'Installed Local release cohort is incompatible'),
-                (89, 88, 'Installed Local image does not match the selected recipe'),
-                (88, 88, 'Installed Local release cohort is incompatible'),
-                (87, 89, 'Installed Local release cohort is incompatible'),
-                (89, 87, 'Installed Local image does not match the selected recipe'),
+                (FIXTURE_ABI - 1, FIXTURE_ABI, 'Installed Local release cohort is incompatible'),
+                (FIXTURE_ABI, FIXTURE_ABI - 1, 'Installed Local image does not match the selected recipe'),
+                (FIXTURE_ABI - 1, FIXTURE_ABI - 1, 'Installed Local release cohort is incompatible'),
+                (87, FIXTURE_ABI, 'Installed Local release cohort is incompatible'),
+                (FIXTURE_ABI, 87, 'Installed Local image does not match the selected recipe'),
                 (87, 87, 'Installed Local release cohort is incompatible')):
             with self.subTest(release_abi=release_abi, image_abi=image_abi):
                 self.body = json.loads(json.dumps(original))
@@ -205,7 +205,7 @@ class LocalDistributionTests(unittest.TestCase):
                    'host_capacity_sha256': 'c' * 64}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
-                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
+                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': FIXTURE_WASMTIME_VERSION}
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=versions.__getitem__), \
                 patch('actql_sdk._local_distribution.resources.files', return_value=self.directory), \
                 patch('actql_sdk._local_distribution.inspect_local_components',
@@ -304,18 +304,18 @@ class LocalDistributionTests(unittest.TestCase):
 
     def test_unsupported_platform_rejects_before_resources_or_dependency_discovery(self):
         with ExitStack() as stack:
-            stack.enter_context(patch('actql_sdk._local_distribution.sys.platform', 'linux'))
+            stack.enter_context(patch('actql_sdk._local_distribution.sys.platform', 'win32'))
             stack.enter_context(patch('actql_sdk._local_distribution.resources.files', side_effect=AssertionError('Discovery')))
             stack.enter_context(patch('actql_sdk._local_distribution.metadata.version', side_effect=AssertionError('Dependency')))
             with self.assertRaisesRegex(LocalInstallationError, 'platform'):
                 installed_local_components()
 
     def test_installed_resolver_uses_matching_cohort_and_optional_dependency(self):
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 89,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': FIXTURE_ABI,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))
-        versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0', 'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
+        versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0', 'actql-local-runtime': '0.0.0.dev0', 'wasmtime': FIXTURE_WASMTIME_VERSION}
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=lambda name: versions[name]), \
                 patch('actql_sdk._local_distribution.resources.files', return_value=self.directory) as resource:
             self.assertEqual(installed_local_components().module, self.directory / 'client_host_wasm.wasm')
@@ -333,8 +333,8 @@ class LocalDistributionTests(unittest.TestCase):
 
     def test_runtime_manifest_cannot_rebind_same_version_sdk_and_missing_binding_has_no_fallback(self):
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
-                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 89,
+                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': FIXTURE_WASMTIME_VERSION}
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': FIXTURE_ABI,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'host_capacity_sha256': 'c' * 64}
         path = self.directory / '_local_release_binding.json'
@@ -363,13 +363,13 @@ class LocalDistributionTests(unittest.TestCase):
         self.body['engine_recipe'].update(bytes=len(encoded), sha256=hashlib.sha256(encoded).hexdigest())
         self.body['compiled_image'].update(runtime_allocation='platform', provider_library_sha256=None)
         self.write_manifest()
-        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 89,
+        binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': FIXTURE_ABI,
                    'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
                    'runtime_allocation': 'platform'}
         path = self.directory / '_local_release_binding.json'
         path.write_text(json.dumps(binding))
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
-                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
+                    'actql-local-runtime': '0.0.0.dev0', 'wasmtime': FIXTURE_WASMTIME_VERSION}
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=versions.__getitem__), \
                 patch('actql_sdk._local_distribution.resources.files', return_value=self.directory):
             selected = installed_local_components()
@@ -392,7 +392,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.assertEqual(product['dependencies'],
                          ['actql-sdk==' + sdk['version'], 'actql-local-runtime==' + sdk['version']])
         self.assertNotIn('local', sdk['optional-dependencies'])
-        self.assertEqual(runtime['dependencies'], ['wasmtime==38.0.0'])
+        self.assertEqual(runtime['dependencies'], ['wasmtime==' + FIXTURE_WASMTIME_VERSION])
         self.assertEqual(sdk['dependencies'], ['httpx==0.28.1', 'rfc8785==0.1.4'])
 
     def test_recipe_reads_actual_binary_target_without_loading(self):

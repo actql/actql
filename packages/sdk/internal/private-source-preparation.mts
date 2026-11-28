@@ -33,16 +33,20 @@ export function captureSourcePreparation(port?: object) {
   if (!hasOwn(entry, 'value') || entry.value === null ||
       typeof entry.value !== 'object') throw unavailable();
   const receiver = entry.value as object;
-  const methods = ['beforeSourceSnapshot', 'bindSourceSnapshot',
-    'bindSourceRequest', 'finishSourceProducer', 'intentCid',
-    'captureSourceSnapshot', 'assertSourceSnapshotCurrent',
-    'publishSourceSnapshot'].map(name => {
-      const field = descriptor(receiver, name);
-      if (field === undefined || !hasOwn(field, 'value') ||
-          typeof field.value !== 'function') throw unavailable();
-      return field.value as PrivateMethod;
-    });
-  const [before, snapshot, request, finish, intent, capture, snapshotCurrent, publication] = methods;
+  const captureMethod = (name: string): PrivateMethod => {
+    const field = descriptor(receiver, name);
+    if (field === undefined || !hasOwn(field, 'value') ||
+        typeof field.value !== 'function') throw unavailable();
+    return field.value as PrivateMethod;
+  };
+  const before = captureMethod('beforeSourceSnapshot');
+  const snapshot = captureMethod('bindSourceSnapshot');
+  const request = captureMethod('bindSourceRequest');
+  const finish = captureMethod('finishSourceProducer');
+  const intent = captureMethod('intentCid');
+  const capture = captureMethod('captureSourceSnapshot');
+  const snapshotCurrent = captureMethod('assertSourceSnapshotCurrent');
+  const publication = captureMethod('publishSourceSnapshot');
   const queryField = descriptor(receiver, 'beforeSourceQuery');
   const beforeQuery = queryField !== undefined && hasOwn(queryField, 'value') &&
     typeof queryField.value === 'function' ? queryField.value as PrivateMethod : undefined;

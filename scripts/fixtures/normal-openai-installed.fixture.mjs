@@ -1,11 +1,13 @@
 // Copy this authored consumer and external-rest/conformance.mjs into a fresh
 // outside-checkout installation. Only installed public package entrances run.
 import assert from 'node:assert/strict';
+import {createHook} from 'node:async_hooks';
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {createRequire, registerHooks} from 'node:module';
 import {realpathSync} from 'node:fs';
-import {access, mkdir, readFile, writeFile} from 'node:fs/promises';
+import {access, lstat, mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
+import {setTimeout as waitFor} from 'node:timers/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {isAbsolute, relative, resolve} from 'node:path';
@@ -13,24 +15,94 @@ import {DatabaseSync} from 'node:sqlite';
 import tls, {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {fileURLToPath} from 'node:url';
 import {observeOwnScopedStateFds} from './conformance.mjs';
-import {normalProviderDiagnostics} from './normal-provider-diagnostics.fixture.mjs';
+import {closedModelRawEvidence, modelPlanFixtureDigest, normalProviderDiagnostics, observeEnteredCancellation, omitFixtureModelPlanBinding,
+  verifyFixtureModelPlanBindingStillAbsent} from './normal-provider-diagnostics.fixture.mjs';
 
 const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
+  'registered-foreign-model', 'registered-missing-routes',
   'registered-google', 'registered-mixed', 'registered-mistral', 'registered-openai-responses',
   'registered-openai-responses-over-limit', 'registered-external', 'registered-external-double', 'registered-length', 'registered-refusal',
-  'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist', 'registered-capabilities', 'changed-route'].includes(phase));
+  'registered-response-loss', 'registered-entered-cancel', 'registered-http-401', 'registered-http-503',
+  'registered-openai-filter', 'registered-google-recitation', 'registered-google-blocklist', 'registered-capabilities',
+  'changed-route', 'retained-unbound', 'direct-project', 'direct-response-loss', 'direct-partial-raw'].includes(phase));
 const changedRoute = phase === 'changed-route';
-const fresh = phase !== 'cold' && !changedRoute;
+const retainedUnbound = phase === 'retained-unbound';
+const fresh = phase !== 'cold' && !changedRoute && !retainedUnbound;
+const savedSelection = fresh ? undefined : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
+const directHttp = fresh ? phase.startsWith('direct-') : savedSelection.directHttp === true;
+const directResponseLoss = fresh ? phase === 'direct-response-loss' : savedSelection.directResponseLoss === true;
+const directPartialRaw = fresh ? phase === 'direct-partial-raw' : savedSelection.directPartialRaw === true;
+const directUnknown = directResponseLoss || directPartialRaw;
+assert(!directUnknown || directHttp);
+assert(!directResponseLoss || !directPartialRaw);
+const directPeerHost = directResponseLoss ? '127.0.0.1' : 'localhost';
+const partialProviderBody = 'Controll';
+const partialProviderResponse = 'Controlled provider unavailable';
 const missingKey = phase === 'missing-key';
 const credentialMismatch = phase.startsWith('registered-credential-');
+const bindingRefusal = phase === 'registered-foreign-model' || phase === 'registered-missing-routes';
 const responsesOverLimit = phase === 'registered-openai-responses-over-limit';
 const modules = resolve(realpathSync(process.cwd()), 'node_modules');
 assert.equal(realpathSync(modules), modules, 'The fresh node_modules must not redirect to another installation');
-const publicModules = new Map(['@actql/node', '@actql/sdk', '@actql/provider-ai-sdk', '@actql/local-node/observation']
+const providerPackage = directHttp ? '@actql/local-node' : '@actql/provider-ai-sdk';
+const publicModules = new Map(['@actql/node', '@actql/sdk', providerPackage, '@actql/local-node/observation']
   .map(name => [name, import.meta.resolve(name)]));
+const standaloneProviderPackages = ['@actql/provider-ai-sdk', '@actql/provider-http', 'ai', '@ai-sdk/openai'];
+const isSdkDependency = name => name === 'ai' || name === '@actql/provider-ai-sdk' || name.startsWith('@ai-sdk/');
+
+async function installedDirectDependencyClosure() {
+  const installed = [];
+  const pending = [modules];
+  async function inspect(entry, directory, scope = '') {
+    assert(entry.isDirectory(), 'Direct HTTP package ownership requires a real installed directory');
+    const path = resolve(directory, entry.name);
+    const manifest = JSON.parse(await readFile(resolve(path, 'package.json'), 'utf8'));
+    assert.equal(typeof manifest.name, 'string');
+    assert.equal(typeof manifest.version, 'string');
+    const requested = scope + entry.name;
+    assert(!isSdkDependency(requested) && !isSdkDependency(manifest.name),
+      'SDK-free installation contains ' + relative(modules, path));
+    const dependencies = ['dependencies', 'optionalDependencies', 'peerDependencies']
+      .flatMap(field => Object.keys(manifest[field] ?? {})).sort();
+    assert(!dependencies.some(isSdkDependency), 'SDK-free installation declares a dependency on AI SDK in ' + manifest.name);
+    installed.push(JSON.stringify([relative(modules, path), manifest.name, manifest.version, dependencies]));
+    pending.push(resolve(path, 'node_modules'));
+  }
+  for (const directory of pending) {
+    const status = await lstat(directory).catch(error => {
+      if (error.code === 'ENOENT') return undefined;
+      throw error;
+    });
+    if (status === undefined) continue;
+    assert(status.isDirectory(), 'Direct HTTP dependency tree must be a real installed directory');
+    const entries = await readdir(directory, {withFileTypes: true});
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+      if (entry.name.startsWith('@')) {
+        assert(entry.isDirectory(), 'Direct HTTP package scope must be a real installed directory');
+        const scope = resolve(directory, entry.name);
+        for (const child of await readdir(scope, {withFileTypes: true})) {
+          await inspect(child, scope, entry.name + '/');
+        }
+      } else await inspect(entry, directory);
+    }
+  }
+  assert(installed.length > 0);
+  return {packages: installed.length, sha256: createHash('sha256').update(installed.sort().join('\n')).digest('hex')};
+}
+
+let directDependencyClosure;
+if (directHttp) {
+  // The installation must lack the optional SDK and standalone Provider package.
+  for (const name of standaloneProviderPackages) {
+    assert.throws(() => import.meta.resolve(name), {code: 'ERR_MODULE_NOT_FOUND'},
+      'SDK-free installation resolved optional package ' + name);
+  }
+  directDependencyClosure = await installedDirectDependencyClosure();
+}
 for (const [name, url] of publicModules) {
   const member = realpathSync(fileURLToPath(url));
   const selected = relative(modules, member);
@@ -43,7 +115,7 @@ for (const [name, url] of publicModules) {
 // Resolve and validate all public entrances before any package can execute.
 const {open} = await import(publicModules.get('@actql/node'));
 const {getSubmissionAttempt} = await import(publicModules.get('@actql/sdk'));
-const providerModule = publicModules.get('@actql/provider-ai-sdk');
+const providerModule = publicModules.get(providerPackage);
 const {createHostObservationConnection} = await import(publicModules.get('@actql/local-node/observation'));
 const {workflowWorkObservation} = await import('./work-observation.fixture.mjs');
 
@@ -58,30 +130,37 @@ const safetyFinish = {'registered-openai-filter': 'content_filter', 'registered-
   'registered-google-blocklist': 'BLOCKLIST'}[phase];
 const terminalFailure = safetyFinish === undefined
   ? {'registered-length': 'truncated', 'registered-refusal': 'refusal'}[phase] : 'safety_rejected';
+const httpResponse = {'rate-limit': 429, 'registered-http-401': 401, 'registered-http-503': 503}[phase];
 const selection = fresh ? {
-  usage: phase === 'registered-mixed' || terminalFailure !== undefined
-    ? null : phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
+  usage: ['registered-mixed', 'registered-response-loss', 'registered-entered-cancel'].includes(phase) ||
+      terminalFailure !== undefined || httpResponse !== undefined || directUnknown
+    ? null : phase === 'project-key' || directHttp || phase.startsWith('registered-') ? 'reported'
     : phase.startsWith('usage-') ? phase.slice(6) : null,
   timeout: phase.startsWith('timeout-') ? phase.slice(8) : null,
-  rateLimit: phase === 'rate-limit',
-  project: phase === 'project-key' || phase.startsWith('registered-'),
-  registered: phase.startsWith('registered-'),
+  httpStatus: httpResponse ?? 200,
+  ...(phase === 'registered-response-loss' ? {interruption: 'response-loss'} : {}),
+  ...(phase === 'registered-entered-cancel' ? {interruption: 'entered-cancel'} : {}),
   ...(alternative === undefined ? {} : {provider: alternative}),
   ...(phase === 'registered-external-double' ? {externalDuplicate: true} : {}),
   ...(phase === 'registered-capabilities' ? {capabilities: true} : {}),
   ...(terminalFailure === undefined ? {} : {terminalFailure}),
   ...(safetyFinish === undefined ? {} : {safetyFinish}),
-} : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
+  ...(directHttp ? {directHttp, directResponseLoss, directPartialRaw} : {}),
+} : savedSelection;
 assert([undefined, 'anthropic', 'google', 'mixed', 'mistral', 'responses', 'external'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
 const capabilities = selection.capabilities === true;
-if (changedRoute) assert(capabilities);
+if (changedRoute || retainedUnbound) assert(capabilities);
 const external = selection.provider === 'external';
 const externalDuplicate = selection.externalDuplicate === true;
 if (externalDuplicate) assert(external);
 const mistral = selection.provider === 'mistral';
 const failedAnswer = selection.terminalFailure;
 const selectedSafetyFinish = selection.safetyFinish;
+const httpStatus = selection.httpStatus;
+assert([200, 401, 429, 503].includes(httpStatus));
+const httpFailure = httpStatus === 200 ? undefined : httpStatus === 429 ? 'rate_limit' : 'provider_error';
+const outcomeFailure = failedAnswer ?? httpFailure;
 assert([undefined, 'truncated', 'refusal', 'safety_rejected'].includes(failedAnswer));
 if (failedAnswer === 'safety_rejected') {
   assert(selection.provider === 'google'
@@ -89,27 +168,29 @@ if (failedAnswer === 'safety_rejected') {
     : selection.provider === undefined && selectedSafetyFinish === 'content_filter');
 } else assert.equal(selectedSafetyFinish, undefined);
 const responses = selection.provider === 'responses';
-const trackOriginal = capabilities || mixed || mistral || responses || external || failedAnswer !== undefined;
+const interruption = selection.interruption;
+assert([undefined, 'response-loss', 'entered-cancel'].includes(interruption));
+const trackOriginal = directHttp || capabilities || mixed || mistral || responses || external ||
+  outcomeFailure !== undefined || interruption !== undefined;
 const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
-  [...(capabilities ? ['capabilities'] : []), ...(externalDuplicate ? ['externalDuplicate'] : []), 'project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered',
+  [...(capabilities ? ['capabilities'] : []),
+    ...(directHttp ? ['directHttp', 'directPartialRaw', 'directResponseLoss'] : []), ...(externalDuplicate ? ['externalDuplicate'] : []), 'httpStatus',
+    ...(interruption === undefined ? [] : ['interruption']),
+    ...(selection.provider === undefined ? [] : ['provider']),
     ...(selectedSafetyFinish === undefined ? [] : ['safetyFinish']),
     ...(failedAnswer === undefined ? [] : ['terminalFailure']), 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
 assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
-const project = selection.project === true;
-const registered = selection.registered === true;
-if (project) assert.deepEqual(selection, {usage: mixed || failedAnswer !== undefined ? null : 'reported',
-  timeout: null, rateLimit: false, project: true, registered,
-  ...(capabilities ? {capabilities: true} : {}),
-  ...(externalDuplicate ? {externalDuplicate: true} : {}),
-  ...(selection.provider === undefined ? {} : {provider: selection.provider}),
-  ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
-  ...(selectedSafetyFinish === undefined ? {} : {safetyFinish: selectedSafetyFinish})});
-if (failedAnswer !== undefined) assert(registered && (selectedSafetyFinish !== undefined || selection.provider === undefined));
+const unknown = directUnknown || timeoutMode !== undefined || interruption !== undefined;
+if (interruption !== undefined) assert.equal(usageMode, undefined);
+const enteredCancel = interruption === 'entered-cancel';
+if (failedAnswer !== undefined) assert(selectedSafetyFinish !== undefined || selection.provider === undefined);
+if (directHttp) assert.deepEqual(selection, {directHttp: true, directResponseLoss, directPartialRaw,
+  httpStatus: 200, timeout: null, usage: directUnknown ? null : 'reported'});
 const providerName = mixed || external ? 'openai' : selection.provider ?? 'openai';
 const routeFixtures = {
   openai: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
@@ -142,9 +223,8 @@ const selectedRoute = routes[0];
 const deniedAlias = 'fixture-unsupported';
 const {credentialReference} = selectedRoute;
 const routesByHost = new Map(routes.map(original => [original.officialHost, original]));
-const fixtureCredential = project ? 'actql-synthetic-project-credential' : 'not-an-external-secret';
+const fixtureCredential = 'actql-synthetic-project-credential';
 const credentialValue = original => mixed ? fixtureCredential + '-' + original.name : fixtureCredential;
-let modelSdkRegistrations;
 const independentAdapter = '@actql-acceptance/external-openai-adapter';
 let externalDuplicateSource;
 function frozenPackageImages(value) {
@@ -153,14 +233,14 @@ function frozenPackageImages(value) {
   }
   return Object.freeze(value);
 }
-if (registered) {
+const originals = [];
+if (!directHttp) {
   const adapterModule = external ? import.meta.resolve(independentAdapter) : providerModule;
   if (external) assert.equal(realpathSync(fileURLToPath(adapterModule)), resolve(modules, independentAdapter, 'index.mjs'));
   const packageImages = external ? frozenPackageImages(JSON.parse(await readFile('external-package-images.fixture.json', 'utf8'))) : undefined;
   const adapterManifest = JSON.parse(await readFile(new URL('package.json', adapterModule), 'utf8'));
   assert.equal(adapterManifest.name, external ? independentAdapter : '@actql/provider-ai-sdk');
   const adapterPackage = {packageName: adapterManifest.name, version: adapterManifest.version};
-  const originals = [];
   for (const original of routes) {
     const packageName = '@ai-sdk/' + original.name;
     const sdkEntry = createRequire(new URL(adapterModule)).resolve(packageName);
@@ -191,8 +271,8 @@ if (registered) {
       routes: Object.freeze([exact, ...unsupported]),
     }));
   }
-  modelSdkRegistrations = Object.freeze(originals);
 }
+const modelSdkRegistrations = Object.freeze(originals);
 if (phase === 'registered-invalid') {
   const original = modelSdkRegistrations[0];
   const sdk = Object.freeze({...original.sdk, cid: 'sha256:' + '0'.repeat(64)});
@@ -232,20 +312,19 @@ if (phase === 'registered-too-late') {
   process.stdout.write(JSON.stringify({phase, startupRefused: true, registrations, calls: 0}) + '\n');
   process.exit(0);
 }
-const maxCalls = usageMode === 'reported' || mixed || failedAnswer !== undefined ? 1n : 2n;
-const taskCount = capabilities ? 2 : !missingKey && usageMode === undefined && timeoutMode === undefined &&
-  !selection.rateLimit && failedAnswer === undefined ? 2 : 1;
-const phaseTimeoutMs = timeoutMode === 'call' ? 2000 : 1000;
+const maxCalls = directHttp || usageMode === 'reported' || mixed || failedAnswer !== undefined || interruption !== undefined ? 1n : 2n;
+const taskCount = capabilities ? 2 : !directHttp && !missingKey && usageMode === undefined && !unknown &&
+  outcomeFailure === undefined ? 2 : 1;
+const phaseTimeoutMs = enteredCancel ? 8000 : timeoutMode === 'call' ? 2000 : 1000;
 const transportTimeouts = {
   connectMs: phaseTimeoutMs, headersMs: timeoutMode === 'headers' ? 30 : phaseTimeoutMs,
-  bodyMs: timeoutMode === 'body' ? 30 : phaseTimeoutMs,
+  bodyMs: directPartialRaw ? 250 : timeoutMode === 'body' ? 30 : phaseTimeoutMs,
   callMs: timeoutMode === 'call' ? 500 : phaseTimeoutMs,
 };
 
 if (fresh) {
   await assert.rejects(access('.state'), {code: 'ENOENT'});
   const put = (path, value, mode = 0o600) => writeFile(path, value, {flag: 'wx', mode});
-  if (!missingKey && !project) await put('provider-credential.fixture', fixtureCredential);
   await put('case-profile.fixture.json', JSON.stringify(selection));
   await put('actql.config.json', JSON.stringify({version: 'actql-config/0.1', model_tasks: './model-tasks.json'}));
   await put('model-tasks.json', JSON.stringify({version: 'actql-model-tasks/0.1',
@@ -267,23 +346,52 @@ if (fresh) {
   await put('operator-public.fixture', keys.publicKey.export({type: 'spki', format: 'pem'}));
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'provider.key', '-out', 'provider.crt', '-days', '1', '-subj', '/CN=localhost',
-    '-addext', project ? 'subjectAltName=' + routes.map(original => 'DNS:' + original.officialHost).join(',')
-      : 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+    '-addext', directHttp ? 'subjectAltName=DNS:localhost,IP:127.0.0.1'
+      : 'subjectAltName=' + routes.map(original => 'DNS:' + original.officialHost).join(',')],
   {stdio: 'ignore'});
 } else await access('.state');
-if (project) {
-  for (const original of routes) {
-    assert.equal(process.env[original.credentialReference], undefined, 'Do not inherit an operator credential');
-  }
-  await assert.rejects(access('provider-credential.fixture'), {code: 'ENOENT'});
+for (const original of routes) {
+  assert.equal(process.env[original.credentialReference], undefined, 'Do not inherit an operator credential');
 }
 
 const certificate = await readFile('provider.crt', 'utf8');
 setDefaultCACertificates([...getCACertificates('default'), certificate]);
 let calls = 0, egressChecks = 0, projectTlsConnects = 0, unexpectedProjectConnection = false;
+let peerTcpAccepts = 0, peerTlsHandshakes = 0, peerSocketCloses = 0, modelCredentialReads = 0;
+let originalDirectResponseCid;
+let directDnsStarted = 0, directDnsCompleted = 0, directDnsOriginal, peerServerName = null;
+const directDnsObserver = directHttp ? createHook({
+  init(id, type) {
+    if (type !== 'GETADDRINFOREQWRAP') return;
+    directDnsStarted++;
+    if (directDnsStarted === 1) directDnsOriginal = id;
+  },
+  after(id) {
+    if (id === directDnsOriginal) directDnsCompleted++;
+  },
+}).enable() : undefined;
 let pulse, continuousWrites = 0, responseClosedBeforeFirstClose = false, finishContinuousResponse;
+let completedHttpFailures = 0;
 const continuousResponseClosed = fresh && timeoutMode === 'call'
   ? new Promise(resolve => {finishContinuousResponse = resolve;}) : undefined;
+const enteredRequest = Promise.withResolvers(), interruptedResponse = Promise.withResolvers();
+const cancelTraceStart = performance.now();
+function recordEnteredCancellation(stage) {
+  if (fresh && enteredCancel) {
+    // Fixed stage names and monotonic offsets survive a red in the raw child
+    // log. The original Run, credentials and peer payload stay in the fixture.
+    process.stderr.write(JSON.stringify({enteredCancellationStage: stage,
+      elapsedMs: Math.round(performance.now() - cancelTraceStart)}) + '\n');
+  }
+}
+async function awaitPeer(pending, issue) {
+  let deadline;
+  try {
+    await Promise.race([pending, new Promise((_, reject) => {
+      deadline = setTimeout(() => reject(Error(issue)), 5000);
+    })]);
+  } finally {clearTimeout(deadline);}
+}
 const schemas = [], dispatchedProviders = new Set(), connectedHosts = new Set();
 const server = createServer({cert: certificate, key: await readFile('provider.key')}, async (request, response) => {
   calls++;
@@ -298,20 +406,35 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   if (mixed) assert.equal(dispatchedProviders.has(original.providerId), false, 'One dispatch per original Provider');
   dispatchedProviders.add(original.providerId);
   assert.equal(request.url, requestPath);
-  assert(request.headers[credentialHeader] === credentialPrefix + credentialValue(original),
-    'Unexpected synthetic credential');
-  if (project) {
+  if (directHttp) {
+    assert.equal(request.method, 'POST');
+    assert.equal(request.headers.host, directPeerHost + ':' + server.address().port);
+    assert.equal(request.socket.servername || null, directResponseLoss ? null : directPeerHost);
+  } else {
     assert.equal(request.headers.host, officialHost);
     assert.equal(request.socket.servername, officialHost);
-    assert.equal(request.socket.remoteAddress, '127.0.0.1');
   }
+  assert(request.headers[credentialHeader] === credentialPrefix + credentialValue(original),
+    'Unexpected synthetic credential');
+  assert.equal(request.socket.remoteAddress, '127.0.0.1');
   let wire = '';
   for await (const chunk of request) {wire += chunk; assert(wire.length <= 32768);}
   const body = JSON.parse(wire);
   if (!google) assert.equal(body.model, resolvedModelId);
   assert.notEqual(body.stream, true);
   let schema, promptText;
-  if (anthropic) {
+  if (directHttp) {
+    const expectedSchema = {additionalProperties: false, properties: {answer: {type: 'boolean'}},
+      required: ['answer'], type: 'object'};
+    assert.equal(wire, JSON.stringify({max_tokens: 100, messages: [
+      {content: 'Return the exact boolean.', role: 'system'},
+      {content: '{"text":"first"}', role: 'user'},
+    ], model: 'fixture-chat', n: 1, response_format: {
+      json_schema: {name: 'actql_output', schema: expectedSchema, strict: true}, type: 'json_schema',
+    }, stream: false, temperature: 0, top_p: 1}), 'The direct HTTP request must match the canonical Chat profile');
+    schema = body.response_format.json_schema.schema;
+    promptText = body.messages[1].content;
+  } else if (anthropic) {
     assert.equal(body.output_config.format.type, 'json_schema');
     assert.equal(body.output_config.format.schema.properties[index === 0 ? 'answer' : 'label'].type,
       index === 0 ? 'boolean' : 'string');
@@ -351,7 +474,7 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     assert.deepEqual(body.input, [{role: 'system', content: 'Return the exact boolean.'},
       {role: 'user', content: [{type: 'input_text', text: promptText}]}]);
   } else {
-    if (registered) assert.equal(body.store, false, 'The selected SDK options must reach the actual request');
+    assert.equal(body.store, false, 'The selected SDK options must reach the actual request');
     schema = body.response_format.json_schema.schema;
     promptText = body.messages[1].content;
   }
@@ -359,7 +482,27 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
   const input = JSON.parse(promptText);
   assert.deepEqual(input, index === 0 ? {text: 'first'} : {quantity: 7});
   const value = index === 0 ? {answer: true} : {label: 'exact-label'};
+  if (interruption !== undefined) {
+    response.once('close', () => {
+      recordEnteredCancellation('peer_closed');
+      interruptedResponse.resolve();
+    });
+    enteredRequest.resolve();
+    if (!enteredCancel) request.socket.destroy();
+    return;
+  }
   if (timeoutMode === 'headers') return; // Actual request received; no response headers.
+  if (directResponseLoss) {
+    response.destroy();
+    return;
+  }
+  if (directPartialRaw) {
+    response.writeHead(503, {'content-type': 'text/plain',
+      'content-length': Buffer.byteLength(partialProviderResponse), 'x-request-id': 'installed-partial'});
+    response.write(partialProviderBody);
+    // The original transport's body timeout retires the stalled peer.
+    return;
+  }
   response.setHeader('content-type', 'application/json');
   response.setHeader('x-request-id', 'installed-' + calls);
 
@@ -370,9 +513,11 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
       usage: {input_tokens: 2, output_tokens: 3, total_tokens: 5}}));
     return;
   }
-  if (selection.rateLimit) {
-    response.statusCode = 429;
-    response.end('{"error":{"code":"rate_limit"}}');
+  if (httpFailure !== undefined) {
+    response.once('finish', () => {completedHttpFailures++;});
+    response.statusCode = httpStatus;
+    response.end(httpFailure === 'rate_limit' ? '{"error":{"code":"rate_limit"}}'
+      : '{"error":{"message":"authored provider refusal","type":"fixture_error","code":"fixture_error"}}');
     return;
   }
   if (timeoutMode === 'body') {response.write('{'); return;} // Partial original, no EOF.
@@ -410,17 +555,29 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
       choices: [{index: 0, message, finish_reason: finishReason}], usage}));
     return;
   }
-  response.end(JSON.stringify(anthropic ? {id: 'installed-' + calls, type: 'message', role: 'assistant',
+  const responseWire = JSON.stringify(anthropic ? {id: 'installed-' + calls, type: 'message', role: 'assistant',
     model: resolvedModelId, content: [{type: 'text', text: JSON.stringify(value)}], stop_reason: 'end_turn',
     usage: {input_tokens: 2, output_tokens: 3}} : {id: 'installed-' + calls, object: 'chat.completion', created: 1,
     model: resolvedModelId, choices: [{index: 0,
       message: {role: 'assistant', content: JSON.stringify(value)}, finish_reason: 'stop'}],
     ...(usageMode === 'absent' ? {} : {usage: usageMode === 'zero'
       ? {prompt_tokens: 0, completion_tokens: 0, total_tokens: 0}
-      : {prompt_tokens: 2, completion_tokens: 3, total_tokens: 5}})}));
+      : {prompt_tokens: 2, completion_tokens: 3, total_tokens: 5}})});
+  if (directHttp) originalDirectResponseCid = 'sha256:' + createHash('sha256').update(responseWire).digest('hex');
+  response.end(responseWire);
 });
 let externalTcp = 0;
 if (externalDuplicate) server.on('connection', () => {externalTcp++;});
+if (directHttp) {
+  server.on('connection', socket => {
+    peerTcpAccepts++;
+    socket.once('close', () => {peerSocketCloses++;});
+  });
+  server.on('secureConnection', socket => {
+    peerTlsHandshakes++;
+    peerServerName = socket.servername || null;
+  });
+}
 const port = fresh ? 0 : Number(await readFile('endpoint.fixture', 'utf8'));
 await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
 if (fresh) await writeFile('endpoint.fixture', String(server.address().port), {flag: 'wx', mode: 0o600});
@@ -447,22 +604,51 @@ const fixtureHandling = {schema: 'actql.contract/0.1', id: 'registered-sdk-fixtu
   body: {accepted_classifications: ['public'], allowed_regions: ['global'],
     retention: 'provider_contract', training_use: 'forbidden'},
   cid: 'sha256:45514e22d8ea4714fb2d6a4bfac3a963f51fd8ef0b5c5e12229f053b9f8955aa'};
-const configureProvider = ({createOpenAIChatProvider, createProjectOpenAIChatProvider, createRegisteredSdkProvider}) =>
-  capabilities || selection.provider !== undefined ? createRegisteredSdkProvider({...providerOptions, providerId: 'models/http',
-    ...(responses ? {modelGeneration: Object.freeze([Object.freeze({selector: selectedRoute.selector,
-      temperature: 0.25, topP: 0.5, maxOutputTokens: 80, taskMaxOutputTokens: 100})])} : {}),
-    dataHandlingContractWire: JSON.stringify(fixtureHandling)})
-    : missingKey || project ? createProjectOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat'})
-    : createOpenAIChatProvider({...providerOptions, modelId: 'fixture-chat', providerId: 'models/http',
-      apiKeyFile: './provider-credential.fixture', baseURL: 'https://127.0.0.1:' + server.address().port + '/v1'});
-const registerModelProviders = registered ? async (runtime, context) => {
+function configureDirectProvider({createHttpChatProvider}) {
+  const data = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
+  const original = wire => Object.freeze({wire, cid: 'sha256:' + createHash('sha256').update(wire).digest('hex')});
+  const rawPolicies = Object.fromEntries(['retention', 'metadata', 'clock'].map(role =>
+    [role, original(JSON.stringify({name: 'direct-http-fixture-' + role, version: 'actql-installed-local-policy/0.1'}))]));
+  return createHttpChatProvider({...providerOptions, providerId: 'models/http',
+    modelId: 'fixture-chat', modelSelector: 'fixture-chat', credentialEnvironment: credentialReference,
+    endpoint: 'https://' + directPeerHost + ':' + server.address().port + selectedRoute.requestPath,
+    dataHandlingContractWire: JSON.stringify(fixtureHandling), rawPolicies: {...rawPolicies, data: original(data)}});
+}
+const dataHandlingContractWire = JSON.stringify(fixtureHandling);
+let bindingProjections = 0;
+async function registerSdkProviders(runtime, context) {
   for (const original of routes) assert.equal(context.registeredSdkSelected(original.providerId), true);
   const provider = await import(providerModule);
-  if (!mixed) return configureProvider(provider)(runtime, context);
+  assert.deepEqual(Object.keys(provider).sort(), ['createRegisteredSdkProvider', 'createRegisteredSdkProviders']);
+  if (!mixed) {
+    const register = provider.createRegisteredSdkProvider({...providerOptions, providerId: selectedRoute.providerId,
+      ...(responses ? {modelGeneration: Object.freeze([Object.freeze({selector: selectedRoute.selector,
+        temperature: 0.25, topP: 0.5, maxOutputTokens: 80, taskMaxOutputTokens: 100})])} : {}),
+      dataHandlingContractWire});
+    if (!bindingRefusal) return register(runtime, context);
+    // Supply one invalid DATA projection to the ordinary funded constructor.
+    // The selected, preloaded registration and capability stay untouched.
+    return register(runtime, {...context, prepareBindingOriginals(project) {
+      return context.prepareBindingOriginals(() => {
+        const [revision, contract, wire] = project();
+        const configuration = JSON.parse(wire);
+        bindingProjections++;
+        if (phase === 'registered-foreign-model') {
+          const route = configuration.structured_routes[selectedRoute.selector];
+          assert.equal(route.model_id, selectedRoute.resolvedModelId);
+          route.model_id = 'foreign-fixture-model';
+        } else {
+          assert(Object.hasOwn(configuration, 'structured_routes'));
+          delete configuration.structured_routes;
+        }
+        return [revision, contract, JSON.stringify(configuration)];
+      });
+    }});
+  }
   const options = Object.freeze(routes.map(original => Object.freeze({...providerOptions, providerId: original.providerId,
-    dataHandlingContractWire: JSON.stringify(fixtureHandling)})));
+    dataHandlingContractWire})));
   return provider.createRegisteredSdkProviders(options)(runtime, context);
-} : configureProvider(await import(providerModule));
+}
 const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'installed-' + field,
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: {type: 'string', nullable: false}, [field]: {type, nullable: false}},
@@ -474,7 +660,8 @@ const program = (task, field, value, type) => ({version: 'actql/0.1', id: 'insta
 const textContract = {type: 'string', nullable: false};
 async function checkResult(run, expected, index, resultName = 'answer') {
   const result = await run.result(resultName);
-  assert.deepEqual(await result.all(), [expected]);
+  const rows = await result.all();
+  assert.deepEqual(rows, [expected]);
   const description = await result.describe();
   assert.deepEqual(description.ref, run.ref);
   assert.equal(description.resultName, resultName);
@@ -484,6 +671,7 @@ async function checkResult(run, expected, index, resultName = 'answer') {
     {name: 'value', contract: {type: 'object', nullable: true, additional_properties: false,
       fields: index === 0 ? {answer: {type: 'boolean', nullable: false}} : {label: textContract}}},
   ]);
+  return {ref: description.ref, resultName: description.resultName, columns: description.columns, rows};
 }
 const mixedCases = [
   {stage: 'first', input: ['model-task:first', 'text', 'first', 'string'],
@@ -502,7 +690,17 @@ async function checkMixedResults(run) {
 // New explicit usage-aware local callback contract. This small authored Sink
 // persists only the bounded seven-field projection; it is not the old five-part
 // evidence Sink, an independent Model issuer or physical-cleanup observation.
-let originalRef, usageReceipt, usageCaptures = 0, usageAuthorizations = 0;
+let originalRef, usageReceipt, originalRawArtifactCid, originalTerminalStatus;
+let directResult, directResultRefusal, directPeerClosedBeforeFirstClose;
+async function checkUnpublishedDirectResult(run, state) {
+  assert.equal(state.result_available, false);
+  await assert.rejects(async () => (await run.result('answer')).all(), error => {
+    assert.equal(error.code, 'ResultAccessDenied');
+    directResultRefusal = error.code;
+    return true;
+  });
+}
+let usageCaptures = 0, usageAuthorizations = 0, checkedWithoutPhysicalWork = false;
 const policy = {kind: 'data_policy',
   wire: '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}',
   cid: 'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563'};
@@ -535,6 +733,10 @@ const inferEvidence = usageMode === undefined ? undefined : {
         assert.match(cid, /^sha256:[0-9a-f]{64}$/);
       }
       assert(value.raw_response_artifact_cid === null || /^sha256:[0-9a-f]{64}$/.test(value.raw_response_artifact_cid));
+      if (directHttp) {
+        assert.match(value.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
+        originalRawArtifactCid = value.raw_response_artifact_cid;
+      }
       assert.equal(wire.includes(fixtureCredential), false);
       await writeFile('usage-original.json', wire, {flag: 'wx', mode: 0o600});
       return {status: 'complete'};
@@ -550,9 +752,10 @@ const inferEvidence = usageMode === undefined ? undefined : {
     },
   },
 };
+const registerModelProviders = directHttp ? configureDirectProvider(await import(providerModule)) : registerSdkProviders;
 const openOptions = {stateDir: '.state', installation: {
   registerModelProviders, authorization, observation: work.connection,
-  ...(registered ? {modelSdkRegistrations} : {}),
+  ...(directHttp ? {} : {modelSdkRegistrations}),
   ...(inferEvidence === undefined ? {} : {inferEvidence, resultDataPolicy: policy})}};
 const checkpointPath = '.state/checkpoints/journal/checkpoint-journal.sqlite3';
 async function startupModelJournalCounts() {
@@ -574,11 +777,13 @@ async function startupModelJournalCounts() {
     return counts;
   } finally {journal.close();}
 }
-if (credentialMismatch || responsesOverLimit) {
+if (credentialMismatch || responsesOverLimit || bindingRefusal) {
   const env = process.env, connect = tls.connect;
   let credentialReads = 0, tlsAttempts = 0, peerConnections = 0;
-  const rejected = responsesOverLimit ? 'MoonBitHostFailure' : 'RegisteredSdkCredentialMismatch';
-  if (responsesOverLimit) await mkdir('.state', {mode: 0o700});
+  const rejected = phase === 'registered-missing-routes' ? 'InvalidInstalledModelSdkInstallation'
+    : credentialMismatch ? 'RegisteredSdkCredentialMismatch' : 'MoonBitHostFailure';
+  let bindingIssue;
+  if (!credentialMismatch) await mkdir('.state', {mode: 0o700});
   server.on('connection', () => {peerConnections++;});
   process.env = new Proxy(env, {get(target, name, receiver) {
     if (name === 'OPENAI_API_KEY' || name === 'ACTQL_TEST_UNAPPROVED_MODEL_KEY') credentialReads++;
@@ -595,6 +800,12 @@ if (credentialMismatch || responsesOverLimit) {
       assert.fail('Expected Host preparation to reject before returning a client');
     }
     assert.equal(opening.error?.code, rejected);
+    if (phase === 'registered-foreign-model') {
+      // StructuredModelCapabilityIssue::ForeignConfiguration from the pinned
+      // Common JS runtime. The Host has no public client at this boundary.
+      assert.equal(opening.error.cause?.$tag, 1);
+      bindingIssue = 'ForeignConfiguration';
+    }
     assert.equal(credentialReads, 0);
     assert.equal(tlsAttempts, 0);
     assert.equal(peerConnections, 0);
@@ -605,7 +816,7 @@ if (credentialMismatch || responsesOverLimit) {
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   }
-  if (responsesOverLimit) {
+  if (!credentialMismatch) {
     const journal = await startupModelJournalCounts();
     assert.deepEqual(journal, {modelScopes: 0, modelAttempts: 0});
     const aliveScopedFD0 = observeOwnScopedStateFds([resolve('.state')]).scopedStateFd0;
@@ -613,16 +824,77 @@ if (credentialMismatch || responsesOverLimit) {
     assert.equal(aliveScopedFD0, true);
     assert.equal(modelStarts, 0);
     assert.equal(usageCaptures, 0);
+    if (bindingRefusal) {
+      assert.equal(bindingProjections, 1);
+      assert.equal(egressChecks, 0);
+      assert.equal(usageAuthorizations, 0);
+      await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
+    }
     console.log(JSON.stringify({phase, rejected, credentialReads, tlsAttempts, peerConnections, calls,
-      modelStarts, ...journal, aliveScopedFD0, usageCaptures}));
+      modelStarts, ...journal, aliveScopedFD0, usageCaptures,
+      ...(bindingRefusal ? {pid: process.pid, bindingProjections, egressChecks, usageAuthorizations,
+        ...(bindingIssue === undefined ? {} : {bindingIssue})} : {})}));
   } else console.log(JSON.stringify({phase, rejected, credentialReads, tlsAttempts, calls}));
   process.exit(0);
 }
 let client, primary, failed = false;
 const originalEnv = process.env;
-let externalCredentialReads = 0, duplicateObservation, externalTerminal;
+let externalCredentialReads = 0, trackedCredentialReads = 0, duplicateObservation, externalTerminal;
+let cancellation, unknownControl;
 let deniedRef, capabilityIssue, changedIssue, changedReason, historicalSavedAfterChange;
-function readCapabilityJournal(ref, refused) {
+function readDirectModelJournal(ref, expectedState) {
+  const requests = new DatabaseSync('.state/requests/client-requests.sqlite3', {readOnly: true});
+  let journal;
+  try {
+    const row = requests.prepare(
+      `SELECT run_definition_wire FROM client_requests
+        WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`
+    ).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+    assert(row, 'Missing the selected original Run');
+    const definition = JSON.parse(row.run_definition_wire);
+    assert.equal(definition.run_definition_cid, ref.runDefinitionCid);
+    journal = new DatabaseSync(checkpointPath, {readOnly: true});
+    const scopes = journal.prepare(
+      `SELECT scope_cid, slot_count, inventory_json FROM resume_model_scopes WHERE run_id = ? LIMIT 2`
+    ).all(definition.run_id);
+    assert.equal(scopes.length, 1);
+    const [scope] = scopes;
+    assert.equal(scope.slot_count, 1);
+    const inventory = JSON.parse(scope.inventory_json);
+    assert.deepEqual([inventory.runId, inventory.runDefinitionCid, inventory.scopeCid],
+      [definition.run_id, ref.runDefinitionCid, scope.scope_cid]);
+    const slots = journal.prepare(
+      `SELECT ordinal, slot_cid, state, attempt_index FROM resume_model_slots WHERE scope_cid = ? LIMIT 2`
+    ).all(scope.scope_cid);
+    const attempts = journal.prepare(
+      `SELECT ordinal, attempt_index, attempt_cid, entry_json, state, settlement_json
+        FROM resume_model_attempts WHERE scope_cid = ? LIMIT 2`
+    ).all(scope.scope_cid);
+    assert.deepEqual([slots.length, attempts.length], [1, 1]);
+    const [slot] = slots;
+    const [attempt] = attempts;
+    assert.deepEqual([slot.ordinal, slot.attempt_index, slot.state, attempt.ordinal, attempt.attempt_index, attempt.state],
+      [0, 1, expectedState, 0, 1, expectedState]);
+    const entry = JSON.parse(attempt.entry_json);
+    assert.deepEqual([entry.runId, entry.runDefinitionCid, entry.scopeCid, entry.slotCid, entry.attemptCid,
+      entry.ordinal, entry.attemptIndex, entry.providerBindingCid],
+    [definition.run_id, ref.runDefinitionCid, scope.scope_cid, slot.slot_cid, attempt.attempt_cid,
+      0, 1, inventory.providerBindingCid]);
+    if (expectedState === 'EnteredUnknown') assert.equal(attempt.settlement_json, '');
+    else {
+      const saved = JSON.parse(attempt.settlement_json);
+      assert.equal(saved.state, expectedState);
+      assert.equal(saved.entry.attemptCid, attempt.attempt_cid);
+    }
+    return {runId: definition.run_id, scopeCid: scope.scope_cid, slotCid: slot.slot_cid,
+      attemptCid: attempt.attempt_cid, state: attempt.state};
+  } finally {
+    try {journal?.close();} finally {requests.close();}
+  }
+}
+let missingBinding, savedAdmissionBefore, savedEgressChecks;
+function readSelectedModelJournal(ref, expected, unboundMember) {
+  const refused = expected === 'refused';
   const requests = new DatabaseSync('.state/requests/client-requests.sqlite3', {readOnly: true});
   try {
     const row = requests.prepare(
@@ -630,18 +902,25 @@ function readCapabilityJournal(ref, refused) {
               dispatch_reserved, pre_dispatch_failure_confirmed, physical_start_reserved
          FROM client_requests WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`
     ).get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
-    assert(row, 'The same original Run must own the capability outcome');
+    assert(row, 'The same original Run must own the selected Model outcome');
     assert.equal(row.dispatch_reserved, 1);
     assert.equal(row.pre_dispatch_failure_confirmed, refused ? 1 : 0);
     assert.equal(row.physical_start_reserved, refused ? 0 : 1);
     const definition = JSON.parse(row.run_definition_wire);
     const {modelPlanBindings} = JSON.parse(row.run_admission_evidence_json);
     assert.equal(definition.run_definition_cid, ref.runDefinitionCid);
-    assert.equal(modelPlanBindings.runDefinitionCid, ref.runDefinitionCid);
-    assert.match(modelPlanBindings.compiledPlanCid, /^sha256:[0-9a-f]{64}$/u);
-    assert.equal(modelPlanBindings.compiledPlanCid, definition.compiled_plan_cid);
-    assert.equal(modelPlanBindings.bindings.length, 1);
-    const [member] = modelPlanBindings.bindings;
+    let member;
+    if (unboundMember === undefined) {
+      assert.equal(modelPlanBindings.runDefinitionCid, ref.runDefinitionCid);
+      assert.match(modelPlanBindings.compiledPlanCid, /^sha256:[0-9a-f]{64}$/u);
+      assert.equal(modelPlanBindings.compiledPlanCid, definition.compiled_plan_cid);
+      assert.equal(modelPlanBindings.bindings.length, 1);
+      [member] = modelPlanBindings.bindings;
+    } else {
+      assert.equal(modelPlanBindings, undefined);
+      assert.equal(expected, 'saved');
+      member = unboundMember;
+    }
     assert.deepEqual([member.task, member.stage, member.step], [0, 0, 2]);
     assert.match(member.taskCid, /^sha256:[0-9a-f]{64}$/u);
     assert.match(member.providerBindingCid, /^sha256:[0-9a-f]{64}$/u);
@@ -662,11 +941,65 @@ function readCapabilityJournal(ref, refused) {
       assert.equal(inventory.taskIndex, member.task);
       assert.equal(inventory.providerBindingCid, member.providerBindingCid);
       const attempts = checkpoints.prepare(
-        `SELECT state FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal`
+        `SELECT ordinal, attempt_index, attempt_cid, state, entry_json, settlement_json, settled_at
+           FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal`
       ).all(scope.scope_cid);
       assert.equal(attempts.length, 1);
-      assert.equal(attempts[0].state, 'SavedSuccess');
-      return {providerBindingCid: member.providerBindingCid, savedAttempts: 1};
+      const [attempt] = attempts;
+      if (expected === 'saved') {
+        assert.equal(attempt.state, 'SavedSuccess');
+        const saved = {providerBindingCid: member.providerBindingCid, savedAttempts: 1};
+        if (unboundMember === undefined) return saved;
+        const entry = JSON.parse(attempt.entry_json);
+        const settlement = JSON.parse(attempt.settlement_json);
+        assert.equal(entry.attemptCid, attempt.attempt_cid);
+        assert.equal(entry.runDefinitionCid, ref.runDefinitionCid);
+        assert.equal(entry.providerBindingCid, member.providerBindingCid);
+        assert.equal(entry.scopeCid, scope.scope_cid);
+        for (const field of ['runId', 'runDefinitionCid', 'providerBindingCid', 'scopeCid', 'slotCid',
+          'attemptCid', 'attemptIndex', 'authorityCid', 'inputArtifactCid']) {
+          assert.equal(settlement.entry[field], entry[field]);
+        }
+        assert(Number.isFinite(Date.parse(attempt.settled_at)));
+        assert.match(settlement.evidence.model_attempt_accounting.cid, /^sha256:[0-9a-f]{64}$/u);
+        return {...saved, attemptCid: entry.attemptCid, entrySha256: modelPlanFixtureDigest(attempt.entry_json),
+          settlementSha256: modelPlanFixtureDigest(attempt.settlement_json)};
+      }
+      const unknownAttempt = expected === 'unknown';
+      assert(unknownAttempt || expected === 'failed');
+      const state = unknownAttempt ? 'EnteredUnknown' : 'SavedFailure';
+      assert.deepEqual([attempt.ordinal, attempt.attempt_index, attempt.state], [0, 1, state]);
+      const slot = checkpoints.prepare(
+        'SELECT slot_cid, state, attempt_index FROM resume_model_slots WHERE scope_cid = ? AND ordinal = ?'
+      ).get(scope.scope_cid, attempt.ordinal);
+      const entry = JSON.parse(attempt.entry_json);
+      assert.equal(entry.runDefinitionCid, ref.runDefinitionCid);
+      assert.equal(entry.runId, definition.run_id);
+      assert.equal(entry.providerBindingCid, member.providerBindingCid);
+      assert.equal(entry.attemptCid, attempt.attempt_cid);
+      assert.deepEqual([entry.slotCid, slot.state, slot.attempt_index], [slot.slot_cid, state, 1]);
+      for (const cid of [scope.scope_cid, entry.slotCid, entry.attemptCid]) assert.match(cid, /^sha256:[0-9a-f]{64}$/u);
+      assert.equal(entry.scopeCid, scope.scope_cid);
+      const identity = {scopeCid: entry.scopeCid, slotCid: entry.slotCid, attemptCid: entry.attemptCid,
+        providerBindingCid: entry.providerBindingCid, state: attempt.state};
+      if (unknownAttempt) {
+        assert.deepEqual([attempt.settlement_json, attempt.settled_at], ['', '']);
+        return {...identity, settled: false};
+      }
+      assert(Number.isFinite(Date.parse(attempt.settled_at)));
+      const settlement = JSON.parse(attempt.settlement_json);
+      assert.equal(settlement.entry.attemptCid, entry.attemptCid);
+      assert.equal(settlement.entry.runDefinitionCid, ref.runDefinitionCid);
+      assert.equal(settlement.entry.scopeCid, entry.scopeCid);
+      assert.equal(settlement.entry.slotCid, entry.slotCid);
+      const evidence = settlement.evidence;
+      assert.deepEqual(Object.keys(evidence).sort(), ['model_attempt_accounting', 'model_attempt_outcome',
+        'model_call_attempt', 'model_capture_bundle', 'model_dispatch_authority', 'model_slot_capture']);
+      for (const {cid, holdingCid} of Object.values(evidence)) {
+        assert.match(cid, /^sha256:[0-9a-f]{64}$/u);
+        assert.match(holdingCid, /^sha256:[0-9a-f]{64}$/u);
+      }
+      return {...identity, settled: true, settledAt: attempt.settled_at, evidence};
     } finally {checkpoints.close();}
   } finally {requests.close();}
 }
@@ -688,33 +1021,45 @@ async function checkExternalRejectedRun(run, status) {
 const firstClose = {attempted: false, returned: false, calls: 0}, cleanup = [];
 let close;
 const connectTls = tls.connect;
+const expectedSends = fresh && !missingKey && !externalDuplicate ? capabilities ? 1 : taskCount : 0;
 try {
-  if (externalDuplicate || capabilities) process.env = new Proxy(originalEnv, {get(target, name, receiver) {
+  if (externalDuplicate || capabilities || interruption !== undefined || httpFailure !== undefined) process.env = new Proxy(originalEnv, {get(target, name, receiver) {
     if (name === credentialReference) {
       if (externalDuplicate) externalCredentialReads++;
       if (capabilities) capabilityCredentialReads++;
+      if (interruption !== undefined || httpFailure !== undefined) trackedCredentialReads++;
       if (deniedModel) deniedCredentialReads++;
     }
     return Reflect.get(target, name, receiver);
   }});
-  if (project) {
-    // Redirect only the socket in this fixture process. Keep its original
-    // HTTPS host, SNI, certificate checks, request and installed transport.
-    tls.connect = (options, ...args) => {
-      const host = options?.host;
-      if (!fresh || !routesByHost.has(host) || connectedHosts.has(host) ||
-          options.servername !== host || Number(options.port) !== 443 ||
-          options.socket !== undefined || options.rejectUnauthorized === false) {
-        unexpectedProjectConnection = true;
-        throw new Error('Unexpected project TLS connection');
-      }
-      connectedHosts.add(host);
-      projectTlsConnects++;
-      return connectTls.call(tls, {...options, host: '127.0.0.1', port: server.address().port}, ...args);
-    };
+  if (directHttp) {
+    process.env = new Proxy(originalEnv, {get(target, name, receiver) {
+      if (name === credentialReference) modelCredentialReads++;
+      return Reflect.get(target, name, receiver);
+    }});
+  }
+  // Keep the original hostname, certificate verification and installed HTTPS
+  // transport while routing the fixture's only physical connections locally.
+  if (!directHttp) tls.connect = (options, ...args) => {
+    const host = options?.host;
+    if (projectTlsConnects >= expectedSends || !routesByHost.has(host) ||
+        mixed && connectedHosts.has(host) || options.servername !== host || Number(options.port) !== 443 ||
+        options.socket !== undefined || options.rejectUnauthorized === false) {
+      unexpectedProjectConnection = true;
+      throw new Error('Unexpected registered TLS connection');
+    }
+    connectedHosts.add(host);
+    projectTlsConnects++;
+    return connectTls.call(tls, {...options, host: '127.0.0.1', port: server.address().port}, ...args);
+  };
+  if (retainedUnbound) {
+    originalRef = JSON.parse(await readFile('run-0.json', 'utf8'));
+    await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
+    missingBinding = omitFixtureModelPlanBinding(originalRef);
+    savedAdmissionBefore = readSelectedModelJournal(originalRef, 'saved', missingBinding.member);
   }
   client = await open(openOptions);
-  if (fresh && project) {
+  if (fresh && !missingKey) {
     for (const original of routes) process.env[original.credentialReference] = credentialValue(original);
   }
   if (fresh && mixed) {
@@ -732,21 +1077,37 @@ try {
     assert.equal(calls, 2);
     assert.deepEqual([...dispatchedProviders].sort(), routes.map(original => original.providerId).sort());
     assert.notDeepEqual(schemas[0], schemas[1]);
-  } else if (changedRoute) {
+  } else if (changedRoute || retainedUnbound) {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
     const submissionRef = JSON.parse(await readFile('submission-0.json', 'utf8'));
     originalRef = ref;
+    const readOriginal = async () => {
+      const lookup = await client.lookupSubmission(submissionRef);
+      assert.equal(lookup.kind, 'ready');
+      assert.deepEqual(lookup.admission.ref, ref);
+      await checkResult(await client.attach(ref),
+        {id: 'original-text', outcome: 'ok', value: {answer: true}}, 0);
+    };
+    if (retainedUnbound) {
+      await readOriginal();
+      savedEgressChecks = egressChecks;
+      assert.equal(savedEgressChecks, 0);
+    }
+    const expectedReason = retainedUnbound ? 'model_provider_selection_unavailable' : 'model_provider_selection';
+    const expectedCode = retainedUnbound ? 'SubmissionRefused' : 'SubmissionConflict';
     await assert.rejects(client.start(program('model-task:first', 'text', 'first', 'string'), {submissionRef}),
       error => {
         changedIssue = error.code;
-        changedReason = getSubmissionAttempt(error)?.reason;
-        return changedIssue === 'SubmissionConflict' && changedReason === 'model_provider_selection';
+        const attempt = getSubmissionAttempt(error);
+        changedReason = attempt?.reason;
+        if (retainedUnbound) {
+          assert.deepEqual(attempt?.submissionRef, submissionRef);
+          assert.equal(attempt.kind, 'refused');
+          assert.equal(attempt.guarantee, 'attempt_uncommitted_unconsumed');
+        }
+        return changedIssue === expectedCode && changedReason === expectedReason;
       });
-    const lookup = await client.lookupSubmission(submissionRef);
-    assert.equal(lookup.kind, 'ready');
-    assert.deepEqual(lookup.admission.ref, ref);
-    await checkResult(await client.attach(ref),
-      {id: 'original-text', outcome: 'ok', value: {answer: true}}, 0);
+    if (changedRoute) await readOriginal();
     historicalSavedAfterChange = true;
     assert.equal(calls, 0);
   } else if (fresh) {
@@ -755,21 +1116,49 @@ try {
       [1, ['model-task:second', 'quantity', 7, 'number'], {id: 'original-quantity', outcome: 'ok', value: {label: 'exact-label'}}],
     ];
     cases.length = taskCount;
-    if (selection.rateLimit) cases[0][2] = {id: 'original-text', outcome: 'failed:provider_error', value: null};
-    if (failedAnswer !== undefined) cases[0][2] = {id: 'original-text', outcome: 'failed:' + failedAnswer, value: null};
+    if (outcomeFailure !== undefined) cases[0][2] = {id: 'original-text', outcome: 'failed:' + outcomeFailure, value: null};
     for (const [index, args, expected] of cases) {
+      const selectedProgram = program(...args);
+      if (directHttp) {
+        const checked = await client.check(selectedProgram, {kind: 'program', scope: 'bound_input'});
+        assert.equal(checked.report.verdict, 'verified');
+        assert.deepEqual([modelCredentialReads, directDnsStarted, directDnsCompleted, peerTcpAccepts, peerTlsHandshakes, calls],
+          [0, 0, 0, 0, 0, 0]);
+        checkedWithoutPhysicalWork = true;
+      }
       const submissionRef = client.newSubmission({nonce: 'installed-' + index});
       await writeFile('submission-' + index + '.json', JSON.stringify(submissionRef), {flag: 'wx', mode: 0o600});
       const denied = capabilities && index === 1;
       deniedModel = denied;
-      const run = await client.start(program(...args), {submissionRef});
+      const run = await client.start(selectedProgram, {submissionRef});
       await writeFile('run-' + index + '.json', JSON.stringify(run.ref), {flag: 'wx', mode: 0o600});
       if (denied) deniedRef = run.ref;
       else originalRef = run.ref;
-      const waited = await run.wait();
+      const wait = () => interruption === undefined ? run.wait() : run.wait({signal: AbortSignal.timeout(15000)});
+      const waited = enteredCancel ? await observeEnteredCancellation({
+        awaitEntry: () => awaitPeer(enteredRequest.promise, 'OriginalEnteredRequestUnavailable'),
+        wait,
+        record: recordEnteredCancellation,
+        async cancel() {
+          const before = await run.status();
+          recordEnteredCancellation('status_observed');
+          const cancelRef = {...run.ref, cancelId: 'entered-fixture-cancel', expectedRevision: before.control.revision};
+          const accepted = await run.cancel({cancelId: cancelRef.cancelId, expectedRevision: cancelRef.expectedRevision,
+            attemptId: 'original-entered-fixture-cancel'});
+          assert.equal(accepted.kind, 'accepted');
+          cancellation = accepted.cancellation;
+          assert.equal(cancellation.kind, 'accepted');
+          assert.deepEqual(cancellation.cancelRef, cancelRef);
+          recordEnteredCancellation('cancel_accepted');
+          assert.deepEqual(await run.lookupCancellation(cancelRef), {kind: 'found', cancellation});
+          recordEnteredCancellation('receipt_confirmed');
+          await writeFile('entered-cancellation.json', JSON.stringify(cancellation), {flag: 'wx', mode: 0o600});
+        },
+      }) : await wait();
       await diagnostic.terminal(index, waited);
+      originalTerminalStatus = waited.status;
       assert.equal(waited.status, missingKey || externalDuplicate || denied ? 'failed'
-        : timeoutMode === undefined ? 'succeeded' : 'needs_reconciliation');
+        : unknown ? 'needs_reconciliation' : 'succeeded');
       if (externalDuplicate) await checkExternalRejectedRun(run, waited);
       else if (denied) {
         const recorded = JSON.parse(await readFile('normal-diagnostic-before-assert.json', 'utf8'));
@@ -782,12 +1171,26 @@ try {
       } else if (missingKey) {
         const recorded = JSON.parse(await readFile('normal-diagnostic-before-assert.json', 'utf8'));
         assert.equal(recorded.dispatchFailures.length, 1);
-        assert.equal(recorded.dispatchFailures[0].credentialRefusal, 'OpenAIProjectCredentialUnavailable');
-      } else if (timeoutMode === undefined) await checkResult(run, expected, index);
-      else {
+        assert.equal(recorded.dispatchFailures[0].credentialRefusal, 'ModelProjectCredentialUnavailable');
+      } else if (!unknown) {
+        const observed = await checkResult(run, expected, index);
+        if (directHttp) directResult = observed;
+      } else {
         const current = await run.status();
         assert.equal(current.status, 'needs_reconciliation');
-        assert.equal(current.control.cancellation_requested, false, 'Physical timeout is not Run cancellation');
+        assert.equal(current.control.cancellation_requested, enteredCancel);
+        if (directUnknown) {
+          for (let attempt = 0; peerSocketCloses === 0 && attempt < 100; attempt++) await waitFor(10);
+          assert.equal(peerSocketCloses, 1);
+          directPeerClosedBeforeFirstClose = true;
+          await checkUnpublishedDirectResult(run, current);
+        }
+        if (interruption !== undefined) {
+          await awaitPeer(interruptedResponse.promise, 'OriginalInterruptedPeerCloseNotObserved');
+          responseClosedBeforeFirstClose = true;
+          unknownControl = current.control;
+          assert(Object.values(current.result_availability).every(result => result.state !== 'available'));
+        }
         if (timeoutMode === 'call') {
           let closeGuard;
           try {
@@ -804,7 +1207,7 @@ try {
       const lookup = await client.lookupSubmission(submissionRef);
       assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, run.ref);
     }
-    assert.equal(calls, missingKey || externalDuplicate ? 0 : capabilities ? 1 : taskCount);
+    assert.equal(calls, expectedSends);
     if (taskCount === 2 && !capabilities) assert.notDeepEqual(schemas[0], schemas[1]);
     if (usageMode !== undefined && !externalDuplicate) {
       // The optional copy must have actually completed, not merely a successful
@@ -814,7 +1217,7 @@ try {
       assert.deepEqual(JSON.parse(await readFile('usage-receipt.json', 'utf8')), usageReceipt);
       const captured = JSON.parse(await readFile('usage-original.json', 'utf8'));
       assert.equal(captured.observation_origin, 'reported');
-      if (registered) assert.match(captured.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
+      assert.match(captured.raw_response_artifact_cid, /^sha256:[0-9a-f]{64}$/u);
     }
   } else {
     const ref = JSON.parse(await readFile('run-0.json', 'utf8'));
@@ -824,19 +1227,29 @@ try {
     else if (mixed) {
       await checkMixedResults(run);
       assert.equal((await run.status()).status, 'succeeded');
-    } else if (timeoutMode === undefined) {
+    } else if (!unknown) {
       // The original Saved Result precedes this process's first status read.
-      const expected = failedAnswer !== undefined ? {outcome: 'failed:' + failedAnswer, value: null}
-        : selection.rateLimit ? {outcome: 'failed:provider_error', value: null}
+      const expected = outcomeFailure !== undefined ? {outcome: 'failed:' + outcomeFailure, value: null}
         : {outcome: 'ok', value: {answer: true}};
-      await checkResult(run, {id: 'original-text', ...expected}, 0);
-      assert.equal((await run.status()).status, 'succeeded');
+      const observed = await checkResult(run, {id: 'original-text', ...expected}, 0);
+      if (directHttp) directResult = observed;
+      originalTerminalStatus = (await run.status()).status;
+      assert.equal(originalTerminalStatus, 'succeeded');
     } else {
-      // This SAME entered original has no fabricated Saved success. Status and
-      // original lookup only; never start, reconcile, cancel or resend a Call.
+      // Observe the same entered original without replaying its physical Call.
       const current = await run.status();
+      originalTerminalStatus = current.status;
       assert.equal(current.status, 'needs_reconciliation');
-      assert.equal(current.control.cancellation_requested, false);
+      assert.equal(current.control.cancellation_requested, enteredCancel);
+      if (directUnknown) await checkUnpublishedDirectResult(run, current);
+      if (interruption !== undefined) {
+        unknownControl = current.control;
+        assert(Object.values(current.result_availability).every(result => result.state !== 'available'));
+        if (enteredCancel) {
+          cancellation = JSON.parse(await readFile('entered-cancellation.json', 'utf8'));
+          assert.deepEqual(await run.lookupCancellation(cancellation.cancelRef), {kind: 'found', cancellation});
+        }
+      }
     }
     const submissionRef = JSON.parse(await readFile('submission-0.json', 'utf8'));
     const lookup = await client.lookupSubmission(submissionRef);
@@ -854,20 +1267,28 @@ try {
 finally {
   if (client !== undefined) {
     firstClose.attempted = true;firstClose.calls++;
-    try {await client.close();firstClose.returned = true;}
+    recordEnteredCancellation('first_close_started');
+    try {
+      await client.close();firstClose.returned = true;
+      recordEnteredCancellation('first_close_returned');
+    }
     catch (cause) {
+      recordEnteredCancellation('first_close_failed');
       firstClose.error = {name: cause?.name, code: cause?.code};
       if (!failed) {failed = true;primary = cause;}
     }
   }
-  if (externalDuplicate || capabilities) process.env = originalEnv;
-  if (project) {
-    for (const original of routes) delete process.env[original.credentialReference];
-    tls.connect = connectTls;
+  if (directHttp || externalDuplicate || capabilities || interruption !== undefined || httpFailure !== undefined) process.env = originalEnv;
+  for (const original of routes) delete process.env[original.credentialReference];
+  tls.connect = connectTls;
+  if (directHttp && fresh && firstClose.returned && !failed) {
+    for (let attempt = 0; peerSocketCloses === 0 && attempt < 100; attempt++) await waitFor(10);
+    if (peerSocketCloses !== 1) {failed = true; primary = Error('DirectModelPeerRetirementNotObserved');}
   }
   clearInterval(pulse);
   try {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
   catch (cause) {cleanup.push({name: cause?.name, code: cause?.code});if (!failed) {failed = true;primary = cause;}}
+  directDnsObserver?.disable();
   try {close = observeOwnScopedStateFds([resolve('.state')]);}
   catch (cause) {cleanup.push({name: cause?.name, code: cause?.code});if (!failed) {failed = true;primary = cause;}}
   const recorded = await diagnostic.finish(firstClose, close, cleanup);
@@ -875,15 +1296,22 @@ finally {
   if (missingKey && !failed) assert.equal(recorded.value.work.modelCallStarts, 0);
 }
 if (failed) throw primary;
-if (project) {
-  assert.equal(unexpectedProjectConnection, false);
-  assert.equal(projectTlsConnects, fresh && !externalDuplicate ? routes.length : 0);
+assert.equal(unexpectedProjectConnection, false);
+assert.equal(projectTlsConnects, directHttp ? 0 : expectedSends);
+if (directHttp) {
+  const resolved = fresh && !directResponseLoss ? 1 : 0;
+  assert.deepEqual([directDnsStarted, directDnsCompleted, peerServerName],
+    [resolved, resolved, resolved === 1 ? directPeerHost : null]);
 }
 if (trackOriginal) {
   const observed = work.forOriginal(originalRef);
   assert.equal(observed.complete, true);
   assert.equal(observed.modelCallStarts, fresh && !externalDuplicate ? routes.length : 0);
   assert.equal(observed.totals.modelCallStarts, observed.modelCallStarts);
+  if (directHttp) {
+    assert.equal(observed.sourceAcquisitionStarts, 0);
+    assert.equal(observed.totals.sourceAcquisitionStarts, 0);
+  }
 }
 if (externalDuplicate) {
   assert.equal(externalCredentialReads, 0);
@@ -894,33 +1322,90 @@ if (externalDuplicate) {
 }
 assert.equal(close.aliveAfterClose, true); assert.equal(close.scopedStateFd0, true);
 await assert.rejects(access('.state/publication/owner/owner.json'), {code: 'ENOENT'});
-const capabilityJournal = capabilities ? {supported: readCapabilityJournal(originalRef, false),
-  ...(deniedRef === undefined ? {} : {refused: readCapabilityJournal(deniedRef, true)})} : undefined;
+const directJournal = directHttp ? readDirectModelJournal(originalRef, directUnknown ? 'EnteredUnknown' : 'SavedSuccess')
+  : undefined;
+let directRaw, directRawAbsent;
+if (directJournal !== undefined) {
+  const root = realpathSync('.state');
+  const storeAuthorityCid = 'sha256:' + createHash('sha256').update(JSON.stringify({
+    version: 'actql-local-store-owner/0.1', root, principalId: userInfo().username,
+  })).digest('hex');
+  directRaw = await closedModelRawEvidence({
+    publication: resolve(root, 'publication'), keyPath: resolve(root, 'checkpoints/private-evidence.key'),
+    storeAuthorityCid, definitionCid: originalRef.runDefinitionCid, ...directJournal, expectMissing: directResponseLoss,
+  });
+  if (directResponseLoss) {
+    assert.equal(directRaw, undefined);
+    directRawAbsent = true;
+  } else {
+    assert.equal(directRaw.transportEof, !directPartialRaw);
+    assert.equal(directRaw.httpStatus, directPartialRaw ? 503 : 200);
+    if (directPartialRaw) {
+      assert.equal(directRaw.byteCount, Buffer.byteLength(partialProviderBody));
+      assert.equal(directRaw.contentCid, 'sha256:' + createHash('sha256').update(partialProviderBody).digest('hex'));
+    } else if (fresh) {
+      assert.equal(directRaw.contentCid, originalDirectResponseCid);
+      assert.equal(directRaw.descriptorCid, originalRawArtifactCid);
+    }
+  }
+}
+if (directJournal !== undefined) assert.equal(observeOwnScopedStateFds([resolve('.state')]).scopedStateFd0, true);
+const capabilityJournal = capabilities ? {supported: readSelectedModelJournal(originalRef, 'saved', missingBinding?.member),
+  ...(deniedRef === undefined ? {} : {refused: readSelectedModelJournal(deniedRef, 'refused')})} : undefined;
+if (retainedUnbound) {
+  assert.deepEqual(capabilityJournal.supported, savedAdmissionBefore);
+  verifyFixtureModelPlanBindingStillAbsent(originalRef, missingBinding.evidence);
+}
+const unknownJournal = interruption === undefined ? undefined : readSelectedModelJournal(originalRef, 'unknown');
+if (interruption !== undefined) {
+  assert.equal(trackedCredentialReads, fresh ? 1 : 0);
+  assert.equal(usageAuthorizations, 0);
+  assert.equal(usageCaptures, 0);
+}
+const failureJournal = httpFailure === undefined ? undefined : readSelectedModelJournal(originalRef, 'failed');
+if (httpFailure !== undefined) {
+  assert.equal(trackedCredentialReads, fresh ? 1 : 0);
+  assert.equal(completedHttpFailures, fresh ? 1 : 0);
+}
 console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedFD0: true,
-  ...(registered ? {registeredSdk: true} : {}),
+  ...(directHttp ? {} : {registeredSdk: true, projectTlsConnects, projectCredential: true}),
   ...(capabilities ? {capabilityRoutes: [selectedRoute.selector, deniedAlias], capabilityCredentialReads,
     deniedCredentialReads, capabilityJournal,
     ...(capabilityIssue === undefined ? {} : {capabilityIssue}),
     ...(deniedRef === undefined ? {} : {deniedRunDefinitionCid: deniedRef.runDefinitionCid,
       deniedModelStarts: work.forOriginal(deniedRef).modelCallStarts}),
     ...(changedIssue === undefined ? {} : {changedIssue, changedReason, historicalSavedAfterChange})} : {}),
+  ...(retainedUnbound ? {missingBindingEvidence: missingBinding.evidence, savedEgressChecks} : {}),
   ...(mixed ? {mixedProviders: routes.map(original => original.providerId),
     dispatchedProviders: [...dispatchedProviders].sort()} : {}),
   ...(trackOriginal ? {originalModelStarts: work.forOriginal(originalRef).modelCallStarts,
     originalRunDefinitionCid: originalRef.runDefinitionCid} : {}),
-  ...(project ? {projectTlsConnects, projectCredential: true} : {}),
+  ...(directHttp ? {directHttp, peerTcpAccepts, peerTlsHandshakes, peerSocketCloses, modelCredentialReads,
+    directDnsStarted, directDnsCompleted, peerServerName, originalTerminalStatus, directJournal, directDependencyClosure,
+    ...(directRaw === undefined ? {} : {directRaw}),
+    ...(directRawAbsent === undefined ? {} : {directRawAbsent}),
+    ...(directResult === undefined ? {} : {directResult}),
+    ...(directResultRefusal === undefined ? {} : {directResultRefusal}),
+    ...(directPeerClosedBeforeFirstClose === undefined ? {} : {directPeerClosedBeforeFirstClose}),
+    originalAuthorityScopeCid: originalRef.authorityScopeCid,
+    ...(fresh ? {checkedWithoutPhysicalWork} : {}),
+    ...(originalRawArtifactCid === undefined ? {} : {originalRawArtifactCid})} : {}),
   ...(usageMode === 'reported' || failedAnswer !== undefined ? {maxCalls: Number(maxCalls)} : {}),
   ...(external ? {externalAdapterCid: modelSdkRegistrations[0].adapter.cid,
     externalLockCid: modelSdkRegistrations[0].lock.cid} : {}),
-  ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
+  ...(outcomeFailure === undefined ? {} : {terminalFailure: outcomeFailure}),
+  ...(httpFailure === undefined ? {} : {pid: process.pid, httpStatus, failureJournal,
+    completedHttpFailures, failureCredentialReads: trackedCredentialReads}),
   ...(externalDuplicate ? {externalTerminal, externalResultIssue, externalTcp, externalCredentialReads,
     interceptedFetches: duplicateObservation.attempts, additionalIssue: duplicateObservation.additionalIssue,
     usageCaptures, usageAuthorizations} : {}),
-  ...(changedRoute ? {egressChecks} : phase === 'cold' ? {egressChecks,
+  ...(changedRoute || retainedUnbound ? {egressChecks} : phase === 'cold' ? {egressChecks,
     ...(externalDuplicate ? {originalFailureObserved: true}
-      : timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
+      : !unknown ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
     : {tasks: taskCount, requests: externalDuplicate ? 0 : capabilities ? 1 : taskCount, ...(missingKey ? {credentialRefused: true} : {}),
       ...(usageMode === undefined ? {} : {usageMode, usageCaptures})}),
+  ...(interruption === undefined ? {} : {pid: process.pid, interruption, interruptionCredentialReads: trackedCredentialReads, unknownJournal, unknownControl,
+    ...(fresh ? {responseClosedBeforeFirstClose} : {}), ...(cancellation === undefined ? {} : {cancellation})}),
   ...(timeoutMode === undefined ? {} : {timeoutMode, preserveOriginalState: true}),
   ...(timeoutMode === 'call' && fresh ? {continuousWrites, responseClosedBeforeFirstClose} : {}),
   node: process.versions.node, platform: process.platform, arch: process.arch}));

@@ -56,6 +56,10 @@ test "Values failure diagnostics distinguish normalization budget from graph and
   assert_eq(fields.get(11), Some(7007L))
   assert_eq(fields.get(12), Some(2L))
   assert_eq(fields.get(15), None)
+  fields.clear()
+  local_values_failure_tags(@local_host.Export(Selection(MissingResult)), emit)
+  assert_eq(fields.get(11), Some(7008L))
+  assert_eq(fields.get(12), Some(6L))
 }
 
 ///|

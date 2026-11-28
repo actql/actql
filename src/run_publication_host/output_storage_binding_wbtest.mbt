@@ -50,6 +50,70 @@ fn storage_binding_context() -> (
 }
 
 ///|
+test "captured Result binding keeps declared field order and canonical payload" {
+  let program =
+    #|{"version":"actql/0.1","id":"captured-result-order","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"alpha":{"type":"number","nullable":false},"zeta":{"type":"number","nullable":false}},"rows":[{"alpha":1,"zeta":2}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["zeta","alpha"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
+  let parent = retry_export(document=program)
+  while parent.next().unwrap() is Some(_) {
+
+  }
+  parent.finish().unwrap() |> ignore
+  assert_eq(parent.result_fields().unwrap(), ["zeta", "alpha"])
+  let (run, invocation, retention) = storage_binding_context()
+  parent
+  .issue_result_evidence(
+    "sha256:" + "1".repeat(64),
+    ["sha256:" + "2".repeat(64)],
+    @publication.publication_contract_identity(run),
+    "sha256:" + "4".repeat(64),
+    "sha256:" + "5".repeat(64),
+    100000,
+    10000,
+    100,
+  )
+  .unwrap()
+  parent.issue_artifact(invocation, retention, 100000, 10000, 100).unwrap()
+  |> ignore
+  let without_declaration = { ..parent, declared_fields: None, }
+  assert_true(
+    without_declaration.start_captured_snapshot(100000, 10000, 100)
+    is Err(InvalidState),
+  )
+  let snapshot = parent.admit_captured_snapshot(100000, 10000, 100).unwrap()
+  let replay = @publication.start_captured_result_snapshot_payload(
+    snapshot, 256,
+  ).unwrap()
+  let body = StringBuilder()
+  while replay.next().unwrap() is Some(part) {
+    body.write_string(part)
+  }
+  let expected = "[{\"alpha\":1,\"zeta\":2}]"
+  assert_eq(body.to_string(), expected)
+  let binding = @publication.issue_durable_result_binding_from_snapshot(
+    snapshot,
+    run,
+    invocation,
+    parent.ordering().unwrap(),
+    retention,
+    parent.codec_contract_cid().unwrap(),
+    parent.result_schema_wire().unwrap(),
+    "sha256:" + "b".repeat(64),
+    "sha256:" + "c".repeat(64),
+    expected.length(),
+    "21903af57761d74f08f6e97f48eff54440512d3f0f5897cd37a742971641f628",
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  assert_true(
+    @publication.publication_contract_json(binding).contains(
+      "\"result_fields\":[\"zeta\",\"alpha\"]",
+    ),
+  )
+  parent.cancel()
+}
+
+///|
 test "portable Result binding requires original EOF evidence and physical identity" {
   let parent = retry_export()
   let (run, invocation, retention) = storage_binding_context()

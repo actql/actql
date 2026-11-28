@@ -161,13 +161,22 @@ fn saved_failure_report(
     entry.slot == slot &&
     entry.send_started &&
     physical_equal(entry.trace, trace) &&
-    call.terminal is Some(PhysicalSavedStructuredResponse(saved)) &&
     call.raw_capture is Some(raw) &&
-    physical_equal(saved.receipt.original, raw) &&
     physical_equal(raw.call, call) &&
-    raw.saved is Some(confirmation) &&
-    physical_equal(saved.receipt, confirmation) &&
-    saved.observation is Some(observation) &&
+    raw.saved is Some(confirmation) else {
+    return None
+  }
+  let (receipt, selected) = match call.terminal {
+    Some(PhysicalSavedStructuredResponse(saved)) =>
+      (saved.receipt, saved.observation)
+    Some(PhysicalChatResponse(chat)) if chat.transport_eof &&
+      chat.status >= 200 &&
+      chat.status < 300 => (chat.saved_raw, chat.failure_observation)
+    _ => return None
+  }
+  guard physical_equal(receipt.original, raw) &&
+    physical_equal(receipt, confirmation) &&
+    selected is Some(observation) &&
     observation.raw_response_artifact_cid is Some(_) &&
     observation.response_profile_cid is Some(_) else {
     return None

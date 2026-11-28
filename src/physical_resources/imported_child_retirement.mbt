@@ -44,3 +44,18 @@ pub fn imported_child_retirement_readiness(
   }
   Ok(true)
 }
+
+///|
+/// Snapshot the actual stopped child usage before physical retirement.
+/// No published ledger means there is no usage to substitute or report.
+pub fn stopped_imported_child_usage(
+  value : ImportedChildLedger,
+) -> Result[LedgerUsage?, ImportedChildLedgerIssue] {
+  imported_child_retirement_readiness(value).map(ready => {
+    if ready {
+      value.ledger.map(ledger_usage)
+    } else {
+      None
+    }
+  })
+}

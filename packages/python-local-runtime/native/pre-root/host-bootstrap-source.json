@@ -79,8 +79,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 41465,
-      "sha256": "d043591d81b0988dbd262cec8f4d2fd77afb2a1bd87428350d1555b6137e9493"
+      "bytes": 42921,
+      "sha256": "c27e32ed68d87bc9d660205a8f9b2923b5b934800d91779666d8b6065e1c7c9b"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -164,8 +164,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_initialization_native.mbt",
-      "bytes": 19613,
-      "sha256": "035ea31edf5711f7d9a5aac7a0e1410c9bec3dd7acada77c5a9c7deaf61e1871"
+      "bytes": 19659,
+      "sha256": "52ad69bcf0304d08e56e50cc19d4fc8c11a3dfd2a941f875795d19456160877c"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_request_preparation_native.mbt",
@@ -199,8 +199,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/scoped_read.c",
-      "bytes": 86982,
-      "sha256": "7e31552f392fcd6c4a7b7a4ac68adcba168b02d111804bab717735a517233d9b"
+      "bytes": 95270,
+      "sha256": "e0d1a43973313a31810836db9715e008d0e0925ae3d95325e5b0728f77dfe766"
     },
     {
       "path": "scripts/test_native_prepared_controls.py",

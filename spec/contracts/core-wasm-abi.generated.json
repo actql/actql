@@ -1,5 +1,5 @@
 {
-  "abi_version": 89,
+  "abi_version": 102,
   "import_module": "actql_host",
   "imports": [
     {
@@ -308,7 +308,7 @@
         {
           "name": "mode",
           "type": "i32",
-          "unit": "closed selector/flag of actql_host.journal_query_header; unknown refused by original Owner"
+          "unit": "0 scan, 1 point, 2 named key census, 3 selected epoch authenticator"
         },
         {
           "name": "namespace_buffer",
@@ -343,6 +343,66 @@
       }
     },
     {
+      "name": "journal_saved_identity_header",
+      "parameters": [
+        {
+          "name": "ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "ordinal",
+          "type": "i32",
+          "unit": "zero-based Saved Submission then Run under one original physical Reader"
+        },
+        {
+          "name": "keys_buffer",
+          "type": "i32",
+          "unit": "borrowed wasm32 byte-buffer payload offset; lifetime spans the entire synchronous original-memory import"
+        },
+        {
+          "name": "keys_bytes",
+          "type": "i32",
+          "unit": "exactly 142 bytes for the original Submission and Run keys in ordinal order"
+        },
+        {
+          "name": "submission_bytes",
+          "type": "i32",
+          "unit": "exact admitted original row bytes, checked before physical body copy"
+        },
+        {
+          "name": "run_bytes",
+          "type": "i32",
+          "unit": "exact admitted original row bytes, checked before physical body copy"
+        },
+        {
+          "name": "header_buffer",
+          "type": "i32",
+          "unit": "borrowed wasm32 byte-buffer payload offset; lifetime spans the entire synchronous original-memory import"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/journal_observation.mbt",
+        "symbol": "physical_journal_saved_identity_header"
+      }
+    },
+    {
+      "name": "journal_saved_reader",
+      "parameters": [
+        {
+          "name": "ticket",
+          "type": "i32",
+          "unit": "positive original current ticket; same uninterrupted physical reader observation only"
+        }
+      ],
+      "result": "i64",
+      "source": {
+        "path": "src/client_host_wasm/journal_observation.mbt",
+        "symbol": "physical_journal_saved_reader"
+      }
+    },
+    {
       "name": "journal_schema",
       "parameters": [
         {
@@ -355,6 +415,41 @@
       "source": {
         "path": "src/client_host_wasm/journal_observation.mbt",
         "symbol": "physical_journal_schema"
+      }
+    },
+    {
+      "name": "journal_task_material_header",
+      "parameters": [
+        {
+          "name": "ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "ordinal",
+          "type": "i32",
+          "unit": "next zero-based slot of the exact original Run; ordinal 3 is the absence sentinel"
+        },
+        {
+          "name": "run_key_buffer",
+          "type": "i32",
+          "unit": "borrowed wasm32 byte-buffer payload offset; lifetime spans the entire synchronous original-memory import"
+        },
+        {
+          "name": "run_key_bytes",
+          "type": "i32",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        },
+        {
+          "name": "header_buffer",
+          "type": "i32",
+          "unit": "borrowed wasm32 byte-buffer payload offset; lifetime spans the entire synchronous original-memory import"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/journal_observation.mbt",
+        "symbol": "physical_journal_task_material_header"
       }
     },
     {
@@ -1734,6 +1829,31 @@
       }
     },
     {
+      "name": "actql_material_inspect_run_definition_collision",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_material_inspect_run_definition_collision.handle"
+        },
+        {
+          "name": "current_handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_material_inspect_run_definition_collision.current_handle"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/materials.mbt",
+        "symbol": "inspect_submitted_run_definition_collision"
+      }
+    },
+    {
       "name": "actql_material_length",
       "parameters": [
         {
@@ -2262,6 +2382,11 @@
           "unit": "original physical callback ticket; no authority or wire identity"
         },
         {
+          "name": "max_wire_bytes",
+          "type": "i32",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        },
+        {
           "name": "physical_copy_bytes",
           "type": "i64",
           "unit": "bytes; bounds and retention charge remain with original Owner"
@@ -2391,6 +2516,26 @@
       "source": {
         "path": "src/client_host_wasm/payload_binding.mbt",
         "symbol": "reserve_payload_binding"
+      }
+    },
+    {
+      "name": "actql_payload_binding_transport_limit",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "parent",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_payload_binding_transport_limit.parent"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/payload_binding.mbt",
+        "symbol": "payload_binding_transport_limit"
       }
     },
     {
@@ -3704,6 +3849,31 @@
       }
     },
     {
+      "name": "actql_publication_commit_export_begin_sdk_delivery_preparation_cleanup",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "publication",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_begin_sdk_delivery_preparation_cleanup.publication"
+        },
+        {
+          "name": "first_handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_begin_sdk_delivery_preparation_cleanup.first_handle"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_commit_export.mbt",
+        "symbol": "begin_publication_sdk_delivery_preparation_cleanup"
+      }
+    },
+    {
       "name": "actql_publication_commit_export_bind_sdk_payload_record",
       "parameters": [
         {
@@ -3809,6 +3979,31 @@
       }
     },
     {
+      "name": "actql_publication_commit_export_confirm_sdk_terminal_commit",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_confirm_sdk_terminal_commit.handle"
+        },
+        {
+          "name": "first_handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_confirm_sdk_terminal_commit.first_handle"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/sdk_delivery_terminal.mbt",
+        "symbol": "confirm_publication_sdk_terminal_commit"
+      }
+    },
+    {
       "name": "actql_publication_commit_export_count",
       "parameters": [
         {
@@ -3834,7 +4029,7 @@
       }
     },
     {
-      "name": "actql_publication_commit_export_emit_sdk_run_state",
+      "name": "actql_publication_commit_export_emit_sdk_read_delivery_storage",
       "parameters": [
         {
           "name": "nonce",
@@ -3844,17 +4039,47 @@
         {
           "name": "handle",
           "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state.handle"
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_read_delivery_storage.handle"
         },
         {
           "name": "first_handle",
           "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state.first_handle"
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_read_delivery_storage.first_handle"
         },
         {
           "name": "current_configuration",
           "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state.current_configuration"
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_read_delivery_storage.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_sdk_read.mbt",
+        "symbol": "emit_publication_sdk_read_delivery_storage"
+      }
+    },
+    {
+      "name": "actql_publication_commit_export_emit_sdk_run_state_bytes",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state_bytes.handle"
+        },
+        {
+          "name": "first_handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state_bytes.first_handle"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state_bytes.current_configuration"
         }
       ],
       "result": "i32",
@@ -3881,6 +4106,41 @@
       "source": {
         "path": "src/client_host_wasm/publication_commit_export.mbt",
         "symbol": "publication_commit_export_length"
+      }
+    },
+    {
+      "name": "actql_publication_commit_export_measure_sdk_read_delivery_storage",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_read_delivery_storage.handle"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_read_delivery_storage.input"
+        },
+        {
+          "name": "run",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_read_delivery_storage.run"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_read_delivery_storage.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_sdk_read.mbt",
+        "symbol": "measure_publication_sdk_read_delivery_storage"
       }
     },
     {
@@ -4249,6 +4509,36 @@
       }
     },
     {
+      "name": "actql_publication_commit_export_produce_sdk_live_return_control",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_live_return_control.handle"
+        },
+        {
+          "name": "first_handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_live_return_control.first_handle"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_live_return_control.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/sdk_payload_record.mbt",
+        "symbol": "produce_publication_sdk_live_return_control"
+      }
+    },
+    {
       "name": "actql_publication_commit_export_produce_sdk_payload_chunk",
       "parameters": [
         {
@@ -4326,41 +4616,6 @@
       "source": {
         "path": "src/client_host_wasm/sdk_payload_bytes.mbt",
         "symbol": "produce_publication_sdk_payload_receipt"
-      }
-    },
-    {
-      "name": "actql_publication_commit_export_produce_sdk_read_delivery_storage",
-      "parameters": [
-        {
-          "name": "nonce",
-          "type": "i64",
-          "unit": "positive instance nonce; identity only, not authority"
-        },
-        {
-          "name": "handle",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_read_delivery_storage.handle"
-        },
-        {
-          "name": "input",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_read_delivery_storage.input"
-        },
-        {
-          "name": "run",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_read_delivery_storage.run"
-        },
-        {
-          "name": "current_configuration",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_read_delivery_storage.current_configuration"
-        }
-      ],
-      "result": "i32",
-      "source": {
-        "path": "src/client_host_wasm/publication_sdk_read.mbt",
-        "symbol": "produce_publication_sdk_read_delivery_storage"
       }
     },
     {
@@ -4524,41 +4779,6 @@
       }
     },
     {
-      "name": "actql_publication_commit_export_produce_sdk_run_state",
-      "parameters": [
-        {
-          "name": "nonce",
-          "type": "i64",
-          "unit": "positive instance nonce; identity only, not authority"
-        },
-        {
-          "name": "handle",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_run_state.handle"
-        },
-        {
-          "name": "run",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_run_state.run"
-        },
-        {
-          "name": "input",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_run_state.input"
-        },
-        {
-          "name": "current_configuration",
-          "type": "i32",
-          "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_run_state.current_configuration"
-        }
-      ],
-      "result": "i32",
-      "source": {
-        "path": "src/client_host_wasm/sdk_run_state.mbt",
-        "symbol": "produce_publication_sdk_run_state"
-      }
-    },
-    {
       "name": "actql_publication_commit_export_produce_sdk_terminal_storage",
       "parameters": [
         {
@@ -4585,6 +4805,11 @@
           "name": "current_configuration",
           "type": "i32",
           "unit": "same-instance original handle of actql_publication_commit_export_produce_sdk_terminal_storage.current_configuration"
+        },
+        {
+          "name": "mode",
+          "type": "i32",
+          "unit": "closed selector/flag of actql_publication_commit_export_produce_sdk_terminal_storage; unknown refused by original Owner"
         }
       ],
       "result": "i32",
@@ -4774,6 +4999,86 @@
       }
     },
     {
+      "name": "actql_publication_commit_export_validate_saved_reader_facts",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "publication",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_validate_saved_reader_facts.publication"
+        },
+        {
+          "name": "payload_record",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_validate_saved_reader_facts.payload_record"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_validate_saved_reader_facts.current_configuration"
+        },
+        {
+          "name": "result",
+          "type": "i32",
+          "unit": "zero-based coordinate 0..7 in the same original Saved Result and binding inventories"
+        },
+        {
+          "name": "binding_index",
+          "type": "i32",
+          "unit": "zero-based coordinate 0..7 in the same original Saved Result and binding inventories"
+        },
+        {
+          "name": "observation",
+          "type": "i32",
+          "unit": "same-instance sealed physical observation input handle; valid for the original reader only"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_commit_payload.mbt",
+        "symbol": "validate_saved_result_reader_facts"
+      }
+    },
+    {
+      "name": "actql_publication_commit_export_validate_sdk_read_delivery_storage",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_validate_sdk_read_delivery_storage.handle"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_validate_sdk_read_delivery_storage.input"
+        },
+        {
+          "name": "run",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_validate_sdk_read_delivery_storage.run"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_validate_sdk_read_delivery_storage.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_sdk_read.mbt",
+        "symbol": "validate_publication_sdk_read_delivery_storage"
+      }
+    },
+    {
       "name": "actql_publication_commit_export_validate_sdk_run_state",
       "parameters": [
         {
@@ -4919,6 +5224,31 @@
       }
     },
     {
+      "name": "actql_publication_observation_exact_index",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_observation_exact_index.handle"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_observation_exact_index.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_observation.mbt",
+        "symbol": "publication_observation_exact_index"
+      }
+    },
+    {
       "name": "actql_publication_observation_progress",
       "parameters": [
         {
@@ -4941,6 +5271,26 @@
       "source": {
         "path": "src/client_host_wasm/publication_observation.mbt",
         "symbol": "publication_observation_progress"
+      }
+    },
+    {
+      "name": "actql_publication_preflight_begin_file_cleanup",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_preflight_begin_file_cleanup.handle"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/sdk_file_preflight.mbt",
+        "symbol": "begin_file_prepublication_cleanup_after_unwind"
       }
     },
     {
@@ -5144,6 +5494,41 @@
       }
     },
     {
+      "name": "actql_publication_prepare_exact_observation",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_prepare_exact_observation.handle"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_prepare_exact_observation.input"
+        },
+        {
+          "name": "publisher",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_prepare_exact_observation.publisher"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_prepare_exact_observation.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_observation.mbt",
+        "symbol": "prepare_exact_publication_observation"
+      }
+    },
+    {
       "name": "actql_publication_prepare_lookup",
       "parameters": [
         {
@@ -5271,6 +5656,26 @@
       "source": {
         "path": "src/client_host_wasm/publication.mbt",
         "symbol": "reserve_publication"
+      }
+    },
+    {
+      "name": "actql_publication_retire_exact_observation_transport",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_retire_exact_observation_transport.handle"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/publication_observation.mbt",
+        "symbol": "retire_publication_exact_observation_transport"
       }
     },
     {
@@ -7229,6 +7634,66 @@
       }
     },
     {
+      "name": "actql_task_advance_model_response",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_advance_model_response.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_advance_model_response.clock_input"
+        },
+        {
+          "name": "quantum",
+          "type": "i32",
+          "unit": "logical work units; original Owner bounds"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw_store.mbt",
+        "symbol": "advance_portable_model_response"
+      }
+    },
+    {
+      "name": "actql_task_advance_model_settlement",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_advance_model_settlement.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_advance_model_settlement.clock_input"
+        },
+        {
+          "name": "quantum",
+          "type": "i32",
+          "unit": "logical work units; original Owner bounds"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement.mbt",
+        "symbol": "advance_portable_model_settlement"
+      }
+    },
+    {
       "name": "actql_task_assessment",
       "parameters": [
         {
@@ -7256,6 +7721,66 @@
       "source": {
         "path": "src/client_host_wasm/managed_tasks.mbt",
         "symbol": "managed_task_assessment"
+      }
+    },
+    {
+      "name": "actql_task_check_model_request",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_check_model_request.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_check_model_request.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_check_model_request.material"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_request.mbt",
+        "symbol": "check_portable_model_request"
+      }
+    },
+    {
+      "name": "actql_task_claim_model_request",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_claim_model_request.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_claim_model_request.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_claim_model_request.material"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_request.mbt",
+        "symbol": "claim_portable_model_request"
       }
     },
     {
@@ -7349,6 +7874,136 @@
       }
     },
     {
+      "name": "actql_task_finish_model_entry",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_entry.handle"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_entry.material"
+        },
+        {
+          "name": "kind",
+          "type": "i32",
+          "unit": "closed selector/flag of actql_task_finish_model_entry; unknown refused by original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_entry.mbt",
+        "symbol": "finish_portable_model_entry"
+      }
+    },
+    {
+      "name": "actql_task_finish_model_raw_store",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_raw_store.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_raw_store.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_raw_store.material"
+        },
+        {
+          "name": "mode",
+          "type": "i32",
+          "unit": "closed selector/flag of actql_task_finish_model_raw_store; unknown refused by original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw_store.mbt",
+        "symbol": "finish_portable_model_raw_store"
+      }
+    },
+    {
+      "name": "actql_task_finish_model_request",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_request.handle"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_request.material"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_request.input"
+        },
+        {
+          "name": "http_status",
+          "type": "i32",
+          "unit": "observed complete HTTP status 200..599, or 0 without response custody"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_request.mbt",
+        "symbol": "finish_portable_model_request"
+      }
+    },
+    {
+      "name": "actql_task_finish_model_settlement_store",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_settlement_store.handle"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_finish_model_settlement_store.material"
+        },
+        {
+          "name": "mode",
+          "type": "i32",
+          "unit": "closed selector/flag of actql_task_finish_model_settlement_store; unknown refused by original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement_store.mbt",
+        "symbol": "finish_portable_model_settlement_store"
+      }
+    },
+    {
       "name": "actql_task_inputs_ready",
       "parameters": [
         {
@@ -7366,6 +8021,111 @@
       "source": {
         "path": "src/client_host_wasm/managed_tasks.mbt",
         "symbol": "managed_task_inputs_ready"
+      }
+    },
+    {
+      "name": "actql_task_inspect_model_entry",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_entry.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_entry.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_entry.material"
+        },
+        {
+          "name": "kind",
+          "type": "i32",
+          "unit": "closed selector/flag of actql_task_inspect_model_entry; unknown refused by original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_entry.mbt",
+        "symbol": "inspect_portable_model_entry"
+      }
+    },
+    {
+      "name": "actql_task_inspect_model_raw_store",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_raw_store.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_raw_store.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_raw_store.material"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_raw_store.input"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw_store.mbt",
+        "symbol": "inspect_portable_model_raw_store"
+      }
+    },
+    {
+      "name": "actql_task_inspect_model_settlement_store",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_settlement_store.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_settlement_store.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_inspect_model_settlement_store.material"
+        },
+        {
+          "name": "mode",
+          "type": "i32",
+          "unit": "closed selector/flag of actql_task_inspect_model_settlement_store; unknown refused by original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement_store.mbt",
+        "symbol": "inspect_portable_model_settlement_store"
       }
     },
     {
@@ -7389,6 +8149,156 @@
       }
     },
     {
+      "name": "actql_task_model_entry_bound",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_entry_bound.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_entry_bound.compute"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_entry.mbt",
+        "symbol": "portable_model_entry_bound"
+      }
+    },
+    {
+      "name": "actql_task_model_raw_bound",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_raw_bound.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_raw_bound.compute"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw.mbt",
+        "symbol": "portable_model_raw_bound"
+      }
+    },
+    {
+      "name": "actql_task_model_raw_sealed_bound",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_raw_sealed_bound.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_raw_sealed_bound.compute"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw_store.mbt",
+        "symbol": "portable_model_raw_sealed_bound"
+      }
+    },
+    {
+      "name": "actql_task_model_request_bound",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_request_bound.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_request_bound.compute"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_request.mbt",
+        "symbol": "portable_model_request_bound"
+      }
+    },
+    {
+      "name": "actql_task_model_settlement_bound",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_settlement_bound.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_settlement_bound.compute"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement.mbt",
+        "symbol": "portable_model_settlement_bound"
+      }
+    },
+    {
+      "name": "actql_task_model_settlement_store_bound",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_settlement_store_bound.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_model_settlement_store_bound.compute"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement_store.mbt",
+        "symbol": "portable_model_settlement_store_bound"
+      }
+    },
+    {
       "name": "actql_task_prepare_finalization",
       "parameters": [
         {
@@ -7406,6 +8316,221 @@
       "source": {
         "path": "src/client_host_wasm/managed_tasks.mbt",
         "symbol": "prepare_managed_task_finalization"
+      }
+    },
+    {
+      "name": "actql_task_prepare_model_dispatch",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_prepare_model_dispatch.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_prepare_model_dispatch.clock_input"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_scope.mbt",
+        "symbol": "prepare_portable_model_dispatch"
+      }
+    },
+    {
+      "name": "actql_task_produce_model_entry",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_entry.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_entry.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_entry.material"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_entry.mbt",
+        "symbol": "produce_portable_model_entry"
+      }
+    },
+    {
+      "name": "actql_task_produce_model_raw",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_raw.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_raw.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_raw.material"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw.mbt",
+        "symbol": "produce_portable_model_raw"
+      }
+    },
+    {
+      "name": "actql_task_produce_model_raw_sealed",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_raw_sealed.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_raw_sealed.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_raw_sealed.material"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_raw_sealed.input"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw_store.mbt",
+        "symbol": "produce_portable_model_raw_sealed"
+      }
+    },
+    {
+      "name": "actql_task_produce_model_request",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_request.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_request.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_request.material"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_request.mbt",
+        "symbol": "produce_portable_model_request"
+      }
+    },
+    {
+      "name": "actql_task_produce_model_settlement",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_settlement.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_settlement.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_settlement.material"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement.mbt",
+        "symbol": "produce_portable_model_settlement"
+      }
+    },
+    {
+      "name": "actql_task_produce_model_settlement_store",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_settlement_store.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_settlement_store.clock_input"
+        },
+        {
+          "name": "material",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_settlement_store.material"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_produce_model_settlement_store.input"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement_store.mbt",
+        "symbol": "produce_portable_model_settlement_store"
       }
     },
     {
@@ -7459,6 +8584,216 @@
       }
     },
     {
+      "name": "actql_task_reserve_model_entry",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_entry.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_entry.compute"
+        },
+        {
+          "name": "physical_ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "physical_copy_bytes",
+          "type": "i64",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_entry.mbt",
+        "symbol": "reserve_portable_model_entry"
+      }
+    },
+    {
+      "name": "actql_task_reserve_model_raw",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_raw.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_raw.compute"
+        },
+        {
+          "name": "physical_ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "physical_copy_bytes",
+          "type": "i64",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw.mbt",
+        "symbol": "reserve_portable_model_raw"
+      }
+    },
+    {
+      "name": "actql_task_reserve_model_raw_sealed",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_raw_sealed.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_raw_sealed.compute"
+        },
+        {
+          "name": "physical_ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "physical_copy_bytes",
+          "type": "i64",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_raw_store.mbt",
+        "symbol": "reserve_portable_model_raw_sealed"
+      }
+    },
+    {
+      "name": "actql_task_reserve_model_request",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_request.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_request.compute"
+        },
+        {
+          "name": "physical_ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "physical_copy_bytes",
+          "type": "i64",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_request.mbt",
+        "symbol": "reserve_portable_model_request"
+      }
+    },
+    {
+      "name": "actql_task_reserve_model_settlement",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_settlement.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_settlement.compute"
+        },
+        {
+          "name": "physical_ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "physical_copy_bytes",
+          "type": "i64",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement.mbt",
+        "symbol": "reserve_portable_model_settlement"
+      }
+    },
+    {
+      "name": "actql_task_reserve_model_settlement_store",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_settlement_store.handle"
+        },
+        {
+          "name": "compute",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_reserve_model_settlement_store.compute"
+        },
+        {
+          "name": "physical_ticket",
+          "type": "i32",
+          "unit": "original physical callback ticket; no authority or wire identity"
+        },
+        {
+          "name": "physical_copy_bytes",
+          "type": "i64",
+          "unit": "bytes; bounds and retention charge remain with original Owner"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_settlement_store.mbt",
+        "symbol": "reserve_portable_model_settlement_store"
+      }
+    },
+    {
       "name": "actql_task_reserve_next_sdk",
       "parameters": [
         {
@@ -7481,6 +8816,31 @@
       "source": {
         "path": "src/client_host_wasm/managed_tasks.mbt",
         "symbol": "reserve_next_sdk_task"
+      }
+    },
+    {
+      "name": "actql_task_stage_model_entry",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_stage_model_entry.handle"
+        },
+        {
+          "name": "clock_input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_task_stage_model_entry.clock_input"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/project_model_entry.mbt",
+        "symbol": "stage_portable_model_entry"
       }
     },
     {

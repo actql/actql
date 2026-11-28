@@ -225,10 +225,10 @@ columns say what runs today.
 | GitHub | ◐ | ◐ create | ○ | ○ | ○ |
 | Snowflake | ○ | ○ | ○ | ○ | ○ |
 | BigQuery | ○ | ○ | ○ | ○ | ○ |
-| HubSpot | ○ | ○ | — | ○ | ○ |
+| HubSpot | ◐ declared object reads (Node) | ◐ mapped update (Node) | — | ○ | ○ |
 | Slack | ○ | ○ | ○ | ○ | ○ |
-| Notion | ○ | ○ | ○ | ○ | ○ |
-| kintone | ○ | ○ | ○ | ○ | ○ |
+| Notion | ◐ declared user list (Node) | ○ | ○ | ○ | ○ |
+| kintone | ◐ declared record reads (Node) | ◐ mapped update, delete, keyed upsert (Node) | ○ | ○ | ○ |
 | Tableau | ○ | ○ | ○ | ○ | ○ |
 | Google Drive | ○ | ○ | ○ | ○ | ○ |
 | Gmail | ○ | ○ | ○ | ○ | ○ |
@@ -238,3 +238,21 @@ columns say what runs today.
 "Preview and reconciliation" means the apply-time condition check
 (`full_diff` with a conflict outcome) and the evidence-based lookup of a lost
 reply that each Connector page describes.
+
+### Installed Connector evidence
+
+The table below records the installed Node cases for these experimental
+routes. Each development artifact is bound to the checkout that produced it.
+Live API acceptance on a current candidate requires its own evidence.
+
+| Connector and resource | Operation | Ordinary installed evidence | Live API on current candidate |
+| --- | --- | --- | --- |
+| HubSpot companies | Read and mapped update | Controlled HTTPS. The development cohort from checkout `6d9339da` covered signed approval, one update, and the same Run in a separate Saved process. [Connector checks](https://github.com/actql/actql/actions/runs/46002490613/job/140521694135) | Unverified |
+| kintone records | Read, mapped update, revision-guarded delete and keyed upsert | The same development cohort covered update and authored delete, upsert of an existing record, and upsert of an absent record over controlled HTTPS. The upsert cases observed one update or one create respectively. Saved used the original Run. [Connector checks](https://github.com/actql/actql/actions/runs/46002490613/job/140521694135) | Unverified |
+| Notion users | List users | The development cohort from checkout `f2f03c2b` returned three rows across two requests in the installed authoring case. A separate Saved process returned the original Result without another request or secret resolution. Both first closes passed. [Notion acceptance](https://github.com/actql/actql/pull/3702) | Unverified |
+
+The HubSpot and kintone update controls use the shared mapped UPDATE
+construction. HubSpot uses its marker and read-back evidence. kintone
+retains its API revision checks. These observations cover the tested
+operations on Node. Support on other Hosts and the broader apply-time
+condition and reconciliation surface use their own acceptance evidence.

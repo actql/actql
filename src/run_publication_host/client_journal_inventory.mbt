@@ -14,6 +14,7 @@ pub(all) struct ClientRunJournalInspection {
   request : ClientRequestIdentity
   definition : @publication.PublicationContract
   checkpoint : Array[@effect.EffectLedgerEntry]?
+  cancellation_head : ClientAcceptedCancellationHead?
   task_materials_cid : String?
 }
 
@@ -104,6 +105,105 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
   confirm_cancellation : () -> Result[Unit, E],
   custody_lost : E,
   original : ClientTaskMaterialsOriginal[Plan]?,
+  task_material_count? : ((Int) -> Result[Bool?, E])? = None,
+  validate_cancellation_run? : ((
+    ClientJournalPhysicalRow,
+    (ClientRequestIdentity, @publication.PublicationContract)?,
+  ) -> Result[ClientCancellationRunJournalInspection, E])? = None,
+) -> Result[(Int, Int64), E] {
+  inspect_client_run_journal_inventory_with_index_funding(
+    max_records,
+    scan,
+    read,
+    validate_run,
+    confirm_cancellation,
+    custody_lost,
+    original,
+    None,
+    None,
+    task_material_count~,
+    validate_cancellation_run~,
+  )
+}
+
+///|
+/// Complete semantic validation of one observed SDK Run inventory. The Host
+/// must establish the same Store and snapshot before another use.
+pub struct ClientRunJournalInventoryOriginal {
+  count : Int
+  revision : Int64
+  maximum : Int
+}
+
+///|
+pub fn[E] capture_client_sdk_run_journal_inventory(
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  validate_cancellation_run : (ClientJournalPhysicalRow) -> Result[
+    ClientCancellationRunJournalInspection,
+    E,
+  ],
+  task_material_count : (Int) -> Result[Bool?, E],
+  custody_lost : E,
+) -> Result[ClientRunJournalInventoryOriginal, E] {
+  let task_original : ClientTaskMaterialsOriginal[Unit]? = None
+  inspect_client_run_journal_inventory_with_task_original(
+    max_records,
+    scan,
+    read,
+    validate_run,
+    () => Err(custody_lost),
+    custody_lost,
+    task_original,
+    task_material_count=Some(task_material_count),
+    validate_cancellation_run=Some((row, _) => validate_cancellation_run(row)),
+  ).map(pair => { count: pair.0, revision: pair.1, maximum: max_records, })
+}
+
+///|
+// The SDK File admission uses the existing Task-only Run validator. The five
+// maps below are still scanned. Only Definitions and Task chunk keys can
+// acquire entries on this SDK route, at most one and three per observed Run.
+fn client_task_only_inventory_index_capacity(count : Int) -> Int64? {
+  let records = count.to_int64()
+  guard @shape.map_construction_extent(5L, 4L * records) is Some(maps) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: maps.record_headers + 4L * records,
+    reference_slots: maps.reference_slots,
+    scalar_words: maps.scalar_words,
+    // The indexes keep fresh original key strings beyond the active decode.
+    // A Definition CID is 71 units; chunk keys add ':' and one ordinal.
+    owned_utf16_units: (71L + 3L * 73L) * records,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+fn[Plan, E] inspect_client_run_journal_inventory_with_index_funding(
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
+  confirm_cancellation : () -> Result[Unit, E],
+  custody_lost : E,
+  original : ClientTaskMaterialsOriginal[Plan]?,
+  fund_task_indexes : ((Int64) -> Result[Unit, E])?,
+  fund_task_read : ((Int64) -> Result[Unit, E])?,
+  task_material_count? : ((Int) -> Result[Bool?, E])? = None,
+  validate_cancellation_run? : ((
+    ClientJournalPhysicalRow,
+    (ClientRequestIdentity, @publication.PublicationContract)?,
+  ) -> Result[ClientCancellationRunJournalInspection, E])? = None,
 ) -> Result[(Int, Int64), E] {
   let (count, revision) = match
     journal_inventory_count(
@@ -112,8 +212,19 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if fund_task_indexes is Some(fund) {
+    guard revision >= 0L &&
+      client_task_only_inventory_index_capacity(count) is Some(bytes) else {
+      return Err(custody_lost)
+    }
+    match fund(bytes) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let mut cursor = ""
   let mut observed = 0
+  let mut cancellation_heads = 0
   let definitions : Map[String, Bool] = Map([])
   let checkpoint_scopes : Map[String, Bool] = Map([])
   let responses : Map[String, Bool] = Map([])
@@ -125,7 +236,7 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
-    if observed >= count {
+    if observed >= count || row.key <= cursor {
       return Err(custody_lost)
     }
     observed += 1
@@ -136,6 +247,16 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
     if row.key != client_request_scope_cid(record.request) {
       return Err(custody_lost)
     }
+    if record.cancellation_head is Some(_) {
+      cancellation_heads += 1
+    }
+    let definition = @publication.publication_contract_identity(
+      record.definition,
+    )
+    if fund_task_indexes is Some(_) &&
+      (record.checkpoint is Some(_) || !valid_client_request_cid(definition)) {
+      return Err(custody_lost)
+    }
     if record.task_materials_cid is Some(cid) {
       let (_, chunks) = match
         read_task_material_original_details_with_original(
@@ -144,6 +265,7 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
           read,
           custody_lost,
           original,
+          fund_workspace=fund_task_read,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -179,9 +301,6 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
         }
       }
     }
-    let definition = @publication.publication_contract_identity(
-      record.definition,
-    )
     if definitions.contains(definition) {
       return Err(custody_lost)
     }
@@ -191,29 +310,26 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
   if observed != count {
     return Err(custody_lost)
   }
-  cursor = ""
-  let mut chunk_count = 0
-  while true {
-    let row = match scan("client_task_run_materials", cursor) {
-      Ok(Some(value)) => value
-      Ok(None) => break
+  // Exact key reads above have already verified every expected chunk's
+  // generation, extent and complete canonical contents. The unique key range
+  // has no unattached chunks when the same snapshot's cardinality agrees.
+  let membership = match task_material_count {
+    None => None
+    Some(observe) =>
+      match observe(task_chunks.length()) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+  }
+  if membership != Some(true) {
+    match
+      inspect_client_task_chunk_membership(task_chunks, scan, custody_lost) {
+      Ok(_) => ()
       Err(issue) => return Err(issue)
     }
-    if chunk_count >= task_chunks.length() {
+    if membership is Some(false) {
       return Err(custody_lost)
     }
-    chunk_count += 1
-    if !task_chunks.contains(row.key) ||
-      row.key <= cursor ||
-      row.revision != 0L ||
-      row.body.length() == 0 ||
-      row.body.length() > 131072 {
-      return Err(custody_lost)
-    }
-    cursor = row.key
-  }
-  if chunk_count != task_chunks.length() {
-    return Err(custody_lost)
   }
   cursor = ""
   let mut witnesses = 0
@@ -279,11 +395,61 @@ pub fn[Plan, E] inspect_client_run_journal_inventory_with_task_original(
   if receipt_count != receipts.length() {
     return Err(custody_lost)
   }
-  match confirm_cancellation() {
+  // Each row already passed the complete Run validator above. Use that same
+  // ordered census for reverse cancellation coverage, while still validating
+  // every operation, witness and its exact referenced current Run.
+  let cancellation = match validate_cancellation_run {
+    None => confirm_cancellation()
+    Some(validate) =>
+      inspect_client_cancellation_journal_inventory_original(
+        max_records,
+        scan,
+        read,
+        validate,
+        custody_lost,
+        None,
+        Some((observed, revision, cancellation_heads)),
+      ).map(_ => ())
+  }
+  match cancellation {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   Ok((count, revision))
+}
+
+///|
+// Preserve the ordered audit and original refusals on inexact observations.
+fn[E] inspect_client_task_chunk_membership(
+  task_chunks : Map[String, Bool],
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  custody_lost : E,
+) -> Result[Unit, E] {
+  let mut cursor = ""
+  let mut chunk_count = 0
+  while true {
+    let row = match scan("client_task_run_materials", cursor) {
+      Ok(Some(value)) => value
+      Ok(None) => break
+      Err(issue) => return Err(issue)
+    }
+    if chunk_count >= task_chunks.length() {
+      return Err(custody_lost)
+    }
+    chunk_count += 1
+    if !task_chunks.contains(row.key) ||
+      row.key <= cursor ||
+      row.revision != 0L ||
+      row.body.length() == 0 ||
+      row.body.length() > 131072 {
+      return Err(custody_lost)
+    }
+    cursor = row.key
+  }
+  if chunk_count != task_chunks.length() {
+    return Err(custody_lost)
+  }
+  Ok(())
 }
 
 ///|

@@ -534,3 +534,149 @@ test "Effect material binding reuses live custody and never displaces it with an
     ),
   )
 }
+
+///|
+test "saved authored Effect uses the authenticated Submission input and exact material Request" {
+  let (document, environment, effect_limits) = client_composed_effect_base_fixture()
+  let reference = saved_snapshot_reference()
+  let input = "{\"input\":" +
+    document +
+    ",\"kind\":\"program\",\"parameters\":null"
+  let intent = prepare_client_submitted_intent(
+    input + ",\"stopBefore\":\"commit\"}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let other_intent = prepare_client_submitted_intent(
+    input + "}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let parsed = @syntax.parse(
+    document,
+    effect_limits.program.checking.input,
+    format=Json,
+  ).unwrap()
+  let candidate = @checked.prepare_effect_computation_candidate(
+    parsed,
+    environment,
+    None,
+    [],
+    effect_limits.program.checking,
+    effect_limits.max_members,
+    effect_limits.max_header_work,
+  ).unwrap()
+  let (prepared, _) = observe_prepare_checked_client_effect_computation(
+    candidate,
+    effect_limits,
+    submitted_program=Some(intent),
+  )
+  let prepared = prepared.unwrap()
+  let limits = run_materials_limits()
+  let manifests = run_materials_manifests()
+  let normalization = issue_prepared_client_effect_normalization(prepared).unwrap()
+  let compilation = issue_prepared_client_effect_compilation(
+    prepared,
+    manifests,
+    limits.sequence,
+    limits.max_sequence_steps,
+    limits.max_sequence_work,
+    limits.max_evidence_bytes,
+    limits.max_evidence_nodes,
+    limits.max_evidence_depth,
+    normalization=Some(normalization),
+  ).unwrap()
+  let scope = client_submission_epoch_token_authority_scope_cid(reference.epoch)
+  let request = prepare_client_original_effect_request_identity(
+    prepared,
+    scope,
+    reference.request_id,
+    submitted_input_cid=Some(client_submitted_intent_cid(intent)),
+  ).unwrap()
+  let other_request = prepare_client_effect_request_identity(
+    prepared,
+    scope,
+    reference.request_id,
+    client_submitted_intent_cid(other_intent),
+  ).unwrap()
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    scope,
+    "sha256:" + "a".repeat(64),
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "original-scope", "original-effect-run", "2026-10-09T00:00:00.000Z",
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let issued = issue_prepared_client_effect_normalization_materials(
+    allowed,
+    definition,
+    normalization,
+    request=Some(request),
+  ).unwrap()
+  let wire = client_effect_issued_normalization_materials_wire(issued)
+  let run = @publication.publication_contract_identity(definition)
+  let proof = prepare_client_effect_retained_submission_input(
+    reference, intent, request, run,
+  ).unwrap()
+  let other_reference = prepare_client_submission_reference_record(
+    reference.epoch,
+    "foreign-request",
+  ).unwrap()
+  assert_true(
+    prepare_client_effect_retained_submission_input(
+      other_reference, intent, request, run,
+    )
+    is Err(IdentityMismatch),
+  )
+  assert_true(
+    prepare_client_effect_retained_submission_input(
+      reference, other_intent, request, run,
+    )
+    is Err(IdentityMismatch),
+  )
+  fn admit(wire, definition, expected, submitted_input) {
+    admit_client_effect_run_materials(
+      wire,
+      definition,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      manifests,
+      limits,
+      effect_limits,
+      expected_request=Some(expected),
+      retained_submission_input=submitted_input,
+    )
+  }
+  assert_true(admit(wire, run, request, None) is Err(Request(IdentityMismatch)))
+  assert_true(
+    admit(wire, "sha256:" + "b".repeat(64), request, Some(proof))
+    is Err(Request(IdentityMismatch)),
+  )
+  assert_true(
+    admit(wire, run, other_request, Some(proof))
+    is Err(Request(IdentityMismatch)),
+  )
+  let changed = wire.replace(
+    old=client_request_intent_cid(request),
+    new=client_request_intent_cid(other_request),
+  )
+  assert_true(changed != wire)
+  assert_true(admit(changed, run, request, Some(proof)) is Err(_))
+  let changed_program = wire.replace(old="client-effect", new="foreign-effect")
+  assert_true(changed_program != wire)
+  assert_true(admit(changed_program, run, request, Some(proof)) is Err(_))
+  let restored = admit(wire, run, request, Some(proof)).unwrap()
+  assert_eq(restored.request, Some(request))
+  assert_eq(
+    client_effect_normalization_materials_cid(restored),
+    Some("sha256:" + @sha.hex(@utf8.encode(wire))),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(restored.run_definition),
+    run,
+  )
+}

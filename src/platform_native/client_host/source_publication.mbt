@@ -272,7 +272,7 @@ fn NativeClientRunJournal::fence_publication_outcome(
         @publication.publication_contract_identity(definition) &&
         run.publication_binding == Some(binding) &&
         run.physical_start_claimed &&
-        !run.cancellation_requested else {
+        !run.cancellation_requested() else {
         return Err(CustodyLost)
       }
       if !current() {
@@ -311,7 +311,7 @@ fn NativeClientRunJournal::bind_publication(
       if !current() {
         return Err(AuthorizationDenied)
       }
-      if run.cancellation_requested {
+      if run.cancellation_requested() {
         return Err(ChangedIntent)
       }
       match run.publication_binding {
@@ -370,7 +370,7 @@ fn NativeClientRunJournal::bind_installed_publication_with_operations(
       match run.publication_binding {
         Some(original) if original == binding => Ok(())
         Some(_) => Err(ChangedIntent)
-        None if !run.physical_start_claimed && !run.cancellation_requested =>
+        None if !run.physical_start_claimed && !run.cancellation_requested() =>
           self
           .save_with_operations(
             { ..run, publication_binding: Some(binding), },

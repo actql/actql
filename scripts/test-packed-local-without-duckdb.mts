@@ -9,6 +9,7 @@ import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs'
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {stageShortQueryFixtures} from './packed-fixture-support.mjs';
 import {inspectInstalledConnectorBins} from './installed-connector-bin.mjs';
+import {lockedClientTransport} from './prepare-packed-client-install-cache.mjs';
 
 type InstalledManifest = NonNullable<Parameters<typeof inspectInstalledConnectorBins>[1]> & {
   dependencies: Record<string, unknown>; peerDependencies: Record<string, unknown>;
@@ -17,7 +18,7 @@ type InstalledManifest = NonNullable<Parameters<typeof inspectInstalledConnector
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const names = ['client-wire', 'sdk', 'local-node', 'node'];
 const scratch = await createOwnedScratch({parent: tmpdir(),
-  prefix: 'actql-packed-no-duckdb-', label: 'packed dependency-free Local',
+  prefix: 'actql-packed-no-duckdb-', label: 'packed Local without DuckDB',
   digests: () => names.map(name => `actql-${name}-0.0.0-development.tgz`)});
 const root = scratch.path;
 const environment: NodeJS.ProcessEnv = {...process.env, npm_config_cache: packedNpmCache(root)};
@@ -41,9 +42,17 @@ console.log(run('npm', ['install', '--ignore-scripts', '--no-save', '--no-audit'
   '--no-fund', ...names.map(name => join(root, `actql-${name}-0.0.0-development.tgz`))]));
 const modules = await realpath(join(root, 'node_modules'));
 assert.deepEqual((await readdir(modules)).filter(name =>
-  name !== '.package-lock.json').sort(), ['.bin', '@actql']);
+  name !== '.package-lock.json').sort(), ['.bin', '@actql', 'undici']);
 const local = join(modules, '@actql/local-node');
 const manifest = JSON.parse(await readFile(join(local, 'package.json'), 'utf8')) as InstalledManifest;
+const rootLock = JSON.parse(await readFile(join(repository, 'package-lock.json'), 'utf8'));
+const transport = lockedClientTransport(manifest, rootLock);
+const installedTransport = JSON.parse(await readFile(join(modules, 'undici/package.json'), 'utf8'));
+const installedLock = JSON.parse(await readFile(join(modules, '.package-lock.json'), 'utf8'));
+assert.equal(installedTransport.name, 'undici');
+assert.equal(installedTransport.version, manifest.dependencies.undici);
+assert.equal(installedLock.packages['node_modules/undici'].integrity, transport.integrity);
+assert(!Object.keys(installedLock.packages).some(name => /(?:^|\/)node_modules\/@duckdb\//u.test(name)));
 assert.equal((await inspectInstalledConnectorBins(modules, manifest)).length, 1);
 assert.equal(manifest.dependencies['@duckdb/node-api'], undefined);
 assert.equal(manifest.peerDependencies['@duckdb/node-api'], '1.5.5-r.4');

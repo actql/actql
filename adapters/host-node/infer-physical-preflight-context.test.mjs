@@ -6,7 +6,7 @@ import {createInferIoNotification} from './infer-io-notification.mjs';
 import {createHash} from 'node:crypto';
 import {rawCaptureStoreFixture} from './infer-raw-capture.fixture.mjs';
 import {createModelRawTransportPersistenceFactory} from './infer-raw-capture.mjs';
-import {prepareOpenAIChatRequest} from '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
+import {fixtureStructuredChatOptions, prepareSelectedChat} from '../../packages/provider-ai-sdk/selected-chat.fixture.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, cancelSdkPreparation,
   cleanupSdkPreparation} from '../../packages/provider-ai-sdk/_internal/intercepted-request.mjs';
 const {openNodeInferOperation} = await import(process.env.ACTQL_PREFLIGHT_CONTEXT_MODULE ??
@@ -311,12 +311,11 @@ test('pinned SDK request preparation wakes the same drive without a physical fet
   const f = fixture({preflight(request, context) {
     assert.equal(request, f.request); assert.equal(preparation, undefined); preflights++;
     assert.equal(context, f.notification);
-    preparation = prepareOpenAIChatRequest({modelId: 'gpt-4.1-nano',
+    preparation = prepareSelectedChat({selector: 'fixture-task', modelId: 'gpt-4.1-nano',
       baseURL: 'https://fixture.invalid/v1', apiKey: 'fixture-only',
       maxRequestBytes: 1000, maxHeaderBytes: 4096, maxHeaders: 16,
       notify: context.notify,
-      options: {prompt: [{role: 'user', content: [{type: 'text', text: 'e\u0301\r\noriginal'}]}],
-        maxOutputTokens: 32, responseFormat: {type: 'json'}}});
+      options: fixtureStructuredChatOptions('e\u0301\r\noriginal', 32)});
   }, poll() {
     ready ||= pollSdkPreparation(preparation).kind === 'ready';
     return ready;
@@ -328,7 +327,7 @@ test('pinned SDK request preparation wakes the same drive without a physical fet
     assert.equal(await running, f.output);
     const original = sdkPreparedRequest(preparation);
     assert.equal(original.url, 'https://fixture.invalid/v1/chat/completions');
-    assert.equal(JSON.parse(original.body).messages[0].content, 'e\u0301\r\noriginal');
+    assert.equal(JSON.parse(original.body).messages[1].content, 'e\u0301\r\noriginal');
     assert.equal(preflights, 1);
     assert.equal(f.counts().progress, 0, 'no progress callback substitutes for the I/O wake');
   } finally {

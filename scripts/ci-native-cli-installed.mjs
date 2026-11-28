@@ -10,6 +10,7 @@ import {buildNativeCliArtifact} from './native-cli-artifact.mjs';
 import {prepareNativeCliRelease, verifyNativeCliRelease} from './native-cli-release.mjs';
 import {checkoutState, CLIENT_PACKAGES, packedClientPackage} from './packed-client-packages.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {stageLockedClientTransport} from './prepare-packed-client-install-cache.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {publicConsumerEnvironment, releaseConsumerDestination} from './release-public-install.mjs';
 import {runNativeInstallCommand} from './release-install-child.mjs';
@@ -76,9 +77,16 @@ export async function acceptInstalledNativeCli(directory) {
   await mkdir(consumer);
   const prefix = join(consumer, 'global'), host = join(consumer, 'host');
   await mkdir(prefix); await mkdir(host);
+  const transportCache = process.env.ACTQL_TEST_NPM_CACHE;
+  assert(transportCache, 'Use the verified same-run Local transport cache');
+  const transportDirectory = join(root, 'registry-transport');
+  await mkdir(transportDirectory, {mode: 0o700});
+  const transport = await stageLockedClientTransport(transportCache, transportDirectory);
   const env = publicConsumerEnvironment(process.env, consumer);
   await mkdir(env.HOME); await mkdir(env.TMPDIR);
-  const records = [], registry = await openReleaseTestRegistry([{directory, manifest}]);
+  const records = [], registry = await openReleaseTestRegistry([{directory, manifest}, {
+    directory: transportDirectory, manifest: {packages: [transport]},
+  }]);
   const save = body => writeFile(join(directory, 'installed-ci.json'), `${JSON.stringify(body, null, 2)}\n`);
   const run = async (command, args, options = {}) => {
     try {
@@ -181,7 +189,8 @@ export async function acceptInstalledNativeCli(directory) {
     for (const scenario of sharedHostSourceScenarios) {
       const outputRoot = join(root, `shared-source-${scenario}`);
       const input = join(root, `shared-source-${scenario}.json`);
-      await writeFile(input, JSON.stringify({outputRoot, nativeDirectory: directory, scenario}) + '\n', {flag: 'wx'});
+      await writeFile(input, JSON.stringify({outputRoot, nativeDirectory: directory, scenario,
+        transportArchive: join(transportDirectory, transport.file)}) + '\n', {flag: 'wx'});
       // Same existing normal producer and bounded runner; no additional Common
       // supplier, Host implementation or publication lane is added here.
       await run(process.execPath, [join(repository, 'scripts/fixtures/shared-host-source-acceptance.mjs'), input],

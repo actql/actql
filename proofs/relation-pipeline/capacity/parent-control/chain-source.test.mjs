@@ -102,10 +102,10 @@ test('current provider census retains the original optional Infer prefix recipe'
   const census = checkChainCensus(read);
   const provider = census.sourceFields.find(entry => entry.struct === 'ManagedProvider');
   assert.deepEqual(provider.fields.map(field => field.name),
-    ['accepts', 'capacity', 'bounded_relation_capacity', 'start', 'start_numeric', 'infer_relation_prefix']);
+    ['accepts', 'capacity', 'bounded_relation_capacity', 'start', 'start_extension', 'infer_relation_prefix']);
   const path = 'src/connectors/local/managed_provider.mbt';
   const original = read(path).toString();
-  const changed = original.replace('infer_relation_prefix : (', 'infer_relation_prefix : Array[(');
+  const changed = original.replace('infer_relation_prefix : ManagedInferRelationPrefix?', 'infer_relation_prefix : Array[ManagedInferRelationPrefix]');
   assert.notEqual(changed, original);
   assert.throws(() => checkChainCensus(p => p === path ? changed : read(p)),
     /Unreviewed parent\/edge field or type ManagedProvider/);
@@ -135,7 +135,8 @@ for (const [name, from, to] of [
   ['active child', '!terminal.val || reclaimed.val || cleanup_index.val < 0', 'reclaimed.val || cleanup_index.val < 0'],
   ['reclaimed owner', '!terminal.val || reclaimed.val || cleanup_index.val < 0', '!terminal.val || cleanup_index.val < 0'],
   ['different child', '.get(cleanup_index.val)', '.get(0)'],
-  ['invented progress', '.unwrap_or(-1L)', '.unwrap_or(1L)'],
+  ['invented progress', '.map(managed_provider_cleanup_continuation)\n      .unwrap_or(-1L)',
+    '.map(managed_provider_cleanup_continuation)\n      .unwrap_or(1L)'],
 ]) test('cleanup continuation source rejects '+name, () => {
   const changed=source.replace(from,to);assert.notEqual(changed,source);
   assert.throws(()=>checkChainSource(changed),/Changed reviewed representation delta/);

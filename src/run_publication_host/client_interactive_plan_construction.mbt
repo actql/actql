@@ -186,6 +186,7 @@ fn interactive_geometry_view(
   map : (Int, Int, Int),
   inspect_installed : Bool,
   debug_entry : Bool,
+  entry_breakpoint_profile : Bool,
 ) -> Unit raise {
   @encode.begin_object(w)
   interactive_geometry_text(w, "version", "actql-plan-view/0.1")
@@ -220,6 +221,9 @@ fn interactive_geometry_view(
   interactive_geometry_boolean(w, "execution_batch", false)
   interactive_geometry_text(w, "policy_revision_cid", interactive_geometry_cid)
   @encode.end_object(w)
+  if entry_breakpoint_profile {
+    interactive_geometry_text(w, "entry_breakpoint_profile", "all_operations")
+  }
   @encode.end_object(w)
 }
 
@@ -236,6 +240,7 @@ pub fn measure_client_compiled_run_static_plan_view(
   max_depth : Int,
   inspect_installed? : Bool = false,
   debug_entry? : Bool = false,
+  entry_breakpoint_profile? : Bool = false,
   before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue] {
   if !client_compiled_run_matches(compiled, prepared) {
@@ -249,6 +254,7 @@ pub fn measure_client_compiled_run_static_plan_view(
     max_depth,
     inspect_installed~,
     debug_entry~,
+    entry_breakpoint_profile~,
     before_carrier_measurement~,
   )
 }
@@ -265,6 +271,7 @@ pub fn measure_client_pure_compilation_static_plan_view(
   max_depth : Int,
   inspect_installed? : Bool = false,
   debug_entry? : Bool = false,
+  entry_breakpoint_profile? : Bool = false,
   before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientCompiledRunPlanIssue] {
   match client_pure_compilation_original_plan(prepared, compilation) {
@@ -278,6 +285,7 @@ pub fn measure_client_pure_compilation_static_plan_view(
     max_depth,
     inspect_installed,
     debug_entry,
+    entry_breakpoint_profile~,
     before_carrier_measurement~,
   ).map_err(issue => Projection(issue))
 }
@@ -290,6 +298,7 @@ fn measure_client_static_plan_view(
   d : Int,
   inspect_installed : Bool,
   debug_entry : Bool,
+  entry_breakpoint_profile? : Bool = false,
   before_carrier_measurement? : ((@carrier.Carrier) -> Bool)? = None,
 ) -> Result[ClientStaticPlanViewConstruction, ClientInteractivePlanIssue] {
   if b <= 0 || n <= 0 || d <= 0 {
@@ -512,7 +521,7 @@ fn measure_client_static_plan_view(
     let map_sealed = @encode.finish_measurement_usage(map_writer)
     let view_writer = @encode.measuring_writer(b, n, d)
     interactive_geometry_view(
-      view_writer, map_sealed, inspect_installed, debug_entry,
+      view_writer, map_sealed, inspect_installed, debug_entry, entry_breakpoint_profile,
     )
     let view = @encode.finish_measurement_usage(view_writer)
     Ok({

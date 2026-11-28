@@ -1,6 +1,8 @@
 ///|
-fn retry_export() -> PublicationOutputExport {
-  let prepared = input_result_prepared(run_materials_document)
+fn retry_export(
+  document? : String = run_materials_document,
+) -> PublicationOutputExport {
+  let prepared = input_result_prepared(document)
   let contracts = @execution.admit_relation_registry(
     parse_plan_identity_value(
       compiler_registered_body_wire(),
@@ -51,7 +53,7 @@ fn retry_export() -> PublicationOutputExport {
     max_nodes: 10000,
     max_depth: 100,
   }
-  let parent = prepare_publication_output_export(output, {
+  let limits : PublicationOutputExportLimits = {
     max_result_fields: 10,
     max_result_mapping_work: 10000,
     max_result_order_work: 10000,
@@ -67,11 +69,17 @@ fn retry_export() -> PublicationOutputExport {
       max_depth: 10,
     },
     max_batch_bytes: 10000,
-  }).unwrap()
-  let definition = client_result_transformation_definition(
-    prepare_client_result_transformation(prepared, 0, 100000, 10000, 100).unwrap(),
-  )
-  { ..parent, definition: Some(definition), }
+  }
+  let selection = prepare_client_result_transformation(
+    prepared, 0, 100000, 10000, 100,
+  ).unwrap()
+  let transformation = start_client_result_transformation(
+    selection, output, limits,
+  ).unwrap()
+  while !transformation.advance(64).unwrap().0 {
+
+  }
+  transformation.finish().unwrap()
 }
 
 ///|

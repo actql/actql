@@ -6,6 +6,7 @@ struct RecoveredEffectTargetGuards {
   preview : @publication.EffectPreviewIdentity
   scope_cid : String
   required_rows : Map[String, Bool]
+  selected_member : Int?
 }
 
 ///|
@@ -20,6 +21,7 @@ pub fn recover_effect_target_guards(
   max_members : Int,
   max_rows : Int,
   max_work : Int,
+  selected_member? : Int,
 ) -> Result[RecoveredEffectTargetGuards, EffectSetProgressIssue] {
   if max_members < 1 ||
     max_rows < 0 ||
@@ -37,7 +39,7 @@ pub fn recover_effect_target_guards(
   }
   // Reuse the full Preview/row/key/basis/history admission. Missing heads
   // are valid for a first dispatch frontier, but never a recovery waiver.
-  match
+  let frontier = match
     effect_set_frontier_from_preview_ledger_entries(
       preview,
       scopes,
@@ -50,8 +52,16 @@ pub fn recover_effect_target_guards(
       max_rows,
       max_work - selected_work,
     ) {
-    Ok(_) => ()
+    Ok(frontier) => frontier
     Err(issue) => return Err(issue)
+  }
+  // The next member comes from the same admitted durable frontier. A
+  // caller-selected later member cannot waive the current one's guards.
+  if selected_member is Some(selected) {
+    guard frontier.ready.get(0) is Some((ready_member, _)) &&
+      ready_member == selected else {
+      return Err(InvalidMember)
+    }
   }
   let required_rows : Map[String, Bool] = Map([])
   let mut scope_cid = None
@@ -72,7 +82,8 @@ pub fn recover_effect_target_guards(
           return Err(ForeignLedgerEntry(member_index, row_index))
         _ => ()
       }
-      if head.state == Prepared {
+      if head.state == Prepared &&
+        (selected_member is None || selected_member == Some(member_index)) {
         let row = @publication.effect_preview_row_identity(
           preview, member_index, row_index,
         ).unwrap()
@@ -81,7 +92,7 @@ pub fn recover_effect_target_guards(
     }
   }
   guard scope_cid is Some(scope_cid) else { return Err(InvalidLimits) }
-  Ok({ preview, scope_cid, required_rows, })
+  Ok({ preview, scope_cid, required_rows, selected_member, })
 }
 
 ///|
@@ -92,9 +103,11 @@ pub fn check_recovered_effect_target_guards(
   observations : Array[EffectTargetVersionObservation],
   max_rows : Int,
   max_work : Int,
+  selected_member? : Int,
 ) -> Result[Unit, EffectPreviewTargetGuardIssue] {
   if !physical_equal(recovered.preview, preview) ||
-    recovered.scope_cid != logical_request_scope_cid(scope) {
+    recovered.scope_cid != logical_request_scope_cid(scope) ||
+    recovered.selected_member != selected_member {
     return Err(ForeignRecoveryEvidence)
   }
   check_effect_preview_target_guards_selected(
@@ -103,5 +116,6 @@ pub fn check_recovered_effect_target_guards(
     Some(recovered.required_rows),
     max_rows,
     max_work,
+    selected_member?,
   )
 }

@@ -101,6 +101,7 @@ pub fn start_invocation_binding_original_model_identity(
 fn start_original_model_outcome_identity(
   held : OutputUse,
   outcomes : @relation.CompletedOutput,
+  retain_body? : Bool = true,
 ) -> Result[
   @relation.CompletedRelationIdentityScan,
   @relation.CompletedExportIssue,
@@ -116,7 +117,7 @@ fn start_original_model_outcome_identity(
     limits.identity.work,
     limits.identity.workspace,
     incremental_metadata=true,
-    retain_body=true,
+    retain_body~,
   )
 }
 
@@ -697,6 +698,31 @@ pub fn prepare_preconsumer_model_unit_observation(
   max_nodes : Int,
   max_depth : Int,
 ) -> @publication.CapturedEffectDependencyBody? {
+  prepare_preconsumer_model_unit_observation_guarded(
+    held,
+    compiled,
+    definition,
+    plan,
+    outcome_receipt,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    None,
+  )
+}
+
+///|
+fn prepare_preconsumer_model_unit_observation_guarded(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  outcome_receipt : @relation.CompletedRelationExportReceipt,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  final_result_current : (() -> Bool)?,
+) -> @publication.CapturedEffectDependencyBody? {
   guard borrow_original_model_observation_relations(
       held, compiled, definition, plan,
     )
@@ -714,11 +740,182 @@ pub fn prepare_preconsumer_model_unit_observation(
   let body = build_local_model_observation_body(
     scope, logical, schema, outcome_receipt, max_bytes, max_nodes, max_depth,
   )
+  if body is None {
+    return None
+  }
+  if final_result_current is Some(current) &&
+    (
+      !current() ||
+      !@relation.completed_relation_export_has_output_identity(
+        outcome_receipt, outcomes,
+      )
+    ) {
+    return None
+  }
   if original_host_output_matches(held, compiled, definition, plan) {
     body
   } else {
     None
   }
+}
+
+///|
+/// Project an earlier Model's local semantic observation for its checked
+/// Whole Result. The Result export proves the terminal output; the separate
+/// outcome receipt proves the complete unfiltered Model outcomes.
+pub fn prepare_preconsumer_whole_model_unit_observation(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  run : @strategy.CapturedDAG,
+  handoff : @strategy.CapturedCompletedUnitResultHandoff,
+  outcomes : @relation.CompletedRelationExportReceipt,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication.CapturedEffectDependencyBody? {
+  guard preconsumer_whole_model_result_current(
+      held, compiled, definition, plan, run,
+    )
+    is Some(current) &&
+    current(handoff) else {
+    return None
+  }
+  prepare_preconsumer_model_unit_observation_guarded(
+    held,
+    compiled,
+    definition,
+    plan,
+    outcomes,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    Some(() => current(handoff)),
+  )
+}
+
+///|
+fn preconsumer_whole_model_result_current(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  run : @strategy.CapturedDAG,
+) -> ((@strategy.CapturedCompletedUnitResultHandoff) -> Bool)? {
+  let (task, unit, _) = @publication_host.client_infer_occurrence_coordinates(
+    plan.occurrence,
+  )
+  if !@strategy.source_inputs_dag_matches_original(
+      @strategy.captured_dag_graph(run),
+      @publication_host.prepared_client_graph(plan.owner),
+    ) {
+    return None
+  }
+  guard borrow_original_live_host_output(held, compiled, definition, plan)
+    is Some((output, model)) &&
+    @model.original_completed_model_matches_parent(
+      model,
+      @strategy.captured_dag_ledger(run),
+    ) else {
+    return None
+  }
+  Some(handoff => {
+    @strategy.captured_completed_unit_result_export_matches_output(
+      handoff, run, unit, task, output,
+    )
+  })
+}
+
+///|
+/// Bind the same completed Whole Model, checked Result slot and complete A
+/// Scope to the existing local Unit Invocation. The caller funds the
+/// semantic writer and retains both exports until all consumers have left.
+pub fn issue_original_whole_model_unit_invocation(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  scope : @publication_host.ClientModelReadScope,
+  request : @publication_host.ClientRequestIdentity,
+  run : @strategy.CapturedDAG,
+  results : @strategy.CapturedCompletedUnitResults,
+  result_index : Int,
+  handoff : @strategy.CapturedCompletedUnitResultHandoff,
+  outcomes : @relation.CompletedRelationExportReceipt,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  fund_model : (@relation.ExecutionCapacity) -> Bool,
+  fund_controls : (Int) -> Bool,
+  fund_body : (String, @encode.EncodingConstructionGeometry) -> Bool,
+) -> Result[
+  @publication_host.ClientWholeLocalUnitInvocation,
+  @publication_host.ClientEffectLocalInvocationIssue,
+] {
+  guard held.owner.call_scope is Some(call) &&
+    held.owner.composed_sources is Some(sources) &&
+    held.owner.original_preparation is Some({ read: Claimed(consumer), .. }) &&
+    @publication_host.client_model_read_scope_handed_off_from(
+      scope,
+      consumer,
+      @strategy.captured_dag_ledger(run),
+    ) &&
+    @strategy.captured_completed_unit_result_export_original(
+      handoff, results, result_index,
+    )
+    is Some(_) &&
+    preconsumer_whole_model_result_current(
+      held, compiled, definition, plan, run,
+    )
+    is Some(result_current) &&
+    result_current(handoff) &&
+    borrow_original_live_model_relations(held, compiled, definition, plan)
+    is Some((_, original_outcomes)) else {
+    return Err(ForeignCapturedInput)
+  }
+  let current = () => {
+    @publication_host.client_model_read_scope_handed_off_from(
+      scope,
+      consumer,
+      @strategy.captured_dag_ledger(run),
+    ) &&
+    result_current(handoff) &&
+    @strategy.captured_completed_unit_result_export_original(
+      handoff, results, result_index,
+    )
+    is Some(_) &&
+    @relation.completed_relation_export_has_output_identity(
+      outcomes, original_outcomes,
+    ) &&
+    original_host_output_matches(held, compiled, definition, plan)
+  }
+  guard preconsumer_model_unit_observation_capacity(
+      held, compiled, definition, plan, outcomes, max_bytes,
+    )
+    is Some(capacity) &&
+    fund_model(capacity) else {
+    return Err(Encoding)
+  }
+  guard current() &&
+    prepare_preconsumer_model_unit_observation_guarded(
+      held,
+      compiled,
+      definition,
+      plan,
+      outcomes,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      Some(current),
+    )
+    is Some(model) else {
+    return Err(ForeignCapturedInput)
+  }
+  @publication_host.issue_client_whole_model_unit_invocation(
+    scope, definition, request, run, results, sources, call, model, outcomes, max_bytes,
+    max_nodes, max_depth, current, fund_controls, fund_body,
+  )
 }
 
 ///|
@@ -730,11 +927,12 @@ pub fn preconsumer_model_unit_identity_start_capacity(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   plan : @publication_host.ClientInferPlanGraph,
+  retain_body? : Bool = true,
 ) -> @relation.ExecutionCapacity? {
   borrow_original_model_observation_relations(held, compiled, definition, plan).bind(pair => {
       @relation.completed_relation_identity_scan_start_construction_capacity(
         pair.1,
-        retain_body=true,
+        retain_body~,
       )
     },
   )
@@ -746,6 +944,7 @@ pub fn start_preconsumer_model_unit_identity(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   plan : @publication_host.ClientInferPlanGraph,
+  retain_body? : Bool = true,
 ) -> Result[
   @relation.CompletedRelationIdentityScan,
   @relation.CompletedExportIssue,
@@ -756,7 +955,7 @@ pub fn start_preconsumer_model_unit_identity(
     is Some((_, outcomes)) else {
     return Err(Unavailable)
   }
-  start_original_model_outcome_identity(held, outcomes)
+  start_original_model_outcome_identity(held, outcomes, retain_body~)
 }
 
 ///|

@@ -50,7 +50,8 @@ fn review_original_wire_geometry(
 // The closed emitter borrows each selected input subtree once. Per row only
 // effect_id and preview_strength are repeated. Per-member scope wrappers and
 // the fixed policy/envelope add at most8M+64 nodes/fields/strings, M+4 objects
-// and4 arrays. These are conservative constructor counts, not raised limits.
+// and4 arrays. The Debug scope adds a source record and Member CID per Member
+// and an active CID at the root of its Set. Charge its larger geometry there.
 fn review_original_output_bound(
   input : @encode.EncodingConstructionGeometry,
   members : Int,
@@ -58,11 +59,14 @@ fn review_original_output_bound(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  debug_scope : Bool,
 ) -> @encode.EncodingConstructionGeometry? {
-  let extra = 2L * rows.to_int64() + 8L * members.to_int64() + 64L
+  let member_fields = if debug_scope { 12L } else { 8L }
+  let member_objects = if debug_scope { 2L } else { 1L }
+  let extra = 2L * rows.to_int64() + member_fields * members.to_int64() + 64L
   let n = input.nodes.to_int64() + extra
   let f = input.fields.to_int64() + extra
-  let o = input.objects.to_int64() + members.to_int64() + 4L
+  let o = input.objects.to_int64() + member_objects * members.to_int64() + 4L
   let a = input.arrays.to_int64() + 4L
   let d = input.depth.to_int64() + 4L
   if bytes < 1 ||
@@ -87,17 +91,11 @@ fn review_original_output_bound(
 }
 
 ///|
-fn review_original_inventory_for_geometry(
+fn review_original_input_inventory(
   input_geometry : @encode.EncodingConstructionGeometry,
   members : Int,
   rows : Int,
-  review_bytes : Int,
-  review_nodes : Int,
-  review_depth : Int,
-) -> (
-  EffectPreviewIdentityConstructionInventory,
-  EffectPreviewIdentityConstructionInventory,
-)? {
+) -> EffectPreviewIdentityConstructionInventory? {
   let count = members.to_int64() + rows.to_int64()
   if members < 0 || rows < 0 || count > input_geometry.nodes.to_int64() {
     return None
@@ -115,16 +113,35 @@ fn review_original_inventory_for_geometry(
     preview_identity_member_row_inventory(count) is Some(identity) else {
     return None
   }
-  let input : EffectPreviewIdentityConstructionInventory = {
+  Some({
     record_headers: shape.record_headers + identity.record_headers,
     reference_slots: shape.reference_slots + identity.reference_slots,
     scalar_words: shape.scalar_words + identity.scalar_words,
     owned_utf16_units: shape.owned_utf16_units + identity.owned_utf16_units,
     owned_wire_bytes: shape.owned_wire_bytes,
+  })
+}
+
+///|
+fn review_original_inventory_for_geometry(
+  input_geometry : @encode.EncodingConstructionGeometry,
+  members : Int,
+  rows : Int,
+  review_bytes : Int,
+  review_nodes : Int,
+  review_depth : Int,
+  debug_scope? : Bool = false,
+) -> (
+  EffectPreviewIdentityConstructionInventory,
+  EffectPreviewIdentityConstructionInventory,
+)? {
+  guard review_original_input_inventory(input_geometry, members, rows)
+    is Some(input) else {
+    return None
   }
-  match
+  let projection = match
     review_original_output_bound(
-      input_geometry, members, rows, review_bytes, review_nodes, review_depth,
+      input_geometry, members, rows, review_bytes, review_nodes, review_depth, debug_scope,
     ) {
     Some(output_geometry) => {
       guard protocol_wire_codec_construction_inventory(
@@ -141,7 +158,6 @@ fn review_original_inventory_for_geometry(
       }
       review_construction_inventory_parts(
         input,
-        shape,
         output,
         output_geometry.bytes,
         output_geometry.nodes,
@@ -160,10 +176,42 @@ fn review_original_inventory_for_geometry(
         return None
       }
       review_construction_inventory_parts(
-        input, shape, output, review_bytes, nodes, review_depth,
+        input, output, review_bytes, nodes, review_depth,
       )
     }
   }
+  if !debug_scope {
+    return projection
+  }
+  // The SDK wire check indexes Member ids and Preview CIDs while the
+  // detached display is live. Include the original member traversal data
+  // and both indexes in the same Read's construction peak.
+  guard projection is Some((returned, temporary)) &&
+    @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 1L,
+      reference_items: members.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 2L,
+      map_entries: 2L * members.to_int64(),
+    })
+    is Some(indexes) else {
+    return None
+  }
+  Some(
+    (
+      returned,
+      {
+        ..temporary,
+        record_headers: temporary.record_headers + indexes.record_headers,
+        reference_slots: temporary.reference_slots + indexes.reference_slots,
+        scalar_words: temporary.scalar_words + indexes.scalar_words,
+      },
+    ),
+  )
 }
 
 ///|
@@ -179,6 +227,7 @@ pub fn effect_review_original_construction_inventory(
   review_bytes : Int,
   review_nodes : Int,
   review_depth : Int,
+  debug_scope? : Bool = false,
 ) -> (
   EffectPreviewIdentityConstructionInventory,
   EffectPreviewIdentityConstructionInventory,
@@ -203,5 +252,84 @@ pub fn effect_review_original_construction_inventory(
     review_bytes,
     review_nodes,
     review_depth,
+    debug_scope~,
   )
+}
+
+///|
+/// Reserve one parsed private Preview and the bounded measuring frame. The
+/// emitted public shape supplies an independent exact outgoing quote.
+pub fn effect_review_original_projection_input_inventory(
+  original : EffectPreviewIdentity,
+  preview_wire : String,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+) -> EffectPreviewIdentityConstructionInventory? {
+  guard review_original_wire_geometry(
+      preview_wire, preview_bytes, preview_nodes, preview_depth,
+    )
+    is Some(geometry) else {
+    return None
+  }
+  let mut rows = 0L
+  for keys in original.row_keys {
+    rows += keys.length().to_int64()
+  }
+  if rows > 2147483647L {
+    return None
+  }
+  review_original_input_inventory(
+    geometry,
+    original.member_cids.length(),
+    rows.to_int(),
+  )
+}
+
+///|
+/// Quote the SAME measured Review body through its single strict protocol
+/// seal. Only the fixed self field is added. The codec already accounts for
+/// the simultaneous canonical body/complete views and the final wire writer.
+pub fn effect_review_projection_sealing_inventory(
+  measured : @encode.EncodingConstructionGeometry,
+) -> EffectPreviewIdentityConstructionInventory? {
+  let self_field_bytes = 100
+  guard measured.bytes > 0 &&
+    measured.bytes <= 2147483647 - self_field_bytes &&
+    measured.nodes > 0 &&
+    measured.nodes < 2147483647 &&
+    measured.fields >= 0 &&
+    measured.fields < 2147483647 &&
+    measured.strings >= 0 &&
+    measured.strings < 2147483647 &&
+    measured.text_units >= 0 &&
+    measured.text_units <= 2147483647 - self_field_bytes &&
+    measured.largest_object >= 0 &&
+    measured.largest_object < 2147483647 else {
+    return None
+  }
+  let complete : @encode.EncodingConstructionGeometry = {
+    ..measured,
+    bytes: measured.bytes + self_field_bytes,
+    nodes: measured.nodes + 1,
+    fields: measured.fields + 1,
+    strings: measured.strings + 1,
+    text_units: measured.text_units + self_field_bytes,
+    largest_object: measured.largest_object + 1,
+  }
+  protocol_wire_codec_construction_inventory(
+    complete.bytes,
+    complete.nodes,
+    complete.depth,
+    geometry=Some(complete),
+    live_keys=Some(13 + 1 + 4 + 8),
+  ).map(codec => {
+    ..codec,
+    record_headers: codec.record_headers + 12L,
+    reference_slots: codec.reference_slots + 24L,
+    scalar_words: codec.scalar_words + 12L,
+    // The authored body String remains borrowed by the Count/parser until
+    // strict sealing has finished. No post-return Host/readback owner lives here.
+    owned_utf16_units: codec.owned_utf16_units + measured.bytes.to_int64(),
+  })
 }

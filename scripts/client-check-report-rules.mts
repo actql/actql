@@ -4,7 +4,6 @@ const rules = {
   unique_document_ids: {
     python: `if len(documents) != len(report['inputs']):
         return False`,
-    js: `if (documents.size !== report.inputs.length) return false;`,
     native: `if documents.length() != inputs.length() { return false }`,
   },
   input_document_kinds: {
@@ -15,10 +14,6 @@ const rules = {
         return False
     if any(item['kind'] != 'structured' for key, item in documents.items() if key != 'source'):
         return False`,
-    js: `const program = documents.get('program');
-    if (program ? program.kind !== 'structured' || documents.has('source') ||
-        documents.has('parameter_declarations') : documents.get('source')?.kind !== 'text') return false;
-    if (report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;`,
     native: `if documents.get("program") is Some(program) {
       guard program is Object(fields) &&
         fields.get("kind") == Some(Json::string("structured")) &&
@@ -41,14 +36,6 @@ const rules = {
                 return False
             if location['kind'] == 'text' and not 0 <= location['start_byte'] <= location['end_byte'] <= doc['byte_length']:
                 return False`,
-    js: `for (const reason of occurrences) {
-      const location = reason.location;
-      if (!location) continue;
-      const input = documents.get(location.document_id);
-      if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
-      if (location.kind === 'text' && (location.start_byte > location.end_byte ||
-          location.end_byte > input.byte_length)) return false;
-    }`,
     native: `for reason in occurrences {
       guard reason is Object(fields) else { return false }
       if fields.get("location") is Some(location) {
@@ -74,12 +61,6 @@ const rules = {
                 return False
             if any(edit['start_byte'] != doc['byte_length'] or edit['end_byte'] != doc['byte_length'] for edit in fix['edits']):
                 return False`,
-    js: `for (const reason of occurrences) for (const fix of reason.fixes ?? []) {
-      const input = documents.get(fix.target.document_id);
-      if (!input || input.kind !== 'text' || input.revision !== fix.target.revision) return false;
-      if (fix.edits.some(edit => edit.start_byte !== input.byte_length ||
-          edit.end_byte !== input.byte_length)) return false;
-    }`,
     native: `for reason in occurrences {
       guard reason is Object(fields) else { return false }
       if fields.get("fixes") is Some(fixes) {
@@ -116,18 +97,6 @@ export function checkReportRules(registry: Readonly<{check_report_rules?: unknow
     throw new Error('InvalidClientCheckReportRules');
   }
   return selected as CheckReportRules;
-}
-
-export function jsCheckReportRules(selected: CheckReportRules) {
-  return `export const validCheckOutcomeContract = value => {
-  if (!validCheckOutcomeShape(value)) return false;
-  const report = value.report ?? value.partial_report;
-  if (!report) return true;
-  const documents = new Map(report.inputs.map(input => [input.document_id, input]));
-  const occurrences = [...report.reasons, ...report.requirements, ...report.coverage.limits];
-  ${selected.map(name => rules[name].js).join('\n  ')}
-  return true;
-};\n`;
 }
 
 export function nativeCheckReportRules(selected: CheckReportRules) {

@@ -5,6 +5,9 @@ pub let local_original_result_read_entry_id : String = "local-result-original-re
 pub let local_original_result_read_resource : String = "result"
 
 ///|
+let local_result_file_bootstrap_profile : BootstrapProfile = local_standard_profile_identity()
+
+///|
 /// Evaluate the exact second tuple of the Local read decision. A caller must
 /// separately prove the original Run, requested Result and installed purpose.
 /// No broad selector can stand in for the fresh installer's single role.
@@ -24,8 +27,14 @@ pub fn local_result_read_authority_resource(
   }
   guard named is (Allow(_) | Deny(NoMatch)) &&
     account.account_id == "local-cli" &&
-    named_tuple.principal == "local-cli" &&
-    named_tuple.connection == "local" else {
+    named_tuple.principal == "local-cli" else {
+    return None
+  }
+  // File adoption may reserve a disjoint control connection when a Source
+  // owns the preferred name. Require its standard profile and the exact
+  // current Result role on that same connection.
+  if named_tuple.connection != "local" &&
+    account.bootstrap != Some(local_result_file_bootstrap_profile) {
     return None
   }
   let exact = account.entries.any(entry => {
@@ -33,7 +42,8 @@ pub fn local_result_read_authority_resource(
     entry.outcome == Allow &&
     entry.exclusions.is_empty() &&
     entry.scope.dims[0] is Finite(["local-cli"]) &&
-    entry.scope.dims[1] is Finite(["local"]) &&
+    entry.scope.dims[1] is Finite([connection]) &&
+    connection == named_tuple.connection &&
     entry.scope.dims[2] is Finite([resource]) &&
     resource == local_original_result_read_resource &&
     entry.scope.dims[3] is Finite(["read"])

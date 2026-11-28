@@ -42,6 +42,62 @@ pub fn configure_source_free_local_compute_on_ledger(
 }
 
 ///|
+/// Attach the existing adopted Model module only after acceptance of this
+/// exact Run start. Task activation still requires its own current authority.
+pub fn configure_local_source_free_model_compute(
+  plan : LocalRunPlan,
+  start : LocalRunPhysicalStart,
+  adopted : @local.ClientInstalledManagedRun,
+  model : @local.ClientInstalledManagedModelPlan,
+) -> Result[LocalComputeHost, LocalComputeIssue] {
+  if !physical_equal(start.plan, plan) {
+    return Err(StartNotPermitted)
+  }
+  guard @local.open_installed_model_source_free_compute(
+      adopted,
+      model,
+      plan.prepared,
+      plan.request,
+      plan.compiled,
+      plan.definition,
+    )
+    is Ok(Some(setup)) else {
+    return Err(Configuration)
+  }
+  let run = @driver.dispatch_driver_run(@builtin.configured_host_driver(setup))
+  @strategy.require_captured_task_activation(run)
+  Ok({ plan, setup, publication: SourceFreeModel(adopted), })
+}
+
+///|
+/// Configure the adopted Model against the exact acquired input of this Run.
+pub fn configure_local_whole_source_model_compute(
+  plan : LocalRunPlan,
+  start : LocalRunPhysicalStart,
+  adopted : @local.ClientInstalledManagedRun,
+  model : @local.ClientInstalledManagedModelPlan,
+  source : @query.CapturedInputSource,
+) -> Result[LocalComputeHost, LocalComputeIssue] {
+  guard physical_equal(start.plan, plan) else { return Err(StartNotPermitted) }
+  let (setup, run, _) = match
+    @local.open_installed_model_whole_source_compute(
+      adopted,
+      model,
+      plan.prepared,
+      plan.request,
+      plan.compiled,
+      plan.definition,
+      source,
+    ) {
+    Ok(opened) => opened
+    Err(Run(issue)) => return Err(Task(issue))
+    Err(_) => return Err(Configuration)
+  }
+  @strategy.require_captured_task_activation(run)
+  Ok({ plan, setup, publication: WholeSourceModel(adopted), })
+}
+
+///|
 /// Reuse the original task activation's current, subject-bound Account check
 /// before configuring physical task resources. This grants no task activation.
 pub fn authorize_local_compute_configuration(

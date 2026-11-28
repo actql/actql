@@ -23,7 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
 from actql_sdk._local_distribution import (WASMTIME_VERSION, DUCKDB_VERSION,
-    _component_target, _execution_component_platform, _pairs, _read_file, _valid_image_header)  # noqa: E402
+    _MODEL_CRYPTO_MAXIMUM, _MODEL_CRYPTO_NOTICE, _component_target,
+    _execution_component_platform, _pairs, _read_file, _valid_image_header)  # noqa: E402
 from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
@@ -45,8 +46,8 @@ def clean_source() -> str:
     return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
 
 
-def read_receipt(path: Path) -> tuple[dict[str, Any], str]:
-    raw = _read_file(path, maximum=65536)
+def read_receipt(path: Path, *, maximum: int = 65536) -> tuple[dict[str, Any], str]:
+    raw = _read_file(path, maximum=maximum)
     value = json.loads(raw, object_pairs_hook=_pairs)
     require(type(value) is dict, 'Invalid Python Local original receipt')
     return cast(dict[str, Any], value), hashlib.sha256(raw).hexdigest()
@@ -300,8 +301,64 @@ def verify_original_image(image: dict[str, Any], selected: _SelectedImageRecipe,
     return image_path, image_item
 
 
+def prepare_model_crypto(directory: Path, source: str, target_platform: str):
+    """Select the exact same-source physical member before composing a wheel."""
+    receipt_path = directory / 'producer.json'
+    receipt, checksum = read_receipt(receipt_path, maximum=2 * 1024 * 1024)
+    root = ROOT / 'packages/python-local-runtime/native/crypto-component'
+    pin = json.loads(_read_file(root / 'source.json', maximum=65536), object_pairs_hook=_pairs)
+    profile = pin['portable'][target_platform]
+    supplied = receipt['inputs']
+    require(set(receipt) == {'source', 'target', 'profile', 'inputs', 'source_members',
+                'image', 'library', 'notice', 'loaded'}
+            and receipt['source'] == source and receipt['target'] == target_platform
+            and receipt['profile'] == profile and receipt['loaded'] is False
+            and type(supplied) is dict, 'Select the exact ordinary Model crypto producer receipt')
+    upstream = {key: pin['upstream'][key] for key in ('bytes', 'sha256')}
+    require(sum(name.startswith('/') and original == upstream for name, original in supplied.items()) == 1,
+            'Model crypto preparation has a foreign upstream archive')
+    if target_platform == 'linux-x64':
+        perl_inputs = {}
+        for name, value in supplied.items():
+            if name.endswith('.rpm'):
+                member = Path(name)
+                require(member.is_absolute() and member.name not in perl_inputs,
+                        'Model crypto preparation has ambiguous Linux Perl inputs')
+                perl_inputs[member.name] = value
+        require(perl_inputs == profile['perl_inputs'],
+                'Model crypto preparation has foreign Linux Perl inputs')
+    files = [ROOT / 'scripts/produce-native-crypto-component.py', root / 'source.json',
+             root / 'component_arena.inc', *(root / name for name in pin['portable']['local'])]
+    for file in files:
+        suffix = '/' + file.relative_to(ROOT).as_posix()
+        selected = [value for name, value in supplied.items() if name.startswith('/') and name.endswith(suffix)]
+        original = _original(file, 65536)
+        require(selected == [{key: original[key] for key in ('bytes', 'sha256')}],
+                'Model crypto preparation has a foreign source original')
+    library_name = _component_target(target_platform).model_crypto_file
+    library = directory / library_name
+    item = component(library, receipt['library']['sha256'], _MODEL_CRYPTO_MAXIMUM, library_name)
+    require(receipt['library'] == {key: item[key] for key in ('bytes', 'sha256')},
+            'Model crypto image differs from its original receipt')
+    notice = directory / _MODEL_CRYPTO_NOTICE
+    notice_original = component(notice, pin['license_sha256'], 1024 * 1024, _MODEL_CRYPTO_NOTICE)
+    require(receipt['notice'] == {key: notice_original[key] for key in ('bytes', 'sha256')},
+            'Model crypto notice differs from its original receipt')
+    if target_platform == 'linux-x64':
+        recipe.library_target(library, target_platform=target_platform,
+            original_sha256=item['sha256'], original_bytes=item['bytes'])
+    else:
+        recipe.library_target(library, target_platform=target_platform,
+                              identity=('@rpath/' + library_name).encode('ascii'), rpaths=())
+    descriptor = {'library': item, 'notice_sha256': notice_original['sha256']}
+    copies = {library_name: (library, _MODEL_CRYPTO_MAXIMUM, item['sha256']),
+              _MODEL_CRYPTO_NOTICE: (notice, 1024 * 1024, notice_original['sha256'])}
+    return descriptor, copies, receipt_path, checksum
+
+
 def produce_platform(core_receipt: Path, duckdb_receipt: Path,
-                     image_receipt: Path, destination: Path) -> dict[str, object]:
+                     image_receipt: Path, destination: Path, *,
+                     model_crypto: Path | None = None) -> dict[str, object]:
     """Prepare ordinary components, never relabel a private physical receipt.
 
     The actual module/compiler/link and image belong to this exact source.
@@ -355,11 +412,17 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
             original_sha256=duckdb['library_sha256'], original_bytes=body['duckdb']['bytes'])
     else:
         recipe.library_target(library, target_platform=target_platform)
-    destination.mkdir()
     copies = {'client_host_wasm.wasm': (module, 32 * 1024 * 1024, digest),
         'client_host_wasm.cwasm': (image_path, selected.image_bytes_limit, image_item['sha256']),
         target.duckdb_file: (library, 128 * 1024 * 1024, duckdb['library_sha256'])}
     copies.update({name: (path, 1024 * 1024, notice_hashes[name]) for name, path in notices.items()})
+    crypto_receipt = None
+    if model_crypto is not None:
+        descriptor, model_copies, crypto_receipt, crypto_hash = prepare_model_crypto(
+            model_crypto, source, target_platform)
+        body['model_crypto'] = descriptor
+        copies.update(model_copies)
+    destination.mkdir()
     for name, (path, maximum, checksum) in copies.items():
         copy_original(path, destination / name, maximum, checksum)
     (destination / 'engine-recipe.json').write_bytes(original)
@@ -378,6 +441,11 @@ def produce_platform(core_receipt: Path, duckdb_receipt: Path,
         'duckdb_receipt_sha256': duckdb_hash, 'duckdb_execution_source': duckdb['source_sha'],
         'artifact': body, 'runtime_executed': False, 'wheel_built': False,
         'public_local_accepted': False}
+    if crypto_receipt is not None:
+        assert crypto_hash is not None
+        copy_original(crypto_receipt, destination / 'model-crypto-producer.json',
+                      2 * 1024 * 1024, crypto_hash)
+        result['model_crypto_receipt_sha256'] = crypto_hash
     (destination / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')
     return result
 
@@ -481,12 +549,15 @@ if __name__ == '__main__':
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--record-module-original', action='store_true')
     parser.add_argument('--platform-runtime', action='store_true')
+    parser.add_argument('--model-crypto-preparation', type=Path)
     parser.add_argument('--source')
     parser.add_argument('--compiled-source')
     parser.add_argument('--module', type=Path)
     parser.add_argument('--link-response', type=Path)
     parser.add_argument('--moon-home', type=Path)
     args = parser.parse_args()
+    if args.model_crypto_preparation is not None and (not args.platform_runtime or args.record_module_original):
+        parser.error('A Model crypto preparation selects only the ordinary platform runtime')
     if args.record_module_original:
         if args.platform_runtime:
             parser.error('Module correspondence does not select a runtime')
@@ -509,6 +580,6 @@ if __name__ == '__main__':
         if (not all((args.core_receipt, args.duckdb_receipt, args.image_receipt))
                 or any((args.source, args.compiled_source, args.module, args.link_response, args.moon_home))):
             parser.error('Select all three original physical/component receipts')
-        selected_producer = produce_platform if args.platform_runtime else produce
-        print(json.dumps(selected_producer(args.core_receipt, args.duckdb_receipt,
-            args.image_receipt, args.destination)))
+        values = (args.core_receipt, args.duckdb_receipt, args.image_receipt, args.destination)
+        print(json.dumps(produce_platform(*values, model_crypto=args.model_crypto_preparation)
+                         if args.platform_runtime else produce(*values)))

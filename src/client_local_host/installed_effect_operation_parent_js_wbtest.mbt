@@ -376,6 +376,16 @@ test "physical extent membership retains original identity without another curre
 fn effect_parent_bound_run(
   prepared : @publication_host.PreparedClientEffectComputation,
 ) -> @publication_host.PreparedClientEffectRun {
+  effect_parent_bound_compilation(prepared).1
+}
+
+///|
+fn effect_parent_bound_compilation(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> (
+  @publication_host.ClientEffectCompilation,
+  @publication_host.PreparedClientEffectRun,
+) {
   let manifests = @publication_host.admit_client_compilation_manifests(
     @environment.compiler_grammar_manifest_wire(),
     @environment.compiler_barrier_contract_manifest_wire(),
@@ -402,9 +412,97 @@ fn effect_parent_bound_run(
   let definition = @publication_host.issue_client_effect_run_definition(
     allowed, "scope", "planned-effect-compute", "2026-10-25T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
   ).unwrap()
-  @publication_host.bind_client_effect_compiled_run(
+  let bound = @publication_host.bind_client_effect_compiled_run(
     prepared, allowed, definition,
   ).unwrap()
+  (compiled, bound)
+}
+
+///|
+test "Effect Debug preflights the original managed Plan before any Compute attempt" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let (compiled, bound) = effect_parent_bound_compilation(prepared)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  let wire = @publication_host.client_effect_static_computation_plan_view(
+    prepared, compiled, 65536, 4096, 64,
+  ).unwrap()
+  let view = @publication.parse_interactive_run_control_shape(
+    "plan_view", wire, 65536, 4096, 64,
+  ).unwrap()
+  let original = @identity.object_field(view, "logical_map").unwrap()
+  let map = @publication.admit_interactive_run_evidence_value(
+    "logical_map", original, 65536, 4096, 64,
+  ).unwrap()
+  let map_cid = @publication.run_evidence_value_identity(map)
+  guard @identity.object_field(original, "steps")
+    is Some(@identity.Array(steps)) &&
+    @identity.object_field(@identity.array_at(steps, 0).unwrap(), "step_id")
+    is Some(@identity.String(entry)) else {
+    fail("the actual compiler's Map includes its entry Step")
+  }
+  let work = 13
+  assert_eq(@identity.array_count(steps), 1)
+  assert_eq(@strategy.graph_task_count(plan.graph), 1)
+  assert_eq(@strategy.graph_data_count(plan.graph), 0)
+  assert_eq(@strategy.graph_control_count(plan.graph), 0)
+  quote[0] += work.to_int64()
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    preflight_installed_effect_compute_steps(
+      owner,
+      bound,
+      request,
+      map,
+      map_cid,
+      work - 1,
+    )
+    is Err(Ledger(PlanningLimit)),
+  )
+  assert_true(
+    preflight_installed_effect_compute_steps(
+      owner,
+      bound,
+      request,
+      map,
+      "sha256:" + "f".repeat(64),
+      work,
+    )
+    is Err(ForeignOriginal),
+  )
+  let copied_request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "effect-operation-plan",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  assert_true(copied_request == request)
+  assert_true(
+    preflight_installed_effect_compute_steps(
+      owner, bound, copied_request, map, map_cid, work,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger).planning_work, before.planning_work)
+  assert_eq(
+    preflight_installed_effect_compute_steps(
+      owner, bound, request, map, map_cid, work,
+    ).unwrap(),
+    Some(entry),
+  )
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.planning_work, before.planning_work + work)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_false(owner.source_free_opening)
+  assert_true(owner.source_free_captured is None)
+  retire_installed_managed_run(owner).unwrap()
 }
 
 ///|
@@ -474,6 +572,230 @@ test "planned Effect Compute executes retained sequence on the original managed 
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_true(owner.source_free_captured is None)
+}
+
+///|
+test "Effect Debug rejects a foreign physical start during an actual later Compute pause" {
+  let (check_parent, child, _, _) = request_effect_fixture()
+  finish_effect_program_check_preparation(child).unwrap() |> ignore
+  let prepared = compile_effect_program_check_preparation(
+    child,
+    execution_profile=Debug,
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "same-effect-debug",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let contracts = prepare_installed_sequence_contracts(
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let bound = effect_parent_bound_run(prepared)
+  let tasks = @strategy.graph_task_count(plan.graph)
+  assert_eq(tasks, 2)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[0] += tasks.to_int64() *
+    (
+      7L +
+      @strategy.graph_data_count(plan.graph).to_int64() +
+      @strategy.graph_control_count(plan.graph).to_int64()
+    )
+  let control_bytes = @strategy.captured_task_control_construction_bytes(tasks)
+  quote[4] += control_bytes
+  quote[5] += control_bytes
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let (host, captured, _) = open_installed_effect_managed_host(owner, bound, [])
+    .unwrap()
+    .unwrap()
+  let dag = @strategy.captured_effect_run_dag(captured)
+  let hooks = @strategy.prepare_captured_task_boundary_hooks(
+    dag,
+    plan.graph,
+    @strategy.captured_dag_strategy_revision(dag),
+  ).unwrap()
+  let account = @authorization.admit_account_configuration({
+    account_id: "effect-compute-debug",
+    entries: [
+      {
+        entry_id: "debug-control",
+        outcome: Allow,
+        scope: {
+          principal: All,
+          connection: All,
+          resource: All,
+          operation: AnyOf(["pause", "resume"]),
+        },
+        exclusions: [],
+      },
+    ],
+    bootstrap: None,
+  }).unwrap()
+  let original = @strategy.captured_effect_run_owner(captured)
+  let subject = @publication.publication_contract_identity(
+    @effect_binding.effect_program_run_definition(original),
+  )
+  let context = @publication.run_publication_execution_context(
+    @effect_binding.effect_program_run_admission(original),
+  )
+  let pause : @authorization.AccessTuple = {
+    principal: "user",
+    connection: "local",
+    resource: "run",
+    operation: "pause",
+  }
+  let resume_tuple = { ..pause, operation: "resume", }
+  let permit = fn(tuple) {
+    @authorization.bind_dispatch_authorization(
+      account,
+      tuple,
+      Activation,
+      subject,
+      context,
+    ).unwrap()
+  }
+  assert_eq(
+    @strategy.prepare_captured_task_control(
+      dag,
+      hooks,
+      permit(pause),
+      account,
+      pause,
+      subject,
+      context,
+    ),
+    Err(BoundaryUnavailable(0)),
+  )
+  @strategy.prepare_captured_effect_task_control(
+    captured,
+    hooks,
+    permit(pause),
+    account,
+    pause,
+  ).unwrap()
+  assert_eq(@strategy.captured_task_control_entry_task(dag, hooks), Some(0))
+  assert_eq(@strategy.next_captured_task(dag), None)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(
+    @strategy.acknowledge_captured_relation_sample_start(
+      dag, hooks, subject, context, 4,
+    ),
+    Err(NotPrepared),
+  )
+  let step = fn(start_revision, revision) {
+    @strategy.command_captured_effect_task_control(
+      captured,
+      hooks,
+      start_revision,
+      revision,
+      ResumeStep,
+      permit(resume_tuple),
+      account,
+      resume_tuple,
+    )
+  }
+  assert_eq(step(0, 0), Err(StaleRevision))
+  assert_eq(
+    @strategy.command_captured_task_control(
+      dag,
+      hooks,
+      0,
+      ResumeStep,
+      permit(resume_tuple),
+      account,
+      resume_tuple,
+      subject,
+      context,
+    ),
+    Err(ForeignOwner),
+  )
+  // This component supplies a selected revision at the Common boundary.
+  // The Node Journal receiver independently proves the numeric revision.
+  step(4, 0).unwrap()
+  assert_eq(
+    @strategy.captured_task_control_state(dag, hooks),
+    Ok((1, Stepping(0))),
+  )
+  assert_false(@strategy.captured_relation_sample_start_selected(dag))
+  let effect_input = @strategy.captured_effect_run_source_at(captured, 0).unwrap()
+  let effect_task = @strategy.checked_effect_source_task(effect_input)
+  assert_eq(effect_task, 1)
+  let later_pause = Ref(None)
+  let executed = execute_retained_effect_local_tasks_guarded(
+    host,
+    captured,
+    64,
+    10000,
+    () => {
+      if later_pause.val is None &&
+        @strategy.captured_task_control_state(dag, hooks) is Ok((2, Paused)) {
+        let generation = @strategy.captured_dag_generation(dag)
+        let boundary = @strategy.captured_task_control_paused_task(dag, hooks)
+        let ready = @strategy.next_captured_task(dag)
+        let attempts = @resources.ledger_usage(ledger).attempts
+        let input_complete = @strategy.captured_task_completed(dag, effect_task)
+        let wrong_start = step(5, 2)
+        let unchanged = @strategy.captured_task_control_state(dag, hooks)
+        let unchanged_generation = @strategy.captured_dag_generation(dag)
+        let resumed = step(4, 2)
+        later_pause.val = Some(
+          (
+            generation, boundary, ready, attempts, input_complete, wrong_start, unchanged,
+            unchanged_generation, resumed,
+          ),
+        )
+        return resumed is Ok(_)
+      }
+      true
+    },
+    require_live=Some(() => true),
+  )
+  guard later_pause.val
+    is Some(
+      (
+        generation,
+        boundary,
+        ready,
+        attempts,
+        input_complete,
+        wrong_start,
+        unchanged,
+        unchanged_generation,
+        resumed,
+      )
+    ) else {
+    fail("The first physical Compute did not reach the later pause")
+  }
+  assert_eq(boundary, Ok((2, 0, Some(1), generation)))
+  assert_eq(ready, None)
+  assert_eq(attempts, 1)
+  assert_false(input_complete)
+  assert_eq(wrong_start, Err(StaleRevision))
+  assert_eq(unchanged, Ok((2, Paused)))
+  assert_eq(unchanged_generation, generation)
+  assert_eq(resumed, Ok(()))
+  let execution = executed.unwrap()
+  assert_eq(
+    @strategy.captured_task_control_state(dag, hooks),
+    Ok((4, Completed)),
+  )
+  assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+  assert_eq(execution.rows().unwrap(), ["{\"amount\":10,\"id\":1}"])
+  assert_false(@strategy.captured_relation_sample_start_selected(dag))
+  assert_true(execution.close())
+  retire_installed_managed_run(owner).unwrap()
+  clear_program_check_preparation(child).unwrap()
+  abort_request_preparation_after_cleanup(check_parent).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
 
 ///|

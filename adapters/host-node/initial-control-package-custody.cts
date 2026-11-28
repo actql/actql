@@ -71,6 +71,7 @@ const sdkImages = new WeakMap<ImageCustody,
   (registration: SdkImageRegistration) => VerifiedSdkImages>();
 const sdkImageGet = WeakMap.prototype.get, sdkImageSet = WeakMap.prototype.set;
 const invalidSdkRegistration = 'InvalidInstalledModelSdkInstallation';
+const unavailableLocalTransport = 'InitialControlLocalTransportImageUnavailable';
 const fail: (code: string) => never = code => { const cause = new NativeError(code) as NodeJS.ErrnoException; cause.code = code; throw cause; };
 const own = (value: unknown, name: PropertyKey): unknown => {
   if (value === null || typeof value !== 'object') fail('InvalidInitialControlPackageImage');
@@ -123,7 +124,7 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
       hostValidator !== 'assertInitialControlHostPreparation') fail('InvalidInitialControlPackageImage');
   const groups: ImageGroup[] = [], actualPackages: string[] = [], groupDependencies = new NativeMap<string, ImageDependency[]>(),
     mainSources = new NativeMap<string, ImageSource>(), capturedGroups = new NativeMap<string, ImageGroup>(),
-    manifests = new NativeMap<string, unknown>();
+    manifests = new NativeMap<string, unknown>(), capturedOriginalPackages = new NativeMap<string, unknown>();
   function captureGroup(directory: string, facts: unknown, expectedName: string, expectedVersion: unknown,
     expectedReleaseVersion: unknown, expectedRepresentation?: ImageSource['representation'], external = false) {
     if (apply(mapHas, groupDependencies, [directory])) fail('InitialControlPackageImageChanged');
@@ -169,7 +170,7 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
   }
   const local = captureGroup(root, images, '@actql/local-node', optionalField(inventory, 'localVersion'),
     optionalField(inventory, 'localReleaseVersion'));
-  function resolvePackage(name: string, from: string, missing?: true): string | undefined {
+  function resolvePackage(name: string, from: string): string {
     const originalRequire = createRequire(join(from, 'package.json'));
     let entry;
     try { entry = originalRequire.resolve(name); }
@@ -184,7 +185,6 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
         const candidate = join(paths[index], name);
         if (existsSync(join(candidate, 'package.json'))) return realpathSync(candidate);
       }
-      if (missing) return undefined;
       throw cause;
     }
     let directory = dirname(realpathSync(entry));
@@ -210,6 +210,28 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
       return captured !== undefined && captured.bytes === own(fact, 'bytes') && captured.sha256 === own(fact, 'sha256');
     });
   }
+  function sameOrdinaryPackageImage(original: unknown, selected: unknown, images: readonly unknown[],
+    edges: readonly unknown[]) {
+    if (original === undefined || own(original, 'name') !== own(selected, 'name') ||
+        own(original, 'version') !== own(selected, 'version') ||
+        optionalField(original, 'releaseVersion') !== optionalField(selected, 'releaseVersion')) return false;
+    const firstImages = own(original, 'images'), firstEdges = own(original, 'dependencies');
+    if (!array(firstImages) || firstImages.length !== images.length ||
+        !array(firstEdges) || firstEdges.length !== edges.length) return false;
+    for (let index = 0; index < images.length; index++) {
+      const first = firstImages[index], fact = images[index];
+      if (own(first, 'path') !== own(fact, 'path') || own(first, 'bytes') !== own(fact, 'bytes') ||
+          own(first, 'sha256') !== own(fact, 'sha256')) return false;
+      const firstRelease = optionalField(first, 'npmRelease'), release = optionalField(fact, 'npmRelease');
+      if (firstRelease === undefined && release === undefined) continue;
+      if (firstRelease === undefined || release === undefined ||
+          own(firstRelease, 'version') !== own(release, 'version') ||
+          own(firstRelease, 'bytes') !== own(release, 'bytes') ||
+          own(firstRelease, 'sha256') !== own(release, 'sha256')) return false;
+    }
+    return edges.every((edge, index) => own(edge, 'name') === own(firstEdges[index], 'name') &&
+      optionalField(edge, 'local') === optionalField(firstEdges[index], 'local'));
+  }
   function captureDependency(binding: unknown, from: string, importer: string | undefined,
     graph = packages, actual = actualPackages, external = false, append = true): string {
     const name = own(binding, 'name'), index = own(binding, 'package');
@@ -219,7 +241,6 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
     const selected = graph[index];
     if (own(selected, 'name') !== name) fail('InvalidInitialControlPackageImage');
     const directory = resolvePackage(name, from);
-    if (directory === undefined) fail('InitialControlPackageImageChanged');
     if (importer !== undefined) bindEdge(importer, name, directory, append);
     const previous = actual[index];
     if (previous !== undefined) {
@@ -233,32 +254,60 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
     if (held === undefined) {
       captureGroup(directory, facts, name, own(selected, 'version'),
         optionalField(selected, 'releaseVersion'), local.representation, external);
-    } else if (!external || held.name !== name || held.version !== own(selected, 'version') ||
-        held.dependencies.length !== next.length || !sharesCapturedImages(held, facts)) {
-      fail('InitialControlPackageImageChanged');
+      if (ordinary && !external) apply(mapSet, capturedOriginalPackages, [directory, selected]);
+    } else {
+      // npm can resolve several published graph entries to one installed
+      // directory. Reuse the physical capture only for matching originals.
+      // The walk below still checks each edge against its captured root.
+      const samePackage = external
+        ? held.name === name && held.version === own(selected, 'version') && sharesCapturedImages(held, facts)
+        : ordinary && sameOrdinaryPackageImage(apply(mapGet, capturedOriginalPackages, [directory]),
+          selected, facts, next);
+      if (!samePackage || held.dependencies.length !== next.length) fail('InitialControlPackageImageChanged');
     }
-    for (let item = 0; item < next.length; item++) captureDependency(next[item], directory, directory, graph, actual, external, held === undefined);
+    for (let item = 0; item < next.length; item++) {
+      const child = next[item];
+      if (!external && name === sdkPackage && own(child, 'name') === '@actql/local-node') {
+        if (own(child, 'local') !== true || resolvePackage('@actql/local-node', directory) !== root) {
+          fail('InitialControlPackageImageChanged');
+        }
+        bindEdge(directory, '@actql/local-node', root, held === undefined);
+      } else captureDependency(child, directory, directory, graph, actual, external, held === undefined);
+    }
     return directory;
   }
-  for (let index = 0; index < dependencies.length; index++) captureDependency(dependencies[index], root, root);
+  let localUndici: string | undefined;
+  for (let index = 0; index < dependencies.length; index++) {
+    const binding = dependencies[index], directory = captureDependency(binding, root, root);
+    if (ordinary && own(binding, 'name') === 'undici') {
+      if (localUndici !== undefined) fail(unavailableLocalTransport);
+      localUndici = directory;
+    }
+  }
+  const localTransport = groups.find(value => value.root === localUndici);
+  if (ordinary && (localTransport === undefined ||
+      own(own(local.manifest, 'dependencies'), 'undici') !== localTransport.version)) {
+    fail(unavailableLocalTransport);
+  }
   const optional = own(inventory, 'optionalSdk'), optionalCoverage = own(inventory, 'optionalSdkCoverage');
   const sdkAdapterRoots = new NativeMap<string, string>();
   const sdkRegistrations = initialSdkRegistrations === undefined ? undefined : [...initialSdkRegistrations];
-  const requiresBundled = sdkRegistrations === undefined ||
-    sdkRegistrations.some(registration => registration.adapter.packageName === sdkPackage);
+  // A prepared optional graph does not select a package for this Host.
+  const requiresBundled = (!ordinary && sdkRegistrations === undefined) ||
+    sdkRegistrations?.some(registration => registration.adapter.packageName === sdkPackage) === true;
   const selectedConsumer = () => {
     if (typeof consumerEntry !== 'string' || !isAbsolute(consumerEntry)) fail('InvalidInitialControlPackageImage');
     return dirname(consumerEntry);
   };
   let bundled = false;
   if (optionalCoverage === 'prepared') {
-    const consumer = selectedConsumer();
-    // The existing public registration port also owns the stock transport
-    // and its parsers. Keep that exact closure when present, even when the
-    // application selects an independently installed adapter.
-    bundled = requiresBundled || resolvePackage(sdkPackage, consumer, true) !== undefined;
-    if (bundled) {
-      const directory = captureDependency({name: sdkPackage, package: optional}, consumer, undefined);
+    if (requiresBundled) {
+      const directory = captureDependency({name: sdkPackage, package: optional}, selectedConsumer(), undefined);
+      const group = apply(mapGet, capturedGroups, [directory]) as ImageGroup;
+      if (ordinary && group.dependencies.find(edge => edge.name === 'undici')?.root !== localUndici) {
+        fail(invalidSdkRegistration);
+      }
+      bundled = true;
       apply(mapSet, sdkAdapterRoots, [sdkPackage, directory]);
     }
   } else if (optional !== null || optionalCoverage !== 'absent' && optionalCoverage !== 'unprepared') {
@@ -275,7 +324,12 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
     apply(setAdd, unselectedPackages, [index]);
     const children = own(packages[index], 'dependencies');
     if (!array(children)) fail('InvalidInitialControlPackageImage');
-    for (let item = 0; item < children.length; item++) markUnselected(children[item]);
+    for (let item = 0; item < children.length; item++) {
+      const child = children[item];
+      if (name === sdkPackage && own(child, 'name') === '@actql/local-node') {
+        if (own(child, 'local') !== true) fail('InvalidInitialControlPackageImage');
+      } else markUnselected(child);
+    }
   }
   if (!bundled && optionalCoverage === 'prepared') markUnselected({name: sdkPackage, package: optional});
   if (publicNodeCoverage === 'prepared') {
@@ -453,19 +507,28 @@ function capturePackageCustody(inventory: unknown, localRoot: string, consumerEn
       if (entry === undefined) fail('InitialControlSdkImageUnavailable');
       loader.loadSelectedModule(join(directory, entry.path), entry.captured.sha256);
     }
-    if (requiredModules !== undefined && bundled) {
+    if (localTransport !== undefined) {
       // The pinned Undici HTTP/1 transport loads these two parser variants
       // lazily. Give both their original verified Source before closing the
       // CommonJS cache, without establishing a socket or invoking an SDK.
-      const adapterRoot = apply(mapGet, sdkAdapterRoots, ['@actql/provider-ai-sdk']) as string | undefined;
-      const adapterGroup = groups.find(value => value.root === adapterRoot);
-      const directory = adapterGroup?.dependencies.find(edge => edge.name === 'undici')?.root;
-      const transport = groups.find(value => value.root === directory);
       for (const path of ['lib/llhttp/llhttp-wasm.js', 'lib/llhttp/llhttp_simd-wasm.js']) {
-        const parser = transport?.images.find(value => value.path === path);
-        if (parser === undefined) fail('InitialControlSdkImageUnavailable');
-        loader.loadSelectedModule(join(directory!, path), parser.captured.sha256, 'wasm-parser');
+        const parser = localTransport.images.find(value => value.path === path);
+        if (parser === undefined) fail(unavailableLocalTransport);
+        loader.loadSelectedModule(join(localTransport.root, path), parser.captured.sha256, 'wasm-parser');
       }
+      // The later direct HTTP adapter and any explicitly selected SDK reuse
+      // the same CommonJS cache entry, including both selected parser buffers.
+      const entry = join(localTransport.root, 'index.js');
+      if (realpathSync(originalRequire.resolve('undici')) !== entry) fail(unavailableLocalTransport);
+      originalRequire('undici');
+      const transport = 'adapters/host-node/original-model-http-transport.mjs';
+      const source = apply(mapGet, mainSources, [transport]) as ImageSource | undefined;
+      if (source === undefined) fail(unavailableLocalTransport);
+      loader.loadSelectedModule(join(root, transport), source.sha256);
+      const adapter = 'adapters/host-node/model-http/normal-http-chat.mjs';
+      const selected = apply(mapGet, mainSources, [adapter]) as ImageSource | undefined;
+      if (selected === undefined) fail(unavailableLocalTransport);
+      loader.loadSelectedModule(join(root, adapter), selected.sha256);
     }
     // Actual Source delivery precedes this compilation. Do not capture a
     // mutable pathname later or initialize a replacement caller namespace.

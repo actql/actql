@@ -15036,7 +15036,7 @@
             "extension": [
               {
                 "path": "src/run_publication/interactive_current_run_view.mbt",
-                "anchor": "park is Some(debug) && debug.resume_available"
+                "anchor": "Some(debug) if debug.continuation_available"
               }
             ],
             "verification": [
@@ -39053,7 +39053,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "844a26fa4a5f70f72edb68588b2bff92c14b8b66c3994d6b34b00bf3759e3371",
+      "sha256": "fb82a565b6467f78090ab6958dbc6a7e42ec3595ca7fe3e1813f5fa74f204fca",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -39483,7 +39483,8 @@
             "name",
             "selector",
             "modelId",
-            "endpoint"
+            "endpoint",
+            "transport"
           ],
           "async": false
         },
@@ -39533,31 +39534,6 @@
         },
         {
           "name": "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/tasks/tasks",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
           "parameters": [],
           "async": false
         },
@@ -39725,7 +39701,6 @@
         "./initial-control-package-custody.cjs",
         "./installed-host-services.mjs",
         "./installed-model.mjs",
-        "./installed-project-configuration.mjs",
         "./installed-project-model-tasks.mjs",
         "node:url",
         "node:util"
@@ -39812,11 +39787,6 @@
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/projectData/projectData",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/taskFor/taskFor/original/original",
             "installConfiguredModelProviders/context/init:prepareTasks/init:prepareTasks/init:prepareTasks/tasks/tasks",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:project/init:project",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider",
-            "installConfiguredModelProviders/context/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider/init:projectOpenAIProvider#2",
             "installConfiguredModelProviders/context/init:readText/init:readText",
             "installConfiguredModelProviders/context/init:readText/init:readText/init:readText",
             "installConfiguredModelProviders/context/init:registeredSdkSelected/init:registeredSdkSelected",

@@ -78,10 +78,11 @@ export function createCheckpointOperations(connection: WireConnection,
       // Host-attestation key, create a key or send an unsigned approval.
       fail('CheckpointSignerUnavailable');
     }
-    const page = await operations.checkpoints({checkpointId, limit: 1, signal});
+    const page = await operations.checkpoints({checkpointId, limit: 1,
+      ...(signal === undefined ? {} : {signal})});
     current(signal);
-    if (page.items.length !== 1) fail('CheckpointUnavailable');
-    const summary = page.items[0];
+    const [summary] = page.items;
+    if (summary === undefined || page.items.length !== 1) fail('CheckpointUnavailable');
     let answer;
     if (selectedSigner !== undefined) {
       answer = await signedAnswerFromAdmittedSummary(summary, decision, selectedSigner,

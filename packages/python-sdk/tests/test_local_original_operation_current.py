@@ -24,6 +24,59 @@ class OriginalOperationCurrentTests(unittest.TestCase):
         calls.clear()
         return store, core, calls, binding, fuel
 
+    def test_saved_reader_spends_one_original_allowance_across_fresh_reader_frames(self):
+        _, core, _, binding, resets = self.fixture()
+        counter = [0]
+
+        def set_fuel(value):
+            counter[0] = value
+            resets.append(value)
+
+        core._store = SimpleNamespace(set_fuel=set_fuel, get_fuel=lambda: counter[0])
+        core._host_cleanup_depth = 0
+        readers = []
+        spent = []
+
+        def observe(current):
+            reader = core._journal_callbacks(current.ticket).reader
+            readers.append(reader)
+            core._invoking = True
+            try:
+                self.assertEqual(core._journal_current_operation(current.ticket), original_id)
+            finally:
+                core._invoking = False
+            counter[0] -= 5
+            spent.append(counter[0])
+
+        with core._host_operation():
+            original_id = core._host_operation_id
+            original_scope = core._host_operation_scope
+            binding.inspect(observe)
+            resume = core._capture_saved_read_operation()
+            with self.assertRaisesRegex(RuntimeError, 'cannot transfer'):
+                core._capture_saved_read_operation()
+            with self.assertRaisesRegex(RuntimeError, 'cannot resume'):
+                with resume():
+                    self.fail('An active original scope cannot reenter')
+        self.assertIsNone(binding._observed_reader)
+        self.assertEqual(core._host_operation_id, 0)
+
+        with core._host_operation():
+            self.assertGreater(core._host_operation_id, original_id)
+            counter[0] -= 100
+        for _ in range(2):
+            with resume():
+                self.assertIs(core._host_operation_scope, original_scope)
+                self.assertTrue(core._host_operation_is_current(original_id))
+                binding.inspect(observe)
+            self.assertIsNone(binding._observed_reader)
+            self.assertEqual(core._host_operation_id, 0)
+
+        self.assertEqual(len({id(reader) for reader in readers}), 3)
+        self.assertEqual(spent, [_NORMAL_HOST_OPERATION_FUEL - count for count in (5, 10, 15)])
+        self.assertEqual(resets, [_NORMAL_HOST_OPERATION_FUEL, _NORMAL_HOST_OPERATION_FUEL,
+                                 _NORMAL_HOST_OPERATION_FUEL - 5])
+
     def test_cancelled_wait_retains_same_operation_until_original_worker_exits(self):
         _, core, _, binding, fuel = self.fixture()
         entered, resume, inspected = Event(), Event(), Event()

@@ -177,8 +177,10 @@ fn installed_effect_operation_control_capacity(
     // closure. Mutable runtime properties cannot replace those constructors.
     // The internal Ledger codec view copies one additional pure claim-facts
     // method reference before row/frontier work, including legacy fallback.
+    // The fixed control also owns a reference to an issued dependency pin
+    // admission, even if its optional payload is still empty.
     reference_slots: dependency_cache.reference_slots +
-    94L +
+    95L +
     receipt_preflight.reference_slots +
     1L +
     2L +
@@ -773,6 +775,7 @@ fn retain_installed_effect_operation_controls(
         dependency_work: None,
         dependency_capture: None,
         dependency_started: false,
+        dependency_pin_admission: None,
         dependency_inputs: None,
         dependency_capacity: None,
       }

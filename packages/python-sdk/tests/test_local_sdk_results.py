@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCoreError
-from actql_sdk._local_product import LocalProductCleanupPending
+from actql_sdk._local_product import LocalProductCleanupPending, _OriginalExecution
 from actql_sdk._local_storage import LocalStorageError
 from actql_sdk._local_work import OriginalLocalWork
 import test_local_sdk_preflight as preflight_fixture
@@ -23,8 +23,7 @@ class SDKResultAssemblyTests(unittest.TestCase):
             # Explicit physical-invocation lookup port only. Real task/export
             # constructors and their original scalar Core loans execute below;
             # no new Run/current/physical-worker proof comes from this record.
-            original = SimpleNamespace(run=compute.start.run, tasks=None, results=None,
-                                       publication=None, input_cleanup=lambda: True)
+            original = _OriginalExecution(host, compute.start.run)
             owned = []
             with patch.object(host, '_current_execution', return_value=original), \
                     patch.object(host, '_execution_for_run', return_value=original):
@@ -378,12 +377,12 @@ class SDKResultAssemblyTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
             host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
             binding = host._installation.binding
-            original = core.drive_task
+            original = core.drive_task_step
             def mutate(task, quantum):
                 result = original(task, quantum)
                 os.chmod(binding._account.name, 0o644, dir_fd=binding._source._root._open())
                 return result
-            with patch.object(core, 'drive_task', side_effect=mutate), \
+            with patch.object(core, 'drive_task_step', side_effect=mutate), \
                     patch.object(core, 'close_task', return_value=False):
                 with self.assertRaisesRegex(Exception, 'original generation'):
                     host._execute_original_tasks(compute, preflight, publisher)
@@ -396,13 +395,13 @@ class SDKResultAssemblyTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
             host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
             store = host._installation._store
-            original = core.drive_task
+            original = core.drive_task_step
             def mutate(task, quantum):
                 result = original(task, quantum)
                 store._connection.execute('INSERT INTO core_bytes(key,generation,payload) VALUES(?,0,?)',
                     (store.namespaced_key('client_local_settings', 'unexpected'), b'{}'))
                 return result
-            with patch.object(core, 'drive_task', side_effect=mutate), \
+            with patch.object(core, 'drive_task_step', side_effect=mutate), \
                     patch.object(core, 'close_task', return_value=False):
                 with self.assertRaises(LocalStorageError):
                     host._execute_original_tasks(compute, preflight, publisher)

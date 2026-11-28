@@ -182,6 +182,7 @@ fn issue_client_static_plan_view(
   retained_original? : Ref[@publication.RunEvidenceValue?]? = None,
   bounded_capture? : Bool = false,
   debug_entry? : Bool = false,
+  entry_breakpoint_profile? : Bool = false,
 ) -> Result[String, ClientInteractivePlanIssue] {
   if max_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidReadLimits)
@@ -469,7 +470,7 @@ fn issue_client_static_plan_view(
     }
     try {
       interactive_geometry_view(
-        measured, geometry, inspect_installed, debug_entry,
+        measured, geometry, inspect_installed, debug_entry, entry_breakpoint_profile,
       )
       @encode.finish_measurement_usage(measured) |> ignore
     } catch {
@@ -496,7 +497,13 @@ fn issue_client_static_plan_view(
     "\"full_intermediate_retention\":[],\"cost_guard\":false," +
     "\"execution_batch\":false,\"policy_revision_cid\":\"" +
     @checked.checked_local_policy_cid(checked) +
-    "\"}}"
+    "\"}" +
+    (if entry_breakpoint_profile {
+      ",\"entry_breakpoint_profile\":\"all_operations\""
+    } else {
+      ""
+    }) +
+    "}"
   guard parse_plan_identity_value(body, max_bytes, max_nodes, max_depth)
     is Some(value) else {
     return Err(Encoding)

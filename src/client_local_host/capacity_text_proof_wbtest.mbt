@@ -198,11 +198,12 @@ test "capacity plan funds checked leaf nodes separately from text and Result met
     .to_option()
     .unwrap()
   let rows = @publication_host.prepared_client_values_max_rows(prepared)
+  let graph = @publication_host.prepared_client_graph(prepared)
   let plan = client_local_capacity_plan(
     sequences,
     rows,
     scalar_values=true,
-    graph=Some(@publication_host.prepared_client_graph(prepared)),
+    graph=Some(graph),
   )
   assert_eq(plan.imports.wire.max_nodes, plan.values.max_nodes + 3)
   assert_eq(plan.imports.wire.max_bytes, 30 + 6 * 20000000 + 3 + 29 * 7)
@@ -211,10 +212,26 @@ test "capacity plan funds checked leaf nodes separately from text and Result met
   assert_eq(plan.execution.rows.output_values.max_text_bytes, 20000000)
   let selected_rows = plan.execution.rows.max_rows
   assert_eq(selected_rows, 1)
+  let expected_schema =
+    #|{"value":{"max_utf8_bytes":4,"nullable":false,"type":"string"}}
+  let schema_bytes = @utf8.encode(expected_schema).length()
+  assert_eq(@strategy.graph_result_count(graph), 1)
+  let occurrence = @strategy.graph_result_occurrence(graph, 0).unwrap()
+  let schema = @results.port_schema(
+    @execution.managed_result_occurrence_port(occurrence),
+  )
+  let identity = @execution.identify_relation_schema(schema, {
+    max_fields: 1,
+    max_bytes: schema_bytes,
+    max_nodes: 8,
+    max_depth: 4,
+  }).unwrap()
+  assert_eq(@execution.relation_schema_wire(identity), expected_schema)
+  assert_eq(plan.publication.unwrap().schema_bytes, schema_bytes)
   assert_eq(
     plan.metadata_retained_bytes,
     (24L + 2L * selected_rows.to_int64() + 64L) * 256L +
-    client_node_publication_schema_bytes().to_int64() * 8L +
+    schema_bytes.to_int64() * 8L +
     client_local_cleanup_retained_bytes(),
   )
   assert_eq(plan.metadata.retained_bytes, plan.metadata_retained_bytes)

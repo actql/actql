@@ -25,10 +25,13 @@ declare const originalView: WirePlanView;
 declare function render(...args: unknown[]): WireExplanationNarrative;
 const explained = explanationStoryModel(originalView, structuralFacts, {locale: 'ja', render});
 const originalFactsCid: string = explained.factsCid;
-const originalMeaning: WireExplanationFacts['steps'][number]['meaning'] = explained.occurrences[0].explanation.meaning;
-// @ts-expect-error Structural explanation text is not an execution/control fact.
-const executionConfirmed: true = explained.occurrences[0].explanation.executed;
-void originalFactsCid; void originalMeaning; void executionConfirmed;
+for (const occurrence of explained.occurrences) {
+  const originalMeaning: WireExplanationFacts['steps'][number]['meaning'] = occurrence.explanation.meaning;
+  // @ts-expect-error Structural explanation text is not an execution/control fact.
+  const executionConfirmed: true = occurrence.explanation.executed;
+  void originalMeaning; void executionConfirmed;
+}
+void originalFactsCid;
 const story = planStoryModel(originalView, {locale: 'ja'});
 const logicalOrder: 'logical_dependencies' = story.ordering.kind;
 const storyStatic: 'static' = story.observation;
@@ -53,8 +56,10 @@ await readExistingRunExplanation(client, ref, ticket, {recompile: true});
 void explanationRef;
 const presentation = await readExistingRunPresentation(client, ref, {locale: 'ja', render}, ticket);
 if (presentation.explanation.state === 'projected') {
-  const originalText: string = presentation.explanation.story.occurrences[0].explanation.text;
-  void originalText;
+  for (const occurrence of presentation.explanation.story.occurrences) {
+    const originalText: string = occurrence.explanation.text;
+    void originalText;
+  }
 }
 // @ts-expect-error This presentation selector cannot install a Debug or Sample profile.
 await readExistingRunPresentation(client, ref, {locale: 'ja', render, stopOnEntry: true}, ticket);

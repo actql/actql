@@ -3,12 +3,11 @@
 // No AI SDK branch, live Provider, public Client or Named Result is used.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createServer,request as httpRequest} from 'node:http';
-import {Readable} from 'node:stream';
+import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {setImmediate as turn} from 'node:timers/promises';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {originalHttpCommonFixture} from './infer-original-sdk-common.fixture.mjs';
+import {directLoopbackHttpFetch, originalHttpCommonFixture} from './infer-original-sdk-common.fixture.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
@@ -94,18 +93,7 @@ for(const variant of ['reported','unreported']) {
       // Explicit no-credential test transport using Node HTTP, not ambient
       // fetch, A's SDK/Undici, a retrying agent or another Model scheduler.
       // These test-only Node/Response holdings are NOT a normal layout proof.
-      const physicalFetch=(url,init)=>new Promise((resolve,reject)=>{
-        assert.equal(url,endpoint);assert.equal(init.redirect,'error');
-        const request=httpRequest(url,{method:init.method,
-          headers:Object.fromEntries(init.headers),signal:init.signal,agent:false},response=>{
-          resolve(new Response(Readable.toWeb(response),{
-            status:response.statusCode,headers:response.headers}));
-        });
-        request.on('socket',socket=>{
-          clientSockets.add(socket);socket.once('close',()=>clientSockets.delete(socket));
-        });
-        request.once('error',reject);request.end(init.body);
-      });
+      const physicalFetch=directLoopbackHttpFetch(endpoint,clientSockets);
       const f=await originalHttpCommonFixture(t,moon,{modelId:'independent-fixture',
         physical:{endpoint,fetch:physicalFetch}});
       mark('prepared');

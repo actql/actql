@@ -37,7 +37,7 @@ pub struct BackedExecutionDelegation[P, C] {
   mut logical : ExecutionDelegation?
   extent : BackedExecutionExtent
   access : BackedExecutionAccess
-  limits : LedgerLimits
+  priv mut limits : LedgerLimits
   // A growable in-process child separates declared policy from bytes already
   // acquired by its original physical owner. None preserves fixed extents.
   priv current_window : Ref[Int64]?

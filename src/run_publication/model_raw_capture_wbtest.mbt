@@ -123,3 +123,21 @@ test "raw retention selection refuses rehashed invalid intervals" {
     )
   }
 }
+
+///|
+test "Model Raw Store plaintext retains its exact canonical bytes" {
+  let original = b"\x00\xFF"
+  let cid = "sha256:06eb7d6a69ee19e5fbdf749018d3d2abfa04bcbd1365db312eb86dc7169389b8"
+  assert_eq(
+    model_raw_response_store_plaintext("raw descriptor", cid, 2, original),
+    Some("raw descriptor\nAP8="),
+  )
+  assert_true(
+    model_raw_response_store_plaintext("raw descriptor", cid, 1, original)
+    is None,
+  )
+  assert_true(
+    model_raw_response_store_plaintext("raw descriptor", cid, 2, b"\xFF\x00")
+    is None,
+  )
+}

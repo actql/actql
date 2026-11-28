@@ -97,23 +97,9 @@ fn prepare_client_run_state_update_body(
     (Some(key), Some(wire)) => {
       // The snapshot reader has already authenticated and restored this exact
       // state under its checked Definition. Keep that backing through CAS.
-      guard snapshot.state_original is Some(state) && state.wire() == wire else {
-        return Err(OriginalUnavailable)
-      }
-      let observation = match
-        @publication.prepare_run_state_observation(
-          state.state_wire(),
-          run_id,
-          revision,
-          65536,
-          8192,
-          64,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(Observation(issue))
-      }
-      if observation.key() != key ||
-        observation.wire(revision).to_option() != Some(state.state_wire()) {
+      guard snapshot.state_original is Some(retained) &&
+        retained.matches(definition, wire, revision, key) &&
+        retained.resolve() is Ok(state) else {
         return Err(OriginalUnavailable)
       }
       let same_manifest = match (state.original_manifest(), manifest) {
@@ -235,9 +221,22 @@ pub fn validate_client_saved_run_state_update_original(
     update.definition_cid {
     return Err(ForeignRun)
   }
-  if snapshot.submission.key != update.key ||
-    snapshot.submission.revision != update.prior_revision ||
-    snapshot.submission.body != update.prior_body {
+  validate_client_saved_run_state_update_predecessor(
+    update,
+    snapshot.submission,
+  )
+}
+
+///|
+/// Compare the update's retained predecessor with a separately held original
+/// row. This comparison alone neither validates a snapshot nor confirms a CAS.
+pub fn validate_client_saved_run_state_update_predecessor(
+  update : ClientSavedRunStateUpdate,
+  row : ClientJournalPhysicalRow,
+) -> Result[Unit, ClientSavedRunStateUpdateIssue] {
+  if row.key != update.key ||
+    row.revision != update.prior_revision ||
+    row.body != update.prior_body {
     return Err(OriginalUnavailable)
   }
   Ok(())

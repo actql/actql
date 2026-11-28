@@ -8,6 +8,7 @@ import asyncio
 import copy
 import json
 from pathlib import Path
+from struct import pack
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from threading import Event
@@ -678,14 +679,17 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
                     if 'during_produce' in codes:
                         codes['during_produce']()
                     row = actual()
-                    packets[handle] = wire_bytes({'kind': 'retained' if row.payload == SAVED_STATE else 'replace',
-                        'key': submission_fixture.REQUEST, 'revision': str(row.generation),
-                        'body': SAVED_STATE.decode(), 'state': wire_bytes(fixture.STATE).decode()})
+                    packets[handle] = (pack('<qIB71s', row.generation, len(SAVED_STATE),
+                                            row.payload != SAVED_STATE, submission_fixture.REQUEST.encode('ascii'))
+                                       + SAVED_STATE + wire_bytes(fixture.STATE))
                     return codes.get(name, len(packets[handle]))
-                if name == 'emit_sdk_run_state':
+                if name == 'emit_sdk_run_state_bytes':
                     self.assertEqual(args[2], host._configuration.handle)
                     self.assertEqual(bounds[handle], len(packets[args[1]]))
                     packets[handle] = packets[args[1]]
+                    if 'body_extent' in codes:
+                        packet = packets[handle]
+                        packets[handle] = packet[:8] + pack('<I', codes['body_extent']) + packet[12:]
                     return codes.get(name, 0)
                 if name == 'validate_sdk_run_state':
                     actual()
@@ -717,10 +721,23 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(store.read(key), saved)
             self.assertEqual(states, [fixture.STATE, fixture.STATE])
             self.assertEqual(calls.count('measure_sdk_run_state'), 2)
-            self.assertEqual(calls.count('emit_sdk_run_state'), 2)
+            self.assertEqual(calls.count('emit_sdk_run_state_bytes'), 2)
             self.assertEqual(calls.count('validate_sdk_run_state'), 1)
             self.assertEqual(calls.count('confirm_sdk_run_state'), 2)
             self.assertIs(host._runs._runs[run.handle], run)
+            await client.aclose()
+            self.assertTrue(core._closed)
+
+    async def test_invalid_binary_extent_refuses_before_metadata_cas(self):
+        with TemporaryDirectory() as directory:
+            _, core, client, _, store, key, calls, codes, observe = await self.bridge(directory)
+            before = store.read(key)
+            codes['body_extent'] = 2**32 - 1
+            with self.assertRaisesRegex(ValueError, 'Invalid original SDK state metadata projection'):
+                observe(lambda raw: self.fail(f'Unexpected public state {raw!r}'))
+            self.assertEqual(store.read(key), before)
+            self.assertNotIn('validate_sdk_run_state', calls)
+            self.assertNotIn('confirm_sdk_run_state', calls)
             await client.aclose()
             self.assertTrue(core._closed)
 
@@ -762,7 +779,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(held.write_attempted)
             self.assertEqual(store.read(key), before)
             self.assertEqual(calls.count('measure_sdk_run_state'), 1)
-            self.assertNotIn('emit_sdk_run_state', calls)
+            self.assertNotIn('emit_sdk_run_state_bytes', calls)
             codes.clear()
             with self.assertRaises(LocalProductCleanupPending):
                 observe(lambda _: self.fail('Retried original state preparation'))

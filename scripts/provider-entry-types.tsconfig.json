@@ -5,6 +5,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
+    "lib": ["ES2022", "DOM", "ES2024.String"],
     "baseUrl": "..",
     "paths": {
       "@actql/sdk": ["packages/sdk/index.mts"],
@@ -12,7 +13,7 @@
     }
   },
   "files": [
-    "../packages/provider-ai-sdk/entry.typecheck.mts",
+    "../packages/provider-ai-sdk/normal-entry.typecheck.mts",
     "../packages/provider-http/entry.typecheck.mts"
   ]
 }

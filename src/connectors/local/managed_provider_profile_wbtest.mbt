@@ -158,15 +158,24 @@ test "provider reference inventory follows actual task population and separates 
   }).unwrap()
   assert_eq(next.retained_bytes - first.retained_bytes, reference)
   assert_eq(next.execution_bytes - first.execution_bytes, reference)
+  let original_selection = @execution.preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 13L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let numeric_starts = @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 2L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_eq(numeric_starts, 48L)
   assert_eq(
     first.execution_bytes - first.retained_bytes,
-    @execution.preparation_representation_cost({
-      record_headers: 4L,
-      reference_slots: 13L,
-      scalar_words: 4L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    }).unwrap(),
+    original_selection + numeric_starts,
   )
 }
 

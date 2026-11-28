@@ -36,6 +36,9 @@ retain: {}};
 export const command = {version: 'actql-control-command/0.1', operation: 'resume',
   run_ref: ref, expected_control_revision: 18, operation_id: 'original-command',
   interval: {until: 'terminal', guards: null}};
+export const confirmWrite = {version: 'actql-control-command/0.1', operation: 'confirm_write',
+  run_ref: ref, expected_control_revision: 18, operation_id: 'original-write',
+  effect_write: {unit_id: 'write-opportunities', effect_preview_cid: cid('c'), member_preview_cid: cid('d')}};
 export const inputKey = {version: 'actql-logical-step-key/0.1',
   compiled_plan_cid: cid('1'), stage_ordinal: 1,
   occurrence: {kind: 'input_output', input_port_ordinal: 0}};
@@ -157,6 +160,66 @@ export const sampleBindingCases = ([
     ['control_admission', admission],
   ] as const};
 });
+const byComputedName = {kind: 'logical_step', select: {by: 'name', name: 'computed'},
+  position: 'before'};
+const beforeComputed = {kind: 'logical_step', step_id: computedStep.self_cid, position: 'before'};
+const beforeEffect = {kind: 'gate', gate_kind: 'effect_set', position: 'before'};
+const ambiguousMap = {...sampleMap, steps: [
+  {...sampleMap.steps[0], names: ['computed']}, sampleMap.steps[1],
+]};
+export const breakpointBindingCases = [
+  {label: 'name resolves to the original Step', targets: [byComputedName],
+    points: [beforeComputed], expected: true, work: 6},
+  {label: 'an existing unrelated Step cannot replace the original', targets: [byComputedName],
+    points: [{...beforeComputed, step_id: boundInputKey.self_cid}], expected: false},
+  {label: 'an effective target cannot be omitted', targets: [byComputedName],
+    points: [], expected: false},
+  {label: 'an unselected gate cannot be inserted', targets: [byComputedName],
+    points: [beforeComputed, beforeEffect], expected: false},
+  {label: 'the original position cannot be changed', targets: [byComputedName],
+    points: [{...beforeComputed, position: 'after'}], expected: false},
+  {label: 'operator and id select the same original once', targets: [
+    {...byComputedName, select: {by: 'operator', operator: 'select'}},
+    {...byComputedName, select: {by: 'id', step_id: computedStep.self_cid}},
+  ], points: [beforeComputed], expected: true},
+  {label: 'duplicate resolved points cannot cover a missing original',
+    targets: [byComputedName, beforeEffect], points: [beforeComputed, beforeComputed], expected: false},
+  {label: 'a requested original gate is retained', targets: [byComputedName, beforeEffect],
+    points: [beforeComputed, beforeEffect], expected: true},
+  {label: 'an ambiguous name cannot choose one original', targets: [byComputedName],
+    points: [beforeComputed], map: ambiguousMap, expected: false},
+  {label: 'a missing name cannot resolve to an existing Step', targets: [
+    {...byComputedName, select: {by: 'name', name: 'unused'}},
+  ], points: [beforeComputed], expected: false},
+].map(({label, targets, points, map = sampleMap, expected, work}) => {
+  const selectedProfile = {...profile, execution: {...profile.execution, breakpoints: targets}};
+  const intent = {...intentBody, requested_profile_cid: digest(selectedProfile)};
+  const resolved = {...resolvedBody, logical_map_cid: digest(map),
+    requested_profile_cid: digest(selectedProfile), effective_profile_cid: digest(selectedProfile),
+    breakpoints: points};
+  const admission = {...admissionBody, request_intent_cid: digest(intent),
+    logical_map_cid: resolved.logical_map_cid, resolved_profile_cid: digest(resolved)};
+  return {label, expected, work, records: [
+    ['control_profile', selectedProfile], ['control_request_intent', intent],
+    ['resolved_control_profile', resolved], ['logical_map', map],
+    ['control_admission', admission],
+  ] as const};
+});
+export const breakpointResume = {...command, interval: {
+  until: 'breakpoint', guards: null,
+  breakpoint_selection: {logical_map_cid: digest(sampleMap),
+    before_step_ids: [boundInputKey.self_cid, computedStep.self_cid]},
+}};
+const breakpointSelection = breakpointResume.interval.breakpoint_selection;
+const breakpointIntervalNegatives = [
+  {until: 'breakpoint', guards: null},
+  {...breakpointResume.interval, until: 'terminal'},
+  {...breakpointResume.interval, breakpoint_selection: {...breakpointSelection, logical_map_cid: 'missing-map'}},
+  {...breakpointResume.interval, breakpoint_selection: {...breakpointSelection, before_step_ids: []}},
+  {...breakpointResume.interval, breakpoint_selection: {...breakpointSelection,
+    before_step_ids: [computedStep.self_cid, computedStep.self_cid]}},
+  {...breakpointResume.interval, breakpoint_selection: {...breakpointSelection, position: 'after'}},
+];
 export const sampleRelation = {version: 'actql-sample-relation/0.1',
   kind: 'relation', schema_cid: cid('7'), columns: [
     {position: 0, name: 'p', value_contract_cid: cid('8'), required: false}],
@@ -201,8 +264,12 @@ export const identityVectors = [
   {name: 'logical_step_key', body: operationKey,
     cid: 'sha256:2ad8ff68dc3e793e262cc6efcb41ffb3d254795cd6780457fd04600cc09d8fbd'},
   {name: 'explanation_facts', body: explanationBody, cid: explanationCid},
+  {name: 'control_command', body: confirmWrite, cid: 'sha256:a07be3c832a5d069362d9b49c1ef019fce139461e231b5c7ce880cb7b46967ae'},
+  {name: 'control_command', body: breakpointResume,
+    cid: 'sha256:5d34ac33a33d4907fcb7c6860e5fc6618b12ad4ed2f30072c2e5dbe5c2acf3dc'},
 ];
 export const shapeVectors = [
+  {name: 'control_interval', value: breakpointResume.interval},
   {name: 'controlled_run_state', value: running},
   // Presence means an observed boolean. Every omission combination remains
   // unknown; unsupported capability is not an observation of false.
@@ -234,6 +301,7 @@ export const shapeVectors = [
   {name: 'run_explanation_view', value: unprojectedRunExplanation},
 ];
 export const negativeVectors = [
+  ...breakpointIntervalNegatives.map(value => ({name: 'control_interval', value})),
   ...['pause_pending', 'expiry_pending', 'cleanup_pending'].flatMap(field =>
     [null, 0, 'unknown'].map(value => ({name: 'controlled_run_state',
       value: {...running, [field]: value}}))),

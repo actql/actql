@@ -50,51 +50,79 @@ test "Effect original envelope reserves actual escaped DATA on the same checked 
 
 ///|
 test "Effect original envelope refuses one-byte-short retained backing without spending prepaid execution twice" {
-  let (parent, input, prepared) = request_effect_compile_fixture()
-  let holder = borrow_request_effect_plan_input(parent, input).unwrap()
-  let capacity = parent.effect_capacity.unwrap()
-  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  let at = fn(index : Int) {
-    if index == 0 {
-      "\"".repeat(60000)
-    } else {
-      "installation"
+  for short in [false, true] {
+    let (parent, input, prepared) = request_effect_compile_fixture()
+    let holder = borrow_request_effect_plan_input(parent, input).unwrap()
+    let capacity = parent.effect_capacity.unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      capacity, input,
+    ).unwrap()
+    let at = fn(index : Int) {
+      if index == 0 {
+        "\"".repeat(60000)
+      } else {
+        "installation"
+      }
     }
+    let quote = @publication_host.client_effect_target_original_envelope_capacity(
+      2, at,
+    ).unwrap()
+    let retained = @execution.execution_capacity_retained_bytes(quote)
+    let execution = before.0 +
+      @execution.execution_capacity_execution_bytes(quote)
+    assert_true(execution > before.1)
+    // Prepay the exact execution extent on the same Request reservation.
+    @resources.reserve_working_preparation_phase(
+      capacity,
+      input,
+      before.0,
+      execution,
+    ).unwrap()
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+      (before.0, execution),
+    )
+    let limits = @resources.ledger_limits(parent.ledger)
+    let prepaid = @resources.ledger_usage(parent.ledger)
+    let block = @resources.reserve_capacity(
+      parent.ledger,
+      limits.retained_bytes -
+      prepaid.held_bytes -
+      prepaid.reserved_retention_bytes -
+      retained +
+      (if short { 1L } else { 0L }),
+      limits.execution_bytes - prepaid.reserved_execution_bytes,
+    ).unwrap()
+    let funded = @resources.ledger_usage(parent.ledger)
+    assert_eq(funded.reserved_execution_bytes, limits.execution_bytes)
+    let result = reserve_request_effect_original_material(
+      parent, input, prepared, 2, at,
+    )
+    let expected_retained = if short {
+      assert_true(result is Err(Capacity(Resource(RetentionLimit))))
+      before.0
+    } else {
+      result.unwrap()
+      before.0 + retained
+    }
+    assert_eq(
+      @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+      (expected_retained, execution),
+    )
+    let after = @resources.ledger_usage(parent.ledger)
+    assert_eq(after.reserved_execution_bytes, funded.reserved_execution_bytes)
+    assert_eq(after.planning_work, funded.planning_work)
+    assert_true(
+      physical_equal(
+        @resources.preparation_body_borrow_value(holder).unwrap(),
+        prepared,
+      ),
+    )
+    @resources.settle_capacity(parent.ledger, block).unwrap()
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
-  let quote = @publication_host.client_effect_target_original_envelope_capacity(
-    2, at,
-  ).unwrap()
-  let retained = @execution.execution_capacity_retained_bytes(quote)
-  let execution = Int64::max(
-      before.1,
-      before.0 + @execution.execution_capacity_execution_bytes(quote),
-    ) -
-    before.1
-  assert_eq(execution, 0L)
-  let limits = @resources.ledger_limits(parent.ledger)
-  let block = @resources.reserve_capacity(
-    parent.ledger,
-    limits.retained_bytes - before.0 - retained + 1L,
-    0L,
-  ).unwrap()
-  let result = reserve_request_effect_original_material(
-    parent, input, prepared, 2, at,
-  )
-  assert_true(result is Err(Capacity(Resource(RetentionLimit))))
-  assert_eq(
-    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
-    before,
-  )
-  assert_true(
-    physical_equal(
-      @resources.preparation_body_borrow_value(holder).unwrap(),
-      prepared,
-    ),
-  )
-  @resources.settle_capacity(parent.ledger, block).unwrap()
-  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
-  abort_request_preparation_after_cleanup(parent).unwrap()
-  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
 ///|

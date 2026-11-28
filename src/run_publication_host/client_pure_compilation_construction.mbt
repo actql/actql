@@ -230,8 +230,7 @@ fn measure_prepared_client_compilation_construction_owned(
         graph,
         @strategy.checked_effect_computation_graph(original.graph),
       ) ||
-      !physical_equal(value.source, original.source) ||
-      components.is_empty()
+      !physical_equal(value.source, original.source)
     ) {
     return Err(TaskGraph(UnsupportedGraph))
   }

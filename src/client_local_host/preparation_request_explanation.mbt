@@ -125,6 +125,7 @@ fn[I] measure_request_original_explanation(
   nodes : Int,
   depth : Int,
   debug_entry : Bool,
+  entry_breakpoint_profile : Bool,
 ) -> Result[(Int64, Int64), ClientOriginalExplanationCaptureIssue] {
   let entry = explanation_capture_entry_control_bytes
   guard client_static_plan_measurement_construction_bytes(depth)
@@ -153,6 +154,7 @@ fn[I] measure_request_original_explanation(
       nodes,
       depth,
       debug_entry~,
+      entry_breakpoint_profile~,
       before_carrier_measurement=Some(original => {
         guard @publication_host.client_carrier_measurement_construction(
             original,
@@ -313,7 +315,15 @@ pub fn[I] prepare_request_original_explanation(
   // The Plan-only interface uses its admitted node limit for the optional
   // bounded graph observation. Measure the flag before issuing the loan.
   let debug_entry = if debug_entry_installed && entry_result is Ok(_) {
-    match static_debug_entry_probe(capacity, input, prepared, nodes, nodes) {
+    match
+      static_debug_entry_probe(
+        capacity,
+        input,
+        prepared,
+        nodes,
+        nodes,
+        original_split=owner.debug_plan_read,
+      ) {
       Err(issue) => {
         owner.phase = ProgramPlanReserved
         return Err(Capacity(issue))
@@ -327,7 +337,17 @@ pub fn[I] prepare_request_original_explanation(
     Err(issue) => Err(issue)
     Ok(_) =>
       measure_request_original_explanation(
-        owner, input, prepared, artifact, base_r, base_e, bytes, nodes, depth, debug_entry,
+        owner,
+        input,
+        prepared,
+        artifact,
+        base_r,
+        base_e,
+        bytes,
+        nodes,
+        depth,
+        debug_entry,
+        debug_entry && owner.debug_plan_read,
       )
   }
   let result = match result {
@@ -425,6 +445,7 @@ pub fn[I] request_original_static_plan_wire(
           value.depth,
           inspect_installed~,
           debug_entry=value.debug_entry,
+          entry_breakpoint_profile=value.debug_entry && owner.debug_plan_read,
         ) {
         Err(issue) => return Err(Plan(issue))
         Ok(value) => value

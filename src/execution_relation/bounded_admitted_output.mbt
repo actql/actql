@@ -189,6 +189,22 @@ fn advance_admitted_output_state(
         }
       }
       CommitRow => {
+        // A metered task pays the next cumulative row backing before the
+        // verified cells enter its retained output. The funding callback can
+        // synchronously stop the existing output preparation.
+        if !fund_output_retention(
+            buffer.budget,
+            buffer.budget.nodes,
+            buffer.budget.text,
+          ) {
+          return @bounded.Failed(CaptureLimit, used, used)
+        }
+        if @bounded.stop_requested(reader) is Some(reason) {
+          return @bounded.Stopped(reason, used, used)
+        }
+        if !buffer.open {
+          return @bounded.Failed(ClosedCapture, used, used)
+        }
         buffer.rows.push(state.cells)
         state.cells = []
         state.row += 1
@@ -210,6 +226,28 @@ fn advance_admitted_output_state(
 }
 
 ///|
+/// Accept only the original Task attachment which includes this output
+/// operation. The check borrows its backing; it grants no execution authority.
+pub fn generated_output_workspace_matches(
+  sequence : GeneratedSequence,
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  metered? : Bool = false,
+) -> Bool {
+  physical_equal(owner, generated_sequence_owner(sequence)) &&
+  target is Step(step) &&
+  @lower.sequence_step(sequence.sequence, step) is Some(_) &&
+  capacity_uses_fragment_step(sequence, step) &&
+  sequence.working is Some(growth) &&
+  !growth.failed &&
+  !growth.busy &&
+  (
+    !metered ||
+    (growth.retained_outputs is Some(_) && growth.reserve_retained is Some(_))
+  )
+}
+
+///|
 /// Capacity is checked before any row read or row allocation. Nested values
 /// use the existing incremental admission and measurement cursors.
 pub fn start_admitted_output_preparation(
@@ -218,6 +256,7 @@ pub fn start_admitted_output_preparation(
   max_step_work : Int,
   max_workspace_slots : Int,
   read : (Int, Int) -> @admitted.Value?,
+  working? : GeneratedSequence? = None,
 ) -> Result[AdmittedOutputPreparation, CaptureIssue] {
   if count < 0 || max_step_work < 0 || max_workspace_slots < 0 {
     return Err(InvalidCaptureLimits)
@@ -230,12 +269,26 @@ pub fn start_admitted_output_preparation(
   if count > output.buffer.max_rows {
     return Err(CaptureLimit)
   }
+  let workspace = match working {
+    None => row_workspace(max_workspace_slots)
+    Some(sequence) => {
+      guard generated_output_workspace_matches(
+        sequence,
+        output.owner,
+        output.target,
+      ) else {
+        return Err(NotRelationOutput)
+      }
+      output.buffer.budget.retention = sequence.working
+      working_row_workspace(sequence, max_workspace_slots)
+    }
+  }
   output.buffer.reading = true
   let state : AdmittedOutputState = {
     output,
     count,
     read,
-    workspace: row_workspace(max_workspace_slots),
+    workspace,
     max_work: max_step_work,
     work: 0,
     row: 0,

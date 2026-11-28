@@ -147,6 +147,10 @@ test "Saved rebind observes the fresh cancellation witness on every invocation" 
     result_name: "answer",
     fences: [],
     source: None,
+    policy_capacity: None,
+    selection_capacity: None,
+    coordinates_capacity: None,
+    selection: None,
     finite: None,
     owner: None,
     view: None,
@@ -180,6 +184,10 @@ test "Saved input reuses checked fence rows only within the same proven reader" 
     result_name: "answer",
     fences: [("publication_attempt", "original", 7L, b"first")],
     source: None,
+    policy_capacity: None,
+    selection_capacity: None,
+    coordinates_capacity: None,
+    selection: None,
     finite: None,
     owner: None,
     view: None,
@@ -227,7 +235,7 @@ test "Saved input reuses checked fence rows only within the same proven reader" 
 
   // Only the selected caller also reuses its proven physical fence reads.
   assert_eq(run(17, 1L, true), Ok(()))
-  assert_eq(proof_ticket.val, -17)
+  assert_eq(proof_ticket.val, 17)
   assert_eq(fence_reads.val, 1)
   assert_eq(scans.val, first_scans)
   assert_true(selected_reads.val > first_selected_reads)

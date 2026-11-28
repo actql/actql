@@ -371,6 +371,22 @@ fn local_dispatch_preparation_policies(
 }
 
 ///|
+/// Select the same sequence that the configured Local offer would execute.
+/// In particular, an earlier physical output may be a checked prefix of the
+/// stage's full sequence. Reusing the full sequence would name another port.
+pub fn local_dispatch_preparation_selected_sequence(
+  original : LocalDispatchPreparation,
+  graph : @strategy.CheckedDAG,
+  task : Int,
+) -> @execution.GeneratedSequence? {
+  let first = @strategy.graph_captured_prefix(graph)
+  guard physical_equal(graph, original.graph) && task >= first else {
+    return None
+  }
+  @local.local_module_selected_sequence(original.implementation, task - first)
+}
+
+///|
 /// Exact task envelope later consumed by the actual offer, without rebuilding
 /// its provider or recalculating a sequence from raw configuration.
 pub fn local_dispatch_preparation_task_capacity(

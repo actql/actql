@@ -25,6 +25,35 @@ fn pure_provider_declaration() -> @row_source_host.RowDeclaration {
 }
 
 ///|
+fn installed_usage_table_declaration() -> @row_source_host.RowDeclaration {
+  @row_source_host.generate_relation_row_declaration(
+    "snowflake",
+    "mock_snowflake",
+    "mock_snowflake/0.1",
+    [
+      {
+        resource: "usage_30d",
+        resource_kind: "table",
+        schema_wire: "{\"account_id\":{\"nullable\":false,\"type\":\"string\"},\"active_users\":{\"nullable\":false,\"type\":\"int64\"},\"trend\":{\"nullable\":false,\"type\":\"string\"}}",
+        schema_cid: "sha256:fd038c1aa8fe013d4838819a6011e18aee81a04a179f1994a548ff292dfae424",
+        request_schema_wire: None,
+        facts_wire: Some(
+          "{\"relation_keys\":{\"candidate_keys\":[[\"account_id\"]]}}",
+        ),
+        acquisition_wire: None,
+      },
+    ],
+    {
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+      max_views: 10,
+      max_fields: 100,
+    },
+  ).unwrap()
+}
+
+///|
 fn pure_provider_environment(
   declaration : @row_source_host.RowDeclaration,
   numeric_profile_cid? : String? = None,

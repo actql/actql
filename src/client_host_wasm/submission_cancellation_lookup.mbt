@@ -39,7 +39,7 @@ fn submission_cancellation_lookup_original(
       request: original.1.request,
       definition: original.1.definition,
       revision: original.0.revision,
-      cancellation_requested: original.1.cancellation_requested,
+      cancellation_requested: original.1.cancellation_requested(),
       publication_binding: original.1.publication_binding,
     },
     key => {

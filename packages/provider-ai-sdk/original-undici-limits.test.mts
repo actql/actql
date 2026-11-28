@@ -4,7 +4,7 @@ import test from 'node:test';
 
 // Separate test process; count the original constructor without changing its
 // newTarget/layout. No invoke, TCP, SDK, Core grant or Store is exercised.
-const require = createRequire(new URL('./package.json', import.meta.url));
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici') as typeof import('undici');
 const OriginalClient = undici.Client;
 let constructions = 0;
@@ -14,9 +14,9 @@ undici.Client = new Proxy(OriginalClient, {
     return Reflect.construct(target, args, target);
   },
 });
-let physical!: typeof import('./_internal/original-undici-transport.mjs');
+let physical!: typeof import('@actql/local-node/_internal/model-http-transport');
 try {
-  physical = await import('./_internal/original-undici-transport.mjs');
+  physical = await import('@actql/local-node/_internal/model-http-transport');
 } finally { undici.Client = OriginalClient; }
 
 const endpoint = 'https://fixture.invalid/v1/chat/completions';

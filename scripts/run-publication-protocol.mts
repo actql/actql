@@ -196,6 +196,7 @@ function patternTag(schema: ProtocolSchema) {
     case '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$':
       return 2;
     case '^[A-Za-z0-9][A-Za-z0-9._+:-]{0,127}$': return 3;
+    case '^[A-Za-z0-9._:-]{1,128}$': return 16;
     case '^[0-9a-f]{64}$': return 4;
     case '^\\$': return 5;
     case '^command:': return 6;

@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
-import {prepareAdmittedOpenAIChatRequest} from './_internal/original-openai-chat.mjs';
+import {prepareSelectedChat} from './selected-chat.fixture.mjs';
+import {originalSdkCallOptions} from './_internal/model-port.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
-  pollSdkDecode, takeSdkDecodedResult, cleanupSdkPreparation}
+  pollSdkDecode, takeSdkDecodedResult, confirmSavedSdkTransportResponse, takeSavedSdkDecodedResult, cleanupSdkPreparation}
   from './_internal/intercepted-request.mjs';
 
 // First-M1 independent schema. Common projection/generation are explicit
@@ -54,11 +55,11 @@ function containers(root,objects=new Set(),arrays=new Set()) {
   return {objects,arrays};
 }
 
-test('first selected M1 schema retains four distinct constructions and retires only the raw-only SDK consumer',
+test('first selected M1 schema retains distinct request trees and waits for confirmed Raw before decoding',
   {timeout:5000},async t=>{
     const parse=JSON.parse,stringify=JSON.stringify;
     const parsedSchemas=[],parsedRequests=[],sdkRequests=[];
-    const request={},provider={};let generationReads=0,handle;
+    let handle;
     t.after(async()=>{
       JSON.parse=parse;JSON.stringify=stringify;
       if(handle!==undefined)await until(()=>cleanupSdkPreparation(handle),Boolean);
@@ -74,32 +75,24 @@ test('first selected M1 schema retains four distinct constructions and retires o
         if(value?.model===modelId && value.response_format)sdkRequests.push(value);
         return stringify(value,...rest);
       };
-      handle=prepareAdmittedOpenAIChatRequest({moon:{
-        clientProgramProjectOpenAIChatSdkV4Request(p,r){
-          assert.strictEqual(p,provider);assert.strictEqual(r,request);
-          return {$tag:1,_0:{_0:instructions,_1:inputWire,_2:schemaWire,
-            _3:'task',_4:'prompt',_5:'schema',_6:'selected-chat',_7:stringify(expected)}};
-        },
-        clientProgramModelRequestGeneration(r){
-          assert.strictEqual(r,request);generationReads++;
-          return {_0:'selected-chat',_1:0,_2:1,_3:32n,_4:-7n};
-        },
-      },admittedProvider:provider,request,taskCid:'task',promptCid:'prompt',
-      outputSchemaCid:'schema',modelSelector:'selected-chat',modelId,
-      projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
-      baseURL:'https://api.openai.com/v1',apiKey:'fixture-only-never-sent',
-      maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,notify(){}});
+      const generation={_0:'selected-chat',_1:0,_2:1,_3:32n,_4:-7n};
+      const prompt=[{role:'system',content:instructions},
+        {role:'user',content:[{type:'text',text:inputWire}]}];
+      const parsedSchema=JSON.parse(schemaWire,(_key,value)=>
+        value!==null&&typeof value==='object'?Object.freeze(value):value);
+      handle=prepareSelectedChat({selector:'selected-chat',modelId,baseURL:'https://api.openai.com/v1',
+        apiKey:'fixture-only-never-sent',maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,
+        options:originalSdkCallOptions(generation,prompt,{type:'json',name:'actql_output',schema:parsedSchema},
+          'RegisteredSdkGenerationUnsupported'),notify(){}});
       await until(()=>pollSdkPreparation(handle),value=>value.kind!=='pending');
       assert.deepEqual(pollSdkPreparation(handle),{kind:'ready'});
     } finally {JSON.parse=parse;JSON.stringify=stringify;}
-    assert.equal(generationReads,1);
-    assert.equal(parsedSchemas.length,1);assert.equal(parsedRequests.length,2);
+    assert.equal(parsedSchemas.length,1);assert.equal(parsedRequests.length,1);
     assert.equal(sdkRequests.length,1);
-    const input=parsedSchemas[0],comparison=parsedRequests[1].response_format.json_schema.schema;
-    const checked=parsedRequests[0].response_format.json_schema.schema;
+    const input=parsedSchemas[0],comparison=parsedRequests[0].response_format.json_schema.schema;
     const normalized=sdkRequests[0].response_format.json_schema.schema;
-    const trees=[input,normalized,checked,comparison];
-    assert.equal(new Set(trees).size,4);
+    const trees=[input,normalized,comparison];
+    assert.equal(new Set(trees).size,3);
     for(const tree of trees){
       assert.deepEqual(tree,schema);
       // Independent counts of the closed reason/risk schema, not SDK output.
@@ -111,7 +104,7 @@ test('first selected M1 schema retains four distinct constructions and retires o
     assert.strictEqual(normalized.required,input.required);
     const union={objects:new Set(),arrays:new Set()};
     for(const tree of trees)containers(tree,union.objects,union.arrays);
-    assert.equal(union.objects.size,24);assert.equal(union.arrays.size,7);
+    assert.equal(union.objects.size,18);assert.equal(union.arrays.size,5);
     const escaped=sdkPreparedRequest(handle);
     assert.deepEqual(parse(escaped.body),expected);
     assert.ok(escaped.requestBytes<=4096);assert.ok(escaped.headerBytes<=4096);
@@ -119,7 +112,7 @@ test('first selected M1 schema retains four distinct constructions and retires o
     let sends=0,rawParses=0;
     try {
       JSON.parse=function(text,...rest){if(text===rawWire)rawParses++;return parse(text,...rest);};
-      prepareSdkTransport(handle,{responseMode:'raw-only',
+      prepareSdkTransport(handle,{responseMode:'saved-sdk',
         responseLimits:{maxBytes:8192,maxChunkBytes:8192,maxChunks:32,
           maxHeaderBytes:16384,observedHeaders:['content-type']},
         observeAt:()=> '2026-10-15T00:00:00.000Z',fetch(){
@@ -127,14 +120,18 @@ test('first selected M1 schema retains four distinct constructions and retires o
         }});
       assert.equal(sends,0);startSdkTransport(handle);
       await until(()=>pollSdkTransport(handle),value=>value.kind==='response');
-      assert.deepEqual(await until(()=>pollSdkDecode(handle),value=>value.kind!=='pending'),
-        {kind:'retired'});
+      assert.equal(pollSdkDecode(handle).kind,'pending');
     } finally {JSON.parse=parse;}
     const raw=sdkTransportRawObservation(handle);
     assert.deepEqual(raw.body,rawBytes);assert.equal(raw.body.buffer.byteLength,8192);
     assert.equal(raw.transportComplete,true);assert.equal(raw.status,200);
     assert.equal(rawParses,0);assert.equal(sends,1);
     assert.throws(()=>takeSdkDecodedResult(handle),{code:'SdkDecodedResultUnavailable'});
+    const receipt=Object.freeze({original:Symbol('synthetic saved receipt')});
+    const bytes=Uint8Array.from(raw.body);
+    confirmSavedSdkTransportResponse(handle,raw,{receipt,bytes});
+    await until(()=>pollSdkDecode(handle),value=>value.kind==='ready');
+    assert.equal(takeSavedSdkDecodedResult(handle,receipt,bytes).content[0].text,'{"reason":null,"risk":"low"}');
     assert.throws(()=>startSdkTransport(handle),{code:'SdkTransportStartRefused'});
     await until(()=>cleanupSdkPreparation(handle),Boolean);
     // Escaped raw/request objects are not mutated by handle retirement. They

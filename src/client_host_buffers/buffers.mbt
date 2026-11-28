@@ -32,7 +32,7 @@ pub struct BufferSlot {
   mut copy_capacity : @resources.SharedCapacity?
   mut accounted_bytes : Int64
   mut published : Bool
-  wire_length : Int
+  mut wire_length : Int
   cleanup : () -> Bool
   mut output_only : Bool
   mut bytes : Array[Byte]
@@ -364,6 +364,7 @@ pub fn supply_buffer_output(
   pool : BufferPool,
   slot : BufferSlot,
   wire : Bytes,
+  exact_vm_transfer? : Bool = false,
 ) -> Result[Unit, BufferIssue] {
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
@@ -377,6 +378,31 @@ pub fn supply_buffer_output(
   }
   if !slot.output_only || wire.length() > slot.wire_length {
     return Err(InvalidLimits)
+  }
+  if exact_vm_transfer &&
+    pool_uses_vm_capacity(pool) &&
+    wire.length() < slot.wire_length {
+    guard slot.allocation is Some(allocation) && slot.bytes.is_empty() else {
+      return Err(InvalidLimits)
+    }
+    let reserved = 2L * slot.wire_length.to_int64()
+    let retained = 2L * wire.length().to_int64()
+    // An output-only slot never fills a mutable transfer array. Keep both
+    // transfer allowances for the actual bytes and return only unused VM
+    // capacity. The independently reserved physical copy is unchanged.
+    match
+      @resources.reconcile_unborrowed_shared_allocation_after_cleanup(
+        pool.capacity,
+        allocation,
+        reserved,
+        retained,
+      ) {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => ()
+    }
+    slot.wire_length = wire.length()
+    slot.accounted_bytes -= reserved - retained
+    pool.allocated_bytes -= reserved - retained
   }
   slot.wire = Some(wire)
   slot.input_complete = true

@@ -11,6 +11,11 @@ priv struct StoredPhysicalStart {
     @local_run.LocalRunIssue,
   ]?
   sdk_step : Int?
+  mut file_managed : StoredSDKFileManaged?
+  mut model_file : StoredPortableModelFileWork?
+  mut mock_managed : @local_host.ClientInstalledManagedRun?
+  mut mock_effect_compute : StoredMockEffectCompute?
+  mut mock_effect_compute_started : Bool
 }
 
 ///|
@@ -133,6 +138,11 @@ pub fn reserve_physical_start(
     invoked: false,
     outcome: None,
     sdk_step: None,
+    file_managed: None,
+    model_file: None,
+    mock_managed: None,
+    mock_effect_compute: None,
+    mock_effect_compute_started: false,
   }
   original.physical_start_reserved = true
   value.next_handle += 1
@@ -144,8 +154,16 @@ pub fn reserve_physical_start(
 /// common Run start Owner decides whether they permit physical work.
 pub fn confirm_physical_start(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.physical_starts.get(handle) is Some(record) &&
-    value.runs.get(record.run) is Some({ outcome: Some(Ok(plan)), .. }) &&
+    value.physical_starts.get(handle) is Some(record) else {
+    return -2
+  }
+  if sdk_file_physical_claim(value, record) is Some((step, claim)) {
+    return adopt_sdk_file_physical_start(value, handle, record, step, claim)
+  }
+  if mock_effect_physical_claim(value, record) is Some((step, claim)) {
+    return adopt_mock_effect_physical_start(value, record, step, claim)
+  }
+  guard value.runs.get(record.run) is Some({ outcome: Some(Ok(plan)), .. }) &&
     value.run_configurations.get(record.current_configuration) is Some(current) else {
     return -2
   }
@@ -220,6 +238,12 @@ pub fn physical_start_ready(nonce : Int64, handle : Int) -> Int {
     value.physical_starts.get(handle) is Some(record) else {
     return -2
   }
+  if sdk_file_physical_claim(value, record) is Some((step, claim)) {
+    return check_sdk_file_physical_start(value, handle, record, step, claim)
+  }
+  if mock_effect_physical_claim(value, record) is Some((step, claim)) {
+    return check_mock_effect_physical_start(value, record, step, claim)
+  }
   if record.sdk_step is Some(step) {
     guard value.runs.get(record.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
       return -2
@@ -242,11 +266,47 @@ pub fn close_physical_start(nonce : Int64, handle : Int) -> Int {
     value.physical_starts.get(handle) is Some(record) else {
     return -2
   }
+  if record.file_managed is Some({ capture_work: Some(work), .. }) &&
+    file_publication_preflight(value, work) {
+    return -9
+  }
+  if record.file_managed is Some({ source: { capture: Some(source), .. }, .. }) &&
+    value.original_metadata.contains(source) {
+    return -9
+  }
+  if record.model_file is Some({ source: { capture: Some(source), .. }, .. }) &&
+    value.original_metadata.contains(source) {
+    return -9
+  }
   if value.native_attempts.values().any(attempt => attempt.start == handle) ||
     value.computes
     .values()
     .any(compute => compute.origin is SourceFree(_, start) && start == handle) {
     return -9
+  }
+  if value.original_metadata
+    .values()
+    .any(child => {
+      match child.project {
+        Some(MockEffectCapture(capture)) => capture.start == handle
+        Some(MockEffectReviewRead(start)) => start == handle
+        Some(MockEffectWaiting(waiting)) => waiting.start == handle
+        _ => false
+      }
+    }) {
+    return -9
+  }
+  let retired = retire_mock_effect_physical_start(value, record)
+  if retired != 0 {
+    return retired
+  }
+  let file_retired = retire_sdk_file_physical_start(value, record)
+  if file_retired != 0 {
+    return file_retired
+  }
+  let model_retired = retire_portable_model_file_source(record)
+  if model_retired != 0 {
+    return model_retired
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
   if result == 0 {

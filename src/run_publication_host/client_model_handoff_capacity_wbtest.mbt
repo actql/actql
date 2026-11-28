@@ -9,6 +9,9 @@ test "checked handed-off covers rejects foreign Run and same-Run foreign Scope" 
   )
   enter_client_model_read_consumer(consumer, compiled, definition, plan, 7L, 5L).unwrap()
   assert_false(
+    client_model_read_scope_handed_off_from(scope, consumer, scope.ledger),
+  )
+  assert_false(
     client_model_handed_off_read_capacity_available(
       scope, consumer, compiled, definition, plan, 7L, 5L,
     ),
@@ -21,6 +24,23 @@ test "checked handed-off covers rejects foreign Run and same-Run foreign Scope" 
   ).unwrap()
   |> ignore
   let before = @resources.ledger_usage(scope.ledger)
+  assert_true(
+    client_model_read_scope_handed_off_from(scope, consumer, scope.ledger),
+  )
+  assert_false(
+    client_model_read_scope_handed_off_from(
+      foreign_scope,
+      consumer,
+      foreign_scope.ledger,
+    ),
+  )
+  assert_false(
+    client_model_read_scope_handed_off_from(
+      scope,
+      consumer,
+      foreign_scope.ledger,
+    ),
+  )
   assert_true(
     client_model_handed_off_read_capacity_available(
       scope, consumer, compiled, definition, plan, 7L, 5L,

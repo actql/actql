@@ -157,9 +157,15 @@ const sameKey = (a:StepKey, b:StepKey) => a.self_cid === b.self_cid &&
   (a.occurrence.kind === 'operation'
     ? a.occurrence.operation_ordinal === (b.occurrence as Extract<StepKey['occurrence'],{kind:'operation'}>).operation_ordinal
     : a.occurrence.input_port_ordinal === (b.occurrence as Extract<StepKey['occurrence'],{kind:'input_output'}>).input_port_ordinal);
+function explanationLine(lines: readonly string[], index: number): string {
+  const line = lines[index];
+  if (line === undefined) refuse('ExplorerInvalidExplanation');
+  return line;
+}
+
 const sameIds = (ids:readonly string[], ports:readonly Port[], role:'input'|'output') => {
   const original = ports.filter(port => port.role === role);
-  return ids.length === original.length && ids.every((id, index) => id === original[index].port_id);
+  return ids.length === original.length && ids.every((id, index) => id === original[index]?.port_id);
 };
 
 // Consume SDK-admitted facts and original Plan DATA only. Shape/CID equality
@@ -170,7 +176,7 @@ export function explanationStoryModel(view: StaticPlan, facts: WireExplanationFa
   const story = planStoryModel(view, {locale});
   checkExplanationFacts(story, facts);
   const {lines, presentation} = renderExplanation(render, facts, locale, facts, []);
-  return attachExplanationFacts({...story, narrative: presentation}, facts, index => lines.steps[index]);
+  return attachExplanationFacts({...story, narrative: presentation}, facts, index => explanationLine(lines.steps, index));
 }
 
 function checkExplanationFacts(story: Public.PlanStoryModel, facts: WireExplanationFacts) {
@@ -201,7 +207,7 @@ function checkExplanationFacts(story: Public.PlanStoryModel, facts: WireExplanat
   }
   for (const [index, occurrence] of story.occurrences.entries()) {
     const fact = facts.steps[index];
-    if (fact.step_id !== occurrence.stepId || fact.operator !== occurrence.operator ||
+    if (fact === undefined || fact.step_id !== occurrence.stepId || fact.operator !== occurrence.operator ||
         !sameKey(fact.key, occurrence.key) || !sameIds(fact.input_ports, occurrence.ports, 'input') ||
         !sameIds(fact.output_ports, occurrence.ports, 'output')) refuse('ExplorerInvalidExplanation');
   }
@@ -212,6 +218,7 @@ function attachExplanationFacts(story: Public.PlanStoryModel & Pick<Public.Expla
   return freeze<Public.ExplanationStoryModel>({...story, factsCid: facts.self_cid, parameterValuesCid: facts.parameter_values_cid,
     occurrences: story.occurrences.map((occurrence, index) => {
       const fact = facts.steps[index];
+      if (fact === undefined) refuse('ExplorerInvalidExplanation');
       return {...occurrence, explanation: {state: fact.meaning.kind === 'not_projected' ? 'not_projected' : 'projected',
         meaning: structuredClone(fact.meaning), text: describe(index)}};
     })});
@@ -321,7 +328,8 @@ function renderExplanation<Input>(render: (wire: Input, locale: 'en' | 'ja') => 
       if (item?.kind !== 'context' || item.index !== index) refuse('ExplorerInvalidExplanation');
     } else {
       const ordinal = index - context.length;
-      if (item?.kind !== 'step' || item.index !== ordinal || item.step_id !== steps[ordinal].step_id) {
+      const step = steps[ordinal];
+      if (step === undefined || item?.kind !== 'step' || item.index !== ordinal || item.step_id !== step.step_id) {
         refuse('ExplorerInvalidExplanation');
       }
     }
@@ -368,11 +376,11 @@ function explanationContextReadModel(view: WireStaticExplanationView, locale: No
   const scope = saved && view.context.items.some(item => item.kind === 'effect_set')
     ? 'computation_component' : original.scope;
   const story = attachExplanationFacts({...original, scope, narrative: presentation},
-    view.facts, index => lines.steps[index]);
+    view.facts, index => explanationLine(lines.steps, index));
   const projectedPlan = view.context.stage_result_links === undefined ? plan
     : {...plan, stageResultLinks: structuredClone(view.context.stage_result_links)};
   return freeze({plan: projectedPlan, story, context: view.context.items.map((item, index) =>
-    ({origin: structuredClone(item), text: lines.context[index]}))});
+    ({origin: structuredClone(item), text: explanationLine(lines.context, index)}))});
 }
 
 // A UI epoch only discards stale presentation. It is not a Host permission,
@@ -575,7 +583,7 @@ export function expectedStoryPortColumns(
   const outputs = producer.ports.filter(item => item.role === 'output');
   const output = outputs[0];
   const outputId = origin === undefined ? port.port_id : origin.output_port_id;
-  if (outputs.length !== 1 || output.port_id !== outputId ||
+  if (outputs.length !== 1 || output === undefined || output.port_id !== outputId ||
       output.carrier !== port.carrier || output.carrier_contract_cid !== port.carrier_contract_cid) return undefined;
   const meaning = producer.explanation.meaning;
   if (meaning.kind === 'values') return meaning.schema.fields.map(field => field.name);

@@ -40,6 +40,31 @@ pub fn model_http_chat_installation_matches(
 }
 
 ///|
+/// The funded limits and the actual codec must use the same adopted profile.
+pub fn model_http_chat_installation_profile_matches(
+  provider : AdmittedStructuredModelProvider,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+) -> Bool {
+  physical_equal(profile, provider.capability.profile) &&
+  model_http_chat_installation_matches(provider, installation)
+}
+
+///|
+/// Borrow the admitted physical Provider only for the same execution
+/// contract and independently checked portable installation.
+pub fn admitted_model_http_chat_provider(
+  provider : AdmittedStructuredModelProvider,
+  execution : @environment.ModelExecutionContract,
+  installation : @environment.ModelResponseProfileInstallation,
+) -> ModelProvider? {
+  if !model_http_chat_installation_matches(provider, installation) {
+    return None
+  }
+  admitted_model_provider_for(provider.original, execution)
+}
+
+///|
 /// Enter this preparation only after the original Model Read funds the codec,
 /// its cursor and the simultaneous UTF-8 output.
 pub fn start_model_http_chat_request_projection(
@@ -166,6 +191,10 @@ pub fn prepared_model_http_chat_material(
 }
 
 ///|
+/// Installed port for the exact prepared material and consumed Entry.
+pub type ModelHttpChatStart = (PreparedModelHttpChatRequest, ModelCallEntry) -> ModelPhysicalCall?
+
+///|
 /// Bind the exact retained body to the initialized portable physical plan.
 /// The installed port registers the Call under the consumed Entry, then the
 /// owning Native Read rechecks that same Entry before any HTTP operation.
@@ -174,6 +203,23 @@ pub fn prepared_model_http_chat_plan(
   installation : @environment.ModelResponseProfileInstallation,
   quantities : @resources.QuantityAmounts,
   start : (ModelCallEntry) -> ModelPhysicalCall?,
+  measured_transfer? : Bool = false,
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  prepare_original_model_http_chat_plan(
+    original,
+    installation,
+    quantities,
+    Some((_, entry) => start(entry)),
+    measured_transfer~,
+  )
+}
+
+///|
+fn prepare_original_model_http_chat_plan(
+  original : PreparedModelHttpChatRequest,
+  installation : @environment.ModelResponseProfileInstallation,
+  quantities : @resources.QuantityAmounts,
+  start : ModelHttpChatStart?,
   measured_transfer? : Bool = false,
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   let capability = original.provider.capability
@@ -194,13 +240,82 @@ pub fn prepared_model_http_chat_plan(
     capability.profile,
     installation,
     if measured_transfer {
-      AsynchronousMeasuredHttpChat(original, start)
+      guard start is Some(start) else { return Err(InvalidProvider) }
+      AsynchronousMeasuredHttpChat(original, entry => start(original, entry))
     } else {
       AsynchronousHttpChat(original, start)
     },
     None,
     [],
   )
+}
+
+///|
+/// Drive the funded portable codec one bounded step at a time. The installed
+/// Host receives the exact completed body with the Core-owned Call Entry at
+/// start. Preflight cannot call that port or allocate a replacement attempt.
+pub fn start_model_http_chat_preflight(
+  provider : AdmittedStructuredModelProvider,
+  request : ModelRequest,
+  installation : @environment.ModelResponseProfileInstallation,
+  quantities : @resources.QuantityAmounts,
+  max_frames : Int,
+  fund : (@relation.ExecutionCapacity) -> Result[Unit, ModelExecutionIssue],
+  start : ModelHttpChatStart?,
+  measured_transfer? : Bool = false,
+) -> Result[ModelRequestPreflight, ModelExecutionIssue] {
+  if !model_http_chat_installation_matches(provider, installation) {
+    return Err(RequestIdentity)
+  }
+  guard model_http_chat_preflight_capacity(
+      provider.capability.profile,
+      max_frames,
+    )
+    is Some(capacity) else {
+    return Err(RequestLimit)
+  }
+  match fund(capacity) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let projection = match
+    start_model_http_chat_request_projection(
+      provider, request, installation, max_frames,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(portable_chat_projection_issue(issue))
+  }
+  Ok({
+    advance: () => {
+      match advance_model_http_chat_request_projection(projection) {
+        Ok(None) => Ok(None)
+        Ok(Some(original)) =>
+          prepare_original_model_http_chat_plan(
+            original,
+            installation,
+            quantities,
+            start,
+            measured_transfer~,
+          ).map(plan => Some(plan))
+        Err(issue) => Err(portable_chat_projection_issue(issue))
+      }
+    },
+    cleanup: () => {
+      retire_model_http_chat_request_projection(projection)
+      true
+    },
+  })
+}
+
+///|
+fn portable_chat_projection_issue(
+  issue : OpenAIChatProjectionIssue,
+) -> ModelExecutionIssue {
+  match issue {
+    ForeignRequest => RequestIdentity
+    Unsupported => InvalidProvider
+    Limit => RequestLimit
+  }
 }
 
 ///|
@@ -233,4 +348,48 @@ pub fn check_prepared_model_http_chat_dispatch_current(
     capability.profile,
     raw,
   )
+}
+
+///|
+/// Borrow the endpoint and bytes from the entered Call itself. A Host never
+/// supplies a replacement body or a Plan identifier to acquire this view.
+/// Current dispatch, egress and Raw registration are checked on this Call.
+pub fn entered_model_http_chat_material(
+  call : ModelPhysicalCall,
+  raw : @publication_host.ClientModelRawCaptureRegistration,
+) -> Result[
+  (String, @environment.ModelResponseProfile, Bytes),
+  ModelPhysicalDispatchReadIssue,
+] {
+  guard call.original_binding is Some(binding) &&
+    binding.plan.invocation
+    is (AsynchronousHttpChat(original, _)
+    | AsynchronousMeasuredHttpChat(original, _)) else {
+    return Err(Dispatch(CallEntryRefused))
+  }
+  check_prepared_model_http_chat_dispatch_current(call, original, raw).map(_ => {
+    let selected = original.provider.capability
+    (selected.resolved.endpoint, selected.profile, original.body)
+  })
+}
+
+///|
+/// Bound copied request material before advancing the entered-call gate.
+/// This only observes the retained plan's extent while the original Entry
+/// is still awaiting dispatch. The bytes themselves require the entered Call.
+pub fn model_call_entry_http_request_bytes(
+  entry : ModelCallEntry,
+  prepared : ModelPreparedCallSet,
+) -> Int? {
+  guard !entry.send_started &&
+    model_call_entry_persistence_owned(entry, prepared) &&
+    prepared.owner.state.physical_plans.get(entry.slot) is Some(plan) &&
+    plan.invocation
+    is (AsynchronousHttpChat(original, _)
+    | AsynchronousMeasuredHttpChat(original, _)) &&
+    physical_equal(original.request, plan.request) &&
+    plan.wire_bytes == original.body.length().to_int64() else {
+    return None
+  }
+  Some(original.body.length())
 }

@@ -4,6 +4,10 @@
 priv struct StoredPublication {
   source : Int
   preflight : Int
+  file : StoredFilePublicationCapture?
+  saved_effect : StoredSavedEffectPublicationPreflight?
+  mut saved_effect_state_attempted : Bool
+  mut saved_effect_commit_capacity : @resources.CapacityReservation?
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
   mut results : Array[Int]
@@ -36,6 +40,7 @@ priv struct StoredPublication {
   mut commit_finished : Bool
   mut observation_input : Int?
   mut observation_borrow : @buffers.BufferBorrow?
+  mut observation_exact : Bool
   mut observation_publisher : Int?
   mut observation : PublicationCommitObservation?
   mut observation_progress : (Bool, Int)?
@@ -53,55 +58,21 @@ priv struct StoredPublication {
 }
 
 ///|
-pub fn reserve_publication(
-  nonce : Int64,
+fn stored_publication_output(
   source : Int,
-  input : Int,
-  physical_ticket : Int,
-  physical_copy_bytes : Int64,
-) -> Int {
-  guard selected(nonce) is Some(value) &&
-    value.run_invocations.get(source)
-    is Some(
-      { closing: false, produced: true, invocation: Some(_), compute, .. }
-    ) &&
-    compute_publication_preflight(value, compute) is Some((preflight, prepared)) &&
-    prepared.source == source &&
-    !prepared.closing &&
-    prepared.produced &&
-    prepared.preflight is Some(_) &&
-    value.copies.get(input) is Some((input_slot, physical)) else {
-    return -2
-  }
-  if value.closing || value.runtime_closing {
-    return -5
-  }
-  if physical_ticket <= 0 ||
-    value.next_handle == 2147483647 ||
-    value.copies.values().any(pair => pair.1 == physical_ticket) ||
-    value.native_commands
-    .values()
-    .any(command => command.physical_ticket == physical_ticket) ||
-    value.result_chunks
-    .values()
-    .any(chunk => chunk.physical_ticket == physical_ticket) ||
-    value.workspaces.values().any(pair => pair.0 == physical_ticket) {
-    return -3
-  }
-  let slot = match
-    @buffers.reserve_output_buffer(value.pool, 1048576, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
-    Ok(slot) => slot
-    Err(issue) => return issue_code(issue)
-  }
-  let handle = value.next_handle
-  let borrow = @buffers.borrow_buffer(value.pool, input_slot, () => {
-    physical_reader_stop(physical, handle) == 0
-  })
-  value.publications[handle] = {
+  preflight : Int,
+  file : StoredFilePublicationCapture?,
+  saved_effect? : StoredSavedEffectPublicationPreflight? = None,
+  borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue],
+  slot : @buffers.BufferSlot,
+) -> StoredPublication {
+  {
     source,
     preflight,
+    file,
+    saved_effect,
+    saved_effect_state_attempted: false,
+    saved_effect_commit_capacity: None,
     borrow,
     slot,
     results: [],
@@ -134,6 +105,7 @@ pub fn reserve_publication(
     commit_finished: false,
     observation_input: None,
     observation_borrow: None,
+    observation_exact: false,
     observation_publisher: None,
     observation: None,
     observation_progress: None,
@@ -149,6 +121,122 @@ pub fn reserve_publication(
     lookup_failed: false,
     lookup_closing: false,
   }
+}
+
+///|
+// Model uses its retained semantic preflight and commit projection.
+fn publication_has_model_source(value : Instance, source : Int) -> Bool {
+  value.run_invocations.get(source)
+  is Some({ model_issuance: Some({ binding: Some(_), .. }), .. })
+}
+
+///|
+pub fn reserve_publication(
+  nonce : Int64,
+  source : Int,
+  input : Int,
+  physical_ticket : Int,
+  physical_copy_bytes : Int64,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.copies.get(input) is Some((input_slot, physical)) else {
+    return -2
+  }
+  let (preflight, file, saved_effect) = if value.run_invocations.get(source)
+    is Some(
+      { closing: false, produced: true, invocation: Some(_), compute, .. }
+    ) {
+    guard compute_publication_preflight(value, compute)
+      is Some((preflight, prepared)) &&
+      prepared.origin
+      is ComputePublicationPreflight(
+        { source: original, prepared: Some(_), .. }
+      ) &&
+      original == source &&
+      !prepared.closing &&
+      prepared.produced else {
+      return -2
+    }
+    (preflight, None, None)
+  } else if value.submissions.get(source)
+    is Some({ append_plan: EffectFileCompletion(_), .. }) {
+    guard select_saved_effect_publication(value, source)
+      is Some((preflight, original)) else {
+      return -2
+    }
+    if value.publications.values().any(child => child.preflight == preflight) {
+      return -3
+    }
+    (preflight, None, Some(original))
+  } else {
+    guard select_sdk_file_publication_capture(value, source)
+      is Some((preflight, original)) else {
+      return -2
+    }
+    if original.capture_started ||
+      value.publications.values().any(child => child.preflight == preflight) {
+      return -3
+    }
+    (
+      preflight,
+      Some({
+        original,
+        results: [],
+        manifest: None,
+        capacity: None,
+        retained: 0L,
+        execution: 0L,
+        state_export: None,
+      }),
+      None,
+    )
+  }
+  if value.closing || value.runtime_closing {
+    return -5
+  }
+  if physical_ticket <= 0 ||
+    value.next_handle == 2147483647 ||
+    value.copies.values().any(pair => pair.1 == physical_ticket) ||
+    value.native_commands
+    .values()
+    .any(command => command.physical_ticket == physical_ticket) ||
+    value.result_chunks
+    .values()
+    .any(chunk => chunk.physical_ticket == physical_ticket) ||
+    value.workspaces.values().any(pair => pair.0 == physical_ticket) {
+    return -3
+  }
+  // These captures expose retained contracts through the commit projection.
+  // Their output slot only owns the physical cleanup callback.
+  let wire_limit = if file is Some(_) ||
+    saved_effect is Some(_) ||
+    publication_has_model_source(value, source) {
+    0
+  } else {
+    1048576
+  }
+  let slot = match
+    @buffers.reserve_output_buffer(
+      value.pool,
+      wire_limit,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
+    Ok(slot) => slot
+    Err(issue) => return issue_code(issue)
+  }
+  let handle = value.next_handle
+  let borrow = @buffers.borrow_buffer(value.pool, input_slot, () => {
+    physical_reader_stop(physical, handle) == 0
+  })
+  value.publications[handle] = stored_publication_output(
+    source,
+    preflight,
+    file,
+    borrow,
+    slot,
+    saved_effect~,
+  )
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
   handle
@@ -161,10 +249,20 @@ fn publication_current(
   account : @authorization.AdmittedAccountConfiguration,
   pending_confirmation? : Bool = false,
 ) -> Bool {
+  if record.file is Some(file) {
+    return !pending_confirmation &&
+      sdk_file_capture_publication_current(value, record, file, account) == 0
+  }
+  if record.saved_effect is Some(effect) {
+    return (pending_confirmation || !record.closing) &&
+      saved_effect_publication_preflight_current(value, effect, account) == 0
+  }
   guard value.run_invocations.get(record.source) is Some(source) &&
     value.computes.get(source.compute) is Some(compute) &&
     value.publication_preflights.get(record.preflight) is Some(preflight) &&
-    preflight.source == record.source &&
+    preflight.origin
+    is ComputePublicationPreflight({ source: original_source, .. }) &&
+    original_source == record.source &&
     stored_preflight_current(value, preflight, account, pending_confirmation~) else {
     return false
   }
@@ -199,12 +297,36 @@ pub fn prepare_publication(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) &&
-    value.run_invocations.get(record.source)
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  if record.file is Some(file) {
+    return prepare_sdk_file_publication_capture(
+      value,
+      record,
+      file,
+      current.account,
+    )
+  }
+  if record.saved_effect is Some(effect) {
+    return prepare_saved_effect_publication(
+      value,
+      record,
+      effect,
+      current.account,
+    )
+  }
+  guard value.run_invocations.get(record.source)
     is Some({ closing: false, invocation: Some(_), compute, .. }) &&
     value.computes.get(compute) is Some({ closing: false, host: Some(_), .. }) &&
     value.publication_preflights.get(record.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) &&
-    value.run_configurations.get(current_configuration) is Some(current) else {
+    is Some(
+      {
+        closing: false,
+        origin: ComputePublicationPreflight({ prepared: Some(preflight), .. }),
+        ..
+      }
+    ) else {
     return -2
   }
   if value.closing || record.closing {
@@ -225,20 +347,11 @@ pub fn prepare_publication(
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, ["results", "max_work", "max_workspace_slots"])
-    is Ok(object) &&
-    @decode.required(object, "results") is Ok(results_cursor) &&
-    @decode.elements(results_cursor) is Ok(results) &&
-    results.length() > 0 &&
-    results.length() <= value.workspace_slots &&
-    required_int32(object, "max_work") is Some(max_work) &&
-    max_work > 0 &&
-    max_work <= 1000000 &&
-    required_int32(object, "max_workspace_slots") is Some(max_workspace) &&
-    max_workspace > 0 &&
-    max_workspace <= 100000 else {
-    return -31
+  guard input_cursor(value, borrow.slot) is Some(cursor) else { return -31 }
+  let (results, max_work, max_workspace) = match
+    publication_capture_input(value, cursor) {
+    Ok(value) => value
+    Err(code) => return code
   }
   if results.length() != @local_run.local_publication_preflight_count(preflight) {
     return -2
@@ -257,7 +370,7 @@ pub fn prepare_publication(
       value.result_exports.get(result_handle)
       is Some(
         {
-          task,
+          origin: TaskResult(task),
           stream: Some(_),
           ended: true,
           closing: false,
@@ -318,12 +431,41 @@ pub fn prepare_publication(
 }
 
 ///|
+fn publication_capture_input(
+  value : Instance,
+  cursor : @decode.Cursor,
+) -> Result[(Array[@decode.Cursor], Int, Int), Int] {
+  guard @decode.closed_object(cursor, [
+      "results", "max_work", "max_workspace_slots",
+    ])
+    is Ok(object) &&
+    @decode.required(object, "results") is Ok(results_cursor) &&
+    @decode.elements(results_cursor) is Ok(results) &&
+    results.length() > 0 &&
+    results.length() <= value.workspace_slots &&
+    required_int32(object, "max_work") is Some(max_work) &&
+    max_work > 0 &&
+    max_work <= 1000000 &&
+    required_int32(object, "max_workspace_slots") is Some(max_workspace) &&
+    max_workspace > 0 &&
+    max_workspace <= 100000 else {
+    return Err(-31)
+  }
+  Ok((results, max_work, max_workspace))
+}
+
+///|
 fn advance_publication_owner(
   value : Instance,
   record : StoredPublication,
   account : @authorization.AdmittedAccountConfiguration,
   quantum : Int,
-) -> Result[(Bool, Int), Unit] {
+) -> Result[(Bool, Int), Int] {
+  if record.file is Some(file) {
+    return advance_sdk_file_publication_capture(
+      value, record, file, account, quantum,
+    )
+  }
   if record.index < record.publications.length() {
     if record.snapshot is None {
       match
@@ -335,18 +477,18 @@ fn advance_publication_owner(
           64,
         ) {
         Ok(snapshot) => record.snapshot = Some(snapshot)
-        Err(_) => return Err(())
+        Err(_) => return Err(-32)
       }
     }
     let snapshot = record.snapshot.unwrap()
     let (done, work) = match snapshot.advance(quantum) {
       Ok(progress) => progress
-      Err(_) => return Err(())
+      Err(_) => return Err(-32)
     }
     if done {
       match snapshot.finish() {
         Ok(snapshot) => record.snapshots.push(snapshot)
-        Err(_) => return Err(())
+        Err(_) => return Err(-32)
       }
       record.snapshot = None
       record.index += 1
@@ -360,7 +502,7 @@ fn advance_publication_owner(
       compute.host is Some(host) &&
       stored_compute_original_run(value, compute)
       is Some({ normalization: Some(normalization), .. }) else {
-      return Err(())
+      return Err(-32)
     }
     let manifest = match
       @local_run.issue_local_run_manifest(
@@ -373,7 +515,7 @@ fn advance_publication_owner(
         64,
       ) {
       Ok(manifest) => manifest
-      Err(_) => return Err(())
+      Err(_) => return Err(-32)
     }
     record.manifest = Some(manifest)
     match
@@ -391,10 +533,25 @@ fn advance_publication_owner(
         record.receipt = Some(receipt)
         record.capture = Some(capture)
       }
-      Err(_) => return Err(())
+      Err(_) => return Err(-32)
     }
   }
-  record.capture.unwrap().advance(quantum).map_err(_ => ())
+  record.capture.unwrap().advance(quantum).map_err(_ => -32)
+}
+
+///|
+fn publication_capture_current_status(
+  value : Instance,
+  record : StoredPublication,
+  account : @authorization.AdmittedAccountConfiguration,
+) -> Int {
+  if record.file is Some(file) {
+    sdk_file_capture_publication_current(value, record, file, account)
+  } else if publication_current(value, record, account) {
+    0
+  } else {
+    -32
+  }
 }
 
 ///|
@@ -419,8 +576,13 @@ pub fn advance_publication(
   if record.pending || record.failed || record.progress is Some((true, _)) {
     return -33
   }
-  if !publication_current(value, record, current.account) {
-    return -32
+  let checked = publication_capture_current_status(
+    value,
+    record,
+    current.account,
+  )
+  if checked != 0 {
+    return checked
   }
   let remaining = record.max_work - record.work
   if remaining <= 0L {
@@ -441,9 +603,9 @@ pub fn advance_publication(
   )
   record.pending = false
   match progress {
-    Err(_) => {
+    Err(code) => {
       record.failed = true
-      -32
+      code
     }
     Ok((done, work)) => {
       if work < 0 || work > quantum {
@@ -452,9 +614,14 @@ pub fn advance_publication(
       }
       record.work += work.to_int64()
       record.progress = Some((done, work))
-      if !publication_current(value, record, current.account) {
+      let checked = publication_capture_current_status(
+        value,
+        record,
+        current.account,
+      )
+      if checked != 0 {
         record.failed = true
-        return -32
+        return checked
       }
       0
     }
@@ -479,6 +646,22 @@ pub fn publication_progress(nonce : Int64, handle : Int, field : Int) -> Int64 {
 }
 
 ///|
+fn stored_publication_manifest_contract(
+  record : StoredPublication,
+) -> @publication.PublicationContract? {
+  if record.saved_effect is Some({ prepared: Some(original), .. }) {
+    return Some(original.original_evidence().0)
+  }
+  match record.file {
+    Some(file) =>
+      file.manifest.map(original => {
+        @local_run.local_captured_task_publication_manifest_contract(original)
+      })
+    None => record.manifest.map(@local_run.local_run_manifest_contract)
+  }
+}
+
+///|
 pub fn finish_publication(
   nonce : Int64,
   handle : Int,
@@ -492,8 +675,13 @@ pub fn finish_publication(
   if value.closing || record.closing {
     return -5
   }
-  if !publication_current(value, record, current.account) {
-    return -32
+  let checked = publication_capture_current_status(
+    value,
+    record,
+    current.account,
+  )
+  if checked != 0 {
+    return checked
   }
   if record.produced {
     return 0
@@ -503,14 +691,33 @@ pub fn finish_publication(
   }
   guard record.progress is Some((true, _)) &&
     record.capture is Some(capture) &&
-    record.manifest is Some(manifest) &&
-    record.receipt is Some(receipt) else {
+    record.receipt is Some(receipt) &&
+    stored_publication_manifest_contract(record) is Some(manifest) else {
     return -7
   }
   record.pending = true
-  let captured = capture.finish()
+  let result = finish_publication_capture_output(
+    value,
+    record,
+    capture,
+    manifest,
+    receipt,
+    current.account,
+  )
   record.pending = false
-  match captured {
+  result
+}
+
+///|
+fn finish_publication_capture_output(
+  value : Instance,
+  record : StoredPublication,
+  capture : @publication.CapturedRunIssuancePreparation,
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  account : @authorization.AdmittedAccountConfiguration,
+) -> Int {
+  match capture.finish() {
     Ok(captured) => record.captured = Some(captured)
     Err(_) => {
       record.failed = true
@@ -518,36 +725,50 @@ pub fn finish_publication(
     }
   }
   guard record.captured is Some(captured) else { return -33 }
-  let writer = @encode.writer(1048576, 4, 1) catch {
-    _ => {
+  let output = if record.file is Some(file) {
+    let checked = sdk_file_capture_publication_current(
+      value, record, file, account,
+    )
+    if checked != 0 {
       record.failed = true
-      return -34
+      return checked
     }
-  }
-  let wire = try {
-    @encode.begin_object(writer)
-    for
-      (name, contract) in [
-        ("manifest", @local_run.local_run_manifest_contract(manifest)),
-        ("receipt", receipt),
-        ("captured_run", captured),
-      ] {
-      @encode.key(writer, name)
-      @encode.string_value(
-        writer,
-        @publication.publication_contract_json(contract),
-      )
+    b""
+  } else if publication_has_model_source(value, record.source) {
+    b""
+  } else {
+    let writer = @encode.writer(1048576, 4, 1) catch {
+      _ => {
+        record.failed = true
+        return -34
+      }
     }
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => {
-      record.failed = true
-      return -34
+    let wire = try {
+      @encode.begin_object(writer)
+      for
+        (name, contract) in [
+          ("manifest", manifest),
+          ("receipt", receipt),
+          ("captured_run", captured),
+        ] {
+        @encode.key(writer, name)
+        @encode.string_value(
+          writer,
+          @publication.publication_contract_json(contract),
+        )
+      }
+      @encode.end_object(writer)
+      @encode.finish(writer)
+    } catch {
+      _ => {
+        record.failed = true
+        return -34
+      }
     }
+    @utf8.encode(wire)
   }
   let result = status(
-    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),
+    @buffers.supply_buffer_output(value.pool, record.slot, output),
   )
   if result == 0 {
     record.produced = true
@@ -558,10 +779,34 @@ pub fn finish_publication(
 }
 
 ///|
+fn file_publication_output_read_status(
+  value : Instance,
+  record : StoredPublication,
+) -> Int {
+  if record.file is None && record.saved_effect is None {
+    return 0
+  }
+  if value.closing ||
+    value.runtime_closing ||
+    record.closing ||
+    record.output_closed {
+    return -5
+  }
+  if record.pending || record.failed || !record.produced {
+    return -33
+  }
+  0
+}
+
+///|
 pub fn publication_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) else {
     return -2
+  }
+  let readable = file_publication_output_read_status(value, record)
+  if readable != 0 {
+    return readable
   }
   match @buffers.buffer_length(value.pool, record.slot) {
     Some(length) => length
@@ -579,7 +824,7 @@ pub fn retire_publication_output(nonce : Int64, handle : Int) -> Int {
   }
   if record.pending ||
     !record.produced ||
-    record.manifest is None ||
+    stored_publication_manifest_contract(record) is None ||
     record.receipt is None ||
     record.captured is None {
     return -33
@@ -668,6 +913,18 @@ pub fn close_publication(nonce : Int64, handle : Int) -> Int {
       }
       record.commit_view = None
       record.commit = None
+    }
+    if record.file is Some(file) {
+      let retired = retire_sdk_file_publication_capture(record, file)
+      if retired != 0 {
+        return retired
+      }
+    }
+    if record.saved_effect_commit_capacity is Some(capacity) {
+      if @resources.settle_capacity(value.root, capacity) is Err(_) {
+        return -4
+      }
+      record.saved_effect_commit_capacity = None
     }
     value.publications.remove(handle) |> ignore
     value.copies.remove(handle) |> ignore

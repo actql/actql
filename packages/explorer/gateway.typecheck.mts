@@ -15,10 +15,9 @@ if (launch?.kind === 'program') {const sourceIO: 0 = launch.plan.providerIO; voi
 const plan = await browser.plan('SELECT 1 AS n', {format: 'sql', maxNodes: 10});
 const noProviderIO: 0 = plan.providerIO;
 const staticExplanation = await browser.staticExplanation('SELECT 1', {format: 'sql'}, 'ja');
-const staticText: string = staticExplanation.context[0].text;
+for (const item of staticExplanation.context) {const text: string = item.text; void text;}
 // @ts-expect-error A static explanation does not start an execution.
 await browser.staticExplanation('SELECT 1', {format: 'sql', stopOnEntry: true}, 'ja');
-void staticText;
 const view = await browser.inspect(ref);
 const notAtomic: 'non_atomic' = view.consistency;
 const original = await browser.runPlan(ref);
@@ -34,15 +33,16 @@ await browser.explain(ref, {stopOnEntry: true});
 void explanationRef;
 const saved = await browser.runContext(ref, 'ja');
 if (saved.explanation.state === 'projected') {
-  const text: string = saved.explanation.context[0].text;
-  void text;
+  for (const item of saved.explanation.context) {const text: string = item.text; void text;}
 }
 // @ts-expect-error The Saved view has only the selected original and locale.
 await browser.runContext(ref, {restart: true});
 const presentation = await browser.runPresentation(ref, {locale: 'ja'});
 if (presentation.explanation.state === 'projected') {
-  const originalText: string = presentation.explanation.story.occurrences[0].explanation.text;
-  void originalText;
+  for (const occurrence of presentation.explanation.story.occurrences) {
+    const originalText: string = occurrence.explanation.text;
+    void originalText;
+  }
 }
 // @ts-expect-error No new runtime selector belongs to the presentation route.
 await browser.runPresentation(ref, {locale: 'en', captureSamples: true});

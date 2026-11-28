@@ -1,6 +1,7 @@
 """Physical opaque-byte persistence; Core owns every Run meaning and decision."""
 from collections.abc import Callable
 from dataclasses import dataclass
+from hashlib import sha256
 import os
 from pathlib import Path
 import sqlite3
@@ -10,13 +11,15 @@ from typing import TYPE_CHECKING, Literal as _Literal
 
 if TYPE_CHECKING:
     from ._local_host_binding import _InvocationObservation
-    from ._local_store_reconciliation import OriginalStoreReconciliation
 
 from ._local_files import LocalFileRoot, _PayloadFile
+from ._local_storage_admission import _CatalogInspection, inspect_retained_catalog
 from ._local_storage_physical import (
     _PhysicalByteDatabase, _SQLiteByteDatabase, _TrackedSQLiteConnection,
     _PhysicalCapacityCollision, _PhysicalCapacityExceeded, _RUN_DEFINITION_INDEX,
-    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA)
+    _PhysicalPrimaryKeyConflict, _PhysicalRunDefinitionConflict, _PhysicalWriteConflict, _RUN_DEFINITION_PREFIX,
+    _APPLICATION_ID, _SCHEMA, _CAPACITY_SCHEMA, _CAPACITY_USAGE_SCHEMA, _STORE_USAGE_SCHEMA,
+    _MODEL_CALL_JOURNAL, _SQLITE_STATEMENT_CACHE, _TARGET_READ_KEYS, _TARGET_READ_KEY_BYTES)
 
 
 
@@ -28,11 +31,37 @@ class StoredBytes:
     payload: bytes
 
 
+_MODEL_RAW_JOURNAL = 'client_model_raw_responses'
+
+
 _NamespaceConsumer = Callable[[tuple[str, StoredBytes] | None], object]
-_SQLiteSnapshot = tuple[sqlite3.Connection, int, int, tuple[int, int]]
+_TargetKey = tuple[str, str] | tuple[str, str, int]
+# False records a reached, valid header whose admitted original extent changed.
+_TargetRead = Callable[['_NamespaceReader', int], StoredBytes | _Literal[False] | None]
+_SQLiteSnapshot = tuple[sqlite3.Connection, int, int, tuple[int, int] | None]
 _ClosedReadBaseline = tuple[_SQLiteSnapshot, int]
-_SAVED_READER_FACTS_EXPORT = 'actql_publication_commit_export_validate_payload_binding'
+_SAVED_READER_FACTS_EXPORT = 'actql_publication_commit_export_validate_saved_reader_facts'
 _TERMINAL_STORAGE_EXPORT = 'actql_publication_commit_export_produce_sdk_terminal_storage'
+# Three Task body chunks and the terminal absence slot. Allow one physical
+# row during cache population alongside the retained originals and controls.
+_TASK_POINT_MAX_BYTES = 131072
+_TASK_POINT_READ_WORKSPACE = 4 * _TASK_POINT_MAX_BYTES + 4096
+
+_JOURNAL_NAME_KEY_SCAN = 2
+_JOURNAL_NAME_AUTHENTICATE = 3
+_JOURNAL_NAME_TABLE = 'client_submission_names'
+_RUN_DEFINITION_OWNER = 'client_sqlite_run_definition_owner'
+_SAVED_RUN_CURRENT = 'client_sqlite_saved_run_current'
+_TASK_MATERIAL_COUNT = 'client_sqlite_task_material_count'
+_TASK_MATERIAL_TABLE = 'client_task_run_materials'
+# At most 1,024 Runs and three chunks per Run can reach the journal census.
+_TASK_MATERIAL_COUNT_LIMIT = 3 * 1024
+_JOURNAL_NAME_CONTROL = 'client_submission_name_custody'
+_TERMINAL_ORIGINAL_TABLES = ('client_runs', 'client_submitted_intents', 'publication_contract')
+_TERMINAL_ORIGINAL_POINT_BYTES = 262144
+_TERMINAL_ORIGINAL_POINT_SLOTS = 64
+_TERMINAL_ORIGINAL_POINT_WORKSPACE = (_TERMINAL_ORIGINAL_POINT_BYTES
+                                     + 512 * _TERMINAL_ORIGINAL_POINT_SLOTS)
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,7 +101,6 @@ class _NamespaceReader:
 
     # Only the exact original reconciliation driver receives this private port.
     # It checks its own fresh reader, never a generic callback's read span.
-    _prepare_check: Callable[['_NamespaceReader', object, bool], None] | None = None
 
     # Private pre-admission probe. False retains ordinary reader semantics;
     # it never refreshes the original snapshot or returns a currentness token.
@@ -81,6 +109,11 @@ class _NamespaceReader:
     # A Store-owned Saved projection can supply this prewrite lifetime.
     _projected_prewrite: Callable[[], bool] | None = None
     _terminal_read_baseline: Callable[[str], _ClosedReadBaseline | None] | None = None
+
+    # Ordered exact-key DATA under this read-only snapshot. No authority or
+    # reusable currentness token leaves the reader along with the observations.
+    get_many: Callable[['_NamespaceReader', tuple[_TargetKey, ...], int,
+                        Callable[[], object]], _TargetRead] | None = None
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -100,6 +133,19 @@ class ByteFence:
     key: str
     generation: int
     payload: bytes
+
+
+@dataclass(frozen=True)
+class _ModelRawFence:
+    """The exact encrypted row observed for this Entry in this Store."""
+
+    store: 'LocalByteStore'
+    scope: str
+    entry: ByteFence
+    key: str
+    generation: int
+    extent: int
+    ciphertext_sha256: bytes
 
 
 @dataclass(frozen=True)
@@ -158,8 +204,24 @@ class LocalStorageInitializationError(LocalStorageError):
         self.cleanup_store = cleanup_store
 
 
-class _PhysicalWriteConflict(Exception):
-    """Internal physical CAS refusal; not a Run or publication outcome."""
+class LocalRunDefinitionConflict(LocalStorageError):
+    """A confirmed rolled-back INSERT encountered the original Definition index."""
+
+    def __init__(self, definition: str) -> None:
+        super().__init__('Original Local Run Definition is already bound')
+        self.definition = definition
+
+
+@dataclass(frozen=True, slots=True)
+class _DurableStoreLimits:
+    """Retained SQLite records and capacity rows for one installed Store."""
+    records: int
+    payload_bytes: int
+    reservations: int
+
+
+_ORDINARY_RESERVATION_LIMIT = 4 * 1024
+_ORDINARY_CATALOG_INSPECTION_BYTES = 1028 * 1024 * 1024
 
 
 class LocalByteStore:
@@ -175,16 +237,23 @@ class LocalByteStore:
     _physical_path: Path
     _physical_original: tuple[int, int] | None
     _opening_descriptor: int | None
+    _catalog_inspection: _CatalogInspection | None
     _native_file_root: LocalFileRoot | None
 
     def __init__(self, path: Path, *, max_records: int,
                  max_record_bytes: int, max_payload_bytes: int,
                  max_inspection_queries: int | None = None,
+                 durable_limits: _DurableStoreLimits | None = None,
+                 ordinary: bool = False,
                  _new_file: tuple[LocalFileRoot, _PayloadFile] | None = None) -> None:
+        for primitive in (str, int, float, bytes, type(None)):
+            if (primitive, sqlite3.PrepareProtocol) in sqlite3.adapters:
+                raise LocalStorageError(f'Unsupported Local SQLite adapter for {primitive.__name__}')
         self._prepare_physical_path(path, max_records=max_records,
                                     max_record_bytes=max_record_bytes,
                                     max_payload_bytes=max_payload_bytes,
-                                    max_inspection_queries=max_inspection_queries)
+                                    max_inspection_queries=max_inspection_queries,
+                                    durable_limits=durable_limits, ordinary=ordinary)
         path = self._physical_path
         if _new_file is not None:
             if (type(_new_file) is not tuple or len(_new_file) != 2
@@ -213,20 +282,50 @@ class LocalByteStore:
                 except BaseException as original:
                     raise LocalStorageInitializationError(self) from original
         self._require_rollback_header()
+        retained = None
+        if not self._created:
+            assert self._physical_original is not None
+            inspection = _CatalogInspection()
+            self._catalog_inspection = inspection
+            try:
+                retained = inspect_retained_catalog(
+                    self._physical_path, self._physical_parent, self._physical_original,
+                    self._catalog_inspection_limit, inspection, retained=durable_limits is not None,
+                    ordinary=ordinary)
+            except BaseException as original:
+                if isinstance(original, (OSError, ValueError, sqlite3.DatabaseError)):
+                    refusal = LocalStorageError('Unknown Local physical storage format')
+                    refusal.__cause__ = original
+                    if inspection.failure is not None:
+                        raise LocalStorageInitializationError(self) from refusal
+                    raise refusal
+                if inspection.failure is not None:
+                    raise LocalStorageInitializationError(self) from original
+                raise
+            finally:
+                if inspection.failure is None:
+                    self._catalog_inspection = None
         # SQLite transactions are owned by explicit SQL. Keep CPython's
         # legacy isolation_level=None semantics when autocommit is available.
         transaction_mode = {}
         legacy_mode = getattr(sqlite3, 'LEGACY_TRANSACTION_CONTROL', None)
         if legacy_mode is not None:
             transaction_mode['autocommit'] = legacy_mode
-        self._connection = sqlite3.connect(path, isolation_level=None,
+        if retained is not None:
+            retained()
+        selected = path if retained is None else path.absolute().as_uri() + '?mode=rw'
+        self._connection = sqlite3.connect(selected, isolation_level=None,
                                            timeout=1.0, check_same_thread=False,
-                                           factory=_TrackedSQLiteConnection, cached_statements=0,
-                                           **transaction_mode)
+                                           factory=_TrackedSQLiteConnection, cached_statements=_SQLITE_STATEMENT_CACHE,
+                                           uri=retained is not None, **transaction_mode)
         try:
-            database = _SQLiteByteDatabase(self._connection)
+            database = _SQLiteByteDatabase(
+                self._connection, retained_limits=None if durable_limits is None else
+                (durable_limits.records, durable_limits.payload_bytes))
             self._physical = database
             self._observe_generation()
+            if retained is not None:
+                retained()
             if type(self._connection) is _TrackedSQLiteConnection:
                 self._connection._qualify_encoding()
             # Select TEMP storage before the first catalog/snapshot statement.
@@ -241,11 +340,11 @@ class LocalByteStore:
                 except ValueError as error:
                     raise LocalStorageError(str(error)) from error
                 self._configure_durability()
-                self._connection.execute('BEGIN IMMEDIATE')
+                database.begin_immediate()
             else:
                 # Identify the complete existing catalog in one read snapshot
                 # before asking SQLite to set a persistent journal mode.
-                self._connection.execute('BEGIN')
+                database.begin_read()
             try:
                 if self._created:
                     schema = self._connection.execute("""SELECT 1 FROM main.sqlite_schema
@@ -255,23 +354,30 @@ class LocalByteStore:
                         raise LocalStorageError('Original fresh Local Store is no longer empty')
                     self._connection.execute(_SCHEMA)
                     self._connection.execute(_CAPACITY_SCHEMA)
+                    self._connection.execute(_CAPACITY_USAGE_SCHEMA)
+                    self._connection.execute(_STORE_USAGE_SCHEMA)
+                    initial = None if durable_limits is None else 0
+                    self._connection.execute('INSERT INTO main.actql_store_usage VALUES (1, 0, ?, ?)',
+                                             (initial, initial))
                     self._connection.execute(_RUN_DEFINITION_INDEX)
                     self._connection.execute(f'PRAGMA application_id = {_APPLICATION_ID}')
-                else:
+                if ordinary or not self._created:
                     try:
                         database._journal_schema()
+                        database.require_usage_mode(durable_limits is not None)
                     except ValueError as error:
                         raise LocalStorageError('Unknown Local physical storage format') from error
-                self._connection.execute('COMMIT')
+                database.commit()
             except BaseException:
-                if self._physical.in_transaction:
-                    self._connection.execute('ROLLBACK')
+                if database.in_transaction:
+                    database.rollback()
                 raise
             if not self._created:
                 self._configure_durability()
             self._connection.execute('PRAGMA cache_size = -64')
             self._connection.execute('PRAGMA mmap_size = 0')
             self._observe_generation()
+            database._ordinary_catalog = ordinary
             self._ready = True
         except BaseException as original:
             try:
@@ -320,7 +426,9 @@ class LocalByteStore:
 
     def _prepare_physical_path(self, path: Path, *, max_records: int,
                                max_record_bytes: int, max_payload_bytes: int,
-                               max_inspection_queries: int | None = None) -> None:
+                               max_inspection_queries: int | None = None,
+                               durable_limits: _DurableStoreLimits | None = None,
+                               ordinary: bool = False) -> None:
         # Shared physical metadata only. No file, SQL connection, adoption or
         # fresh-file claim is acquired by this helper.
         if (type(max_records) is not int or not 1 <= max_records <= 1024
@@ -332,6 +440,18 @@ class LocalByteStore:
                     type(max_inspection_queries) is not int
                     or not 1 <= max_inspection_queries <= 65536)):
             raise ValueError('Invalid Local physical storage limits')
+        if type(ordinary) is not bool or durable_limits is not None and (
+                type(durable_limits) is not _DurableStoreLimits
+                or type(durable_limits.records) is not int or not 1 <= durable_limits.records < 2**63
+                or type(durable_limits.payload_bytes) is not int or not 1 <= durable_limits.payload_bytes < 2**63
+                or type(durable_limits.reservations) is not int or not 1 <= durable_limits.reservations < 2**63):
+            raise ValueError('Invalid Local durable storage selection')
+        self._ordinary = ordinary
+        self._max_reservations = (_ORDINARY_RESERVATION_LIMIT if durable_limits is None
+                                  else durable_limits.reservations)
+        # A bounded hot-catalog inspection is independent of retained quota.
+        self._catalog_inspection_limit = (_ORDINARY_CATALOG_INSPECTION_BYTES if ordinary
+                                          else 8 * max_payload_bytes + 4 * 1024 * 1024)
         self._lock = RLock()
         self._closed = False
         self._ready = False
@@ -339,6 +459,7 @@ class LocalByteStore:
         self._creation_claimed = False
         self._write_cleanup_pending = False
         self._opening_descriptor = None
+        self._catalog_inspection = None
         self._max_records = max_records
         self._max_record_bytes = max_record_bytes
         self._max_payload_bytes = max_payload_bytes
@@ -359,10 +480,33 @@ class LocalByteStore:
         self._native_file_root = None
 
     @classmethod
+    def reopen_owned_file(cls, path: Path, root: LocalFileRoot, *,
+                          max_records: int, max_record_bytes: int,
+                          max_payload_bytes: int, max_inspection_queries: int | None = None,
+                          durable_limits: _DurableStoreLimits | None = None,
+                          ordinary: bool = False) -> 'LocalByteStore':
+        # The normal installation owns this exact directory exclusively.
+        # Retain its lock through catalog admission and the original open.
+        if type(root) is not LocalFileRoot:
+            raise ValueError('Invalid original Local Store file root')
+        with root._lock:
+            descriptor = root._open()
+            parent = path.absolute().parent.lstat()
+            held = os.fstat(descriptor)
+            if (parent.st_dev, parent.st_ino) != (held.st_dev, held.st_ino):
+                raise LocalStorageError('Foreign original Local Store directory')
+            return cls(path, max_records=max_records, max_record_bytes=max_record_bytes,
+                       max_payload_bytes=max_payload_bytes,
+                       max_inspection_queries=max_inspection_queries, durable_limits=durable_limits,
+                       ordinary=ordinary)
+
+    @classmethod
     def initialize_owned_file(cls, path: Path, root: LocalFileRoot, original: _PayloadFile, *,
                               max_records: int, max_record_bytes: int,
                               max_payload_bytes: int,
-                              max_inspection_queries: int | None = None) -> 'LocalByteStore':
+                              max_inspection_queries: int | None = None,
+                              durable_limits: _DurableStoreLimits | None = None,
+                              ordinary: bool = False) -> 'LocalByteStore':
         """Open the same newly acquired file after the Host's durable marker.
 
         The original File Owner supplies the one-time physical claim, never a
@@ -377,7 +521,8 @@ class LocalByteStore:
         with root._lock:
             return cls(path, max_records=max_records, max_record_bytes=max_record_bytes,
                        max_payload_bytes=max_payload_bytes,
-                       max_inspection_queries=max_inspection_queries,
+                       max_inspection_queries=max_inspection_queries, durable_limits=durable_limits,
+                       ordinary=ordinary,
                        _new_file=(root, original))
 
     @staticmethod
@@ -454,6 +599,9 @@ class LocalByteStore:
                 if self._physical.in_transaction:
                     phase = 'rollback'
                     self._physical.rollback()
+                    phase = 'state_inspection'
+                    if self._physical.in_transaction:
+                        raise LocalStorageError('Original Local SQLite rollback remains pending')
             except BaseException as cleanup:
                 self._write_cleanup_pending = True
                 cleanup_error = cleanup
@@ -636,7 +784,7 @@ class LocalByteStore:
                 try:
                     changed = database.reserve_capacity_in_transaction(
                         namespace, key, reserved_bytes, reserved_objects,
-                        max_bytes, max_objects, self._max_records)
+                        max_bytes, max_objects, self._max_reservations)
                 except _PhysicalCapacityCollision as collision:
                     raise LocalStorageError('Local physical capacity reservation collision') from collision
                 except _PhysicalCapacityExceeded as exceeded:
@@ -852,6 +1000,164 @@ class LocalByteStore:
         return self._read_exchange_many(writes, fences=fences, current=current,
                                         inspect=inspect)
 
+    def _save_model_call_entry_inspected(
+            self, scope: str, attempt: str, slot: int, slot_count: int,
+            body: bytes, max_scope_bytes: int, fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection,
+            confirm: Callable[[_NamespaceReader, StoredBytes], None],
+            current: Callable[[], object]) -> StoredBytes | None:
+        """Save one Core Entry and reobserve it with the same original fences.
+
+        The write reader checks the pending Entry before inserting it and
+        its scope charge. The read reader supplies the actual saved row to
+        Core and ends its snapshot before returning. The Host funds both
+        the original bytes and the readback. Only Core owns the Entry ACK.
+        """
+        self._capacity_name(scope)
+        self._capacity_amount(max_scope_bytes)
+        if (type(slot) is not int or type(slot_count) is not int
+                or not 0 <= slot < slot_count <= (2**63 - 1) // 2
+                or type(body) is not bytes or not body
+                or not 0 < max_scope_bytes <= self._max_payload_bytes
+                or not callable(inspect) or not callable(confirm) or not callable(current)):
+            raise ValueError('Invalid original Local Model Call journal entry')
+        key = self.namespaced_key(_MODEL_CALL_JOURNAL, attempt)
+        # Preceding slots each need an Entry and a settlement.
+        return self._insert_and_observe_model_original(
+            key, body, fences, inspect=inspect, confirm=confirm, current=current,
+            entry_usage=(scope, 2 * slot, max_scope_bytes))
+
+    def _save_model_raw_inspected(
+            self, scope: str, holding: str, attempt: str, entry: ByteFence, envelope: bytes,
+            fences: tuple[ByteFence, ...], *, inspect: _InventoryInspection,
+            confirm: Callable[[_NamespaceReader, StoredBytes], None],
+            current: Callable[[], object]) -> _ModelRawFence | None:
+        """Insert and observe encrypted Raw in the same Store as its original Entry.
+
+        The Core reader selects the holding and checks the entered Call under
+        this transaction. The physical callback receives only this actual
+        persisted envelope. Neither successful insertion nor inspection is a
+        Raw receipt or permission to repeat the write.
+        """
+        for identity in (scope, holding, attempt):
+            if (type(identity) is not str or len(identity) != 71
+                    or not identity.startswith('sha256:')
+                    or any(char not in '0123456789abcdef' for char in identity[7:])):
+                raise ValueError('Invalid original Local Model Raw identity')
+        if (type(entry) is not ByteFence or type(fences) is not tuple
+                or not 0 < len(fences) < self._max_records
+                or entry.key != self.namespaced_key(_MODEL_CALL_JOURNAL, attempt)
+                or entry.generation != 0 or type(entry.payload) is not bytes or not entry.payload
+                or type(envelope) is not bytes or not envelope
+                or not callable(inspect) or not callable(confirm) or not callable(current)):
+            raise ValueError('Invalid original Local Model Raw Store binding')
+        key = self.namespaced_key(_MODEL_RAW_JOURNAL, holding)
+        observed: _ModelRawFence | None = None
+
+        def retain(reader: _NamespaceReader, actual: StoredBytes) -> None:
+            nonlocal observed
+            if confirm(reader, actual) is not None:
+                raise ValueError('Invalid original Local Model Raw confirmation result')
+            observed = _ModelRawFence(self, scope, entry, key, actual.generation,
+                                      len(actual.payload), sha256(actual.payload).digest())
+
+        saved = self._insert_and_observe_model_original(
+            key, envelope, (*fences, entry), inspect=inspect, confirm=retain, current=current)
+        if saved is None:
+            return None
+        if observed is None:
+            raise LocalStorageCommitUnknown(self, commit_confirmed=True)
+        return observed
+
+    def _save_model_settlement_inspected(
+            self, scope: str, attempt: str, slot: int, entry: ByteFence,
+            raw: _ModelRawFence, index: bytes, cells: tuple[tuple[str, bytes], ...],
+            fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection, confirm: _InventoryInspection,
+            current: Callable[[], object]) -> None:
+        """Append the same Entry's complete private evidence set and index once."""
+        self._capacity_name(scope)
+        if (type(slot) is not int or not 0 <= slot < (2**63 - 1) // 2
+                or type(entry) is not ByteFence or entry.generation != 0
+                or entry.key != self.namespaced_key(_MODEL_CALL_JOURNAL, attempt)
+                or type(raw) is not _ModelRawFence or raw.store is not self
+                or raw.entry is not entry or raw.scope != scope or raw.generation != 0
+                or type(cells) is not tuple or not 6 <= len(cells) <= 8
+                or not callable(inspect) or not callable(confirm) or not callable(current)):
+            raise ValueError('Invalid original Local Model settlement binding')
+        writes = (ByteWrite(self.namespaced_key('client_model_call_settlements', attempt), None, index),
+                  *(ByteWrite(self.namespaced_key('client_model_evidence', holding), None, body)
+                    for holding, body in cells))
+        originals = (*fences, entry)
+        self._validate_fences(originals, writes)
+        def require_raw(reader: _NamespaceReader) -> None:
+            # This extra point read is bounded by the exact authenticated extent
+            # and the worker's prior ciphertext readback reservation.
+            reader.check_frame(reader)
+            saved = self._read_bytes_locked(raw.key, max_bytes=raw.extent)
+            if (saved is None or saved.generation != raw.generation
+                    or len(saved.payload) != raw.extent
+                    or sha256(saved.payload).digest() != raw.ciphertext_sha256):
+                raise LocalStorageError('Original Local Model Raw evidence changed')
+
+        def inspect_settlement(reader: _NamespaceReader) -> object:
+            require_raw(reader)
+            return inspect(reader)
+
+        def confirm_settlement(reader: _NamespaceReader) -> object:
+            require_raw(reader)
+            return confirm(reader)
+
+        result = self._compare_exchange_many(
+            writes, capacity=None, fences=originals, inspect=inspect_settlement, current=current,
+            model_entry_usage=(scope, 2 * slot + 1, self._max_payload_bytes))
+        if result is None:
+            raise LocalStorageError('Original Local Model settlement was not committed')
+        try:
+            observed = self.read_exchange_many_inspected(
+                writes, originals, inspect=confirm_settlement, current=current)
+        except BaseException as failure:
+            raise LocalStorageCommitUnknown(self, commit_confirmed=True) from failure
+        if observed is None:
+            raise LocalStorageCommitUnknown(self, commit_confirmed=True)
+
+    def _insert_and_observe_model_original(
+            self, key: str, body: bytes, fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection,
+            confirm: Callable[[_NamespaceReader, StoredBytes], None],
+            current: Callable[[], object],
+            entry_usage: tuple[str, int, int] | None = None) -> StoredBytes | None:
+        writes = (ByteWrite(key, None, body),)
+        self._validate_fences(fences, writes)
+        result = self._compare_exchange_many(
+            writes, capacity=None, fences=fences, inspect=inspect, current=current,
+            model_entry_usage=entry_usage)
+        if result is None:
+            return None
+        saved: StoredBytes | None = None
+
+        def consume(actual: StoredBytes | None) -> None:
+            nonlocal saved
+            if actual is None or actual.generation != result[0] or actual.payload != body:
+                raise LocalStorageError('Original Local Model record changed after COMMIT')
+            saved = actual
+
+        def observe(reader: _NamespaceReader, take: Callable[[], None]) -> None:
+            # Read the exact bounded body once and borrow it with this reader.
+            take()
+            assert saved is not None
+            if confirm(reader, saved) is not None:
+                raise ValueError('Invalid original Local Model record confirmation result')
+
+        try:
+            self.inspect_bounded_record_inspected(
+                key, len(body), fences, inspect=observe, consume=consume, current=current)
+        except BaseException as failure:
+            raise LocalStorageCommitUnknown(self, commit_confirmed=True) from failure
+        if saved is None:
+            raise LocalStorageCommitUnknown(self, commit_confirmed=True)
+        return saved
+
     def read_exchange_many_attached(
             self, writes: tuple[ByteWrite, ...],
             originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> tuple[StoredBytes, ...] | None:
@@ -1032,12 +1338,36 @@ class LocalByteStore:
 
         self.inspect_namespaces(fences, inspect=observe, current=current)
 
+    def inspect_record_capacity_inspected(
+            self, namespace: str, key: str, max_bytes: int, fences: tuple[ByteFence, ...], *,
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
+            consume_record: Callable[[StoredBytes | None], object],
+            consume_capacity: Callable[[CapacityReservation | None], object],
+            current: Callable[[], object]) -> None:
+        """Borrow the bounded row and its reservation from one physical snapshot."""
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        if not callable(consume_record) or not callable(consume_capacity):
+            raise ValueError('Invalid original Local record and capacity observation')
+
+        def take(row: StoredBytes | None) -> None:
+            if consume_record(row) is not None:
+                raise ValueError('Invalid original Local record consumer result')
+            capacity = self._read_capacity_locked(namespace, key)
+            if consume_capacity(capacity) is not None:
+                raise ValueError('Invalid original Local capacity consumer result')
+
+        self.inspect_bounded_record_inspected(key, max_bytes, fences, inspect=inspect,
+                                             consume=take, current=current)
+
     def _inspect_namespace_locked(
             self, inspect: _InventoryInspection | None, fences: tuple[ByteFence, ...],
             current: Callable[[], object] | None, *,
             successors: tuple[ByteWrite, ...] = (), _readonly: bool = False,
-            _prewrite: bool = False, _reconciliation: 'OriginalStoreReconciliation | None' = None,
+            _prewrite: bool = False,
             _projected_prewrite: Callable[[], bool] | None = None,
+            _retain_task_points: bool = False,
+            _effect_points: tuple[ByteFence, ...] = (),
             _terminal_read_baseline: Callable[[str], _ClosedReadBaseline | None] | None = None) -> None:
         # This callback borrows the enclosing physical transaction. It cannot
         # commit, acknowledge Core adoption, repair metadata or survive cleanup.
@@ -1045,6 +1375,7 @@ class LocalByteStore:
         reading = False
         thread = get_ident()
         reads = copied = 0
+        target_read_active = False
         failure: BaseException | None = None
         observing_current: Callable[[], object] | None = None
         observing_invocation = False
@@ -1063,6 +1394,50 @@ class LocalByteStore:
             if original_snapshot is not None
             and type(original_snapshot[0]) is _TrackedSQLiteConnection else None)
         last_fenced_snapshot: _SQLiteSnapshot | None = None
+
+        # A read-only File publication lookup can request the same original
+        # Task slots through multiple Core owners. Borrow their DATA only from
+        # this transaction and run all existing current fences on every use.
+        retain_task_points = (_retain_task_points and not successors
+            and original_snapshot is not None and original_control_epoch is not None
+            and (_readonly or not _prewrite and _projected_prewrite is None))
+        # The write owner validates these exact two metadata fences before
+        # the transaction's projected rows and excludes their keys from all
+        # writes. Each use still matches the live transaction and current port.
+        effect_points = {fence.key: fence for fence in _effect_points}
+        task_key: str | None = None
+        task_points: dict[str, tuple[str, StoredBytes] | None] = {}
+        # Only the original saved-delivery terminal projection can borrow
+        # these selected exact points. An intervening SQLite statement that
+        # changes the closed epoch invalidates the whole borrow, even when
+        # the mutation counter or physical row generation would stay equal.
+        terminal_points: dict[str, tuple[str, StoredBytes]] = {}
+        terminal_point_epoch: tuple[int, int] | None = None
+        terminal_point_bytes = 0
+
+        def terminal_original_epoch(required_current: Callable[[], object]) -> tuple[int, int] | None:
+            if (_terminal_read_baseline is None or required_current is not current
+                    or original_snapshot is None or last_fenced_snapshot is None
+                    or self._physical is not database or self._connection is not original_snapshot[0]
+                    or type(self._connection) is not _TrackedSQLiteConnection
+                    or not self._connection.in_transaction
+                    or self._connection._transaction_epoch != original_control_epoch
+                    or self._connection.total_changes != last_fenced_snapshot[2]):
+                return None
+            span = self._connection._closed_invocation
+            if (span is None or not span._reuse_sql_snapshot()
+                    or not span.supports_saved_census_read()):
+                return None
+            return self._connection._closed_statement_epoch, self._connection.total_changes
+
+        def require_task_snapshot() -> None:
+            if (original_snapshot is None or last_fenced_snapshot != original_snapshot
+                    or self._physical is not database or self._connection is not original_snapshot[0]
+                    or not self._connection.in_transaction
+                    or self._connection.total_changes != original_snapshot[2]
+                    or type(self._connection) is not _TrackedSQLiteConnection
+                    or self._connection._transaction_epoch != original_control_epoch):
+                raise LocalStorageError('Original Local Task point snapshot changed')
 
         def closed_baseline(
                 span: '_InvocationObservation') -> tuple[_SQLiteSnapshot, int | None] | None:
@@ -1121,20 +1496,11 @@ class LocalByteStore:
                              ) -> tuple[_SQLiteSnapshot, int | None]:
             from ._local_host_binding import _InvocationObservation
             baseline = closed_baseline(span) if type(span) is _InvocationObservation else None
+            # The actual frozen reader has this Store's original ports.
             if (type(span) is not _InvocationObservation or type(view) is not _NamespaceReader
                     or view is not reader or type(self) is not LocalByteStore
                     or view.owner is not self or not active or get_ident() != thread
                     or observing_invocation or baseline is None or observer is not current
-                    or view.scan_after is not scan_after or view.read is not read
-                    or view.query_current is not query_current or view.journal_schema is not journal_schema
-                    or view.check_frame is not check_frame or view.check_fences is not check_fences
-                    or view.check_fences_and_current is not check_fences_and_current
-                    or view.current is not current_snapshot or view.check_inventory is not check_inventory
-                    or view.check_unchanged is not check_unchanged
-                    or view._invocation_candidate is not invocation_candidate
-                    or view._invocation_check is not invocation_check
-                    or view._projected_prewrite is not _projected_prewrite
-                    or view._terminal_read_baseline is not _terminal_read_baseline
                     or span.reader is not view or span.binding._current_observer is not observer
                     or span.core._invocation_observation is not span or not span.core._invoking
                     or reading and observing_current is not observer and not metadata):
@@ -1204,7 +1570,7 @@ class LocalByteStore:
                     or snapshot[1:] != baseline[1:]
                     or self._connection.total_changes != baseline[2]
                     or not self._connection.in_transaction
-                    or self._connection._outer_transaction_epoch != original_snapshot[1]
+                    or self._connection._transaction_epoch != original_snapshot[1]
                     or self._connection._transaction_epoch != original_control_epoch):
                 raise LocalStorageError('Closed Local observation snapshot changed')
             span._guard_sql()
@@ -1237,60 +1603,14 @@ class LocalByteStore:
                 if entered:
                     observing_invocation = False
 
-        def prepare_check(view: _NamespaceReader, phase: object, physical: bool) -> None:
-            nonlocal failure
-            from ._local_reconciliation_prepare import _PrepareObservation
-            try:
-                if failure is not None:
-                    raise failure
-                if (type(phase) is not _PrepareObservation or _reconciliation is None
-                        or phase.owner is not _reconciliation or phase.reader is not reader
-                        or phase.core._reconciliation_prepare is not phase
-                        or phase.binding._current_observer is not current
-                        or view is not reader or view.owner is not self or not active
-                        or get_ident() != thread or not _readonly or successors
-                        or view._prepare_check is not prepare_check
-                        or view.scan_after is not scan_after or view.read is not read
-                        or view.check_frame is not check_frame or view.check_fences is not check_fences
-                        or view.check_fences_and_current is not check_fences_and_current
-                        or view.current is not current_snapshot or view.check_inventory is not check_inventory
-                        or view.query_current is not query_current or view.journal_schema is not journal_schema
-                        or view.check_unchanged is not check_unchanged
-                        or view._invocation_check is not invocation_check
-                        or view._invocation_candidate is not invocation_candidate
-                        or type(database) is not _SQLiteByteDatabase or original_snapshot is None
-                        or self._physical is not database or database._connection is not self._connection
-                        or self._connection is not original_snapshot[0]
-                        or self._connection._transaction_epoch != original_control_epoch
-                        or self._connection._closed_statement_epoch != original_statement_epoch
-                        or self._connection._outer_transaction_epoch != original_snapshot[1]
-                        or self._connection.total_changes != original_snapshot[2]
-                        or not self._connection.in_transaction):
-                    raise LocalStorageError('Original reconciliation snapshot changed or retired')
-                if physical:
-                    if database._snapshot_identity() != original_snapshot:
-                        raise LocalStorageError('Original reconciliation schema snapshot changed')
-                    metadata_fence(reuse_snapshot=False)
-                    if not self._originals_match_locked(_reconciliation._originals):
-                        raise LocalStorageError('Original reconciliation reservations changed')
-                    if database._snapshot_identity() != original_snapshot:
-                        raise LocalStorageError('Original reconciliation metadata changed during observation')
-            except BaseException as error:
-                if failure is None:
-                    failure = error
-                if type(phase) is _PrepareObservation:
-                    phase._fail(failure)
-                raise failure
-
         def check_frame(view: _NamespaceReader) -> None:
             nonlocal failure
-            try:
-                if (view is not reader or not active or reading or observing_invocation
-                        or get_ident() != thread or failure is not None):
-                    raise ValueError('Local inventory reader is not active')
-            except BaseException as error:
-                failure = error
-                raise
+            if failure is not None:
+                raise failure
+            if (view is not reader or not active or reading or observing_invocation
+                    or get_ident() != thread):
+                failure = ValueError('Local inventory reader is not active')
+                raise failure
 
         def current_snapshot() -> None:
             nonlocal failure
@@ -1298,8 +1618,9 @@ class LocalByteStore:
                 check_frame(reader)
                 fence(reuse_snapshot=True)
             except BaseException as error:
-                failure = error
-                raise
+                if failure is None:
+                    failure = error
+                raise failure
 
         def check_unchanged(view: _NamespaceReader) -> None:
             nonlocal failure, reading
@@ -1367,8 +1688,9 @@ class LocalByteStore:
                         or any(write.key == value.key for write in successors for value in required)):
                     raise LocalStorageError('Original Local snapshot is missing required physical fences')
             except BaseException as error:
-                failure = error
-                raise
+                if failure is None:
+                    failure = error
+                raise failure
 
         def check_fences_and_current(
                 view: _NamespaceReader, required: tuple[ByteFence, ...],
@@ -1382,18 +1704,21 @@ class LocalByteStore:
                     if required_current() is not None:
                         raise ValueError('Invalid Local physical current callback result')
             except BaseException as error:
-                failure = error
-                raise
+                if failure is None:
+                    failure = error
+                raise failure
 
         def observe(namespace: str, after: str, consume: _NamespaceConsumer | None, *,
                     scan: bool, required_current: Callable[[], object] | None = None,
-                    inventory_only: bool = False
+                    inventory_only: bool = False, name_key_only: bool = False
                     ) -> tuple[str, StoredBytes] | None:
-            nonlocal reading, reads, copied, failure
+            nonlocal reading, reads, copied, failure, task_key
+            nonlocal terminal_point_epoch, terminal_point_bytes
             entered = False
             try:
-                if (not active or reading or get_ident() != thread
-                        or failure is not None):
+                if failure is not None:
+                    raise failure
+                if not active or reading or get_ident() != thread:
                     raise ValueError('Local inventory reader is not active')
                 self._capacity_name(namespace)
                 if (type(after) is not str or not callable(consume)
@@ -1412,28 +1737,149 @@ class LocalByteStore:
                     metadata_fence(reuse_snapshot=True)
                 else:
                     fence(required_current, reuse_snapshot=required_current is not None)
-                # A malformed empty logical key must be observed and refused,
-                # not silently excluded from the original namespace inventory.
-                row = self._physical.scan_range(lower, upper,
-                    min(self._max_record_bytes, self._max_payload_bytes - copied),
-                    inclusive=not after, exact=not scan)
+                task_point = (retain_task_points and not scan and not inventory_only
+                    and required_current is not None and namespace == _TASK_MATERIAL_TABLE
+                    and len(after) == 73 and after[-2:] in (':0', ':1', ':2', ':3')
+                    and (task_key is None or after[:-2] == task_key))
+                if task_point:
+                    require_task_snapshot()
+                terminal_epoch = None
+                if (not scan and not inventory_only and required_current is not None
+                        and namespace in _TERMINAL_ORIGINAL_TABLES
+                        and len(after) == 71 and after.startswith('sha256:')):
+                    terminal_epoch = terminal_original_epoch(required_current)
+                    if terminal_epoch != terminal_point_epoch:
+                        terminal_points.clear()
+                        terminal_point_bytes = 0
+                        terminal_point_epoch = terminal_epoch
                 reads += 1
-                observation: tuple[str, StoredBytes] | None = None
-                if row is not None:
-                    key, generation, payload, kind, length = row
-                    if (type(key) is not str or not key.startswith(prefix)
-                            or type(generation) is not int or generation < 0
-                            or type(payload) is not bytes or kind != 'blob'
-                            or type(length) is not int or length != len(payload)):
-                        raise LocalStorageError('Invalid retained Local inventory row')
-                    logical = key[len(prefix):]
-                    self._key(logical)
-                    copied += len(payload)
-                    observation = (logical, StoredBytes(generation, payload))
+                effect_point = (effect_points.get(lower) if not scan and not inventory_only
+                                and required_current is not None else None)
+                if namespace == _RUN_DEFINITION_OWNER:
+                    if (scan or inventory_only or required_current is None or not self._ordinary
+                            or not _readonly or type(database) is not _SQLiteByteDatabase
+                            or len(after) != 71 or not after.startswith('sha256:')
+                            or any(unit not in '0123456789abcdef' for unit in after[7:])):
+                        raise ValueError('Invalid original Run Definition owner query')
+                    limit = min(self._max_record_bytes, self._max_payload_bytes - copied)
+                    row = database.read_run_definition_owner(after, limit)
+                    observation = None
+                    if row is not None:
+                        key, generation, body, kind, extent = row
+                        if (type(key) is not str or not key.startswith(_RUN_DEFINITION_PREFIX)
+                                or type(generation) is not int or not 0 <= generation < 2**63
+                                or type(body) is not bytes or kind != 'blob'
+                                or type(extent) is not int or extent != len(body) or extent > limit):
+                            raise LocalStorageError('Original Run Definition owner is invalid')
+                        logical = key[len(_RUN_DEFINITION_PREFIX):]
+                        self._key(logical)
+                        copied += extent
+                        observation = (logical, StoredBytes(generation, body))
+                elif namespace == _SAVED_RUN_CURRENT:
+                    if (scan or inventory_only or required_current is None or not self._ordinary
+                            or not _readonly or type(database) is not _SQLiteByteDatabase
+                            or len(after) != 71 or not after.startswith('sha256:')
+                            or any(unit not in '0123456789abcdef' for unit in after[7:])):
+                        raise ValueError('Invalid original Saved Run header query')
+                    header = database.read_header(self.namespaced_key('client_runs', after))
+                    observation = None
+                    if header is not None:
+                        generation, extent = header
+                        if (type(generation) is not int or not 0 <= generation < 2**63
+                                or type(extent) is not int or not 0 < extent <= self._max_record_bytes):
+                            raise LocalStorageError('Original Saved Run header is invalid')
+                        if self._max_payload_bytes - copied < 4:
+                            raise LocalStorageError('Local inventory inspection capacity exceeded')
+                        observation = (after, StoredBytes(generation, extent.to_bytes(4, 'little')))
+                        copied += 4
+                elif namespace == _TASK_MATERIAL_COUNT:
+                    if (scan or inventory_only or required_current is None
+                            or not 1 <= len(after) <= 4
+                            or any(unit not in '0123456789' for unit in after)
+                            or len(after) > 1 and after[0] == '0'
+                            or int(after) > _TASK_MATERIAL_COUNT_LIMIT):
+                        raise ValueError('Invalid original Local Task material count query')
+                    observation = None
+                    if type(database) is _SQLiteByteDatabase and self._ordinary:
+                        if copied >= self._max_payload_bytes:
+                            raise LocalStorageError('Local inventory inspection capacity exceeded')
+                        lower = self.namespaced_key(_TASK_MATERIAL_TABLE, ':')[:-1]
+                        upper = lower[:-1] + ';'
+                        matched = database.task_material_count_matches(lower, upper, int(after))
+                        body = b'1' if matched else b'0'
+                        copied += len(body)
+                        observation = (after, StoredBytes(0, body))
+                elif name_key_only:
+                    if type(database) is not _SQLiteByteDatabase:
+                        raise LocalStorageError('Original Local name key reader is unavailable')
+                    selected = database.scan_name_key(lower, upper, inclusive=not after)
+                    observation = None
+                    if selected is not None:
+                        key, generation, kind, extent = selected
+                        if (type(key) is not str or not key.startswith(prefix)
+                                or type(generation) is not int or generation < 0
+                                or kind != 'blob' or type(extent) is not int
+                                or not 0 < extent <= min(16384, self._max_record_bytes)):
+                            raise LocalStorageError('Invalid retained Local name key')
+                        logical = key[len(prefix):]
+                        self._key(logical)
+                        observation = (logical, StoredBytes(generation, b''))
+                elif effect_point is not None:
+                    if (original_snapshot is None or last_fenced_snapshot is None
+                            or self._physical is not database or self._connection is not original_snapshot[0]
+                            or self._connection.total_changes != last_fenced_snapshot[2]
+                            or type(self._connection) is not _TrackedSQLiteConnection
+                            or not self._connection.in_transaction
+                            or self._connection._transaction_epoch != original_control_epoch):
+                        raise LocalStorageError('Original Local Effect point snapshot changed')
+                    observation = (after, StoredBytes(effect_point.generation, effect_point.payload))
+                elif task_point and after in task_points:
+                    observation = task_points[after]
+                elif terminal_epoch is not None and lower in terminal_points:
+                    observation = terminal_points[lower]
+                else:
+                    # A malformed empty logical key must be observed and refused,
+                    # not silently excluded from the original namespace inventory.
+                    limit = min(self._max_record_bytes, self._max_payload_bytes - copied)
+                    if task_point:
+                        limit = min(limit, _TASK_POINT_MAX_BYTES)
+                    if namespace == _JOURNAL_NAME_TABLE:
+                        limit = min(limit, 16384)
+                    elif namespace == _JOURNAL_NAME_CONTROL:
+                        limit = min(limit, 16)
+                    row = self._physical.scan_range(lower, upper, limit,
+                        inclusive=not after, exact=not scan)
+                    observation = None
+                    if row is not None:
+                        key, generation, payload, kind, length = row
+                        if (type(key) is not str or not key.startswith(prefix)
+                                or type(generation) is not int or generation < 0
+                                or type(payload) is not bytes or kind != 'blob'
+                                or type(length) is not int or length != len(payload)):
+                            raise LocalStorageError('Invalid retained Local inventory row')
+                        logical = key[len(prefix):]
+                        self._key(logical)
+                        copied += len(payload)
+                        observation = (logical, StoredBytes(generation, payload))
+                    if task_point:
+                        task_key = after[:-2]
+                        task_points[after] = observation
                 if inventory_only:
                     metadata_fence(reuse_snapshot=True)
                 else:
                     fence(required_current, reuse_snapshot=required_current is not None)
+                if task_point:
+                    require_task_snapshot()
+                if terminal_epoch is not None:
+                    assert required_current is not None
+                    if terminal_original_epoch(required_current) != terminal_epoch:
+                        raise LocalStorageError('Original Local terminal point snapshot changed')
+                    if (lower not in terminal_points and observation is not None
+                            and len(terminal_points) < _TERMINAL_ORIGINAL_POINT_SLOTS
+                            and len(observation[1].payload)
+                                <= _TERMINAL_ORIGINAL_POINT_BYTES - terminal_point_bytes):
+                        terminal_points[lower] = observation
+                        terminal_point_bytes += len(observation[1].payload)
                 if consume is None:
                     # No caller callback runs between the SQL read and return.
                     # The returned row is bounded immutable DATA, not current
@@ -1443,12 +1889,13 @@ class LocalByteStore:
                 # returns the same input/output loan before requesting a row.
                 if consume(observation) is not None:
                     raise ValueError('Invalid Local inventory consumer result')
-                del observation, row
+                del observation
                 fence(required_current, reuse_snapshot=required_current is not None)
                 return None
             except BaseException as error:
-                failure = error
-                raise
+                if failure is None:
+                    failure = error
+                raise failure
             finally:
                 if entered:
                     reading = False
@@ -1459,16 +1906,139 @@ class LocalByteStore:
             nonlocal failure
             try:
                 check_frame(view)
-                if type(mode) is not int or mode not in (0, 1) or not callable(required_current):
+                if (type(mode) is not int or mode not in (0, 1, _JOURNAL_NAME_KEY_SCAN)
+                        or not callable(required_current)
+                        or mode == _JOURNAL_NAME_KEY_SCAN and namespace != _JOURNAL_NAME_TABLE):
                     raise ValueError('Invalid original Local current query')
-                # One physical query, fenced before IO and before returning its
-                # DATA. The arbitrary-consumer path retains all three fences.
+                # Exact DATA is fenced before physical acquisition or reuse and
+                # before return. Arbitrary consumers keep their third fence.
                 # Distinct current callbacks are still observed independently.
-                return observe(namespace, key, None, scan=mode == 0,
-                               required_current=required_current)
+                return observe(namespace, key, None, scan=mode != 1,
+                               required_current=required_current,
+                               name_key_only=mode == _JOURNAL_NAME_KEY_SCAN)
             except BaseException as error:
-                failure = error
-                raise
+                if failure is None:
+                    failure = error
+                raise failure
+
+        def target_fence(required_current: Callable[[], object]) -> None:
+            fence(required_current, reuse_snapshot=True)
+            if failure is not None:
+                raise failure
+            if (last_fenced_snapshot is None or last_fenced_snapshot != original_snapshot
+                    or self._connection is not last_fenced_snapshot[0]
+                    or self._connection._transaction_epoch != original_control_epoch
+                    or self._connection._closed_statement_epoch != original_statement_epoch):
+                raise LocalStorageError('Original Local target snapshot changed')
+
+        def get_many(view: _NamespaceReader, requests: tuple[_TargetKey, ...],
+                     max_bytes: int, required_current: Callable[[], object]) -> _TargetRead:
+            nonlocal failure, reading, target_read_active
+            entered = False
+            try:
+                check_frame(view)
+                if (type(database) is not _SQLiteByteDatabase or not _readonly
+                        or target_read_active or view.owner is not self or view.get_many is not get_many
+                        or not callable(required_current) or type(max_bytes) is not int
+                        or not 0 <= max_bytes <= self._max_payload_bytes
+                        or type(requests) is not tuple or not 0 < len(requests) <= _TARGET_READ_KEYS):
+                    raise ValueError('Invalid original Local target read')
+                remaining = self._max_inspection_queries - reads
+                if remaining == 0:
+                    raise LocalStorageError('Local inventory inspection capacity exceeded')
+                keys = []
+                key_bytes = 0
+                for request in requests:
+                    if (type(request) is not tuple or len(request) not in (2, 3)
+                            or any(type(part) is not str or len(part) > _TARGET_READ_KEY_BYTES
+                                   for part in request[:2])
+                            or len(request) == 3 and (type(request[2]) is not int
+                                or not 0 < request[2] <= self._max_record_bytes)):
+                        raise ValueError('Invalid original Local target key')
+                    key = self.namespaced_key(request[0], request[1])
+                    key_bytes += len(key.encode('utf-8'))
+                    if key in keys or key_bytes > _TARGET_READ_KEY_BYTES:
+                        raise ValueError('Invalid original Local target key set')
+                    keys.append(key)
+
+                reading = entered = True
+                target_fence(required_current)
+                request_count = len(keys)
+                wanted = tuple(keys[:remaining])
+                rows = database.read_target_headers(wanted)
+                headers: dict[int, tuple[object, object, object, object]] = {}
+                for ordinal, present, generation, kind, extent in rows:
+                    if (type(ordinal) is not int or not 0 <= ordinal < len(wanted)
+                            or ordinal in headers):
+                        raise LocalStorageError('Invalid original Local target header')
+                    headers[ordinal] = (present, generation, kind, extent)
+                if len(headers) != len(wanted):
+                    raise LocalStorageError('Incomplete original Local target read')
+                target_fence(required_current)
+                target_read_active = True
+            except BaseException as error:
+                if failure is None:
+                    failure = error
+                raise failure
+            finally:
+                if entered:
+                    reading = False
+
+            next_ordinal = batch_bytes = 0
+
+            def take(original: _NamespaceReader, ordinal: int) -> StoredBytes | _Literal[False] | None:
+                nonlocal failure, reading, reads, copied, batch_bytes, next_ordinal, target_read_active
+                entered = False
+                try:
+                    check_frame(original)
+                    if (original is not view or original.get_many is not get_many
+                            or type(ordinal) is not int or ordinal != next_ordinal
+                            or not 0 <= ordinal < request_count):
+                        raise ValueError('Invalid original Local target ordinal')
+                    if reads >= self._max_inspection_queries or ordinal >= len(wanted):
+                        raise LocalStorageError('Local inventory inspection capacity exceeded')
+                    reading = entered = True
+                    target_fence(required_current)
+                    present, generation, kind, extent = headers[ordinal]
+                    value = None
+                    if (type(present) is int and present == 1 and type(generation) is int
+                            and 0 <= generation < 2**63 and kind == 'blob' and type(extent) is int):
+                        budget = min(self._max_record_bytes, self._max_payload_bytes - copied,
+                                     max_bytes - batch_bytes)
+                        if not 0 <= extent <= budget:
+                            raise LocalStorageError('Over-budget original Local target row')
+                        request = requests[ordinal]
+                        if len(request) == 3 and extent != request[2]:
+                            # A completed physical observation can disprove the
+                            # original without failing the Reader or taking a body.
+                            value = False
+                        else:
+                            value = self._read_bytes_locked(wanted[ordinal], max_bytes=extent)
+                            if (value is None or value.generation != generation
+                                    or len(value.payload) != extent):
+                                raise LocalStorageError('Original Local target row changed')
+                            batch_bytes += extent
+                            copied += extent
+                    elif (type(present) is not int
+                            or (present, generation, kind, extent) != (0, None, 'null', None)):
+                        raise LocalStorageError('Invalid original Local target row')
+                    reads += 1
+                    target_fence(required_current)
+                    next_ordinal = request_count if value is False else next_ordinal + 1
+                    target_read_active = next_ordinal != request_count
+                    return value
+                except BaseException as error:
+                    if failure is None:
+                        failure = error
+                    raise failure
+                finally:
+                    if entered:
+                        reading = False
+
+            return take
+
+        read_targets = (get_many if _readonly and original_control_epoch is not None
+                        and original_statement_epoch is not None else None)
 
         def check_inventory(view: _NamespaceReader, namespace: str,
                             expected: tuple[tuple[str, bytes], ...],
@@ -1579,13 +2149,12 @@ class LocalByteStore:
                 journal_schema=journal_schema, check_inventory=check_inventory,
                 check_unchanged=(check_unchanged if original_snapshot is not None
                     and type(original_snapshot[0]) is _TrackedSQLiteConnection else None),
-                _prepare_check=prepare_check if closed_reader and _reconciliation is not None else None,
                 _invocation_check=invocation_check if closed_reader else None,
                 _invocation_candidate=invocation_candidate if closed_reader else None,
                 _projected_prewrite=_projected_prewrite if closed_reader else None,
-                _terminal_read_baseline=_terminal_read_baseline if closed_reader else None)
-            result = (_reconciliation._prepare_closed(reader) if _reconciliation is not None
-                      else inspect(reader) if inspect is not None else None)
+                _terminal_read_baseline=_terminal_read_baseline if closed_reader else None,
+                get_many=read_targets)
+            result = inspect(reader) if inspect is not None else None
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:
@@ -1593,32 +2162,8 @@ class LocalByteStore:
             fence()
         finally:
             active = False
-
-    def _inspect_original_reconciliation_prepare(self, owner: 'OriginalStoreReconciliation') -> None:
-        """Drive exactly the original nonsaved prepare, with no supplied callback."""
-        from ._local_store_reconciliation import OriginalStoreReconciliation
-        if (type(owner) is not OriginalStoreReconciliation or owner._store is not self
-                or owner._original is not owner or not owner._entered or not owner._active
-                or owner._projection._saved or owner._binding is None):
-            raise ValueError('Foreign original reconciliation preparation')
-        binding = owner._binding
-        self._validate_originals(owner._originals, set())
-        with binding.fenced() as fences, self._lock:
-            self._validate_metadata_fences(fences, ())
-            self._open()
-            database = self._physical
-            database.begin_read()
-            try:
-                self._inspect_namespace_locked(None, fences, binding._current_observer,
-                                               _readonly=True, _reconciliation=owner)
-                self._fenced_current(binding._current_observer)
-                if not self._fences_match_locked(fences, ()):
-                    raise LocalStorageError('Original reconciliation metadata changed')
-            except BaseException:
-                database.cleanup_read()
-                raise
-            else:
-                database.finish_read()
+            task_points.clear()
+            terminal_points.clear()
 
     def inspect_publication_projected_attached(
             self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
@@ -1632,7 +2177,8 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...], *,
             namespace: Callable[[_NamespaceReader, Callable[[], None]], object],
             current: Callable[[], object],
-            before_lookup: Callable[[], object]) -> None:
+            before_lookup: Callable[[], object], _retain_task_points: bool = False,
+            _effect_points: tuple[ByteFence, ...] = ()) -> None:
         """Borrow typed current and raw Core-issued keys in the same read TX.
 
         The namespace supplier wraps the entire original index/request/attempt
@@ -1642,10 +2188,13 @@ class LocalByteStore:
         """
         if not callable(namespace) or not callable(current):
             raise ValueError('Invalid Local publication current namespace supplier')
+        fences = (*fences, *_effect_points)
         self._validate_metadata_fences(fences, ())
+        self._validate_effect_publication_points(_effect_points, fences)
         self._inspect_publication_projected(
             inspect, originals, current=before_lookup, namespace=namespace,
-            fences=fences, physical_current=current)
+            fences=fences, physical_current=current, _retain_task_points=_retain_task_points,
+            _effect_points=_effect_points)
 
     def _inspect_publication_projected(
             self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
@@ -1653,7 +2202,8 @@ class LocalByteStore:
             current: Callable[[], object],
             namespace: Callable[[_NamespaceReader, Callable[[], None]], object] | None = None,
             fences: tuple[ByteFence, ...] = (),
-            physical_current: Callable[[], object] | None = None) -> None:
+            physical_current: Callable[[], object] | None = None,
+            _retain_task_points: bool = False, _effect_points: tuple[ByteFence, ...] = ()) -> None:
         """Transport bounded original-key reads under one physical snapshot.
 
         The trusted Host holds Core, then File, before this Store lock. It
@@ -1761,7 +2311,8 @@ class LocalByteStore:
                     consume_all()
                 else:
                     self._inspect_namespace_locked(
-                        lambda reader: namespace(reader, consume_all), fences, physical_current)
+                        lambda reader: namespace(reader, consume_all), fences, physical_current,
+                        _readonly=True, _retain_task_points=_retain_task_points, _effect_points=_effect_points)
                 if consumption_failure is not None:
                     raise consumption_failure
                 if not complete:
@@ -1839,7 +2390,8 @@ class LocalByteStore:
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
             current: Callable[[], object],
             before_commit: Callable[[], object], _sdk_delivery_prewrite: bool = False,
-            _sdk_terminal_precommit: bool = False) -> tuple[int, ...] | None:
+            _sdk_terminal_precommit: bool = False,
+            _sdk_first_evidence: bool = False) -> tuple[int, ...] | None:
         """Apply Core's original CAS under this same write/current snapshot.
 
         This reuses the existing projected transaction and generation checks.
@@ -1848,14 +2400,33 @@ class LocalByteStore:
         """
         if not callable(inspect) or not callable(current):
             raise ValueError('Invalid Local projected CAS inspection')
-        if _sdk_terminal_precommit and (not _sdk_delivery_prewrite or count != 3):
+        if _sdk_terminal_precommit and (not _sdk_delivery_prewrite or count not in (2, 3)):
             raise ValueError('Invalid Local Saved terminal Store projection')
+        if _sdk_first_evidence and (count != 7 or _sdk_terminal_precommit):
+            raise ValueError('Invalid Local SDK first delivery projection')
         self._validate_metadata_fences(fences, ())
         return self._projected_attached(
             count, project, originals, before_commit=before_commit,
             reuse_identical=False, fences=fences, inspect=inspect, current=current,
             _sdk_delivery_prewrite=_sdk_delivery_prewrite,
-            _sdk_terminal_precommit=_sdk_terminal_precommit)
+            _sdk_terminal_precommit=_sdk_terminal_precommit,
+            _sdk_first_evidence=_sdk_first_evidence)
+
+    def compare_exchange_journal_projected_inspected(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            fences: tuple[ByteFence, ...], *,
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
+            current: Callable[[], object],
+            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+        """Apply one bounded Journal projection under actual adopted metadata fences."""
+        if not fences or not callable(inspect) or not callable(current):
+            raise ValueError('Original Local projected Journal requires physical current and fences')
+        self._validate_metadata_fences(fences, ())
+        return self._projected_attached(
+            count, project, (), before_commit=before_commit,
+            reuse_identical=False, fences=fences, inspect=inspect, current=current,
+            _journal_projection=True)
 
     def store_publication_projected_inspected(
             self, count: int,
@@ -1864,7 +2435,8 @@ class LocalByteStore:
             fences: tuple[ByteFence, ...], *,
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
             current: Callable[[], object],
-            before_commit: Callable[[], object], _sdk_delivery_prewrite: bool = False) -> tuple[int, ...] | None:
+            before_commit: Callable[[], object], _sdk_delivery_prewrite: bool = False,
+            _effect_points: tuple[ByteFence, ...] = ()) -> tuple[int, ...] | None:
         """Borrow this same write transaction for the existing current Owner.
 
         The trusted Host enters its original Core/File locks first and wraps
@@ -1877,10 +2449,31 @@ class LocalByteStore:
         if not callable(inspect) or not callable(current):
             raise ValueError('Invalid Local projected current inspection')
         self._validate_metadata_fences(fences, ())
+        self._validate_effect_publication_points(_effect_points, fences)
+        if _effect_points and _sdk_delivery_prewrite:
+            raise ValueError('Invalid original Local Effect publication points')
         return self._projected_attached(
             count, project, originals, before_commit=before_commit,
             reuse_identical=True, fences=fences, inspect=inspect, current=current,
-            _sdk_delivery_prewrite=_sdk_delivery_prewrite)
+            _sdk_delivery_prewrite=_sdk_delivery_prewrite, _effect_points=_effect_points)
+
+    def _validate_effect_publication_points(
+            self, _effect_points: tuple[ByteFence, ...], fences: tuple[ByteFence, ...]) -> None:
+        if _effect_points:
+            if (type(_effect_points) is not tuple or len(_effect_points) != 2
+                    or any(not any(selected is original for original in fences) for selected in _effect_points)
+                    or type(self._physical) is not _SQLiteByteDatabase):
+                raise ValueError('Invalid original Local Effect publication points')
+            run, ledger = _effect_points
+            prefix = f'namespace:{len("client_runs")}:client_runs:'
+            key = run.key.removeprefix(prefix)
+            if (len(key) != 71 or not key.startswith('sha256:')
+                    or any(ch not in '0123456789abcdef' for ch in key[7:])
+                    or run.key != self.namespaced_key('client_runs', key)
+                    or ledger.key != self.namespaced_key('client_effect_custody', key)
+                    or not 5 < run.generation or run.generation != 5 + ledger.generation
+                    or ledger.generation % 3 != 0 or ledger.generation <= 0):
+                raise ValueError('Foreign original Local Effect publication points')
 
     def _projected_attached(
             self, count: int,
@@ -1891,11 +2484,19 @@ class LocalByteStore:
             inspect: Callable[[_NamespaceReader, Callable[[], None]], object] | None = None,
             current: Callable[[], object] | None = None,
             _sdk_delivery_prewrite: bool = False,
-            _sdk_terminal_precommit: bool = False) -> tuple[int, ...] | None:
+            _sdk_terminal_precommit: bool = False, _journal_projection: bool = False,
+            _sdk_first_evidence: bool = False,
+            _effect_points: tuple[ByteFence, ...] = ()) -> tuple[int, ...] | None:
         if (type(count) is not int or not 1 <= count <= self._max_records
                 or not callable(project) or not callable(before_commit)):
             raise ValueError('Invalid Local physical projection batch')
-        self._validate_originals(originals, set())
+        if _journal_projection:
+            if (originals != () or not fences or inspect is None or current is None
+                    or reuse_identical or _sdk_delivery_prewrite or _sdk_terminal_precommit
+                    or _sdk_first_evidence):
+                raise ValueError('Invalid original Local projected Journal boundary')
+        else:
+            self._validate_originals(originals, set())
         original_keys = {fence.key for fence, _ in originals} | {fence.key for fence in fences}
         with self._lock:
             self._open()
@@ -1908,7 +2509,7 @@ class LocalByteStore:
                     raise LocalStorageError('Original Local publication metadata changed')
                 if not self._originals_match_locked(originals):
                     raise _PhysicalWriteConflict()
-                record_count, payload_bytes = database.record_usage()
+                batch_bytes = 0
                 generations: list[int] = []
                 keys: set[str] = set()
                 thread = get_ident()
@@ -1936,13 +2537,13 @@ class LocalByteStore:
                     return None
 
                 def consume_ordinal(ordinal: int) -> None:
-                    nonlocal record_count, payload_bytes
+                    nonlocal batch_bytes
                     active = True
                     delivered = False
                     failure: BaseException | None = None
 
                     def consume(write: ByteWrite) -> None:
-                        nonlocal delivered, failure, record_count, payload_bytes, write_attempted
+                        nonlocal delivered, failure, batch_bytes, write_attempted
                         nonlocal terminal_baseline
                         try:
                             if not active or get_ident() != thread or delivered:
@@ -1960,16 +2561,27 @@ class LocalByteStore:
                             if (write.key in original_keys
                                     or (not reuse_identical and write.key in keys)):
                                 raise ValueError('Duplicate or original Local physical projection key')
-                            if reuse_identical and write.expected_generation is not None:
+                            first_evidence = _sdk_first_evidence and ordinal == 0
+                            evidence_namespace = 'client_local_read_evidence'
+                            if first_evidence and not write.key.startswith(
+                                    f'namespace:{len(evidence_namespace)}:{evidence_namespace}:'):
+                                raise ValueError('Invalid Local SDK read evidence position')
+                            reusable = reuse_identical or first_evidence
+                            if reusable and write.expected_generation is not None:
                                 raise ValueError('Publication physical projection is insert-only')
                             existing = database.read_header(write.key)
-                            if reuse_identical and existing is not None:
+                            if reusable and existing is not None:
+                                if first_evidence and existing[0] != 0:
+                                    raise _PhysicalWriteConflict()
                                 # Bound the stored equality copy before fetching bytes.
                                 # This does not validate any Core identity or chain.
                                 if existing[1] > self._max_record_bytes:
                                     raise LocalStorageError('Local physical payload capacity exceeded')
                                 if existing[1] != len(write.payload):
                                     raise _PhysicalWriteConflict()
+                                batch_bytes += existing[1]
+                                if batch_bytes > self._max_payload_bytes:
+                                    raise LocalStorageError('Local physical payload capacity exceeded')
                                 stored = self._read_bytes_locked(write.key)
                                 if stored is None or stored.payload != write.payload:
                                     raise _PhysicalWriteConflict()
@@ -1983,16 +2595,14 @@ class LocalByteStore:
                                         and existing[0] != write.expected_generation)):
                                 raise _PhysicalWriteConflict()
                             generation = 0 if existing is None else existing[0] + 1
-                            next_count = record_count + (1 if existing is None else 0)
-                            next_bytes = payload_bytes - (0 if existing is None else existing[1]) + len(write.payload)
-                            if next_count > self._max_records or next_bytes > self._max_payload_bytes:
+                            batch_bytes += len(write.payload)
+                            if batch_bytes > self._max_payload_bytes:
                                 raise LocalStorageError('Local physical payload capacity exceeded')
                             actual = database.write_record(write.key, write.expected_generation, write.payload)
                             if actual != generation:
                                 raise LocalStorageError('Original Local physical CAS generation changed')
                             keys.add(write.key)
                             generations.append(generation)
-                            record_count, payload_bytes = next_count, next_bytes
                             delivered = True
                             if _sdk_terminal_precommit:
                                 terminal_baseline = capture_terminal_baseline()
@@ -2051,7 +2661,8 @@ class LocalByteStore:
                         _projected_prewrite=(
                             (lambda: not (write_attempted if reuse_identical else consumed))
                             if _sdk_delivery_prewrite else None),
-                        _terminal_read_baseline=terminal_read_baseline if _sdk_terminal_precommit else None)
+                        _terminal_read_baseline=terminal_read_baseline if _sdk_terminal_precommit else None,
+                        _effect_points=_effect_points)
                 if consumption_failure is not None:
                     raise consumption_failure
                 if not complete:
@@ -2071,8 +2682,12 @@ class LocalByteStore:
             except BaseException as failure:
                 self._classify_failed_write(failure, commit_attempted=commit_attempted,
                                             commit_confirmed=commit_confirmed)
-                if type(failure) is _PhysicalWriteConflict:
+                if isinstance(failure, (_PhysicalWriteConflict, _PhysicalPrimaryKeyConflict)):
                     return None
+                if type(failure) is _PhysicalRunDefinitionConflict:
+                    raise LocalRunDefinitionConflict(failure.definition) from failure
+                if type(failure) is _PhysicalCapacityExceeded:
+                    raise LocalStorageError('Local physical payload capacity exceeded') from failure
                 raise
 
     def _exchange_write_keys(self, writes: tuple[ByteWrite, ...]) -> set[str]:
@@ -2185,7 +2800,8 @@ class LocalByteStore:
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...] = (),
                                fences: tuple[ByteFence, ...] = (),
                                current: Callable[[], object] | None = None,
-                               inspect: _InventoryInspection | None = None) -> tuple[int, ...] | None:
+                               inspect: _InventoryInspection | None = None,
+                               model_entry_usage: tuple[str, int, int] | None = None) -> tuple[int, ...] | None:
         keys = self._exchange_write_keys(writes)
         if capacity is not None:
             if type(capacity) is not CapacityReservation:
@@ -2203,6 +2819,8 @@ class LocalByteStore:
         with self._lock:
             self._open()
             database = self._physical
+            if model_entry_usage is not None and type(database) is not _SQLiteByteDatabase:
+                raise LocalStorageError('Original Local Model Call journal is unavailable')
             commit_attempted = commit_confirmed = False
             try:
                 database.begin_immediate()
@@ -2217,28 +2835,37 @@ class LocalByteStore:
                 if inspect is not None:
                     # This reader retires before this owner starts its SQL writes.
                     self._inspect_namespace_locked(inspect, fences, current, _prewrite=True)
-                generations: list[int] = []
-                inserted = replaced = 0
-                for write in writes:
-                    existing = database.read_header(write.key)
-                    if (existing is None) != (write.expected_generation is None) or (
-                            existing is not None and existing[0] != write.expected_generation):
-                        raise _PhysicalWriteConflict()
-                    if existing is None:
-                        inserted += 1
-                        generations.append(0)
-                    else:
-                        replaced += existing[1]
-                        generations.append(existing[0] + 1)
-                count, total = database.record_usage()
-                if (count + inserted > self._max_records or
-                        total - replaced + sum(len(write.payload) for write in writes)
-                        > self._max_payload_bytes):
+                if not (self._ordinary and type(database) is _SQLiteByteDatabase):
+                    for write in writes:
+                        existing = database.read_header(write.key)
+                        observed = None if existing is None else existing[0]
+                        if observed != write.expected_generation:
+                            raise _PhysicalWriteConflict()
+                batch_bytes = sum(len(write.payload) for write in writes)
+                if batch_bytes > self._max_payload_bytes:
                     raise LocalStorageError('Local physical payload capacity exceeded')
-                for write, generation in zip(writes, generations):
+                if model_entry_usage is not None:
+                    assert type(database) is _SQLiteByteDatabase
+                    scope, previous_objects, max_scope_bytes = model_entry_usage
+                    try:
+                        charged = database.append_model_call_usage_in_transaction(
+                            scope, previous_objects, len(writes[0].payload),
+                            max_scope_bytes, self._max_reservations)
+                    except _PhysicalCapacityExceeded as exceeded:
+                        raise LocalStorageError('Original Local Model Call journal capacity exceeded') from exceeded
+                    if not charged:
+                        raise _PhysicalWriteConflict()
+                # The ordinary SQLite Store determines conflicts in the
+                # admitted write order. A subordinate INSERT must not mask
+                # an earlier Run Definition collision.
+                generations: list[int] = []
+                for write in writes:
+                    expected = write.expected_generation
+                    generation = 0 if expected is None else expected + 1
                     actual = database.write_record(write.key, write.expected_generation, write.payload)
                     if actual != generation:
                         raise LocalStorageError('Original Local physical CAS generation changed')
+                    generations.append(generation)
                 self._fenced_current(current)
                 if fences and not self._fences_match_locked(fences, writes):
                     raise _PhysicalWriteConflict()
@@ -2250,13 +2877,20 @@ class LocalByteStore:
             except BaseException as failure:
                 self._classify_failed_write(failure, commit_attempted=commit_attempted,
                                             commit_confirmed=commit_confirmed)
-                if type(failure) is _PhysicalWriteConflict:
+                if isinstance(failure, (_PhysicalWriteConflict, _PhysicalPrimaryKeyConflict)):
                     return None
+                if type(failure) is _PhysicalRunDefinitionConflict:
+                    raise LocalRunDefinitionConflict(failure.definition) from failure
+                if type(failure) is _PhysicalCapacityExceeded:
+                    raise LocalStorageError('Local physical payload capacity exceeded') from failure
                 raise
 
     def close(self) -> None:
         with self._lock:
             if not self._closed:
+                if self._catalog_inspection is not None:
+                    self._catalog_inspection.close()
+                    self._catalog_inspection = None
                 self._close_descriptor()
                 if hasattr(self, '_physical'):
                     self._physical.close()
@@ -2277,17 +2911,3 @@ class LocalByteStore:
 
     def __exit__(self, *_: object) -> None:
         self.close()
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(LocalByteStore, (
-        '_capacity_amount', '_capacity_name', '_fenced_current',
-        '_fences_match_locked', '_file_generation', '_inspect_namespace_locked',
-        '_inspect_original_reconciliation_prepare', '_key', '_observe_generation',
-        '_open', '_originals_match_locked', '_read_bytes_locked',
-        '_validate_metadata_fences', '_validate_originals', 'namespaced_key',
-        'observe_generation',
-    )),
-)

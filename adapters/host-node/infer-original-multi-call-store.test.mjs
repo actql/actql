@@ -7,7 +7,7 @@ import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {setImmediate as turn} from 'node:timers/promises';
 import {pathToFileURL} from 'node:url';
-import {createOriginalUndiciFetch} from '../../packages/provider-ai-sdk/_internal/original-undici-transport.mjs';
+import {createOriginalUndiciFetch} from '@actql/local-node/_internal/model-http-transport';
 import {originalSdkCommonFixture} from './infer-original-sdk-common.fixture.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 

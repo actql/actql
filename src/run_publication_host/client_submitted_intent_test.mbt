@@ -268,3 +268,60 @@ test "submitted Debug profile preserves every original continuation choice and i
     )
   }
 }
+
+///|
+test "submitted Debug marks bind the original map and ordered step choices" {
+  let a = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  let b = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  let c = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  fn intent(map : String, first : String, second : String) -> String {
+    "{\"breakpointSelection\":{\"before_step_ids\":[\"\{first}\",\"\{second}\"],\"logical_map_cid\":\"\{map}\"},\"executionProfile\":\"debug\",\"input\":{},\"kind\":\"program\",\"parameters\":null}"
+  }
+  let wire = intent(c, a, b)
+  let original = prepare_client_submitted_intent(wire, 4096, 128, 16).unwrap()
+  assert_eq(client_submitted_intent_entry_breakpoint_count(original), 2)
+  assert_true(client_submitted_intent_breakpoint_map_matches(original, c))
+  assert_false(client_submitted_intent_breakpoint_map_matches(original, a))
+  assert_eq(client_submitted_intent_breakpoint_step(original, 0), Some(a))
+  assert_eq(client_submitted_intent_breakpoint_step(original, 1), Some(b))
+  assert_eq(client_submitted_intent_breakpoint_step(original, 2), None)
+  let matches = fn(map, steps : Array[String]) {
+    client_submitted_intent_breakpoint_selection_matches(
+      original,
+      map,
+      ReadOnlyArray::from_array(steps),
+    )
+  }
+  assert_true(matches(c, [a, b]))
+  assert_false(matches(c, [b, a]))
+  assert_false(matches(c, [a]))
+  assert_false(matches(b, [a, b]))
+  assert_eq(client_submitted_intent_wire(original), wire)
+  assert_eq(
+    client_submitted_intent_cid(original),
+    "sha256:d56f7bfdc678d4d6c117317b734371ffe2cc10e4f3d7443ec63984c39b09dab2",
+  )
+  for change in [intent(c, b, a), intent(b, a, b)] {
+    let changed = prepare_client_submitted_intent(change, 4096, 128, 16).unwrap()
+    assert_true(
+      client_submitted_intent_cid(changed) !=
+      client_submitted_intent_cid(original),
+    )
+  }
+  for
+    invalid in [
+      intent(c, a, a),
+      intent(c, a, "short"),
+      intent("unbound", a, b),
+      wire.replace(old="\"executionProfile\":\"debug\",", new=""),
+      wire.replace(
+        old="\"logical_map_cid\"",
+        new="\"extra\":true,\"logical_map_cid\"",
+      ),
+    ] {
+    assert_true(
+      prepare_client_submitted_intent(invalid, 4096, 128, 16)
+      is Err(InvalidEnvelope),
+    )
+  }
+}

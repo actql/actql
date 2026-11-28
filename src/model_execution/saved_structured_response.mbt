@@ -80,10 +80,7 @@ pub fn model_physical_saved_structured_response(
     return Err(Cancelled)
   }
   if status < 200 || status >= 300 {
-    let failure = match status {
-      429 => RateLimit
-      _ => ProviderError
-    }
+    let failure = model_http_rejected_response_failure(status)
     return Ok(
       PhysicalSavedStructuredResponse({
         receipt,

@@ -1,5 +1,6 @@
 import {runtimeField, runtimeIsOk} from './compiler-binding.generated.mjs';
 import {createHttpChatPreflight} from './model-port.mjs';
+import type {PrepareHttpTransport} from './model-port.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {snapshotHTTPOriginalMaterials, admitHTTPOriginalMaterials} from './original-materials.mjs';
 import type {ProjectionLimits, RequestLimits, ResponseLimits, QuantityCapacity} from '../index.d.ts';
@@ -17,7 +18,9 @@ interface RawOriginal {profile: unknown; probability: unknown; installation: {
 type Configuration = Pick<Preflight, 'modelId' | 'modelSelector' | 'taskCid' | 'promptCid' |
   'outputSchemaCid' | 'endpoint' | 'fetch' | 'observeAt'> & {providerId: string;
   promptPayloadWire: string; headers: unknown; observeEgress: (facts: unknown) => unknown;
-  originalMaterials?: unknown; originalReadInstallation: ReadOriginal; rawCaptureSelection: RawOriginal;
+  originalMaterials?: unknown; originalReadInstallation?: ReadOriginal; originalReadRecipe?: ReadOriginal;
+  rawCaptureSelection: RawOriginal;
+  needsCredential?: true;
   bindingOriginals: Readonly<Record<string, unknown>>; quantityCapacity: QuantityCapacity;
   projectionLimits: ProjectionLimits; requestLimits: RequestLimits; responseLimits: ResponseLimits;
 };
@@ -74,17 +77,33 @@ function snapshotArray(value: unknown, maximum: number, code: string): readonly 
 // The package exposes this assembler only; original funding and public
 // execution acceptance remain separate required boundaries.
 export function createInstalledHttpChatRegistration(value: unknown): Registration {
+  return installedHttpChatRegistration(value);
+}
+
+export function createInstalledPreparedHttpChatRegistration(value: unknown, prepareTransport: PrepareHttpTransport): Registration {
+  if (typeof prepareTransport !== 'function') fail('InvalidInstalledHTTPChatConfiguration');
+  return installedHttpChatRegistration(value, prepareTransport);
+}
+
+function installedHttpChatRegistration(value: unknown, prepareTransport?: PrepareHttpTransport): Registration {
   const materialsMode = value !== null && typeof value === 'object' &&
     Object.hasOwn(value, 'originalMaterials');
+  const recipeMode = value !== null && typeof value === 'object' && Object.hasOwn(value, 'originalReadRecipe');
+  const credentialMode = value !== null && typeof value === 'object' && Object.hasOwn(value, 'needsCredential');
+  if (recipeMode && (prepareTransport === undefined || materialsMode)) fail('InvalidInstalledHTTPChatConfiguration');
   const fields = ['providerId', 'modelSelector', 'modelId',
     'endpoint', 'headers', 'taskCid', 'promptCid', 'outputSchemaCid',
-    'promptPayloadWire', 'originalReadInstallation', 'rawCaptureSelection',
+    'promptPayloadWire', recipeMode ? 'originalReadRecipe' : 'originalReadInstallation', 'rawCaptureSelection',
     'bindingOriginals', 'quantityCapacity', 'projectionLimits', 'requestLimits',
-    'responseLimits', 'fetch', 'observeAt', 'observeEgress'];
+    'responseLimits', 'observeAt', 'observeEgress', ...(prepareTransport === undefined ? ['fetch'] : []),
+    ...(credentialMode ? ['needsCredential'] : [])];
   let config = snapshot(value, materialsMode
     ? fields.filter(name => !['originalReadInstallation', 'rawCaptureSelection'].includes(name))
       .concat('originalMaterials') : fields, 'InvalidInstalledHTTPChatConfiguration') as unknown as Configuration;
   value = undefined;
+  if (credentialMode && (prepareTransport === undefined || config.needsCredential !== true)) {
+    fail('InvalidInstalledHTTPChatConfiguration');
+  }
   // DATA is captured before the Host calls this registration. Only that
   // callback's actual Common runtime can admit the profile and four policies.
   // The old opaque selection and this mode are mutually exclusive.
@@ -92,7 +111,7 @@ export function createInstalledHttpChatRegistration(value: unknown): Registratio
     let materials: ReturnType<typeof snapshotHTTPOriginalMaterials> | undefined = snapshotHTTPOriginalMaterials(config.originalMaterials);
     const {originalMaterials: unused, ...source} = config;
     void unused;
-    let retained: ReturnType<typeof retainConfiguration> | undefined = retainConfiguration(source);
+    let retained: ReturnType<typeof retainConfiguration> | undefined = retainConfiguration(source, prepareTransport);
     config = undefined as unknown as Configuration;
     let entered = false;
     return (moon: Runtime) => {
@@ -101,7 +120,7 @@ export function createInstalledHttpChatRegistration(value: unknown): Registratio
       entered = true;
       try {
         const originals = admitHTTPOriginalMaterials(moon, materials!);
-        return createInstalledHttpChatRegistration({...retained, ...originals})(moon);
+        return installedHttpChatRegistration({...retained, ...originals}, prepareTransport)(moon);
       } finally {
         // A spent callback never retries admission or keeps unused snapshots.
         // Returned entries retain their own original duties. This is neither
@@ -111,16 +130,17 @@ export function createInstalledHttpChatRegistration(value: unknown): Registratio
       }
     };
   }
-  return installedOpaqueRegistration(retainConfiguration(config));
+  return installedOpaqueRegistration(retainConfiguration(config, prepareTransport), prepareTransport);
 }
 
-function retainConfiguration(config: Configuration) {
+function retainConfiguration(config: Configuration, prepareTransport?: PrepareHttpTransport) {
   const {providerId, modelSelector, modelId, endpoint, taskCid, promptCid,
     outputSchemaCid, promptPayloadWire, fetch, observeAt, observeEgress} = config;
   if (![providerId, modelSelector, modelId, endpoint].every(text) ||
       ![taskCid, promptCid, outputSchemaCid].every(cid) ||
       typeof promptPayloadWire !== 'string' ||
-      ![fetch, observeAt, observeEgress].every(x => typeof x === 'function')) {
+      (prepareTransport === undefined ? typeof fetch !== 'function' : fetch !== undefined) ||
+      ![observeAt, observeEgress].every(x => typeof x === 'function')) {
     fail('InvalidInstalledHTTPChatConfiguration');
   }
   let url!: URL;
@@ -164,13 +184,14 @@ function assertRuntime(moon: Runtime) {
     .every(name => typeof moon?.[name] === 'function')) fail('HTTPChatOriginalRuntimeUnavailable');
 }
 
-function installedOpaqueRegistration(config: ReturnType<typeof retainConfiguration>): Registration {
+function installedOpaqueRegistration(config: ReturnType<typeof retainConfiguration>, prepareTransport?: PrepareHttpTransport): Registration {
   const {providerId, modelSelector, modelId, endpoint, taskCid, promptCid,
     outputSchemaCid, promptPayloadWire, fetch, observeAt, observeEgress,
     projectionLimits, requestLimits, responseLimits, headers} = config;
-  const original = config.originalReadInstallation;
+  const recipe = config.originalReadRecipe;
+  const original = recipe ?? config.originalReadInstallation;
   const raw = config.rawCaptureSelection;
-  if (!frozen(original) || !frozen(original.bootstrap) ||
+  if (original === undefined || !frozen(original) || !frozen(original.bootstrap) ||
       !frozen(original.nodeInstallation) || !frozen(original.nodeInstallation.layout) ||
       !frozen(raw) || !frozen(raw.installation) || raw.profile == null) fail('HTTPChatOriginalInstallationUnavailable');
   const installation = raw.installation;
@@ -194,8 +215,8 @@ function installedOpaqueRegistration(config: ReturnType<typeof retainConfigurati
       responseLimits.maxChunks, responseLimits.maxHeaderBytes) !== true) {
       fail('HTTPChatOriginalTransportLimitsMismatch');
     }
-    return [Object.freeze({providerId, entryPersistence: 'async',
-      bindingOriginals: bindings, originalReadInstallation: original,
+    return [Object.freeze({providerId, entryPersistence: 'async', bindingOriginals: bindings,
+      ...(recipe === undefined ? {originalReadInstallation: original} : {originalReadRecipe: original}),
       rawCaptureSelection: raw, quantityCapacity: quantities, observeEgress,
       validatePrompt: (task: unknown, selector: unknown, payload: unknown) => task === taskCid &&
         selector === modelSelector && payload === promptPayloadWire,
@@ -206,7 +227,8 @@ function installedOpaqueRegistration(config: ReturnType<typeof retainConfigurati
         }
         return createHttpChatPreflight({moon, request, admittedProvider, modelId,
           taskCid, promptCid, outputSchemaCid, modelSelector, projectionLimits,
-          endpoint, headers, requestLimits, responseLimits, fetch, observeAt,
+          endpoint, headers, requestLimits, responseLimits, fetch, prepareTransport,
+          needsCredential: config.needsCredential, observeAt,
           notify: notification.notify, rawCaptureBinder: retainRawBinder,
           profile: raw.profile, installation, quantities: quantities.perAttempt,
           checked(result: unknown) {

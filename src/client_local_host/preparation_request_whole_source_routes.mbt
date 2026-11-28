@@ -64,7 +64,7 @@ fn[I] reserve_request_whole_source_routes(
     Ok(_) => ()
   }
   let direct = match
-    (if phase == ModelPlanReserved {
+    (if phase == ModelPlanReserved || phase is PortableModelMetadataIssued(_) {
       request_model_direct_occurrences_owned(owner, input)
     } else {
       installed_direct_occurrences_owned(Pure(prepared))

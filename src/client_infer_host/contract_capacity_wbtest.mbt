@@ -6,6 +6,7 @@ fn contract_capacity_start(
   limits? : Limits = standard_limits(),
   asynchronous? : Bool = false,
   rows? : String = "[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+  strict? : Bool = false,
   token_reservation? : Int64 = 128L,
   duration_ms? : Int64 = 1000L,
   environment_wire? : String = infer_fixture_environment,
@@ -14,6 +15,14 @@ fn contract_capacity_start(
     old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
     new="\"rows\":" + rows,
   )
+  let source = if strict {
+    source.replace(
+      old="\"key\":\"id\",",
+      new="\"key\":\"id\",\"on_non_success\":\"fail\",",
+    )
+  } else {
+    source
+  }
   let prepared = fixture_prepared(source~, environment_wire~)
   let plan = call_identity_plan(
     prepared,

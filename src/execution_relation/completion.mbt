@@ -545,6 +545,11 @@ pub fn completed_cell(
   column : Int,
 ) -> Value? {
   guard output.table is Some(table) else { return None }
+  // A recovered table's backing may remain after its receiving permit ends.
+  // Its direct scalar view must observe the same revocation as ProducerRead.
+  if output.completion.readmitted && !completed_output_available(output) {
+    return None
+  }
   if table is PresenceTable(values) {
     guard values.rows.get(row) is Some(value) else { return None }
     return relation_row_required_value(value, column).to_option().map(capture)

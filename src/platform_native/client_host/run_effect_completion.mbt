@@ -21,7 +21,7 @@ fn NativeClientRunJournal::require_file_effect_completion_locked(
     record.checkpoint is Some(checkpoint) &&
     checkpoint.unknown_effects.is_empty() &&
     !checkpoint.settlement_only &&
-    !record.cancellation_requested &&
+    !record.cancellation_requested() &&
     @publication.effect_preview_run_identity(settlement.preview) ==
     @publication.publication_contract_identity(record.definition) &&
     @publication.effect_preview_semantic_identity(settlement.preview) ==

@@ -142,7 +142,7 @@ test "explicit CAST does not waive actual completion or uninstalled relation ope
     _issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
-  assert_true(implicit_else.local_normalization is None)
+  assert_true(implicit_else.local_normalization is NormalizationNotIssued)
   let distinct = local_explicit_cast_original(
     text="SELECT DISTINCT CAST(ABS(-1) AS NUMBER) AS value",
   )
@@ -163,7 +163,7 @@ test "explicit CAST does not waive actual completion or uninstalled relation ope
     _issue_prepared_client_legacy_local_normalization(unsupported)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(unsupported.local_normalization is None)
+  assert_true(unsupported.local_normalization is NormalizationNotIssued)
 }
 
 ///|

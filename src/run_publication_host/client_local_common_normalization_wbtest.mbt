@@ -59,7 +59,7 @@ test "common journal encoding cannot exceed its reserved remaining work" {
     local_common_normalization_journal_body(inventory, bytes - 1)
     is Err(CommonInventory(BudgetExceeded)),
   )
-  assert_true(owner.local_normalization is None)
+  assert_true(owner.local_normalization is NormalizationNotIssued)
 }
 
 ///|

@@ -662,3 +662,57 @@ fn client_checkpoint_ledger_head(
 fn client_checkpoint_text(object : @decode.ObjectView, key : String) -> String? {
   @decode.lookup(object, key).bind(value => @decode.text(value).to_option())
 }
+
+///|
+// Subordinate locator in the same Journal. Neither this key nor its DATA body
+// authenticates an epoch, grants RunRead or supplies approval/continuation.
+pub fn client_checkpoint_locator_key(scope : String, id : String) -> String {
+  @sha.hex(@utf8.encode(scope + "\u{0000}" + id))
+}
+
+///|
+pub fn client_checkpoint_locator_body(
+  request : ClientRequestIdentity,
+  checkpoint : @checkpoint.SealedCheckpoint,
+) -> Result[Bytes, ClientCheckpointJournalIssue] {
+  let request_wire = match client_request_identity_record_wire(request) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidMaterial)
+  }
+  try {
+    let writer = @encode.writer(262144, 16, 4)
+    @encode.begin_object(writer)
+    @encode.key(writer, "checkpoint_cid")
+    @encode.string_value(writer, checkpoint.checkpoint_cid)
+    @encode.key(writer, "checkpoint_id")
+    @encode.string_value(writer, checkpoint.checkpoint.checkpoint_id)
+    @encode.key(writer, "request")
+    @encode.string_value(writer, request_wire)
+    @encode.end_object(writer)
+    Ok(@utf8.encode(@encode.finish(writer)))
+  } catch {
+    _ => Err(InvalidMaterial)
+  }
+}
+
+///|
+pub fn decode_client_checkpoint_locator(
+  body : Bytes,
+) -> Result[
+  (ClientRequestIdentity, String, String),
+  ClientCheckpointJournalIssue,
+] {
+  let text = @utf8.decode(body) catch { _ => return Err(InvalidMaterial) }
+  guard client_checkpoint_cursor(text) is Some(cursor) &&
+    @decode.closed_object(cursor, ["checkpoint_cid", "checkpoint_id", "request"])
+    is Ok(object) else {
+    return Err(InvalidMaterial)
+  }
+  guard client_checkpoint_text(object, "request") is Some(wire) &&
+    admit_client_request_identity_record_wire(wire) is Ok(request) &&
+    client_checkpoint_text(object, "checkpoint_id") is Some(id) &&
+    client_checkpoint_text(object, "checkpoint_cid") is Some(cid) else {
+    return Err(InvalidMaterial)
+  }
+  Ok((request, id, cid))
+}

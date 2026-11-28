@@ -695,6 +695,48 @@ pub fn issue_effectful_final_run_receipt(
     Ok(value) => value
     Err(issue) => return Err(References(SetReceipt(issue)))
   }
+  let issued = match
+    compose_effectful_final_receipt(
+      computation_receipt,
+      captured_run,
+      preview,
+      set.identity,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    admit_effectful_final_receipt_references(
+      run_definition,
+      computation_receipt,
+      captured_run,
+      preview,
+      set_receipt_wire,
+      member_receipt_wires,
+      issued.wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      prepared_capture~,
+    ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(References(issue))
+  }
+}
+
+///|
+fn compose_effectful_final_receipt(
+  computation_receipt : PublicationContract,
+  captured_run : PublicationContract,
+  preview : EffectPreviewIdentity,
+  set_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectfulFinalReceiptIssuanceIssue] {
   let body = match
     @json.object_without_field(
       computation_receipt.value,
@@ -714,9 +756,7 @@ pub fn issue_effectful_final_run_receipt(
   }
   let body = match
     @json.object_with_string_field(
-      body,
-      "effect_set_apply_receipt_cid",
-      set.identity,
+      body, "effect_set_apply_receipt_cid", set_cid,
     ) {
     Some(value) => value
     None => return Err(InvalidComputation)
@@ -733,28 +773,112 @@ pub fn issue_effectful_final_run_receipt(
   let wire = @json.stringify_value(body, max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  let issued = match
+  match
     seal_publication_contract(
       "run_receipt", wire, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(value) => value
-    Err(issue) => return Err(References(FinalReceipt(issue)))
+    Ok(value) => Ok(value)
+    Err(issue) => Err(References(FinalReceipt(issue)))
   }
+}
+
+///|
+/// Issue from the exact retained checked computation. Its admission already
+/// checked the captured Receipt, Preview, authoring, context, and dependency
+/// inventory together. Set/member closure is checked against that same Preview
+/// before the final Receipt is derived from the original computation Receipt.
+pub fn issue_retained_effectful_final_run_evidence(
+  computation : RetainedEffectfulComputation,
+  derivations : Array[PublicationContract],
+  orderings : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+  set_receipt_wire : String,
+  member_receipt_wires : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[EffectfulFinalRunEvidence, EffectfulPublicationCommitIssue] {
+  let original = computation.inputs
+  guard original.preview is Some(preview) &&
+    max_wire_bytes > 0 &&
+    max_nodes > 0 &&
+    max_depth > 0 &&
+    original.receipt.name == "run_receipt" &&
+    original.captured_run.name == "captured_run" &&
+    @json.object_field(original.receipt.value, "effect_preview_cid") is None &&
+    @json.object_field(original.receipt.value, "effect_set_apply_receipt_cid")
+    is None &&
+    @json.object_field(original.receipt.value, "captured_run_cid") is None else {
+    return Err(FinalChain(FinalReferences(ForeignComputation)))
+  }
+  let derivations = derivations.copy()
+  let orderings = orderings.copy()
+  let unique_retentions = Array(capacity=retentions.length())
+  let retained_by_identity = Map([])
+  for retention in retentions {
+    match retained_by_identity.get(retention.identity) {
+      Some(held) =>
+        if !publication_contract_data_equal(held, retention) {
+          return Err(FinalChain(FinalReferences(ChangedComputationEvidence)))
+        }
+      None => {
+        retained_by_identity[retention.identity] = retention
+        unique_retentions.push(retention)
+      }
+    }
+  }
+  let retentions = unique_retentions
   match
-    admit_effectful_final_receipt_references(
-      run_definition,
-      computation_receipt,
-      captured_run,
+    validate_result_evidence_set(
+      original.definitions,
+      original.artifacts,
+      derivations,
+      orderings,
+      retentions,
+    ) {
+    Err(issue) => return Err(ResultEvidence(issue))
+    Ok(_) => ()
+  }
+  let outcomes = match
+    admit_effect_set_apply_receipt_evidence(
+      preview, set_receipt_wire, member_receipt_wires, max_wire_bytes, max_nodes,
+      max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(FinalChain(FinalReferences(SetReceipt(issue))))
+  }
+  let final_receipt = match
+    compose_effectful_final_receipt(
+      original.receipt,
+      original.captured_run,
       preview,
-      set_receipt_wire,
-      member_receipt_wires,
-      issued.wire,
+      outcomes.receipt.identity,
       max_wire_bytes,
       max_nodes,
       max_depth,
-      prepared_capture~,
     ) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(References(issue))
+    Ok(value) => value
+    Err(References(issue)) => return Err(FinalChain(FinalReferences(issue)))
+    Err(_) =>
+      return Err(FinalChain(FinalReferences(ChangedComputationEvidence)))
   }
+  guard manifest_result_names(original.manifest) is Ok(declared_results) else {
+    return Err(
+      FinalChain(Computation(EvidenceInventoryMismatch("manifest results"))),
+    )
+  }
+  Ok({
+    run_definition: original.run_definition,
+    invocation: original.invocation,
+    definitions: original.definitions.copy(),
+    artifacts: original.artifacts.copy(),
+    _observed_derivations: derivations,
+    orderings,
+    retentions,
+    manifest: original.manifest,
+    declared_results,
+    captured_run: original.captured_run,
+    final_receipt,
+    outcomes,
+  })
 }

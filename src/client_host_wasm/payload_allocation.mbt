@@ -42,6 +42,7 @@ pub fn reserve_payload_allocation(
   parent : Int,
   kind : Int,
   physical_ticket : Int,
+  max_wire_bytes : Int,
   physical_copy_bytes : Int64,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
@@ -55,6 +56,9 @@ pub fn reserve_payload_allocation(
   }
   if value.closing || value.runtime_closing {
     return -5
+  }
+  if max_wire_bytes < 1 || max_wire_bytes > 65536 {
+    return -3
   }
   if physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
@@ -72,9 +76,12 @@ pub fn reserve_payload_allocation(
     return -3
   }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, 65536, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      max_wire_bytes,
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }

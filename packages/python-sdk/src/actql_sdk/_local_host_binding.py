@@ -1,6 +1,7 @@
 """Original physical Host supplier for the existing Common current/scope Owner."""
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+import hashlib
 import json
 from threading import get_ident
 from types import MethodType
@@ -120,9 +121,6 @@ class _OriginalPublisherPort:
             self.observer()
             if type(fact) is not _PublisherFact or type(fact.namespace_id) is not str:
                 raise ValueError('Original Local physical publisher facts changed')
-            phase = getattr(self.core, '_reconciliation_prepare', None)
-            if phase is not None and not phase.suspended:
-                phase.authorizations += 1
             return fact.namespace_id == 'local'
         except BaseException as error:
             raise self._fail(error)
@@ -137,8 +135,7 @@ class _InvocationObservation:
     complete filesystem walk. Nothing survives the synchronous invocation.
     """
     __slots__ = ('binding', 'core', 'reader', 'connection', 'current', 'input',
-                 'epoch', 'source', 'state', 'installation', 'selected', 'expected',
-                 'fences', 'thread', 'operation', 'failure', 'suspended', 'active',
+                 'epoch', 'thread', 'operation', 'failure', 'suspended', 'active',
                  'admitted', 'disabled', 'checking_physical', 'platform', 'publisher',
                  'publisher_buffer', 'publisher_received', 'wasm_export', 'closed_import',
                  'statement_epoch', 'effect_seen')
@@ -149,16 +146,13 @@ class _InvocationObservation:
             raise ValueError('Original closed Local observation is unavailable')
         self.binding, self.core, self.reader, self.connection = binding, binding._core, reader, connection
         self.current, self.input, self.epoch = binding._current, binding._input, binding._frame_epoch
-        self.source, self.state = binding._source, binding._state
-        self.installation = self.source._installation
-        self.selected, self.expected, self.fences = binding._selected, binding._expected, binding._fences
         self.thread = get_ident()
         self.operation = self.core._host_operation_id
         self.platform = getattr(self.core, '_platform_vm_original', None)
         self.publisher: _OriginalPublisherPort | None = None
         self.publisher_buffer: bytearray | None = None
         self.publisher_received = 0
-        self.wasm_export: tuple[Any, str, Any, Any] | None = None
+        self.wasm_export: str | None = None
         self.closed_import = False
         self.statement_epoch = connection._closed_statement_epoch
         self.effect_seen = False
@@ -185,20 +179,11 @@ class _InvocationObservation:
                     or self.binding._store._connection is not self.connection
                     or not self.connection._closed_eligible()):
                 raise ValueError('Original closed SQLite invocation changed or retired')
-            if self.wasm_export is not None:
-                if self.connection._closed_statement_epoch != self.statement_epoch:
-                    raise LocalStorageError('Closed Local SQLite statement changed')
-                receipt, name, export, handle = self.wasm_export
-                if not receipt._matches(name, export) or export._func is not handle:
-                    raise ValueError('Original closed Wasmtime export changed')
+            if (self.wasm_export is not None and
+                    self.connection._closed_statement_epoch != self.statement_epoch):
+                raise LocalStorageError('Closed Local SQLite statement changed')
         except BaseException as error:
             raise self._fail(error)
-
-    def _guard_wasm_methods(self) -> None:
-        if self.wasm_export is not None:
-            receipt, name, export, _ = self.wasm_export
-            if not receipt._matches(name, export, full=True):
-                raise self._fail(ValueError('Original closed Wasmtime methods changed'))
 
     def _reuse_sql_snapshot(self) -> bool:
         # Only an audited import called by the retained actual Wasm export can
@@ -213,16 +198,17 @@ class _InvocationObservation:
     def terminal_read_baseline(self) -> _ClosedReadBaseline | None:
         baseline = self.reader._terminal_read_baseline
         if baseline is not None and self.wasm_export is not None:
-            return baseline(self.wasm_export[1])
+            return baseline(self.wasm_export)
         return None
 
     def supports_saved_census_read(self) -> bool:
         if (self.wasm_export is None or not self.admitted or not self.closed_import
                 or self.suspended or self.effect_seen):
             return False
-        name = self.wasm_export[1]
+        name = self.wasm_export
         if name in ('actql_publication_commit_export_produce_sdk_read_evidence_decision',
-                    'actql_publication_commit_export_produce_sdk_read_delivery_storage',
+                    'actql_publication_commit_export_measure_sdk_read_delivery_storage',
+                    'actql_publication_commit_export_emit_sdk_read_delivery_storage',
                     _TERMINAL_STORAGE_EXPORT):
             prewrite = self.reader._projected_prewrite
             return (prewrite is not None and prewrite()
@@ -240,32 +226,14 @@ class _InvocationObservation:
     def _guard_originals(self) -> None:
         try:
             self._guard_sql()
-            if self.failure is not None:
-                raise self.failure
-            binding, core, installation = self.binding, self.core, self.installation
-            if (not self.active or get_ident() != self.thread
-                    or core._invocation_observation is not self or not core._invoking
-                    or core._closing or core._closed or core._retired
-                    or core._host_cleanup_depth or core._host_fuel_phase != 'operation'
+            binding, core = self.binding, self.core
+            if (core._host_cleanup_depth or core._host_fuel_phase != 'operation'
                     or core._host_operation_id != self.operation
                     or getattr(core, '_platform_vm_original', None) is not self.platform
                     or core._host_current_binding is not binding
                     or binding._original is not binding or binding._closing or not binding._active
                     or binding._current is not self.current or binding._input is not self.input
-                    or binding._observed_reader is not self.reader or binding._frame_epoch is not self.epoch
-                    or binding._source is not self.source or binding._state is not self.state
-                    or binding._selected is not self.selected or binding._expected is not self.expected
-                    or binding._fences is not self.fences or installation is None
-                    or installation._original is not installation or installation._closing
-                    or len(installation._pins) != 2 or installation._pins[0] is not self.source
-                    or installation._pins[1] is not self.state
-                    or self.source._installation is not installation or self.state._installation is not installation
-                    or self.source._root is not installation._source or self.state._root is not installation._state
-                    or self.source._store is not installation._store or self.state._store is not installation._store
-                    or self.source._observe_roots is not None or self.state._observe_roots is not None
-                    or binding._store._connection is not self.connection
-                    or self.connection._closed_invocation is not self
-                    or not self.connection._closed_eligible()):
+                    or binding._observed_reader is not self.reader or binding._frame_epoch is not self.epoch):
                 raise ValueError('Original closed Local invocation changed or retired')
             self._guard_publisher()
             core._owned_output(self.current, 'current')
@@ -276,17 +244,6 @@ class _InvocationObservation:
                 raise ValueError('Original closed Local current callback changed')
             if callbacks.failure is not None:
                 raise callbacks.failure
-            self.source._require_original_members((binding._account, *self.selected))
-            self.state._require_original_members((binding._staged_account, binding._initialization,
-                                                  binding._configuration, binding._journal))
-            for pins in (self.source, self.state):
-                pins._require_current_lifetime()
-                for value in pins._files.values():
-                    pins._root._owned_original(value.reader)
-                    if value.reader.closing or value.reader.invalid or value.reader.descriptor is None:
-                        raise ValueError('Closed Local original file reader retired')
-            for projection in self.expected:
-                core._owned_output(projection, 'original')
         except BaseException as error:
             raise self._fail(error)
 
@@ -296,7 +253,7 @@ class _InvocationObservation:
             return
         publisher._require_live()
         callbacks = publisher.callbacks
-        if (publisher.binding is not self.binding or publisher.installation is not self.installation
+        if (publisher.binding is not self.binding
                 or callbacks is None or callbacks.buffer is not self.publisher_buffer
                 or callbacks.received != self.publisher_received):
             raise ValueError('Original closed Local publisher or collector changed')
@@ -306,7 +263,7 @@ class _InvocationObservation:
             return False
         self._guard_publisher()
         publisher._require_live()
-        if (publisher.binding is not self.binding or publisher.installation is not self.installation
+        if (publisher.binding is not self.binding
                 or (self.publisher is not None and self.publisher is not publisher)):
             return False
         if self.publisher is None:
@@ -345,8 +302,6 @@ class _InvocationObservation:
         try:
             if self.checking_physical:
                 raise ValueError('Reentrant closed Local physical observation')
-            if physical:
-                self._guard_wasm_methods()
             self._guard_originals()
             self.checking_physical = physical
             observe = self.reader._invocation_check
@@ -354,11 +309,8 @@ class _InvocationObservation:
                 raise ValueError('Original closed Local reader port is unavailable')
             observe(self.reader, self.binding._current_observer, self)
             if physical:
-                phase = getattr(self.core, '_reconciliation_prepare', None)
-                if phase is not None and not phase.suspended:
-                    phase.check()
-                else:
-                    self.binding._physical_current()
+                # The physical boundary checks the original installation and files.
+                self.binding._physical_current()
                 observe(self.reader, self.binding._current_observer, self)
         except BaseException as error:
             raise self._fail(error)
@@ -390,9 +342,7 @@ class _InvocationObservation:
             if self.admitted:
                 self.check(physical=True)
             self.suspended = True
-            phase = getattr(self.core, '_reconciliation_prepare', None)
-            result = (phase.interrupt(callback, *args) if phase is not None and not phase.suspended
-                      else callback(*args))
+            result = callback(*args)
             if self.admitted:
                 self.check(physical=True)
             elif self.failure is not None:
@@ -470,7 +420,9 @@ class OriginalHostBinding:
         if (type(core) is not LocalCore or type(source) is not LocalHostFiles
                 or type(state) is not LocalHostFiles or source._store is not state._store
                 or type(epoch) is not LocalSubmissionAuthority or epoch._store is not state._store
-                or type(selected) is not tuple or len(selected) > 8
+                or type(selected) is not tuple or len(selected) > 11
+                or len(selected) > 8 and (len(selected) != 11 or not
+                    {'host.json', 'effect-host-attestation.json', 'effect-reviewer.json'} <= {item.name for item in selected})
                 or type(expected) is not tuple or len(expected) != 4
                 or type(principal) is not str or type(connection) is not str
                 or not 0 < len(principal.encode('utf-8')) <= 512
@@ -641,6 +593,69 @@ class OriginalHostBinding:
         core._owned_input(self._input)
         reader.check_fences(reader, (*self._fences, self._frame_epoch))
 
+    def _authenticate_submitted_name(self, current: _Output, preimage: bytes) -> bytes:
+        reader = self._observed_reader
+        self._require_observation_frame(self._core, current, reader)
+        fence = self._frame_epoch
+        assert fence is not None
+        authenticator = self._epoch._authenticate_name(fence, preimage)
+        self._require_observation_frame(self._core, current, reader)
+        return authenticator
+
+    def _derive_mock_review_key(self, current: _Output, output: _Output, preimage: bytes) -> bytes:
+        """Authenticate the Core-produced coordinates in the same adopted Store read."""
+        reader = self._observed_reader
+        self._require_observation_frame(self._core, current, reader)
+        family = ('saved_mock_review_key' if output.family == 'saved_mock_review_key'
+                  else 'original_mock_review_key')
+        self._core._owned_output(output, family)
+        fence = self._frame_epoch
+        if fence is None or type(preimage) is not bytes or not 0 < len(preimage) <= 8192:
+            raise ValueError('Original Mock Review key coordinates are unavailable')
+        result = self._epoch._model_evidence_key(fence, preimage)
+        self._require_observation_frame(self._core, current, reader)
+        return result
+
+    def _with_model_evidence_key(self, current: _Output, adoption_cid: str,
+                                 store_cid: str, consume: Callable[[bytes], _T]) -> _T:
+        """Borrow this adopted Store's physical Model Raw key inside its reader."""
+        reader = self._observed_reader
+        self._require_observation_frame(self._core, current, reader)
+        fence = self._frame_epoch
+        assert fence is not None
+        store = next((member for member in self._selected if member.name == 'store.json'), None)
+        if (store is None or adoption_cid != 'sha256:' + hashlib.sha256(self._fences[0].payload).hexdigest()
+                or store_cid != 'sha256:' + hashlib.sha256(store.body).hexdigest()):
+            raise ValueError('Foreign original Model evidence key binding')
+        preimage = (b'actql-python-local-model-evidence-key/0.1\0'
+                    + adoption_cid.encode('ascii') + b'\0' + store_cid.encode('ascii'))
+        result = consume(self._epoch._model_evidence_key(fence, preimage))
+        self._require_observation_frame(self._core, current, reader)
+        return result
+
+    def _original_effect_host_key_generation(self, current: _Output, reader: _NamespaceReader) -> bytes:
+        from ._local_effect_key_original import _bound_host_key_generation
+        from ._local_submission import _EFFECT_KEY_ROW, _EFFECT_KEY_TABLE
+
+        self._require_observation_frame(self._core, current, reader)
+        role = next((held for held in self._selected if held.name == 'effect-host-attestation.json'), None)
+        fence = self._frame_epoch
+        if role is None or fence is None:
+            raise ValueError('Original Local Host attestation is unavailable')
+        seen: list[bytes] = []
+
+        def verify(row: tuple[str, StoredBytes] | None) -> None:
+            if row is None or row[0] != _EFFECT_KEY_ROW or row[1].generation != 0:
+                raise ValueError('Original Local Host attestation was not provisioned')
+            body = self._epoch._authenticate_effect_host_key(fence, row[1].payload)
+            seen.append(_bound_host_key_generation(body, self._fences[0].payload,
+                                                   self._source.original_bytes(role)))
+
+        reader.read(_EFFECT_KEY_TABLE, _EFFECT_KEY_ROW, verify)
+        self._require_observation_frame(self._core, current, reader)
+        original, = seen
+        return original
+
     def _settings_inventory(self, reader: _NamespaceReader) -> None:
         # This is the same bounded raw membership fence as Native's retained
         # settings port, not a scope or authorization decision. Core-issued
@@ -649,7 +664,9 @@ class OriginalHostBinding:
         expected = {'manifest': self._fences[1].payload} | {
             'file:' + value.name: value.body for value in self._selected}
         inventory = reader.check_inventory
-        if inventory is not None:
+        # The ordinary closed batch accepts nine rows. An explicit approval
+        # installation borrows the same current scan for its selected inventory.
+        if inventory is not None and len(expected) <= 9:
             inventory(reader, 'client_local_settings', tuple(sorted(expected.items())),
                       self._current_observer)
             return
@@ -712,14 +729,11 @@ class OriginalHostBinding:
         """
         with self._core._lock:
             span = getattr(self._core, '_invocation_observation', None)
-            phase = getattr(self._core, '_reconciliation_prepare', None)
             try:
                 self._nominal()
                 if not self._active:
                     raise ValueError('Original Local Host physical frame is unavailable')
-                if phase is not None and phase.binding is self and not phase.suspended:
-                    phase.check()
-                elif type(span) is _InvocationObservation and span.binding is self:
+                if type(span) is _InvocationObservation and span.binding is self:
                     if not span.suspended:
                         if not span.admitted:
                             span.enter()
@@ -732,8 +746,6 @@ class OriginalHostBinding:
                 else:
                     self._physical_current()
             except BaseException as error:
-                if phase is not None and phase.binding is self:
-                    raise phase._fail(error)
                 if type(span) is _InvocationObservation and span.binding is self:
                     raise span._fail(error)
                 raise
@@ -791,8 +803,7 @@ class OriginalHostBinding:
                   and self._core._host_fuel_phase == 'operation'
                   and getattr(self._core, '_host_cleanup_depth', 0) == 0
                   and not self._core._closing
-                  and type(operation) is int and 0 < operation < 2**63
-                  and operation == self._core._host_operation_sequence)
+                  and self._core._host_operation_is_current(operation))
         same = (normal and prior is not None and prior[0] == operation
                 and prior[1] is self._current and prior[2] is self._input)
         self._observed_reader = reader
@@ -848,26 +859,3 @@ class OriginalHostBinding:
                     return False
                 self._workspace = None
             return True
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(OriginalHostBinding, (
-        '_adoption_inventory', '_new_invocation_observation', '_nominal',
-        '_physical_current', '_require_observation_frame', '_settings_inventory',
-        'current', 'fenced',
-    )),
-    _capture_prepare_methods(_OriginalPublisherPort, (
-        '__init__', '_bind', '_fail',
-        '_require_live', '_require_original', '_require_reservation',
-        'authorize', 'current',
-    )),
-    _capture_prepare_methods(_InvocationObservation, (
-        '__init__', '_fail', '_guard_originals',
-        '_guard_publisher', '_guard_sql', '_guard_wasm_methods',
-        '_publisher_result', '_reuse_sql_snapshot', '_select_publisher',
-        'check', 'enter', 'interrupt',
-        'leave',
-    )),
-)

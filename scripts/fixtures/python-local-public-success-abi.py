@@ -1,24 +1,49 @@
 """Actual succeeded public execution/typed Result after worker-control changes.
 
-Uses the unchanged source-free Local route and a real SQLite-backed Host. This
-raw-module check does not qualify an installed package or a new Host profile.
+Uses the existing source-free Local route with the selected platform image
+and a real SQLite-backed Host. Installed wheel acceptance runs separately.
 """
+import argparse
 import asyncio
 from contextlib import ExitStack
 from dataclasses import dataclass
-import hashlib
+from importlib.util import module_from_spec, spec_from_file_location
 import json
+import os
+import re
 import sqlite3
 from pathlib import Path
 import sys
 from tempfile import mkdtemp
 from unittest.mock import patch
-from python_local_task_drive_trace import MixedTaskDriveTrace
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
+
+
+def fixture_arguments():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('module')
+    parser.add_argument('scratch', type=Path)
+    parser.add_argument('mode', nargs='?',
+        choices=('commit-unknown', 'task-drive-mixed', 'repeat-live-three', 'installed-commit-unknown'))
+    parser.add_argument('--platform-artifact', type=Path)
+    args = parser.parse_args()
+    if args.mode == 'installed-commit-unknown':
+        if args.platform_artifact is not None or re.fullmatch(r'[0-9a-f]{40}', args.module) is None:
+            parser.error('The installed fixture requires the original source SHA without a platform artifact')
+    elif args.platform_artifact is None:
+        parser.error('The source fixture requires the original --platform-artifact')
+    return args
+
+
+ARGS = fixture_arguments()
+INSTALLED = ARGS.mode == 'installed-commit-unknown'
+if not INSTALLED:
+    sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk import AsyncClient, ClientError
-from actql_sdk._local_core import LocalCore, LocalCoreError, _Output, _NORMAL_HOST_OPERATION_FUEL
+from actql_sdk._local_core import LocalCore, LocalCoreError, _Output, _TaskDrive, _NORMAL_HOST_BOOTSTRAP_FUEL
+from actql_sdk._local_distribution import _execution_component_platform, _read_file
+from actql_sdk._local_engine import _InstalledImageInput, _checked_installed_image
 from actql_sdk._local_product import InstalledLocalHost, _ordinary_core_limits
 from actql_sdk._local_storage import LocalStorageCommitUnknown
 
@@ -34,9 +59,43 @@ class Row:
         return cls(value['n'])
 
 
-def new_core(raw, digest):
-    return LocalCore(raw, digest=digest, transfer_capacity=12 * 1024 * 1024,
-        slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_OPERATION_FUEL)
+def selected_image(module: Path, artifact: Path) -> _InstalledImageInput:
+    spec = spec_from_file_location('python_local_runtime_recipe',
+        ROOT / 'scripts/prepare-python-local-runtime.py')
+    if spec is None or spec.loader is None:
+        raise ValueError('Original Python Local runtime recipe is unavailable')
+    recipe = module_from_spec(spec)
+    spec.loader.exec_module(recipe)
+    components = recipe.verify_artifact(artifact,
+        target_platform=_execution_component_platform())
+    _read_file(module, maximum=32 * 1024 * 1024, digest=components.module_sha256)
+    return _checked_installed_image(components)
+
+
+def installed_identity(source):
+    import actql
+    import actql_sdk
+    from actql_sdk._local_distribution import installed_local_components
+
+    prefix = Path(sys.prefix).resolve()
+    assert sys.prefix != sys.base_prefix, 'The installed fixture requires the selected virtual environment'
+    assert all(Path(module.__file__).resolve().is_relative_to(prefix) for module in (actql, actql_sdk))
+    assert actql.AsyncClient is AsyncClient, 'Installed public facade required'
+    original = installed_local_components()
+    assert original.source_sha == source, 'Foreign installed publication fixture source'
+    return dict(source=source, module=original.module_sha256, image=original.image_sha256, pid=os.getpid())
+
+
+def new_core(image: _InstalledImageInput) -> LocalCore:
+    return LocalCore(None, digest=image.recipe.module_sha256, _compiled_image=image,
+        _ordinary_host=True, transfer_capacity=12 * 1024 * 1024,
+        slots=128, resources=_ordinary_core_limits(), fuel=_NORMAL_HOST_BOOTSTRAP_FUEL)
+
+
+def open_original(core: LocalCore, state: Path) -> InstalledLocalHost:
+    with core._host_operation(initial=True):
+        return InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
+            observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
 
 
 class ParentReturnTrace:
@@ -153,37 +212,46 @@ class ParentReturnTrace:
 
 
 async def main():
-    if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] not in ('commit-unknown', 'task-drive-mixed', 'repeat-live-three')):
-        raise ValueError('Expected original module, fresh scratch and optional COMMIT-loss control')
-    commit_unknown = len(sys.argv) == 4 and sys.argv[3] == 'commit-unknown'
-    task_drive = len(sys.argv) == 4 and sys.argv[3] == 'task-drive-mixed'
-    repeat_live = len(sys.argv) == 4 and sys.argv[3] == 'repeat-live-three'
-    trace = MixedTaskDriveTrace() if task_drive else None
+    args = ARGS
+    commit_unknown = INSTALLED or args.mode == 'commit-unknown'
+    task_drive = args.mode == 'task-drive-mixed'
+    repeat_live = args.mode == 'repeat-live-three'
+    trace = None
+    if task_drive:
+        from python_local_task_drive_trace import MixedTaskDriveTrace
+        trace = MixedTaskDriveTrace()
     def phase(name):
         if trace is not None:
             trace.mark(name)
     phase('fixture-start')
     expected_n = 2 if task_drive else 41
-    raw = Path(sys.argv[1]).read_bytes()
-    digest = hashlib.sha256(raw).hexdigest()
-    scratch = Path(sys.argv[2]); scratch.mkdir(parents=True, exist_ok=True)
-    state = Path(mkdtemp(prefix='succeeded-', dir=scratch))
+    identity = installed_identity(args.module) if INSTALLED else None
+    image = None if INSTALLED else selected_image(Path(args.module), args.platform_artifact)
+    digest = identity['module'] if INSTALLED else image.recipe.module_sha256
+    args.scratch.mkdir(parents=True, exist_ok=True)
+    state = Path(mkdtemp(prefix='succeeded-', dir=args.scratch))
     phase('first-core-begin')
-    core = new_core(raw, digest)
-    phase('first-core-ready')
-    host = client = primary = None
+    core = host = client = primary = None
     driver_checks = ExitStack()
     driven = {}
     try:
-        host = InstalledLocalHost(core, state, now=lambda: 1_800_000_000_000,
-            observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
-        client = await AsyncClient._connect_local(host)
+        if INSTALLED:
+            client = await AsyncClient.open(state_dir=state)
+            host = client._local_host
+            core = host._core
+            assert core._installed_image_sha256 == identity['image'], 'Foreign live publication image'
+            phase('first-core-ready')
+        else:
+            core = new_core(image)
+            phase('first-core-ready')
+            host = open_original(core, state)
+            client = await AsyncClient._connect_local(host)
         phase('first-host-ready')
         parent_trace = ParentReturnTrace(host, driver_checks) if repeat_live else None
         parent_observations = []
         references = []
         if task_drive:
-            original_drive = core.drive_task
+            original_drive = core.drive_task_step
             def scheduled_original_quantum(task, quantum):
                 reader = host._installation.binding._observed_reader
                 assert reader is not None and core._task_loans[task.handle] is task
@@ -198,7 +266,9 @@ async def main():
                 before_progress = (core._call('task', 'progress', task.handle, 2)
                                    if before_code >= 0 else None)
                 before = core._store.get_fuel()
-                complete = original_drive(task, selected_quantum)
+                outcome = original_drive(task, selected_quantum)
+                assert outcome in (_TaskDrive.PROGRESSED, _TaskDrive.COMPLETE)
+                complete = outcome is _TaskDrive.COMPLETE
                 assert core._store.get_fuel() <= before
                 after_code = core._call('task', 'progress', task.handle, 0)
                 after_progress = (core._call('task', 'progress', task.handle, 2)
@@ -216,8 +286,8 @@ async def main():
                 counts[0] += 1
                 counts[1] += int(complete)
                 counts[2] += int(selected_quantum == 1)
-                return complete
-            driver_checks.enter_context(patch.object(core, 'drive_task', side_effect=scheduled_original_quantum))
+                return outcome
+            driver_checks.enter_context(patch.object(core, 'drive_task_step', side_effect=scheduled_original_quantum))
             for method in ('start_task', 'feed_task', 'advance_task',
                            'prepare_task_finalization', 'complete_task'):
                 driver_checks.enter_context(patch.object(core, method,
@@ -226,6 +296,8 @@ async def main():
         original_store = store.store_publication_projected_inspected
         atomic_observations = []
         publication_writes = []
+        publication_loss = []
+        reissued = []
         lost_reply = LocalStorageCommitUnknown(store)
         def observe_original_transaction(*args, before_commit, **kwargs):
             pending = host._pending_publication_write
@@ -252,6 +324,8 @@ async def main():
             result = original_store(*args, before_commit=fenced_original_commit, **kwargs)
             if commit_unknown and original_publication:
                 assert len(publication_writes) == 1
+                assert not store._connection.in_transaction
+                publication_loss.append({'sqliteTransactionOpen': store._connection.in_transaction})
                 raise lost_reply  # Actual SQLite COMMIT returned; only its reply is lost.
             return result
         with patch.object(store, 'store_publication_projected_inspected', side_effect=observe_original_transaction) as commit_calls:
@@ -276,16 +350,20 @@ async def main():
                     original_call = core._call
                     def only_lookup(family, name, *args):
                         if family in ('program', 'run', 'compute', 'task'):
+                            reissued.append((family, name))
                             raise AssertionError('Uncertain publication lookup reissued execution')
                         return original_call(family, name, *args)
                     with patch.object(core, '_call', side_effect=only_lookup):
                         final = (await execution.wait(until='terminal')).to_dict()
                     assert host._pending_publication_write is None
+                    publication_loss[0].update(retainedOriginal=retained is publication_writes[0],
+                        sameUnknown=work._future.exception() is lost_reply, outcome=type(lost_reply).__name__)
                 else:
                     final = (await execution.wait(until='terminal')).to_dict()
                 phase('terminal-returned')
                 assert final['status'] == 'succeeded' and final['result_available']
-                assert await execution.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
+                live_result = await execution.result('answer').all(schema=Row, max_rows=2)
+                assert live_result == [Row(n=expected_n)]
                 assert (await execution.status()).to_dict() == final
                 phase('result-checked')
                 reference = dict(execution.ref)
@@ -318,7 +396,7 @@ async def main():
         driver_checks.close()
         phase('first-cleanup-begin')
         try:
-            original_close = core.close_task
+            original_close = None if core is None else core.close_task
             def observe_task_close(task):
                 before = core.task_cleanup_continuation(task)
                 result = original_close(task)
@@ -331,9 +409,10 @@ async def main():
             if client is not None:
                 with patch.object(core, 'close_task', side_effect=observe_task_close):
                     await client.aclose()
-            if host is not None:
+                assert core._closed
+            if host is not None and not INSTALLED:
                 await host.aclose()
-            elif not core.close():
+            elif host is None and core is not None and not core.close():
                 raise AssertionError('Original succeeded Core close remains pending')
         except BaseException:
             if host is not None:
@@ -351,60 +430,85 @@ async def main():
         assert len(references) == len(parent_observations) == 3
         print(json.dumps({'success': True, 'actualCases': 1,
             'case': 'public_three_live_successes_original_parent_returns_and_first_close',
-            'module_sha256': digest, 'state': str(state),
+            'module_sha256': digest, 'image_sha256': image.sha256, 'state': str(state),
             'completed_distinct_executions': len(references),
             'same_live_host': True, 'first_core_closed': core._closed,
             'atomic_precommit_writer_exclusion': True,
             'parent_returns': parent_observations,
-            'qualification': 'actual source SDK/raw Wasm/SQLite; not normal distribution, bare-wait population, warm100 or performance'}))
+            'qualification': 'actual source SDK/selected platform image/SQLite; not normal distribution, bare-wait population, warm100 or performance'}))
         return
 
     # The old manifested Saved path remains executable-read free. No cancelled
     # state, absent Manifest or replacement invocation substitutes for success.
     phase('saved-core-begin')
-    reopened = new_core(raw, digest)
-    phase('saved-core-ready')
-    saved_host = saved_client = None
+    reopened = saved_host = saved_client = None
     try:
-        saved_host = InstalledLocalHost(reopened, state, now=lambda: 1_800_000_000_000,
-            observed_at='2026-11-18T00:00:00.000Z', sdk_finite=True)
-        saved_client = await AsyncClient._connect_local(saved_host)
+        if INSTALLED:
+            saved_client = await AsyncClient.open(state_dir=state)
+            saved_host = saved_client._local_host
+            reopened = saved_host._core
+            assert reopened._installed_image_sha256 == identity['image'], 'Foreign Saved publication image'
+            phase('saved-core-ready')
+        else:
+            reopened = new_core(image)
+            phase('saved-core-ready')
+            saved_host = open_original(reopened, state)
+            saved_client = await AsyncClient._connect_local(saved_host)
         phase('saved-host-ready')
         original_call = reopened._call
 
         def only_saved(family, name, *args):
             if family in ('program', 'run', 'compute', 'task'):
+                reissued.append((family, name))
                 raise AssertionError('Succeeded Saved read reissued execution')
             return original_call(family, name, *args)
 
         with patch.object(reopened, '_call', side_effect=only_saved):
             phase('saved-read-begin')
             saved = await saved_client.attach(reference)
-            assert (await saved.status()).to_dict() == final
-            assert await saved.result('answer').all(schema=Row, max_rows=2) == [Row(n=expected_n)]
+            saved_reference = dict(saved.ref)
+            assert saved_reference == reference
+            saved_state = (await saved.status()).to_dict()
+            assert saved_state == final
+            saved_result = await saved.result('answer').all(schema=Row, max_rows=2)
+            assert saved_result == [Row(n=expected_n)]
             phase('saved-read-checked')
     finally:
         phase('saved-cleanup-begin')
         if saved_client is not None:
             await saved_client.aclose()
-        if saved_host is not None:
+            assert reopened._closed
+        if saved_host is not None and not INSTALLED:
             await saved_host.aclose()
-        elif not reopened.close():
+        elif saved_host is None and reopened is not None and not reopened.close():
             raise AssertionError('Saved succeeded Core close remains pending')
     assert reopened._closed
     phase('saved-cleanup-returned')
+    if INSTALLED:
+        print(json.dumps({**identity, 'boundary': {'protocol': {
+            'kind': 'installed-python-publication-reply-loss/1', 'facade': 'AsyncClient', 'resultName': 'answer',
+            'fixture': 'WITH seed AS (SELECT 41 AS n) FROM seed |> SELECT n |> RESULT answer'}},
+            'publication': publication_loss, 'originalPublicationWrites': len(publication_writes),
+            'atomicPrecommitObservations': len(atomic_observations), 'reissued': reissued,
+            'originalRun': reference, 'savedRun': saved_reference, 'terminal': final['status'],
+            'savedTerminal': saved_state['status'], 'liveResult': [{'n': row.n} for row in live_result],
+            'savedResult': [{'n': row.n} for row in saved_result], 'firstClose': core._closed,
+            'savedClose': reopened._closed}))
+        return
     print(json.dumps({'success': True, 'actualCases': 1,
         'case': ('public_core_derived_task_drive_mixed_quanta_joined_result_same_saved' if task_drive else
                  'public_commit_reply_loss_original_lookup_same_result_without_reexecution' if commit_unknown else
                  'public_succeeded_execute_typed_result_same_saved_and_close'),
-        'module_sha256': digest, 'state': str(state), 'atomic_precommit_writer_exclusion': True,
+        'module_sha256': digest, 'image_sha256': image.sha256, 'state': str(state),
+        'first_core_closed': True, 'saved_first_core_closed': True,
+        'atomic_precommit_writer_exclusion': True,
         'commit_reply_loss_readback_without_reexecution': commit_unknown,
         **({'core_owned_lifecycle': True, 'initial_quantum': 1, 'initial_drives_per_task': 8,
             'continuation_quantum': 256, 'original_tasks': len(driven),
             'actual_initial_quantum_drives': sum(counts[2] for counts in driven.values()),
             'observed_phase_transitions': sum(counts[3] for counts in driven.values()),
             'monotonic_progress': True} if task_drive else {}),
-        'qualification': 'actual source SDK/raw Wasm/SQLite; no installed normal package acceptance'}))
+        'qualification': 'actual source SDK/selected platform image/SQLite; no installed normal package acceptance'}))
 
 
 asyncio.run(main())

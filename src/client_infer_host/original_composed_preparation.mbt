@@ -1,4 +1,21 @@
 ///|
+fn original_composed_source_matches(
+  occurrence : @publication_host.ClientInferOccurrence,
+  sources : @publication_host.ClientInferComposedSources?,
+) -> Bool {
+  match sources {
+    Some(original) =>
+      @publication_host.client_infer_composed_sources_matches(
+        original, occurrence,
+      )
+    None =>
+      !@publication_host.client_infer_occurrence_has_captured_sources(
+        occurrence,
+      )
+  }
+}
+
+///|
 /// Enter the original read consumer before the existing composed input owner
 /// allocates or advances. The Local driver retains its actual producer ports;
 /// no serialization generation, replacement rows or second Ledger is invented.
@@ -20,16 +37,7 @@ pub fn start_original_composed(
   input_body_read? : @publication_host.ClientModelReadPreparation? = None,
   prior_input_work? : Int64 = 0L,
 ) -> Result[Execution, Issue] {
-  if (
-      sources is Some(value) &&
-      !@publication_host.client_infer_composed_sources_matches(
-        value, occurrence,
-      )
-    ) ||
-    (
-      @publication_host.client_infer_occurrence_has_captured_sources(occurrence) &&
-      sources is None
-    ) {
+  if !original_composed_source_matches(occurrence, sources) {
     return Err(OriginalCapacity(@publication_host.ForeignInput))
   }
   match
@@ -76,26 +84,63 @@ pub fn start_original_composed(
 }
 
 ///|
-/// Observe the same opened Whole Model on its original composed Run. The
-/// constructor already validated the complete Source tuple before claiming
-/// the Read. This immutable comparison is safe inside the Journal cut.
-pub fn original_whole_model_journal_matches(
-  active : Execution,
+/// Start the installed Chat component with the original managed prefix and
+/// its Scope. The Host retains that exact Read even if claim or startup
+/// refuses. No Entry, transport or dispatch is opened by this operation.
+pub fn start_scoped_portable_chat_composed(
+  occurrence : @publication_host.ClientInferOccurrence,
   plan : @publication_host.ClientInferPlanGraph,
+  prefix : @relation.GeneratedSequence,
+  inputs : Array[@local.ManagedProviderInput],
+  admitted : @model.AdmittedStructuredModelProvider,
+  installation : @environment.ModelResponseProfileInstallation,
+  limits : Limits,
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
-) -> Bool {
-  !active.reclaimed &&
-  active.original_preparation is Some({ read: Claimed(_), .. }) &&
-  active.run_binding is Some(binding) &&
-  physical_equal(binding.compiled, compiled) &&
-  physical_equal(binding.definition, definition) &&
-  active.plan is Some(original_plan) &&
-  physical_equal(original_plan, plan) &&
-  active.composed_sources is Some(sources) &&
-  @publication_host.client_infer_composed_whole_sources_original(
-    sources,
-    active.occurrence,
+  scope : @publication_host.ClientModelReadScope,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  retain_read : (@publication_host.ClientModelReadPreparation) -> Unit,
+  sources? : @publication_host.ClientInferComposedSources? = None,
+  prior_input_work? : Int64 = 0L,
+) -> Result[Execution, Issue] {
+  guard physical_equal(plan.occurrence, occurrence) &&
+    original_composed_source_matches(occurrence, sources) &&
+    @model.admitted_model_http_chat_provider(
+      admitted,
+      @publication_host.client_infer_plan_graph_execution_contract(plan),
+      installation,
+    )
+    is Some(provider) else {
+    return Err(OriginalCapacity(@publication_host.ForeignInput))
+  }
+  let (read, consumer) = match
+    @publication_host.prepare_claimed_client_model_read(
+      scope, compiled, definition, plan, read_retained_bytes, read_execution_bytes,
+      retain_read,
+    ) {
+    Err(issue) => return Err(OriginalCapacity(@publication_host.Read(issue)))
+    Ok(value) => value
+  }
+  start_original_composed(
+    occurrence,
+    plan,
+    prefix,
+    inputs,
+    provider,
+    limits,
+    compiled,
+    definition,
+    consumer,
+    read_retained_bytes,
+    read_execution_bytes,
+    model_retained_bytes,
+    model_execution_bytes,
+    sources~,
+    prior_input_work~,
+    input_body_read=Some(read),
   )
 }
 
@@ -194,4 +239,28 @@ pub fn start_original_restored_composed(
 
     active
   })
+}
+
+///|
+/// Observe the same opened Whole Model on its original composed Run. The
+/// constructor already validated the complete Source tuple before claiming
+/// the Read. This immutable comparison is safe inside the Journal cut.
+pub fn original_whole_model_journal_matches(
+  active : Execution,
+  plan : @publication_host.ClientInferPlanGraph,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  !active.reclaimed &&
+  active.original_preparation is Some({ read: Claimed(_), .. }) &&
+  active.run_binding is Some(binding) &&
+  physical_equal(binding.compiled, compiled) &&
+  physical_equal(binding.definition, definition) &&
+  active.plan is Some(original_plan) &&
+  physical_equal(original_plan, plan) &&
+  active.composed_sources is Some(sources) &&
+  @publication_host.client_infer_composed_whole_sources_original(
+    sources,
+    active.occurrence,
+  )
 }

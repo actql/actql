@@ -6,12 +6,25 @@ priv struct RecheckBudget {
 }
 
 ///|
+fn recheck_remaining_work(budget : RecheckBudget, work : (Limits, Int)?) -> Int {
+  match work {
+    None => 2147483647
+    Some((initial, limit)) =>
+      limit -
+      (initial.max_nodes - budget.nodes) -
+      (initial.max_text_bytes - budget.text)
+  }
+}
+
+///|
 fn recheck_text(
   value : String,
   budget : RecheckBudget,
   identifier? : Bool = false,
+  work? : (Limits, Int)? = None,
 ) -> Int? {
-  guard @scalar.admit_utf8_length(value, budget.text) is Ok(bytes) else {
+  let available = Int::min(budget.text, recheck_remaining_work(budget, work))
+  guard @scalar.admit_utf8_length(value, available) is Ok(bytes) else {
     return None
   }
   if identifier && @canonical.normalize_nfc_lf(value) != Ok(value) {
@@ -22,8 +35,13 @@ fn recheck_text(
 }
 
 ///|
-fn recheck_json(value : Value, budget : RecheckBudget, depth : Int) -> Bool {
-  if budget.nodes == 0 {
+fn recheck_json(
+  value : Value,
+  budget : RecheckBudget,
+  depth : Int,
+  work? : (Limits, Int)? = None,
+) -> Bool {
+  if budget.nodes == 0 || recheck_remaining_work(budget, work) == 0 {
     return false
   }
   budget.nodes -= 1
@@ -33,20 +51,20 @@ fn recheck_json(value : Value, budget : RecheckBudget, depth : Int) -> Bool {
       !number.is_nan() &&
       !number.is_inf() &&
       !(number == 0.0 && 1.0 / number < 0.0)
-    Text(text) => recheck_text(text, budget) is Some(_)
+    Text(text) => recheck_text(text, budget, work~) is Some(_)
     Array(values) => {
       if depth >= budget.max_depth {
         return false
       }
-      values.values.all(value => recheck_json(value, budget, depth + 1))
+      values.values.all(value => recheck_json(value, budget, depth + 1, work~))
     }
     Object(values) => {
       if depth >= budget.max_depth {
         return false
       }
       for (name, child) in values.values {
-        if recheck_text(name, budget) is None ||
-          !recheck_json(child, budget, depth + 1) {
+        if recheck_text(name, budget, work~) is None ||
+          !recheck_json(child, budget, depth + 1, work~) {
           return false
         }
       }
@@ -69,8 +87,9 @@ fn recheck_value(
   contract : @contract.Contract,
   budget : RecheckBudget,
   depth : Int,
+  work? : (Limits, Int)? = None,
 ) -> Bool {
-  if budget.nodes == 0 {
+  if budget.nodes == 0 || recheck_remaining_work(budget, work) == 0 {
     return false
   }
   budget.nodes -= 1
@@ -83,7 +102,7 @@ fn recheck_value(
     (Binary(bytes), @contract.Bytes) => {
       // The immutable handle was validated by the Value owner already.
       let size = bytes.wire.length()
-      if size > budget.text {
+      if size > budget.text || size > recheck_remaining_work(budget, work) {
         return false
       }
       budget.text -= size
@@ -94,7 +113,7 @@ fn recheck_value(
       !number.is_inf() &&
       !(number == 0.0 && 1.0 / number < 0.0)
     (Text(text), @contract.Text(bounds)) => {
-      guard recheck_text(text, budget) is Some(bytes) &&
+      guard recheck_text(text, budget, work~) is Some(bytes) &&
         @scalar.unicode_scalar_count(text) is Some(count) else {
         return false
       }
@@ -112,13 +131,13 @@ fn recheck_value(
       text_enum_accepts(text, bounds)
     }
     (Date(text), @contract.Date) =>
-      recheck_text(text, budget) is Some(_) &&
+      recheck_text(text, budget, work~) is Some(_) &&
       text.length() == 10 &&
       valid_date(text)
     (Timestamp(text), @contract.Timestamp) =>
-      recheck_text(text, budget) is Some(_) && valid_timestamp(text)
+      recheck_text(text, budget, work~) is Some(_) && valid_timestamp(text)
     (Decimal(decimal_value), @contract.Decimal(precision~, scale~)) => {
-      guard recheck_text(decimal_value.coefficient, budget) is Some(_) &&
+      guard recheck_text(decimal_value.coefficient, budget, work~) is Some(_) &&
         decimal_from_coefficient(decimal_value.coefficient, precision, scale)
         is Some(Decimal(canonical)) else {
         return false
@@ -131,7 +150,8 @@ fn recheck_value(
       let count = values.values.length()
       if depth >= budget.max_depth ||
         count.to_double() != dimensions ||
-        count > budget.nodes {
+        count > budget.nodes ||
+        count > recheck_remaining_work(budget, work) {
         return false
       }
       budget.nodes -= count
@@ -147,7 +167,9 @@ fn recheck_value(
         (max_items is Some(limit) && count.to_int64() > limit) {
         return false
       }
-      values.values.all(value => recheck_value(value, item, budget, depth + 1))
+      values.values.all(value => {
+        recheck_value(value, item, budget, depth + 1, work~)
+      })
     }
     (Object(values), @contract.Object(fields)) => {
       if depth >= budget.max_depth ||
@@ -158,8 +180,8 @@ fn recheck_value(
         let (name, child) = values.values[index]
         guard @contract.field_at(fields, index) is Some(field) &&
           name == field.name &&
-          recheck_text(name, budget, identifier=true) is Some(_) &&
-          recheck_value(child, field.contract, budget, depth + 1) else {
+          recheck_text(name, budget, identifier=true, work~) is Some(_) &&
+          recheck_value(child, field.contract, budget, depth + 1, work~) else {
           return false
         }
       }
@@ -171,7 +193,7 @@ fn recheck_value(
       reference_compatible(reference, contract)
     (JsonData(value), @contract.Json) => {
       budget.nodes += 1
-      recheck_json(value, budget, depth)
+      recheck_json(value, budget, depth, work~)
     }
     _ => false
   }
@@ -196,8 +218,12 @@ pub fn recheck_runtime_value_usage(
   value : Value,
   contract : @contract.Contract,
   limits : Limits,
+  max_work? : Int? = None,
 ) -> (CheckedValue, Int, Int)? {
-  if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
+  if limits.max_nodes < 0 ||
+    limits.max_depth < 0 ||
+    limits.max_text_bytes < 0 ||
+    (max_work is Some(limit) && limit < 0) {
     return None
   }
   let budget : RecheckBudget = {
@@ -205,7 +231,8 @@ pub fn recheck_runtime_value_usage(
     text: limits.max_text_bytes,
     max_depth: limits.max_depth,
   }
-  if recheck_value(value, contract, budget, 0) {
+  let work = max_work.map(limit => (limits, limit))
+  if recheck_value(value, contract, budget, 0, work~) {
     Some(
       (
         { contract, value, },

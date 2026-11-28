@@ -210,6 +210,22 @@ pub fn[R] client_cancellation_append_record(
 }
 
 ///|
+/// Project the same immutable append planned for the Run CAS. Replays and
+/// observations of a prior cancellation or terminal Run cannot issue a head.
+pub fn[R] client_cancellation_append_accepted_head(
+  plan : ClientCancellationJournalAppend[R],
+) -> ClientAcceptedCancellationHead? {
+  match plan.record.action {
+    AcceptCancellation =>
+      Some({
+        record_key: plan.key,
+        observed_revision: plan.record.observed_revision,
+      })
+    AlreadyRequested | AlreadyTerminal => None
+  }
+}
+
+///|
 /// Produce exact existing row/witness/CAS DATA. The caller still owns the
 /// actual Run update, all atomic writes, COMMIT/Unknown and current checks.
 pub fn[R] client_cancellation_append_rows(

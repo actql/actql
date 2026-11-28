@@ -2,17 +2,19 @@
 from __future__ import annotations
 
 import asyncio as _asyncio
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator, Callable
+from contextlib import AbstractContextManager
 from typing import TYPE_CHECKING
 
 import httpx
 
 from ._local_core import _Input
 from ._local_sdk_payload_reader import OriginalSDKPayloadReader
+from ._local_storage import LocalStorageCommitUnknown
 
 if TYPE_CHECKING:
     from ._local_product import InstalledLocalHost
-    from ._local_saved_read import OriginalSavedResultRead
+    from ._local_saved_read import OriginalSavedResultRead, _SavedRunControl
 
 
 class LocalSDKResponseCleanupPending(RuntimeError):
@@ -31,7 +33,8 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
     terminal evidence. Sink completion or a precommit callback alone is not EOF.
     """
     def __init__(self, host: InstalledLocalHost, reader: OriginalSDKPayloadReader, *,
-                 saved_read: OriginalSavedResultRead | None = None) -> None:
+                 saved_read: OriginalSavedResultRead | None = None,
+                 live_control: _SavedRunControl | None = None) -> None:
         if type(reader) is not OriginalSDKPayloadReader or reader._core is not host._core:
             raise ValueError('Foreign original Local SDK response reader')
         reader._nominal()
@@ -46,7 +49,12 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         self._original = self
         self._host, self._reader = host, reader
         self._saved_read = saved_read
+        self._live_control = live_control
+        self._operation: Callable[[], AbstractContextManager[None]] | None = None
+        self._terminal_current: Callable[[], None] | None = None
         self._payload_closed = False
+        self._terminal_started = False
+        self._reader_cancel_requested = False
         self._clock: _Input | None = None
         self._iterator: AsyncGenerator[bytes, None] | None = None
         self._closing = self._reading = self._attached = False
@@ -65,6 +73,19 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         self._iterator = self._chunks()
         return self._iterator
 
+    def _bind_operation(self) -> None:
+        self._nominal()
+        if self._operation is not None or self._closing or self._iterator is not None:
+            raise RuntimeError('Original Local response operation is unavailable')
+        self._operation = self._host._core._capture_saved_read_operation()
+        if self._saved_read is not None:
+            self._terminal_current = self._saved_read._public_terminal_current(self._operation)
+        elif self._live_control is not None:
+            from ._local_saved_read import _public_run_current
+            self._terminal_current = _public_run_current(self._host, self._live_control, self._operation)
+        else:
+            raise RuntimeError('Original Local response current control is unavailable')
+
     def _new_clock(self) -> _Input:
         if self._clock is not None:
             raise RuntimeError('Original Local SDK clock cleanup is pending')
@@ -81,14 +102,29 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
             self._clock = None
         return True
 
+    def _check_transfer_current(self) -> None:
+        saved_read = self._saved_read
+        if saved_read is not None:
+            if self._closing:
+                raise RuntimeError('Original Local SDK response is closing')
+            operation = self._operation or self._host._core._host_operation
+            with operation():
+                saved_read._check_transfer_current()
+        elif self._live_control is not None:
+            check = self._terminal_current
+            if self._closing or check is None:
+                raise RuntimeError('Original Local live response is unavailable')
+            self._reader.check_transfer_current()
+            check()
+
     async def _chunks(self) -> AsyncGenerator[bytes, None]:
-        # Each existing bounded delivery advance shares one allowance across
-        # its private accept/offer calls. No budget is held across backpressure
-        # or replenished by a private getter/callback.
+        # Ordinary Saved preparation, bounded delivery and terminal recording
+        # share one operation. The physical frame returns at backpressure.
+        operation = self._operation or self._host._core._host_operation
         iterator = self._original_chunks()
         try:
             while True:
-                with self._host._core._host_operation():
+                with operation():
                     try:
                         payload = await anext(iterator)
                     except StopAsyncIteration:
@@ -99,6 +135,8 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
                 await _asyncio.sleep(0)
                 if self._closing:
                     raise RuntimeError('Original Local SDK response is closing')
+                # The offered bytes or terminal marker can survive an await.
+                self._check_transfer_current()
                 yield payload
         finally:
             # The original generator only returns its iteration flag here.
@@ -130,16 +168,52 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
                     break
             clock = self._new_clock()
             storage = self._reader._storage
+            self._terminal_started = True
             storage.persist_original_terminal(self._reader._request, clock)
             if self._closing:
                 raise RuntimeError('Original Local SDK response is closing')
-            # The CAS helper returned only after a separate same-Store read of
-            # the Core-validated saved receipt/head. Unknown never reaches here.
+            # The same prevalidated terminal group received physical COMMIT
+            # and Core confirmation. Unknown never reaches the terminal marker.
             yield b'\x1e'
         finally:
             self._reading = False
 
+    def _request_reader_cancellation(self) -> None:
+        self._nominal()
+        if self._operation is not None and not self._closed and not self._terminal_started:
+            self._reader_cancel_requested = True
+
+    def _cancel_original_delivery(self) -> bool:
+        # Stop the exact physical reader and return its unconfirmed offer
+        # before opening the current terminal Store transaction.
+        operation = self._operation
+        if operation is None:
+            raise RuntimeError('Original delivery cancellation has no operation')
+        with self._host._core._host_cleanup():
+            self._closing = True
+            if self._reading:
+                return False
+            if self._saved_read is not None and not self._saved_read._begin_terminal_cleanup():
+                return False
+            if not self._reader.close() or not self._close_clock():
+                return False
+        self._terminal_started = True
+        with operation():
+            clock = self._new_clock()
+            storage, request = self._reader._storage, self._reader._request
+            try:
+                storage.persist_original_terminal(request, clock, cancelled=True)
+            except LocalStorageCommitUnknown as primary:
+                try:
+                    storage.observe_original_terminal(request, clock)
+                except Exception as failed_lookup:
+                    raise primary from failed_lookup
+        return True
+
     def _close(self) -> bool:
+        if (self._reader_cancel_requested and not self._terminal_started
+                and not self._cancel_original_delivery()):
+            return False
         with self._host._core._host_cleanup():
             return self._close_original()
 
@@ -175,6 +249,9 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
                 self._host._saved_result_reads.remove(saved_read)
                 self._saved_read = None
             self._host._response_streams.discard(self)
+            self._operation = None
+            self._live_control = None
+            self._terminal_current = None
             self._closed = True
             return True
 

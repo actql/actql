@@ -170,3 +170,100 @@ test "unpublished state metadata confirms exact saved successor and keeps termin
     is Err(ForeignRun),
   )
 }
+
+///|
+test "dependent Unknown requires the exact selected Entry proof" {
+  let (definition, _) = client_saved_manifest_fixture()
+  let run_id = @publication.run_definition_run_id(definition).unwrap()
+  let unknown = @publication.issue_effect_free_unpublished_run_state_wire(
+    run_id,
+    "2026-10-21T00:00:01.000Z",
+    ["answer"],
+    true,
+    false,
+    65536,
+    8192,
+    64,
+    execution_unknown=true,
+  ).unwrap()
+  let observation = @publication.prepare_run_state_observation(
+    unknown, run_id, 0L, 65536, 8192, 64,
+  ).unwrap()
+  let state = observation.wire(0L).unwrap()
+  let plain = prepare_client_unpublished_run_state_original(definition, state).unwrap()
+  assert_eq(
+    restore_client_run_state_original(definition, plain.wire())
+    .unwrap()
+    .state_wire(),
+    state,
+  )
+  let attempt = "sha256:" + "a".repeat(64)
+  let digest = "sha256:" + "b".repeat(64)
+  let original = prepare_client_dependent_model_unknown_run_state_original(
+    definition, state, attempt, digest,
+  ).unwrap()
+  let retained = admit_client_retained_run_state_original(
+    definition,
+    original.wire(),
+    0L,
+    observation.key(),
+  ).unwrap()
+  assert_true(retained.requires_model_proof())
+  assert_true(retained.requires_dependent_model_unknown_proof())
+  assert_true(retained.resolve() is Err(CustodyLost))
+  assert_true(
+    restore_client_run_state_original(definition, original.wire())
+    is Err(CustodyLost),
+  )
+  let bare = decode_client_run_state_original_body(
+    definition,
+    original.wire(),
+    false,
+  ).unwrap()
+  assert_true(
+    bare.resolve(resolve_dependent_model_unknown=Some((_, _) => true))
+    is Err(CustodyLost),
+  )
+  assert_true(
+    retained.resolve(
+      resolve_dependent_model_unknown=Some((actual_attempt, actual_digest) => {
+        (actual_attempt, actual_digest) == (attempt, attempt)
+      }),
+    )
+    is Err(CustodyLost),
+  )
+  let selected = retained
+    .resolve(
+      resolve_dependent_model_unknown=Some((actual_attempt, actual_digest) => {
+        (actual_attempt, actual_digest) == (attempt, digest)
+      }),
+    )
+    .unwrap()
+  assert_eq(selected.state_wire(), state)
+  assert_eq(selected.wire(), original.wire())
+  assert_true(
+    admit_client_retained_run_state_original(
+      definition,
+      original.wire(),
+      0L,
+      "foreign-observation",
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(
+    prepare_client_dependent_model_unknown_run_state_original(
+      definition, client_unpublished_state, attempt, digest,
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(
+    validate_client_historical_run_state_original(definition, original.wire())
+    is Err(CustodyLost),
+  )
+  let partial = original
+    .wire()
+    .replace(old=",\"model_unknown_entry_digest\":\"" + digest + "\"", new="")
+  assert_true(
+    restore_client_run_state_original(definition, partial) is Err(CustodyLost),
+  )
+}

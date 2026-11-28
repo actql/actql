@@ -314,3 +314,51 @@ pub fn issue_model_raw_response(
     policy, response, scope, ordinal, attempt, authority,
   ).map(_ => response)
 }
+
+///|
+/// Encode the exact admitted Raw body into the consolidated private Store
+/// plaintext. The calling Read funds hashing, encoding and later crypto.
+pub fn model_raw_response_store_plaintext(
+  descriptor : String,
+  content_cid : String,
+  byte_count : Int,
+  bytes : Bytes,
+) -> String? {
+  if bytes.length() != byte_count || "sha256:" + @sha.hex(bytes) != content_cid {
+    return None
+  }
+  Some(descriptor + "\n" + @admitted.encode_canonical_base64(bytes))
+}
+
+///|
+/// Use only authenticated plaintext from an actual private Store read. The
+/// same admitted descriptor, length and hash bind the decoded body to its
+/// Call. The supplied extent is the already-funded plaintext ceiling.
+pub fn read_model_raw_response_store_plaintext(
+  original : BoundModelRawResponse,
+  plaintext : Bytes,
+  plaintext_limit : Int,
+) -> Bytes? {
+  guard plaintext_limit > 0 &&
+    plaintext_limit <= 1048576 &&
+    plaintext.length() <= plaintext_limit else {
+    return None
+  }
+  let (_, _, descriptor, content_cid, count) = model_raw_response_store_binding(
+    original,
+  )
+  guard count >= 0 && count <= 1048576 else { return None }
+  let text = @utf8.decode(plaintext) catch { _ => return None }
+  let prefix = descriptor + "\n"
+  guard text.has_prefix(prefix) &&
+    text.length() - prefix.length() == 4 * ((count + 2) / 3) else {
+    return None
+  }
+  let encoded = text[prefix.length():]
+  guard @admitted.decode_canonical_base64(encoded, count) is Some(bytes) &&
+    bytes.length() == count &&
+    "sha256:" + @sha.hex(bytes) == content_cid else {
+    return None
+  }
+  Some(bytes)
+}

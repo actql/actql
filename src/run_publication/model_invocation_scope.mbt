@@ -427,6 +427,13 @@ pub fn check_model_invocation_attempt(
   // These are historical authority originals, never a current send permit.
   // An ordinary Account allow has no answering authority or approval claims;
   // a delegated Host permit must retain its exact approved invocation claim.
+  check_model_attempt_authority_basis(authority)
+}
+
+///|
+fn check_model_attempt_authority_basis(
+  authority : RunEvidenceValue,
+) -> Result[Unit, RunEvidenceValueIssue] {
   let claims = model_scope_strings(authority.value, "satisfied_claims").unwrap()
   let answering = contract_string_from_value(
     authority.value,
@@ -483,4 +490,23 @@ pub fn bind_model_invocation_saved_call(
     Err(issue) => Err(issue)
     Ok(_) => Ok(binding)
   }
+}
+
+///|
+/// Borrow the nonsecret coordinates from the already admitted binding tree.
+/// No new parsing, seal or physical selection is made during Scope binding.
+pub fn model_invocation_provider_originals(
+  value : RunEvidenceValue,
+) -> (String, String, String, String)? {
+  guard value.name == "model_provider_binding" &&
+    contract_string_from_value(value.value, "provider_id") is Some(provider) &&
+    contract_string_from_value(value.value, "installation_revision_cid")
+    is Some(revision) &&
+    contract_string_from_value(value.value, "configuration_contract_cid")
+    is Some(contract) &&
+    contract_string_from_value(value.value, "configuration_cid")
+    is Some(configuration) else {
+    return None
+  }
+  Some((provider, revision, contract, configuration))
 }

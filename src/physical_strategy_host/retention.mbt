@@ -104,6 +104,7 @@ fn pin_captured_result_completion_internal(
   occurrence : @execution.ManagedResultOccurrence,
   max_pins : Int,
   require_cells : Bool,
+  admission? : CapturedEffectPinAdmission? = None,
 ) -> Result[CapturedOutputPin, RunIssue] {
   let owner = @execution.managed_result_occurrence_owner(occurrence)
   let port = @execution.managed_result_occurrence_port(occurrence)
@@ -117,14 +118,21 @@ fn pin_captured_result_completion_internal(
   }
   let pin = match
     pin_captured_task_completion_internal(
-      run, task, target, max_pins, require_cells,
+      run,
+      task,
+      target,
+      max_pins,
+      require_cells,
+      admission~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let output = captured_output_pin_materialized(pin)
   if !@execution.completed_output_matches_port(output, owner, target) {
-    release_captured_output_pin(pin) |> ignore
+    if admission is None {
+      release_captured_output_pin(pin) |> ignore
+    }
     return Err(ForeignCandidate)
   }
   Ok(pin)
@@ -291,15 +299,17 @@ fn borrow_captured_resident_result_reference(
   task : Int,
   occurrence : @execution.ManagedResultOccurrence,
   max_pins : Int,
+  admission? : CapturedEffectPinAdmission? = None,
 ) -> Result[CapturedResidentResultBorrow, RunIssue] {
   match resident_result_borrow_ready(run, task, occurrence, max_pins) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  acquire_captured_resident_generation_pin(run, task, max_pins).map(pin => {
-    occurrence,
-    pin,
-  })
+  acquire_captured_resident_generation_pin(run, task, max_pins, admission~).map(pin => {
+      occurrence,
+      pin,
+    },
+  )
 }
 
 ///|
@@ -308,6 +318,7 @@ fn acquire_captured_resident_generation_pin(
   run : CapturedDAG,
   task : Int,
   max_pins : Int,
+  admission? : CapturedEffectPinAdmission? = None,
 ) -> Result[CapturedResidentGenerationPin, RunIssue] {
   let reference = match run.outputs[task] {
     Some(Managed(value)) => CapturedResidentReference::Managed(value)
@@ -322,10 +333,10 @@ fn acquire_captured_resident_generation_pin(
   if !available {
     return Err(NotReady)
   }
-  if run.lifetimes[task].pins >= max_pins {
-    return Err(Physical(@resources.HoldingLimit))
+  match acquire_captured_task_pin(run, task, max_pins, admission) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
-  run.lifetimes[task].pins += 1
   Ok({ run, task, reference, live: true, })
 }
 
@@ -409,7 +420,7 @@ pub fn release_captured_resident_result_borrow(
 fn release_captured_resident_generation_pin(
   pin : CapturedResidentGenerationPin,
 ) -> Bool {
-  if !pin.live {
+  if !pin.live || pin.run.effect_pin_admission is Some(_) {
     return false
   }
   pin.live = false
@@ -428,6 +439,23 @@ pub fn borrow_captured_any_result_output(
   occurrence : @execution.ManagedResultOccurrence,
   max_pins : Int,
 ) -> Result[CapturedAnyResultBorrow, RunIssue] {
+  borrow_captured_any_result_output_in_admission(
+    run,
+    task,
+    occurrence,
+    max_pins,
+    None,
+  )
+}
+
+///|
+fn borrow_captured_any_result_output_in_admission(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedResultOccurrence,
+  max_pins : Int,
+  admission : CapturedEffectPinAdmission?,
+) -> Result[CapturedAnyResultBorrow, RunIssue] {
   if task < 0 || task >= run.outputs.length() {
     return Err(ForeignCandidate)
   }
@@ -439,10 +467,10 @@ pub fn borrow_captured_any_result_output(
     guard @query.captured_source_matches_result(source, occurrence) else {
       return Err(ForeignCandidate)
     }
-    if run.lifetimes[task].pins >= max_pins {
-      return Err(Physical(@resources.HoldingLimit))
+    match acquire_captured_task_pin(run, task, max_pins, admission) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
-    run.lifetimes[task].pins += 1
     return Ok({ kind: Source({ run, task, source, occurrence, live: true, }), })
   }
   // A restored Transfer root has an admitted materialized completion rather
@@ -453,14 +481,22 @@ pub fn borrow_captured_any_result_output(
   }
   match run.outputs[task] {
     Some(Materialized(_)) =>
-      borrow_captured_result_output(run, task, occurrence, max_pins).map(borrow => {
-        kind: Cells(borrow),
-      })
+      pin_captured_result_completion_internal(
+        run,
+        task,
+        occurrence,
+        max_pins,
+        true,
+        admission~,
+      ).map(pin => { kind: Cells({ occurrence, pin, }), })
     Some(Managed(_)) | Some(CarrierManaged(_)) =>
-      borrow_captured_resident_result_reference(run, task, occurrence, max_pins).map(borrow => {
-          kind: Resident(borrow),
-        },
-      )
+      borrow_captured_resident_result_reference(
+        run,
+        task,
+        occurrence,
+        max_pins,
+        admission~,
+      ).map(borrow => { kind: Resident(borrow), })
     None => Err(NotReady)
   }
 }
@@ -636,7 +672,7 @@ pub fn release_captured_any_result_borrow(
     Cells(value) => release_captured_result_borrow(value)
     Resident(value) => release_captured_resident_result_borrow(value)
     Source(value) => {
-      if !value.live {
+      if !value.live || value.run.effect_pin_admission is Some(_) {
         return false
       }
       value.live = false
@@ -719,13 +755,28 @@ pub fn pin_captured_any_result_output_set(
   sources : Array[(Int, @execution.ManagedResultOccurrence)],
   max_pins : Int,
 ) -> Result[CapturedAnyResultOutputSet, RunIssue] {
+  pin_captured_any_result_output_set_in_admission(run, sources, max_pins, None)
+}
+
+///|
+fn pin_captured_any_result_output_set_in_admission(
+  run : CapturedDAG,
+  sources : Array[(Int, @execution.ManagedResultOccurrence)],
+  max_pins : Int,
+  admission : CapturedEffectPinAdmission?,
+) -> Result[CapturedAnyResultOutputSet, RunIssue] {
   let borrows : Array[CapturedAnyResultBorrow] = []
   for (task, occurrence) in sources {
-    match borrow_captured_any_result_output(run, task, occurrence, max_pins) {
+    match
+      borrow_captured_any_result_output_in_admission(
+        run, task, occurrence, max_pins, admission,
+      ) {
       Ok(borrow) => borrows.push(borrow)
       Err(issue) => {
-        for borrow in borrows {
-          release_captured_any_result_borrow(borrow) |> ignore
+        if admission is None {
+          for borrow in borrows {
+            release_captured_any_result_borrow(borrow) |> ignore
+          }
         }
         return Err(issue)
       }
@@ -752,6 +803,16 @@ pub fn release_captured_any_result_output_set(
 ) -> Bool {
   if !set.live {
     return false
+  }
+  if set.borrows.get(0) is Some(first) {
+    let run = match first.kind {
+      Cells(value) => value.pin.run
+      Resident(value) => value.pin.run
+      Source(value) => value.run
+    }
+    if run.effect_pin_admission is Some(_) {
+      return false
+    }
   }
   set.live = false
   for borrow in set.borrows {
@@ -888,6 +949,7 @@ fn pin_captured_task_completion_internal(
   target : @pipeline.Target,
   max_pins : Int,
   require_cells : Bool,
+  admission? : CapturedEffectPinAdmission? = None,
 ) -> Result[CapturedOutputPin, RunIssue] {
   if max_pins <= 0 || task < 0 || task >= run.outputs.length() {
     return Err(ForeignCandidate)
@@ -906,10 +968,10 @@ fn pin_captured_task_completion_internal(
   if !@execution.completed_output_available(output) {
     return Err(NotReady)
   }
-  if run.lifetimes[task].pins >= max_pins {
-    return Err(Physical(@resources.HoldingLimit))
+  match acquire_captured_task_pin(run, task, max_pins, admission) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
-  run.lifetimes[task].pins += 1
   Ok({ run, task, output, live: true, })
 }
 
@@ -923,37 +985,6 @@ pub fn pin_captured_task_output(
   max_pins : Int,
 ) -> Result[CapturedOutputPin, RunIssue] {
   pin_captured_task_completion_internal(run, task, target, max_pins, true)
-}
-
-///|
-/// Match the already retained Relation to the existing commit witness. No
-/// loan, callback or Sample authority is issued. A consumer still needs its
-/// original Debug admission and availability check before reading any cells.
-pub fn captured_task_output_pin_matches_committed_relation(
-  run : CapturedDAG,
-  boundary : CapturedTaskBoundary,
-  pin : CapturedOutputPin,
-) -> Bool {
-  captured_committed_relation_pin_current(run, boundary, pin) &&
-  captured_control_boundary_available(run.graph, pin.task)
-}
-
-///|
-fn captured_committed_relation_pin_current(
-  run : CapturedDAG,
-  boundary : CapturedTaskBoundary,
-  pin : CapturedOutputPin,
-) -> Bool {
-  guard boundary.phase != Before &&
-    pin.live &&
-    physical_equal(pin.run, run) &&
-    pin.task == boundary.task &&
-    captured_task_boundary_current(run, boundary) &&
-    run.outputs[pin.task] is Some(Materialized(output)) else {
-    return false
-  }
-  physical_equal(output, pin.output) &&
-  @execution.completed_has_cell_access(output)
 }
 
 ///|
@@ -979,7 +1010,7 @@ pub fn release_captured_output_pin(pin : CapturedOutputPin) -> Bool {
 
 ///|
 fn drop_captured_output_pin(pin : CapturedOutputPin) -> Bool {
-  if !pin.live {
+  if !pin.live || pin.run.effect_pin_admission is Some(_) {
     return false
   }
   pin.live = false
@@ -1039,7 +1070,11 @@ pub fn captured_result_output_set_pin_at(
 pub fn release_captured_result_output_set(
   set : CapturedResultOutputSet,
 ) -> Bool {
-  if !set.live {
+  if !set.live ||
+    (
+      set.borrows.get(0) is Some(first) &&
+      first.pin.run.effect_pin_admission is Some(_)
+    ) {
     return false
   }
   set.live = false
@@ -1189,4 +1224,35 @@ fn captured_cleanup_confirmed(
     run.running = None
     collect_captured_retention(run)
   }
+}
+
+///|
+/// Match the already retained Relation to the existing commit witness. No
+/// loan, callback or Sample authority is issued. A consumer still needs its
+/// original Debug admission and availability check before reading any cells.
+pub fn captured_task_output_pin_matches_committed_relation(
+  run : CapturedDAG,
+  boundary : CapturedTaskBoundary,
+  pin : CapturedOutputPin,
+) -> Bool {
+  captured_committed_relation_pin_current(run, boundary, pin) &&
+  captured_control_boundary_available(run.graph, pin.task)
+}
+
+///|
+fn captured_committed_relation_pin_current(
+  run : CapturedDAG,
+  boundary : CapturedTaskBoundary,
+  pin : CapturedOutputPin,
+) -> Bool {
+  guard boundary.phase != Before &&
+    pin.live &&
+    physical_equal(pin.run, run) &&
+    pin.task == boundary.task &&
+    captured_task_boundary_current(run, boundary) &&
+    run.outputs[pin.task] is Some(Materialized(output)) else {
+    return false
+  }
+  physical_equal(output, pin.output) &&
+  @execution.completed_has_cell_access(output)
 }

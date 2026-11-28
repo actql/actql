@@ -353,6 +353,7 @@ test "original Program parse refusal projects the first typed issue without chec
       BoundInput,
       None,
       format,
+      false,
     )
     // Compare complete findings and stop kinds, including retained source
     // locations. Neither branch may turn malformed input into an exception.

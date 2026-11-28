@@ -7003,6 +7003,12 @@ and all saved prior catalogue preimages keep their exact original identities.
 Restoration compares the same Prepared/original journal/catalogue and complete
 wire, rejecting an empty, substituted or foreign journal.
 
+The live Request and the restored material each check the exact Prepared owner
+before returning their original input borrow. A refused return retains its
+normalization memo and the original journal for retry. After the physical
+return is acknowledged, Common marks the memo retired and drops the retained
+journal reference. The retired owner cannot issue another normalization memo.
+
 Common occurrence records retain their typed Relation/Source original. The
 same Request quotes the record/tag controls before the audit using its cached
 original parsed-check counts and Source inventory length. Two Source frames

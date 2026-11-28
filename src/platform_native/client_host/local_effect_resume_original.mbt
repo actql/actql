@@ -177,7 +177,7 @@ fn native_pending_effect_approval(
     lease_expires_ms: 0L,
   }) &&
   checkpoint.binding == binding &&
-  !record.cancellation_requested &&
+  !record.cancellation_requested() &&
   !checkpoint.settlement_only &&
   checkpoint.unknown_effects.is_empty() &&
   checkpoint.effect_ledger.is_empty()
@@ -228,7 +228,7 @@ fn NativeLocalSavedEffectReview::restore_effect_resume_in_original_read(
     checkpoint.verified_wire is Some(verified_wire) &&
     checkpoint.resume_intent is Some(intent) &&
     !checkpoint.settlement_only &&
-    !record.cancellation_requested &&
+    !record.cancellation_requested() &&
     @scalar.admit_utf8_length(verified_wire, 65536) is Ok(bytes) &&
     bytes > 0 else {
     return Err(SavedResolutionUnavailable)

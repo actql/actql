@@ -46,11 +46,16 @@ test('full checkpoint binds tested SHA, ancestry, policy and exact successful at
 });
 // Independent full-workflow inventory: focused-tests runs only in its own
 // narrow profile and is skipped alongside the successful full families.
+const clientMatrices = {
+  'client-readme-packed': ['22.22.0', '24'],
+  'client-direct-model': ['22.22.0', '24.21.0'],
+};
+const matrixJobs = (family, versions) => versions.map(node => `${family} (${node})`);
 const fullWorkflowJobs = ['check', 'select-targets', 'preflight', 'lint',
   'core (js)', 'core (wasm)', 'core (native 1/2)', 'core (native 2/2)', 'core (native scoped-runtime)', 'core (native scoped-review)', 'host', 'client', 'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-mock', 'native-cli-linux-local-installed', 'native',
   'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
   'native-separated-network (direct)', 'native-separated-network (store)', 'workers', 'connector-addition', 'duckdb-node',
-  'client-readme-packed (22.22.0)', 'client-readme-packed (24)'];
+  ...Object.entries(clientMatrices).flatMap(([family, versions]) => matrixJobs(family, versions))];
 function fullWorkflowFixture() {
   const f = fixture();
   f.options.requiredJobs = fullCheckpointJobs(gateJobs);
@@ -66,28 +71,32 @@ test('real gate inventory accepts complete full main with skipped focused-only j
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
   assert.deepEqual([...options.requiredJobs].sort(), [...fullWorkflowJobs].sort());
 });
-test('full checkpoint README identities match both exact supported Node workflow matrix jobs', () => {
+test('full checkpoint Client identities match the exact supported Node workflow matrix jobs', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  const job = workflow.jobs['client-readme-packed'];
-  assert.equal(job.name, 'client-readme-packed (${{ matrix.node }})');
-  assert.deepEqual(job.strategy.matrix.node, ['22.22.0', '24']);
-  assert.deepEqual(job.strategy.matrix.node.map(node => job.name.replace('${{ matrix.node }}', node)),
-    fullWorkflowJobs.filter(name => name.startsWith('client-readme-packed (')));
+  for (const [family, versions] of Object.entries(clientMatrices)) {
+    const job = workflow.jobs[family];
+    assert.equal(job.name, family + ' (${{ matrix.node }})');
+    assert.deepEqual(job.strategy.matrix.node, versions);
+    assert.deepEqual(job.strategy.matrix.node.map(node => job.name.replace('${{ matrix.node }}', node)),
+      fullWorkflowJobs.filter(name => name.startsWith(family + ' (')));
+  }
 });
-test('full checkpoint refuses missing failed skipped or cancelled README matrix evidence', async () => {
+test('full checkpoint refuses missing failed skipped or cancelled Client matrix evidence', async () => {
   for (const event of ['push', 'workflow_dispatch']) {
     const complete = fullWorkflowFixture(); complete.state.run.event = event;
     assert.equal((await resolveMainBaseline(complete.options)).baseSha, base, `${event}: complete`);
-    for (const name of ['client-readme-packed (22.22.0)', 'client-readme-packed (24)']) {
-      for (const outcome of ['missing', 'failure', 'skipped', 'cancelled']) {
-        const f = fullWorkflowFixture(); f.state.run.event = event;
-        if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
-        else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
-        // A historical abstract row cannot replace either real matrix child.
-        f.state.jobs.jobs.push({name: 'client-readme-packed', run_id: 101,
-          run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'success'});
-        f.state.jobs.total_count = f.state.jobs.jobs.length;
-        assert.equal((await resolveMainBaseline(f.options)).baseSha, null, `${event}: ${name}: ${outcome}`);
+    for (const [family, versions] of Object.entries(clientMatrices)) {
+      for (const name of matrixJobs(family, versions)) {
+        for (const outcome of ['missing', 'failure', 'skipped', 'cancelled']) {
+          const f = fullWorkflowFixture(); f.state.run.event = event;
+          if (outcome === 'missing') f.state.jobs.jobs = f.state.jobs.jobs.filter(job => job.name !== name);
+          else f.state.jobs.jobs.find(job => job.name === name).conclusion = outcome;
+          // An abstract family row cannot replace a matrix child.
+          f.state.jobs.jobs.push({name: family, run_id: 101,
+            run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'success'});
+          f.state.jobs.total_count = f.state.jobs.jobs.length;
+          assert.equal((await resolveMainBaseline(f.options)).baseSha, null, `${event}: ${name}: ${outcome}`);
+        }
       }
     }
   }

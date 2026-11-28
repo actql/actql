@@ -3245,6 +3245,7 @@ fn request_captured_models_original_case(
   native : Bool,
   whole? : Bool = false,
   swapped? : Bool = false,
+  duplicate? : Bool = false,
   read_headroom? : (Bool, Int64)? = None,
 ) -> Unit raise {
   let row_document =
@@ -3379,6 +3380,9 @@ fn request_captured_models_original_case(
   if swapped {
     whole_sources.swap(0, 1)
   }
+  if duplicate {
+    whole_sources[1] = whole_sources[0]
+  }
   let loader = publication_test_loader(publication_test_url())
   let entries : Array[Int] = []
   let declared_provider = if !native && !whole {
@@ -3391,6 +3395,20 @@ fn request_captured_models_original_case(
     )
   } else {
     None
+  }
+  let transport = if native {
+    [4096L]
+  } else if whole {
+    [4096L, 4160L]
+  } else {
+    [4096L, 4096L]
+  }
+  let transport_execution = if native {
+    [2048L]
+  } else if whole {
+    [2048L, 2112L]
+  } else {
+    [2048L, 2048L]
   }
   let selected = prepare_request_model_capture_module(
     parent,
@@ -3414,16 +3432,8 @@ fn request_captured_models_original_case(
     } else {
       original_row_evidence_contract_fixture
     },
-    if native {
-      [4096L]
-    } else {
-      [4096L, 4096L]
-    },
-    if native {
-      [2048L]
-    } else {
-      [2048L, 2048L]
-    },
+    transport,
+    transport_execution,
     contracts,
     true,
     0,
@@ -3449,7 +3459,7 @@ fn request_captured_models_original_case(
       })
     }),
   )
-  if swapped {
+  if swapped || duplicate {
     assert_true(selected is Err(Installed(ForeignOriginal)))
     assert_true(entries.is_empty())
     assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
@@ -3472,6 +3482,8 @@ fn request_captured_models_original_case(
   }
   if whole {
     assert_eq(@strategy.graph_captured_prefix(selected.graph), 0)
+    assert_eq(selected.transport_bytes, transport)
+    assert_eq(selected.transport_execution_bytes, transport_execution)
     assert_true(@publication_host.prepared_client_has_checked_sources(prepared))
     let policy = @publication_host.prepared_client_publication_data_policy_cid(
       prepared,
@@ -3735,6 +3747,11 @@ test "native joined Whole Read slots obey original preparation headroom" {
 ///|
 test "native joined Whole inputs refuse swapped original ports before Model factory selection" {
   request_captured_models_original_case(false, whole=true, swapped=true)
+}
+
+///|
+test "native joined Whole inputs refuse a duplicate original port before Model factory selection" {
+  request_captured_models_original_case(false, whole=true, duplicate=true)
 }
 
 ///|

@@ -5,6 +5,7 @@ priv struct OriginalSDKReadContext {
   source : @local_run.LocalSDKReadSource
   finite : @host.ClientLocalRunPolicyOriginal
   sdk : StoredSDKRunConfiguration
+  selection : @publication.LocalSDKResultReadSelection
   current : StoredRunConfiguration
   owner : @publication.PublicationCommitPreparation
   view : @publication.PublicationCommitReadView
@@ -13,6 +14,8 @@ priv struct OriginalSDKReadContext {
   // Enables a fresh probe against the enclosing export's first census.
   // The physical reader still decides whether any repeated scan is needed.
   same_reader_census : Bool
+  task_material_proof : SavedTaskMaterialProof?
+  read_only_saved_control : Bool
   check_current : () -> Result[Unit, Int]
 }
 
@@ -40,6 +43,8 @@ fn original_sdk_read_context(
   same_reader_census? : Bool = false,
   request_input? : @buffers.BufferSlot? = None,
   reuse_proven_fence_rows? : Bool = false,
+  targeted_task_material? : Bool = false,
+  read_only_saved_control? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   if value.publications.get(record.publication) is None {
     return saved_sdk_read_context(
@@ -49,6 +54,8 @@ fn original_sdk_read_context(
       current_configuration,
       same_reader_census~,
       reuse_proven_fence_rows~,
+      targeted_task_material~,
+      read_only_saved_control~,
     )
   }
   guard value.publications.get(record.publication) is Some(parent) &&
@@ -89,7 +96,13 @@ fn original_sdk_read_context(
     Err(code) => return Err(code)
   }
   guard value.publication_preflights.get(parent.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) &&
+    is Some(
+      {
+        closing: false,
+        origin: ComputePublicationPreflight({ prepared: Some(preflight), .. }),
+        ..
+      }
+    ) &&
     parent.observation_checked &&
     !parent.observation_failed &&
     parent.observation_index is Some(index) &&
@@ -186,12 +199,15 @@ fn original_sdk_read_context(
         source,
         finite,
         sdk,
+        selection: sdk.read,
         current,
         owner,
         view,
         result_name,
         format,
         same_reader_census: false,
+        task_material_proof: None,
+        read_only_saved_control: false,
         check_current,
       })
   }

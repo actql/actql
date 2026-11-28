@@ -163,8 +163,8 @@ test "managed producer lookup distinguishes source-free task zero from the captu
   assert_eq(source_free, 21)
   assert_eq(captured, 0)
   assert_eq(positive, 23)
-  assert_eq(bind_managed_producer_handle(value, 13, 0), -1)
-  assert_eq(bind_managed_producer_handle(value, 11, -1), -1)
+  assert_eq(bind_managed_producer_handle(value, 13, 0), -2)
+  assert_eq(bind_managed_producer_handle(value, 11, -1), -2)
   assert_true(bound_managed_producer(value, 11, 23) is None)
   assert_true(bound_managed_producer(value, 12, captured) is None)
   assert_true(

@@ -33,9 +33,9 @@ def _selected_engine_settings(recipe: _SelectedImageRecipe) -> tuple[tuple[str, 
         ('config', 'strategy', body['strategy']),
         ('config', 'target', body['target']),
     ]
-    # Explicit target suppresses host-inferred ISA features in pinned Wasmtime
-    # 38. The baseline recipe never calls flag_enable or enables host tuning.
-    for name in ('parallel_compilation', 'wasm_gc', 'wasm_component_model', 'async_support',
+    # An explicit target selects the baseline ISA. The recipe does not
+    # call flag_enable or enable host tuning.
+    for name in ('parallel_compilation', 'wasm_gc', 'wasm_component_model',
                  'memory_reservation', 'memory_guard_size',
                  'memory_reservation_for_growth', 'max_wasm_stack'):
         settings.append(('config', name, body[name]))

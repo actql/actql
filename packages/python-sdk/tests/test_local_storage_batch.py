@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import (
     ByteWrite, LocalByteStore, LocalStorageError, StoredBytes,
-    LocalStorageCommitUnknown,
+    LocalStorageCommitUnknown, _DurableStoreLimits,
 )
 
 
@@ -36,7 +36,9 @@ class AtomicByteBatchTests(unittest.TestCase):
 
     def test_capacity_counts_all_writes_and_replacements_before_installation(self) -> None:
         with TemporaryDirectory(prefix='actql-python-local-batch-') as directory:
-            with self.store(Path(directory) / 'core.sqlite', records=2, total=128) as store:
+            with LocalByteStore(Path(directory) / 'core.sqlite', max_records=2,
+                                max_record_bytes=128, max_payload_bytes=128,
+                                durable_limits=_DurableStoreLimits(2, 128, 2)) as store:
                 store.compare_exchange('a', None, b'a' * 120)
                 with self.assertRaises(LocalStorageError):
                     store.compare_exchange_many((ByteWrite('a', 0, b'a' * 120),
@@ -107,14 +109,17 @@ class AtomicByteBatchTests(unittest.TestCase):
         class LostCommit(sqlite3.Connection):
             lose = False
             inserts = 0
+            commits = 0
 
             def execute(self, sql: str, *args: object, **kwargs: object) -> sqlite3.Cursor:
-                if sql.startswith('INSERT'):
+                if sql.startswith('INSERT INTO main.core_bytes '):
                     self.inserts += 1
                 result = super().execute(sql, *args, **kwargs)
-                if sql == 'COMMIT' and self.lose:
-                    self.lose = False
-                    raise OSError('independent physical commit acknowledgement loss')
+                if sql == 'COMMIT':
+                    self.commits += 1
+                    if self.lose:
+                        self.lose = False
+                        raise OSError('independent physical commit acknowledgement loss')
                 return result
 
         connect = sqlite3.connect
@@ -122,14 +127,20 @@ class AtomicByteBatchTests(unittest.TestCase):
             with patch('actql_sdk._local_storage.sqlite3.connect',
                        side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
-                    store._connection.lose = True
+                    connection = store._connection
+                    self.assertEqual(connection.execute(
+                        'SELECT reservations, records, payload_bytes FROM main.actql_store_usage').fetchone(),
+                        (0, None, None))
+                    before = connection.commits
+                    connection.lose = True
                     with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange_many((ByteWrite('material', None, b'raw-material'),
                                                      ByteWrite('index', None, b'raw-index')))
                     self.assertIs(caught.exception.cleanup_store, store)
                     self.assertEqual(store.read('material'), StoredBytes(0, b'raw-material'))
                     self.assertEqual(store.read('index'), StoredBytes(0, b'raw-index'))
-                    self.assertEqual(store._connection.inserts, 2)
+                    self.assertEqual(connection.inserts, 2)
+                    self.assertEqual(connection.commits - before, 1)
 
     def test_invalid_batch_is_refused_before_opening_a_transaction(self) -> None:
         with TemporaryDirectory(prefix='actql-python-local-batch-') as directory:

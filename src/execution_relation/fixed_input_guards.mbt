@@ -332,3 +332,49 @@ pub fn execute_fixed_input_guarded(
     ),
   )
 }
+
+///|
+/// Scratch for measuring the already-admitted cells of one original
+/// projection. All cells share the same peak, including on refusal. The
+/// byte/node/work counters are still cumulative over the complete output.
+pub fn admitted_output_measurement_workspace(
+  limits : FixedInputGuardMeasureLimits,
+) -> Int64? {
+  let depth = limits.max_depth
+  guard depth >= 0 && depth <= 2147483644 else { return None }
+  // All objects emitted from an admitted cell use ordered keys, including
+  // the one-key $json wrapper and canonical values inside a Reference.
+  // Both traversals share one writer depth. Include the current leaf, its
+  // continuation and the Reference step outside the open containers. The
+  // emitter inventory already allows both stack backings and their growth.
+  guard @encode.measuring_writer_construction_extent(
+      0,
+      depth,
+      unordered_depth=0,
+    )
+    is Some(writer) &&
+    @admitted.wire_emit_bounded_construction_inventory(depth + 3)
+    is Some(emitter) else {
+    return None
+  }
+  let operation = @encode.measurement_operation_construction_extent()
+  // Borrowed row adapter, active cell/Option, budget, usage projections,
+  // per-column usage replacement and returned typed refusal can coexist.
+  // Admission and retained metadata have their own existing workspace.
+  preparation_representation_cost({
+    record_headers: writer.record_headers +
+    emitter.record_headers +
+    operation.collections.record_headers +
+    12L,
+    reference_slots: writer.reference_slots +
+    emitter.reference_slots +
+    operation.collections.reference_slots +
+    16L,
+    scalar_words: writer.scalar_words +
+    emitter.scalar_words +
+    operation.collections.scalar_words +
+    12L,
+    owned_utf16_units: emitter.owned_utf16_units + operation.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}

@@ -7,7 +7,11 @@ priv struct LocalDebugPark {
   step_wire : String
   paused_at : String
   expires_at : String
-  resume_available : Bool
+  continuation_available : Bool
+  effect_write : @json.CanonicalValue?
+  matched_breakpoint : String?
+  breakpoint_targets : @json.CanonicalValue?
+  entry_breakpoint_selection : @json.CanonicalValue?
 }
 
 ///|
@@ -18,11 +22,63 @@ let local_debug_ttl_policy : String =
   #|{"version":"actql-local-debug-park-ttl-policy/0.1","entry_deadline":"selected_within_original_run_and_lookup_lease","step_deadline":"inherit_entry_deadline","clock":"journal_epoch_floor","expired":"at_or_after_deadline"}
 
 ///|
+// Every member inherits the acknowledged physical start's original expiry.
+// Neither release nor an input continuation replenishes it.
+let local_effect_write_ttl_policy : String =
+  #|{"version":"actql-local-effect-write-park-ttl-policy/0.1","member_deadline":"inherit_original_physical_start_deadline","clock":"journal_epoch_floor","expired":"at_or_after_deadline"}
+
+///|
+fn admit_current_effect_write_park(
+  run : PublicationContract,
+  ref_value : @json.CanonicalValue,
+  status : String,
+  revision : Int64,
+  park : @json.CanonicalValue,
+  original : @json.CanonicalValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[LocalDebugPark, RunControlReadIssue] {
+  guard @json.object_field_count(park) == Some(2) &&
+    @json.object_field(park, "confirm_available")
+    is Some(@json.Bool(confirm_available)) &&
+    (
+      status == "running" ||
+      status == "waiting_checkpoint" ||
+      status == "resuming"
+    ) else {
+    return Err(ControlReadContract(InvalidField("effect_write_park")))
+  }
+  match
+    admit_local_effect_write_park(
+      run, ref_value, revision, original, max_bytes, max_nodes, max_depth,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(boundary) =>
+      Ok({
+        logical_map_cid: None,
+        boundary_cid: boundary.boundary_cid,
+        kind: "effect_write",
+        position: "before",
+        step_wire: "null",
+        paused_at: boundary.paused_at,
+        expires_at: boundary.expires_at,
+        continuation_available: confirm_available,
+        effect_write: Some(boundary.selection),
+        matched_breakpoint: None,
+        breakpoint_targets: None,
+        entry_breakpoint_selection: None,
+      })
+  }
+}
+
+///|
 fn admit_local_debug_park(
   run : PublicationContract,
   ref_value : @json.CanonicalValue,
   status : String,
   revision : Int64,
+  physical_closed : Bool,
   park : @json.CanonicalValue,
   max_bytes : Int,
   max_nodes : Int,
@@ -37,11 +93,59 @@ fn admit_local_debug_park(
     Some(@json.Bool(value)) => (value, 1)
     _ => return Err(invalid)
   }
+  let matched_breakpoint = match
+    @json.object_field(park, "matched_breakpoint_step_id") {
+    None => None
+    Some(@json.String(step)) if (
+        park_kind == Some("logical_step") ||
+        park_kind == Some("stopped_logical_step")
+      ) &&
+      valid_contract_cid(step) &&
+      contract_string_from_value(park, "next_step_id") == Some(step) =>
+      Some(step)
+    _ => return Err(invalid)
+  }
+  let breakpoint_targets = match
+    @json.object_field(park, "breakpoint_targets") {
+    None => None
+    Some(@json.Array(targets) as value) if park_kind == Some("logical_step") &&
+      resume_available &&
+      contract_string_from_value(park, "next_step_id") is Some(next) => {
+      let entries = @json.array_values(targets)
+      guard !entries.is_empty() else { return Err(invalid) }
+      let seen : Map[String, Bool] = Map([])
+      for entry in entries {
+        guard entry is @json.String(step) &&
+          valid_contract_cid(step) &&
+          step != next &&
+          !seen.contains(step) else {
+          return Err(invalid)
+        }
+        seen[step] = true
+      }
+      Some(value)
+    }
+    _ => return Err(invalid)
+  }
   let map = match @json.object_field(park, "logical_map_cid") {
     Some(@json.String(cid)) if valid_contract_cid(cid) => Some(cid)
     // Entry consumes the checked Run boundary before any logical Step. A
     // Host without a retained map cannot issue a logical Step boundary.
     Some(@json.Null) if park_kind == Some("entry") && !resume_available => None
+    _ => return Err(invalid)
+  }
+  let entry_breakpoint_selection = match
+    @json.object_field(park, "entry_breakpoint_selection") {
+    None => None
+    Some(value) if park_kind == Some("entry") &&
+      resume_available &&
+      contract_string_from_value(park, "next_step_id") is Some(_) &&
+      map is Some(original_map) &&
+      @json.object_field_count(value) == Some(2) &&
+      contract_string_from_value(value, "logical_map_cid") == Some(original_map) &&
+      @json.object_field(value, "before_step_ids") is Some(@json.Array(marks)) &&
+      @json.array_count(marks) > 0 &&
+      @json.array_count(marks) <= 32 => Some(value)
     _ => return Err(invalid)
   }
   guard @json.object_field(park, "run_ref") is Some(original_ref) &&
@@ -79,7 +183,8 @@ fn admit_local_debug_park(
   let (kind, position, step_wire, task_fields) = match park_kind {
     // The legacy Run view calls a reserved dispatch "running", including an
     // entry park whose original Journal has yet to reserve physical start.
-    Some("entry") if status == "preparing" || status == "running" => {
+    Some("entry") if !physical_closed &&
+      (status == "preparing" || status == "running") => {
       let (step_wire, step_fields) = match
         @json.object_field(park, "next_step_id") {
         None => ("null", 0)
@@ -93,18 +198,56 @@ fn admit_local_debug_park(
         _ => return Err(invalid)
       }
       guard @json.object_field_count(park) ==
-        Some(7 + availability_fields + step_fields) else {
+        Some(
+          7 +
+          availability_fields +
+          step_fields +
+          (if entry_breakpoint_selection is Some(_) { 1 } else { 0 }),
+        ) else {
         return Err(invalid)
       }
       // Display the first known Step without changing the consumed entry
       // boundary or the existing Journal receipt's identity.
       ("entry", "before", step_wire, "")
     }
-    Some("logical_step") if status == "running" &&
-      @json.object_field_count(park) == Some(12 + availability_fields) => {
-      guard interactive_integer(park, "start_revision") is Some(start_revision) &&
+    Some(task_kind) if (
+        task_kind == "logical_step" && status == "running" && !physical_closed
+      ) ||
+      (
+      // The active input continuation uses the original start and keeps
+      // the prior physical stop in the legacy observation.
+        task_kind == "input_logical_step" &&
+        status == "resuming" &&
+        physical_closed
+      ) ||
+      (
+        task_kind == "stopped_logical_step" &&
+        status == "needs_reconciliation" &&
+        physical_closed
+      ) => {
+      let stopped = task_kind == "stopped_logical_step"
+      let task_fields = if stopped { 13 } else { 12 }
+      let breakpoint_fields = (if matched_breakpoint is Some(_) {
+          1
+        } else {
+          0
+        }) +
+        (if breakpoint_targets is Some(_) { 1 } else { 0 })
+      let parked_revision = if stopped {
+        guard interactive_integer(park, "parked_revision")
+          is Some(parked_revision) &&
+          parked_revision == revision - 1L else {
+          return Err(invalid)
+        }
+        parked_revision
+      } else {
+        revision
+      }
+      guard @json.object_field_count(park) ==
+        Some(task_fields + availability_fields + breakpoint_fields) &&
+        interactive_integer(park, "start_revision") is Some(start_revision) &&
         start_revision > 0L &&
-        start_revision < revision &&
+        start_revision < parked_revision &&
         interactive_integer(park, "control_revision") is Some(control_revision) &&
         control_revision >= 2L &&
         control_revision <= 2147483646L &&
@@ -195,7 +338,11 @@ fn admit_local_debug_park(
     step_wire,
     paused_at,
     expires_at,
-    resume_available,
+    continuation_available: resume_available,
+    effect_write: None,
+    matched_breakpoint,
+    breakpoint_targets,
+    entry_breakpoint_selection,
   })
 }
 
@@ -215,7 +362,11 @@ fn encode_current_debug_park(
   }
   let policy_value = match
     parse_contract_wire(
-      local_debug_ttl_policy,
+      if park.effect_write is Some(_) {
+        local_effect_write_ttl_policy
+      } else {
+        local_debug_ttl_policy
+      },
       max_bytes,
       max_nodes,
       max_depth,
@@ -229,6 +380,29 @@ fn encode_current_debug_park(
       policy_value, max_bytes, max_nodes, max_depth,
     )
     let observed = quote(park.paused_at)
+    let (reason, selection) = match park.effect_write {
+      Some(value) =>
+        (
+          "effect_write",
+          ",\"effect_write\":" +
+          @json.stringify_value(value, max_bytes, max_nodes, max_depth),
+        )
+      None =>
+        (
+          if park.matched_breakpoint is Some(_) {
+            "breakpoint"
+          } else if park.kind == "entry" {
+            "entry"
+          } else {
+            "step"
+          },
+          "",
+        )
+    }
+    let matched = match park.matched_breakpoint {
+      Some(step) => "[" + quote(step) + "]"
+      None => "[]"
+    }
     Ok(
       "{\"version\":\"actql-controlled-run-state/0.1\",\"status\":\"paused\",\"run_id\":" +
       quote(contract_string(run, "run_id").unwrap()) +
@@ -237,8 +411,10 @@ fn encode_current_debug_park(
       ",\"control_revision\":" +
       revision.to_string() +
       ",\"stop_reason\":" +
-      quote(if park.kind == "entry" { "entry" } else { "step" }) +
-      ",\"matched_breakpoints\":[],\"paused_at\":" +
+      quote(reason) +
+      ",\"matched_breakpoints\":" +
+      matched +
+      ",\"paused_at\":" +
       observed +
       ",\"expires_at\":" +
       quote(park.expires_at) +
@@ -252,6 +428,7 @@ fn encode_current_debug_park(
       park.step_wire +
       ",\"consumed_boundary_cid\":" +
       quote(park.boundary_cid) +
+      selection +
       "}}",
     )
   } catch {
@@ -308,11 +485,6 @@ pub fn project_current_interactive_run_view(
     contract_string(run, "run_id") {
     return Err(LegacyProjectionMismatch("run_id"))
   }
-  // This small read profile does not observe continuation/fence evidence.
-  // Refuse that projection rather than inventing a resume origin.
-  if contract_string_from_value(state, "status") == Some("resuming") {
-    return Err(RunStateVersionUnsupported)
-  }
   guard @json.object_field(state, "control") is Some(control) &&
     interactive_integer(control, "revision") is Some(revision) else {
     return Err(RunStateVersionUnsupported)
@@ -353,8 +525,7 @@ pub fn project_current_interactive_run_view(
       return Err(ControlReadContract(InvalidField("run_state")))
     }
     if @json.object_field(control, "cancellation_requested")
-      is Some(@json.Bool(true)) ||
-      contract_string_from_value(control, "physical_stop") == Some("confirmed") {
+      is Some(@json.Bool(true)) {
       return Err(ControlReadContract(InvalidField("debug_park")))
     }
     let value = match
@@ -368,20 +539,37 @@ pub fn project_current_interactive_run_view(
       Ok(value) => value
       Err(issue) => return Err(ControlReadContract(issue))
     }
-    match
-      admit_local_debug_park(
-        run,
-        ref_value,
-        contract_string_from_value(state, "status").unwrap(),
-        revision,
-        value,
-        max_bytes,
-        max_nodes,
-        max_depth,
-      ) {
+    let status = contract_string_from_value(state, "status").unwrap()
+    let boundary = match @json.object_field(value, "effect_write_park") {
+      Some(original) =>
+        admit_current_effect_write_park(
+          run, ref_value, status, revision, value, original, max_bytes, max_nodes,
+          max_depth,
+        )
+      None =>
+        admit_local_debug_park(
+          run,
+          ref_value,
+          status,
+          revision,
+          contract_string_from_value(control, "physical_stop") ==
+          Some("confirmed"),
+          value,
+          max_bytes,
+          max_nodes,
+          max_depth,
+        )
+    }
+    match boundary {
       Ok(value) => Some(value)
       Err(issue) => return Err(issue)
     }
+  }
+  // An admitted park can supersede the older input-continuation observation.
+  // An unobserved resume has no dispatch/fence evidence here.
+  if contract_string_from_value(state, "status") == Some("resuming") &&
+    park is None {
+    return Err(RunStateVersionUnsupported)
   }
   let controlled = if park is Some(debug) {
     match
@@ -492,10 +680,21 @@ pub fn project_current_interactive_run_view(
     journal_component +
     "],\"quantities\":[],\"sample\":{\"state\":\"unavailable\",\"reason\":\"not_supported\"}," +
     "\"available_operations\":" +
-    (if park is Some(debug) && debug.resume_available {
-      "[\"inspect\",\"resume\"]"
-    } else {
-      "[\"inspect\"]"
+    (match park {
+      Some(debug) if debug.continuation_available =>
+        if debug.effect_write is Some(_) {
+          "[\"inspect\",\"confirm_write\"]"
+        } else {
+          "[\"inspect\",\"resume\"]"
+        }
+      _ => "[\"inspect\"]"
+    }) +
+    (match park {
+      Some({ breakpoint_targets: Some(targets), .. }) =>
+        ",\"breakpoint_targets\":" + encode(targets)
+      Some({ entry_breakpoint_selection: Some(selection), .. }) =>
+        ",\"entry_breakpoint_selection\":" + encode(selection)
+      _ => ""
     }) +
     ",\"capabilities\":{\"static_plan\":" +
     static_plan_installed.to_string() +

@@ -18,8 +18,8 @@ compiler = parent_tests.compiler
 class FailedCompilerCleanupTests(unittest.TestCase):
     def setUp(self):
         self.original = process_tests.CompilerProcessTests()
-        self.original.setUp()
         self.addCleanup(self.original.doCleanups)
+        self.original.setUp()
         self.transport, self.writer = self.original.failed_response()
         self.parent = self.original.parent
         held = self.parent.original.holding

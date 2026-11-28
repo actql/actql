@@ -12,6 +12,7 @@ fn saved_result_export_parent(
     parent.saved_result is Some(saved) &&
     saved.advances_remaining == 0 &&
     saved.source is Some(_) &&
+    saved.selection is Some(_) &&
     saved.finite is Some(_) &&
     saved.owner is Some(_) &&
     saved.view is Some(_) else {
@@ -32,6 +33,8 @@ fn saved_sdk_read_context(
   current_configuration : Int,
   same_reader_census? : Bool = false,
   reuse_proven_fence_rows? : Bool = false,
+  targeted_task_material? : Bool = false,
+  read_only_saved_control? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   guard run == record.publication &&
     saved_result_export_parent(value, record.publication)
@@ -41,58 +44,86 @@ fn saved_sdk_read_context(
     current.sdk is Some(sdk) &&
     saved.source is Some(source) &&
     saved.finite is Some(finite) &&
+    saved.selection is Some(selection) &&
     saved.owner is Some(owner) &&
     saved.view is Some(view) else {
     return Err(-2)
   }
   let (principal, connection, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
-    sdk.read,
+    selection,
   )
   if !@publication.local_sdk_result_read_selection_accepts_name(
-      sdk.read,
+      selection,
       saved.result_name,
     ) ||
     principal != current.tuple.principal ||
     connection != current.tuple.connection {
     return Err(-32)
   }
-  // Every export begins with the full census. Subsequent checks may use it
-  // only while the physical Owner proves that the same reader is unchanged.
+  // Known read-only payload exports use the completed original material.
+  // Store writer preparation and precommit keep their existing full guards.
+  let read_only_saved_control = read_only_saved_control &&
+    parent.kind == INCREMENTAL_SAVED_RESULT_KIND
   match
     check_saved_sdk_read_context(
-      value, record, parent, saved, current, source, false, false,
+      value,
+      record,
+      parent,
+      saved,
+      current,
+      source,
+      false,
+      false,
+      targeted_task_material=targeted_task_material &&
+        parent.kind == INCREMENTAL_SAVED_RESULT_KIND,
+      read_only_saved_control~,
     ) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }
   // The complete rebind above checked the exact fence rows. Only callbacks
   // on this same Saved original may reuse that evidence after a live proof.
-  let same_reader_census = if same_reader_census &&
-    parent.kind == INCREMENTAL_SAVED_RESULT_KIND {
-    // Ticket zero cannot name a physical loan. The original suppliers
-    // refuse this discovery request without observing Store currentness.
-    // Only a positive opt-in enables the subsequent real-ticket proof.
-    match physical_journal_current_operation(0) {
-      1L => true
-      0L | -41L => false
-      _ => return Err(-41)
+  let same_reader_census = !read_only_saved_control &&
+    same_reader_census &&
+    parent.kind == INCREMENTAL_SAVED_RESULT_KIND
+  let task_material_proof = if targeted_task_material && same_reader_census {
+    guard current.host_current is Some(handle) &&
+      value.host_currents.get(handle) is Some(original) else {
+      return Err(-32)
     }
+    Some({
+      retained: saved,
+      configuration: current,
+      physical: original.physical,
+    })
   } else {
-    false
+    None
   }
   Ok({
     source,
     finite,
     sdk,
+    selection,
     current,
     owner,
     view,
     result_name: saved.result_name,
     format,
     same_reader_census,
+    task_material_proof,
+    read_only_saved_control,
     check_current: () => {
       check_saved_sdk_read_context(
-        value, record, parent, saved, current, source, same_reader_census, reuse_proven_fence_rows,
+        value,
+        record,
+        parent,
+        saved,
+        current,
+        source,
+        same_reader_census,
+        reuse_proven_fence_rows,
+        task_material_proof~,
+        read_only_saved_control~,
       )
     },
   })
@@ -108,6 +139,9 @@ fn check_saved_sdk_read_context(
   source : @local_run.LocalSDKReadSource,
   same_reader_census : Bool,
   reuse_proven_fence_rows : Bool,
+  targeted_task_material? : Bool = false,
+  task_material_proof? : SavedTaskMaterialProof? = None,
+  read_only_saved_control? : Bool = false,
 ) -> Result[Unit, Int] {
   if value.closing || value.runtime_closing || record.closing {
     return Err(-5)
@@ -122,8 +156,11 @@ fn check_saved_sdk_read_context(
       value,
       parent,
       current,
+      targeted_task_material~,
+      task_material_proof~,
       same_reader_census~,
       reuse_proven_fence_rows~,
+      read_only_saved_control~,
     ) {
     Err(code) => return Err(code)
     Ok(_) => ()

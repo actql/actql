@@ -31,7 +31,7 @@ export function interfaceGenerationFreshness(root: string) {
   const generators = ['generate-model-response-reader.mjs', 'generate-model-original-materials.mjs', 'generate-ledger-transport-contract.mjs', 'generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
     'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
     'expression-fragment-registration.mjs', 'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
-    'catalog-body-dependencies.mjs', 'check-stage-semantics.mjs', 'mock-churn-risk-catalogue.mjs',
+    'catalog-body-dependencies.mjs', 'check-stage-semantics.mjs',
     'compilation-manifests.mjs', 'current-timestamp-expression-contract.mjs', 'decimal-division-exact-contract.mjs', 'query-acquisition-contract.mjs',
     'query-process-evidence.mjs', 'query-two-receipt.mjs',
     'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',

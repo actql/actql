@@ -5,7 +5,7 @@
 struct ExecutionDelegation {
   owner : Ledger
   reservation : Reservation
-  limits : LedgerLimits
+  mut limits : LedgerLimits
   mut planning : Int
   mut attempts : Int
   mut reserved_attempts : Int

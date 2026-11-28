@@ -25,7 +25,7 @@ test('current constructor admission binds current sources and keeps the conditio
   const bound = providerConstructionBound(read);
   assert.equal(bound.providerCount, 11);
   assert.equal(bound.callbackCount, 44);
-  assert.equal(bound.bytes, 2520);
+  assert.equal(bound.bytes, 2552);
   assert.equal(bound.completeConstructorByteCorrespondence, false);
   assert.equal(bound.completeParentUpper, false);
   assert.equal(bound.completePipelineUpper, false);
@@ -67,9 +67,13 @@ for (const [name, path, before, after] of [
   ['changed provider record representation', managedPath,
     'struct ManagedProvider {', '#valtype\nstruct ManagedProvider {'],
   ['changed constructor wrapper capture', managedPath,
-    '    start_numeric: None,', '    start_numeric: Some(unreviewed),'],
+    '    start_extension: None,', '    start_extension: Some(unreviewed),'],
   ['changed constructor wrapper attribute', managedPath,
     'pub fn managed_provider_with_numeric(', '#inline\npub fn managed_provider_with_numeric('],
+  ['foreign current start tag', managedPath,
+    '  Numeric(', '  ForgedNumeric('],
+  ['inline current start tag layout', managedPath,
+    'priv enum ManagedProviderStartExtension {', '#valtype\npriv enum ManagedProviderStartExtension {'],
 ]) {
   test(`current construction refuses ${name}`, () => {
     const original = read(path).toString();
@@ -80,7 +84,7 @@ for (const [name, path, before, after] of [
     const inspect=runtimeOnly?checkParentCensus:providerConstructionBound;
     assert.throws(() => inspect(file => file === path ? changed : read(file)),
       runtimeOnly?/Unreviewed .* source captures|Changed row cleanup stop\/ACK boundary/:
-        /Unreviewed current constructor source|Unreviewed provider candidate inventory|Changed current ManagedProvider declaration|Changed current candidate construction wrapper/);
+        /Unreviewed current constructor source|Unreviewed provider candidate inventory|Changed current ManagedProvider declaration|Changed current candidate construction wrapper|Changed current start extension/);
   });
 }
 
@@ -113,7 +117,7 @@ test('unrelated runtime helpers retain complete source provenance without changi
     const changed = change(original);
     assert.notEqual(changed, original);
     const bound = providerConstructionBound(file => file === path ? changed : read(file));
-    assert.equal(bound.bytes, 2520);
+    assert.equal(bound.bytes, 2552);
     assert.equal(bound.completeConstructorByteCorrespondence, false);
     assert.equal(bound.completeParentUpper, false);
     assert.equal(bound.completePipelineUpper, false);
@@ -129,7 +133,7 @@ test('borrowed generated inputs and deferred execution are outside the candidate
     'struct GeneratedSequence {\n  unrelated_borrowed_field : Int');
   assert.notEqual(changed, original);
   const bound = providerConstructionBound(path => path === generatedPath ? changed : read(path));
-  assert.equal(bound.bytes, 2520);
+  assert.equal(bound.bytes, 2552);
   assert.equal(bound.sourceReview.generatedDigest, hash(changed));
   assert.equal(bound.completeConstructorByteCorrespondence, false);
   assert.equal(bound.completeParentUpper, false);
@@ -137,7 +141,7 @@ test('borrowed generated inputs and deferred execution are outside the candidate
   const source = read(selectedPath).toString();
   const brokenCleanup = source.replace('        if reclaimed.val {', '        if true {');
   assert.notEqual(brokenCleanup, source);
-  assert.equal(providerConstructionBound(path => path === selectedPath ? brokenCleanup : read(path)).bytes, 2520);
+  assert.equal(providerConstructionBound(path => path === selectedPath ? brokenCleanup : read(path)).bytes, 2552);
   assert.throws(() => checkParentCensus(path => path === selectedPath ? brokenCleanup : read(path)),
     /Unreviewed .* source captures|Changed row cleanup stop\/ACK boundary/);
 });
@@ -153,7 +157,7 @@ test('current construction requires no historical recipe, review or Git source',
     assert(file.startsWith('src/') || file === current, `Unexpected historical input ${file}`);
     return read(file);
   });
-  assert.equal(bound.bytes, 2520);
+  assert.equal(bound.bytes, 2552);
   assert.equal(bound.sourceReview.historicalSourceReview, undefined);
   assert.equal(bound.sourceReview.retainedSourceReview, undefined);
 });
@@ -184,7 +188,7 @@ test('deferred callback implementation changes retain current construction prove
   const changed = source.replace('bounded_cross_join_issue(issue, step)', 'bounded_cross_join_issue(issue, step + 0)');
   assert.notEqual(changed, source);
   const bound = providerConstructionBound(file => file === path ? changed : read(file));
-  assert.equal(bound.bytes, 2520);
+  assert.equal(bound.bytes, 2552);
   assert.equal(bound.completeConstructorByteCorrespondence, false);
 });
 

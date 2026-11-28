@@ -1488,7 +1488,7 @@
             "failure": [
               {
                 "path": "src/run_publication_host/client_project_local_files.mbt",
-                "anchor": "return Err(CsvTable(issue))"
+                "anchor": "return Err(issue(CsvTable(cause)))"
               }
             ],
             "cancellation": [

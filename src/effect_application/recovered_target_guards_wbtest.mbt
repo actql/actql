@@ -36,7 +36,7 @@ test "recovered guards require exact durable rows and retain initial preflight" 
     ).unwrap()
   }
   let basis = make_basis(ledger_test_cid("c"))
-  let recover = fn(head) {
+  let recover = fn(head, selected_member) {
     recover_effect_target_guards(
       preview,
       [[scope]],
@@ -48,6 +48,7 @@ test "recovered guards require exact durable rows and retain initial preflight" 
       1,
       1,
       32,
+      selected_member?,
     )
   }
   let prepared = issue_prepared_effect_ledger_entry(basis, 4096, 64, 3).unwrap()
@@ -83,7 +84,7 @@ test "recovered guards require exact durable rows and retain initial preflight" 
     check_effect_preview_target_guards(preview, [changed], 1, 2)
     is Err(StalePreview(0, 0)),
   )
-  let unsent = recover(Some(prepared)).unwrap()
+  let unsent = recover(Some(prepared), None).unwrap()
   assert_true(
     check_recovered_effect_target_guards(
       preview,
@@ -99,8 +100,64 @@ test "recovered guards require exact durable rows and retain initial preflight" 
     check_recovered_effect_target_guards(preview, scope, unsent, [], 1, 2)
     is Err(MissingObservation(0, 0)),
   )
+  let selected = recover(Some(prepared), Some(0)).unwrap()
+  let current = {
+    ..changed,
+    version_cid: @publication.effect_preview_row_guard_version_cid(
+      preview, 0, 0,
+    ).unwrap(),
+  }
+  assert_true(
+    check_recovered_effect_target_guards(
+      preview,
+      scope,
+      selected,
+      [current],
+      1,
+      2,
+      selected_member=0,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    check_recovered_effect_target_guards(
+      preview,
+      scope,
+      selected,
+      [],
+      1,
+      2,
+      selected_member=0,
+    )
+    is Err(MissingObservation(0, 0)),
+  )
+  assert_true(
+    check_recovered_effect_target_guards(
+      preview,
+      scope,
+      selected,
+      [current],
+      1,
+      2,
+    )
+    is Err(ForeignRecoveryEvidence),
+  )
+  assert_true(
+    check_recovered_effect_target_guards(
+      preview,
+      scope,
+      unsent,
+      [current],
+      1,
+      2,
+      selected_member=0,
+    )
+    is Err(ForeignRecoveryEvidence),
+  )
+  assert_true(recover(Some(prepared), Some(1)) is Err(InvalidMember))
   for head in [applied, unknown, sending] {
-    let recovered = recover(Some(head)).unwrap()
+    assert_true(recover(Some(head), Some(0)) is Err(InvalidMember))
+    let recovered = recover(Some(head), None).unwrap()
     assert_true(
       check_recovered_effect_target_guards(
         preview,
@@ -150,12 +207,14 @@ test "recovered guards require exact durable rows and retain initial preflight" 
       is Err(ForeignRecoveryEvidence),
     )
   }
-  assert_true(recover(None) is Err(ForeignLedgerEntry(0, 0)))
+  assert_true(recover(None, None) is Err(ForeignLedgerEntry(0, 0)))
   let foreign_head = issue_prepared_effect_ledger_entry(
     make_basis(ledger_test_cid("9")),
     4096,
     64,
     3,
   ).unwrap()
-  assert_true(recover(Some(foreign_head)) is Err(ForeignLedgerEntry(0, 0)))
+  assert_true(
+    recover(Some(foreign_head), None) is Err(ForeignLedgerEntry(0, 0)),
+  )
 }

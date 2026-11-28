@@ -21,6 +21,14 @@ these public import changes do not replace current authorization or cleanup.
 compiler and runtime, and the built-in Local Host adapters.
 Connected Remote mode imports only the lightweight SDK path.
 
+Trusted Local deployment code can pass `createHttpChatProvider(options)` from
+`@actql/local-node` as `installation.registerModelProviders` for direct Chat
+Completions over HTTPS. The options select one original Project Provider and
+model, the HTTPS endpoint, a credential environment variable name, canonical
+policy bodies, and bounded generation, duration, and quantity settings. Use a
+fresh callback for each Host installation. The Host reads the selected
+credential after checking the original Run's authorization and egress.
+
 Use Node.js 22.16 or later in the 22.x line, or Node.js 24.0 or later
 (`^22.16.0 || >=24.0.0`). Local Journals use the native `node:sqlite`
 `DatabaseSync.isOpen` and `DatabaseSync.isTransaction` observations, not

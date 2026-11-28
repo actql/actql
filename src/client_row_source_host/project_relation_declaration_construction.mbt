@@ -128,6 +128,39 @@ fn relation_public_projection_canonical(
 }
 
 ///|
+fn relation_projection_schema_hash_inventory(
+  calls : Int64,
+  wire_bytes : Int64,
+) -> @execution.PreparationRepresentationUnits? {
+  guard @shape.collection_construction_extent({
+      // SHA256 state, block/words, hex digits and digest; byte and builder controls.
+      records: 32L * calls,
+      record_references: 24L * calls,
+      record_words: 16L * calls,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 6L * calls,
+      scalar_items: 192L * calls,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(hash) else {
+    return None
+  }
+  @execution.compose_preparation_representation([
+    relation_construction_collection_units(hash),
+    {
+      // Hex builder old/new/result64 and CID71. Include UTF8 input backing and digest32.
+      record_headers: 6L * calls,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 263L * calls,
+      owned_wire_bytes: 6L * wire_bytes + 32L * calls,
+    },
+  ])
+}
+
+///|
 /// Constructor demand BEFORE parsing one retained original public entry.
 /// Parsed Json, every failure-prefix canonical forest/Map/writer/hash and the
 /// returned wire coexist conservatively until SAME Source initialization
@@ -173,19 +206,7 @@ pub fn relation_public_projection_construction_inventory(
       map_entries: 2L * n + 1L,
     })
     is Some(projected) &&
-    @shape.collection_construction_extent({
-      // sha256.hasher state8/words64/block64 + hex digits16 + output32/length8; byte/digest
-      // wrappers, iterators, builder and finish controls are co-held per call.
-      records: 32L * n,
-      record_references: 24L * n,
-      record_words: 16L * n,
-      reference_arrays: 0L,
-      reference_items: 0L,
-      scalar_arrays: 6L * n,
-      scalar_items: 192L * n,
-      maps: 0L,
-      map_entries: 0L,
-    })
+    relation_projection_schema_hash_inventory(n, g.body_bytes.to_int64())
     is Some(hash) else {
     return None
   }
@@ -197,7 +218,7 @@ pub fn relation_public_projection_construction_inventory(
     body_call_controls,
     final_writer,
     relation_construction_collection_units(projected),
-    relation_construction_collection_units(hash),
+    hash,
     {
       // Installed Host prepareNativeInput retains one own-data {wire} carrier.
       // This is the actual fixed return representation, not spare allowance.
@@ -208,14 +229,12 @@ pub fn relation_public_projection_construction_inventory(
       owned_wire_bytes: 0L,
     },
     {
-      // Optional/private destination keys; hex builder old/new/result64 each
-      // plus prefixed CID71. UTF8 old/new backing and digest32 remain separate.
-      record_headers: 6L * n,
+      // Optional/private destination keys are separate from the schema hash.
+      record_headers: 0L,
       reference_slots: 0L,
       scalar_words: 0L,
-      owned_utf16_units: 263L * n +
-      "_wirepublic_input_field:".length().to_int64() * n,
-      owned_wire_bytes: 6L * g.body_bytes.to_int64() + 32L * n,
+      owned_utf16_units: "_wirepublic_input_field:".length().to_int64() * n,
+      owned_wire_bytes: 0L,
     },
   ])
 }

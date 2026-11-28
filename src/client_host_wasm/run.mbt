@@ -11,6 +11,8 @@ priv struct StoredRunConfiguration {
   run_namespace : String
   source_free_result_policy : (String, String)?
   host_current : Int?
+  mock_project : Int?
+  local_project : Int?
   sdk : StoredSDKRunConfiguration?
 }
 
@@ -112,6 +114,8 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
     run_namespace,
     source_free_result_policy,
     host_current: None,
+    mock_project: None,
+    local_project: None,
     sdk: None,
   }
   value.next_handle += 1
@@ -125,6 +129,17 @@ pub fn install_current_run_configuration(
   nonce : Int64,
   current : Int,
   input : Int,
+) -> Int {
+  install_selected_current_run_configuration(nonce, current, input, None)
+}
+
+///|
+/// The SDK caller must already hold the exact chosen protected Model Task.
+fn install_selected_current_run_configuration(
+  nonce : Int64,
+  current : Int,
+  input : Int,
+  model : Int?,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.host_currents.get(current) is Some(original) &&
@@ -153,7 +168,10 @@ pub fn install_current_run_configuration(
     Err(issue) => return host_current_issue(issue)
   }
   guard input_cursor(value, slot) is Some(cursor) &&
-    @decode.closed_object(cursor, ["namespace", "source_free_result_policy"])
+    @decode.closed_object(cursor, [
+      "namespace", "source_free_result_policy", "mock_project", "local_project",
+      "portable_model",
+    ])
     is Ok(object) &&
     required_text(object, "namespace") is Some(run_namespace) &&
     @decode.required(object, "source_free_result_policy") is Ok(policy_cursor) &&
@@ -165,6 +183,41 @@ pub fn install_current_run_configuration(
     )
     is Ok(_) else {
     return -30
+  }
+  match (model, @decode.lookup(object, "portable_model")) {
+    (None, None) => ()
+    (Some(original), Some(field)) if @decode.int32(field) == Ok(original) => ()
+    _ => return -30
+  }
+  let mock_project = match @decode.lookup(object, "mock_project") {
+    None => None
+    Some(_) => {
+      guard required_int32(object, "mock_project") is Some(handle) &&
+        value.original_metadata.get(handle) is Some(project) &&
+        project.kind == 6 &&
+        project.produced &&
+        !project.output_closed &&
+        project.project is Some(MockInputs(original)) &&
+        original.inputs is Some(_) &&
+        original_mock_project_selection(value, original.parent) is Some(_) else {
+        return -30
+      }
+      Some(handle)
+    }
+  }
+  let local_project = match @decode.lookup(object, "local_project") {
+    None => None
+    Some(_) => {
+      guard mock_project is None &&
+        required_int32(object, "local_project") is Some(handle) &&
+        original_local_project_inputs(value, handle) is Some(local_inputs) &&
+        local_inputs.catalogs.all(catalog => {
+          catalog.declaration.connector_id != connection
+        }) else {
+        return -30
+      }
+      Some(handle)
+    }
   }
   // Native's existing product setup uses this original authority scope as the
   // authorization context and the actual admitted Account CID as its policy.
@@ -187,6 +240,8 @@ pub fn install_current_run_configuration(
     run_namespace,
     source_free_result_policy: Some((cid, policy_body)),
     host_current: Some(current),
+    mock_project,
+    local_project,
     sdk: None,
   }
   value.next_handle += 1
@@ -205,11 +260,14 @@ fn run_configuration_current(
     None => Ok(())
     Some(handle) => {
       let code = validate_host_current(value.nonce, handle)
-      if code == 0 {
-        Ok(())
-      } else {
-        Err(code)
+      if code != 0 {
+        return Err(code)
       }
+      if configuration.sdk is Some({ portable_model: Some(model), .. }) &&
+        installed_portable_model_task(value, model, handle) is None {
+        return Err(-35)
+      }
+      Ok(())
     }
   }
 }
@@ -224,12 +282,29 @@ pub fn reserve_run(
   input : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.run_configurations.contains(configuration) &&
+    value.run_configurations.get(configuration) is Some(selected_configuration) &&
     value.preparations.get(preparation) is Some(prepared) &&
-    stored_preparation_input(prepared) is Some(_) &&
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
+  if selected_configuration.sdk is Some({ portable_model: Some(_), .. }) {
+    guard prepared.project_request
+      is Some({ submission: Some((submission, _)), .. }) &&
+      retained_sdk_portable_request(
+        value, prepared, configuration, selected_configuration, submission,
+      )
+      is Some(_) else {
+      return -2
+    }
+    if value.runs.values().any(run => run.preparation == preparation) {
+      return -3
+    }
+  } else if stored_preparation_input(prepared) is None &&
+    sdk_mock_effect_plan(value, prepared, selected_configuration) is None &&
+    sdk_whole_file_request(value, prepared, selected_configuration) is None {
+    return -2
+  }
+
   if value.next_handle == 2147483647 {
     return -4
   }
@@ -602,7 +677,42 @@ pub fn run_prepared(nonce : Int64, handle : Int) -> Int {
   match record.outcome {
     Some(Ok(_)) => 0
     Some(Err(_)) => -32
-    None => -33
+    None => {
+      guard value.preparations.get(record.preparation) is Some(preparation) &&
+        preparation.project_request is Some(held) else {
+        return -33
+      }
+      if held.effect_plan is Some(plan) {
+        return if plan.sdk_run == Some(handle) && plan.journal is Some(_) {
+          0
+        } else {
+          -33
+        }
+      }
+      // Python checks this same readiness export after prepare_sdk_run. File
+      // readiness belongs to its funded held Plan and original preparing loan.
+      guard record.invoked &&
+        record.restoration is None &&
+        held.whole_file_sdk_run == Some(handle) &&
+        (
+          held.whole_file_sdk_phase is PlanReady ||
+          held.whole_file_sdk_phase is RowsReserved(_)
+        ) &&
+        value.run_configurations.get(record.configuration)
+        is Some(configuration) &&
+        record.sdk_submission is Some(submission) &&
+        sdk_whole_file_preparing_submission(
+          value,
+          preparation,
+          record.configuration,
+          submission,
+        )
+        is Some(_) &&
+        sdk_whole_file_request(value, preparation, configuration) is Some(_) else {
+        return -33
+      }
+      0
+    }
   }
 }
 
@@ -611,7 +721,13 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) && value.runs.get(handle) is Some(record) else {
     return -2
   }
-  if value.materials.values().any(material => material.run == handle) ||
+  if (
+      value.preparations.get(record.preparation)
+      is Some({ project_request: Some(held), .. }) &&
+      held.whole_file_sdk_run == Some(handle) &&
+      held.whole_file_sdk_phase is ReservingRows
+    ) ||
+    value.materials.values().any(material => material.run == handle) ||
     value.physical_starts.values().any(start => start.run == handle) ||
     value.submissions
     .values()
@@ -624,8 +740,7 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
     .any(child => {
       child.sdk_run_state_update_capacity is Some(_) &&
       (match child.projection {
-        Some(SDKRunState(_, run)) | Some(SDKMeasuredRunState(_, run, _, _)) =>
-          run == handle
+        Some(SDKMeasuredRunState(_, run, _, _)) => run == handle
         _ => false
       })
     }) {
@@ -649,6 +764,17 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   if value.client_checks.values().any(report => report.configuration == handle) ||
+    value.original_metadata
+    .values()
+    .any(child => {
+      match child.project {
+        Some(PreparingProjectCheck(held))
+        | Some(MockCheck(held))
+        | Some(LocalCheck(held))
+        | Some(PortableModelCheck(held)) => held.configuration == handle
+        _ => false
+      }
+    }) ||
     value.journal_observations
     .values()
     .any(child => child.configuration == handle) ||

@@ -21,6 +21,7 @@ fn publication_capture_constructor_layout(
   models : Int,
   row_key_nodes? : Int = 0,
   effect_members? : Int = 0,
+  sequential_construction? : Bool = false,
 ) -> PublicationCaptureConstructorLayout? {
   if wire_bytes < 1 ||
     metadata_nodes < 1 ||
@@ -140,9 +141,24 @@ fn publication_capture_constructor_layout(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
-  guard @execution.compose_preparation_representation([
-      writer_units, writer_units, emission, validation, unique, text, inventory,
-    ])
+  let body_workspace = if sequential_construction {
+    // The stepped issuer cancels each Shape cursor before starting the text
+    // writer. Shape may keep canonical uniqueness scratch; Encode may keep
+    // the full mutable text. The final sealed String is already retained.
+    guard @execution.preparation_representation_cost(unique)
+      is Some(unique_bytes) &&
+      @execution.preparation_representation_cost(text) is Some(text_bytes) else {
+      return None
+    }
+    [if unique_bytes > text_bytes { unique } else { text }]
+  } else {
+    [unique, text]
+  }
+  guard @execution.compose_preparation_representation(
+      [
+        writer_units, writer_units, emission, validation, inventory, ..body_workspace,
+      ],
+    )
     is Some(temporary) &&
     @execution.preparation_representation_cost(retained) is Some(_) else {
     return None

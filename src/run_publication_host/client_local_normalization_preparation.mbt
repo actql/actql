@@ -27,7 +27,10 @@ pub(all) struct ClientLocalNormalizationConstruction {
 pub fn prepared_client_local_normalization_original(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization? {
-  owner.local_normalization
+  match owner.local_normalization {
+    NormalizationReady(original) => Some(original)
+    _ => None
+  }
 }
 
 ///|
@@ -65,7 +68,10 @@ pub fn admit_measured_prepared_client_local_normalization(
     ) {
     return Err(ForeignPreparation)
   }
-  if owner.local_normalization is Some(cached) {
+  if owner.local_normalization is NormalizationRetired {
+    return Err(ForeignPreparation)
+  }
+  if owner.local_normalization is NormalizationReady(cached) {
     return restore_prepared_client_local_normalization(
       owner,
       cached,
@@ -117,7 +123,7 @@ pub fn admit_measured_prepared_client_local_normalization(
     audit: Common(original.inventory),
     evidence,
   }
-  owner.local_normalization = Some(restored)
+  owner.local_normalization = NormalizationReady(restored)
   Ok(restored)
 }
 
@@ -131,6 +137,9 @@ pub fn observe_prepare_client_local_normalization(
   Result[ClientLocalNormalizationPreparation, ClientLocalNormalizationIssue],
   Int,
 ) {
+  if owner.local_normalization is NormalizationRetired {
+    return (Err(ForeignPreparation), 0)
+  }
   if limits.max_work < 0 ||
     limits.max_wire_bytes < 1 ||
     limits.max_nodes < 2 ||
@@ -210,7 +219,10 @@ pub fn finish_prepared_client_local_normalization(
   original : ClientLocalNormalizationPreparation,
 ) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
   let owner = original.owner
-  if owner.local_normalization is Some(issued) {
+  if owner.local_normalization is NormalizationRetired {
+    return Err(ForeignPreparation)
+  }
+  if owner.local_normalization is NormalizationReady(issued) {
     return match prepared_client_local_normalization_evidence(owner, issued) {
       Err(issue) => Err(issue)
       Ok(_) => Ok(issued)
@@ -258,7 +270,7 @@ pub fn finish_prepared_client_local_normalization(
     audit: Common(original.inventory),
     evidence,
   }
-  owner.local_normalization = Some(issued)
+  owner.local_normalization = NormalizationReady(issued)
   Ok(issued)
 }
 

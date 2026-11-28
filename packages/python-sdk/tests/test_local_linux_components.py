@@ -12,7 +12,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from image_fixture import ENGINE, linux_version_library
+from image_fixture import ENGINE, FIXTURE_ABI, FIXTURE_WASMTIME_VERSION, linux_version_library
 from actql_sdk._local_distribution import (
     LocalInstallationError, _inspect_local_components_for_packaging, inspect_local_components,
     _execution_component_platform, installed_local_components,
@@ -30,7 +30,7 @@ class LinuxComponentTests(unittest.TestCase):
         self.engine.update(target='x86_64-unknown-linux-gnu', cpu_features=['x86_64-baseline'])
         self.library = b'Independent Linux runtime fixture; never loaded'
         self.original = {
-            'wasmtime_version': '38.0.0', 'runtime_library_sha256': sha256(self.library).hexdigest(),
+            'wasmtime_version': FIXTURE_WASMTIME_VERSION, 'runtime_library_sha256': sha256(self.library).hexdigest(),
             'runtime_library_bytes': len(self.library), 'provider_library_sha256': None,
             'provider_library_bytes': None, 'engine_body': self.engine,
             'image_bytes_limit': 1024, 'runtime_allocation': 'platform',
@@ -39,7 +39,7 @@ class LinuxComponentTests(unittest.TestCase):
         self.image = b'\x7fELF\x02\x01\x01' + b'\0' * 11 + b'\x3e\x00' + b'\0' * 44
         self.body = {
             'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'platform': 'linux-x64',
-            'core_abi': 89, 'wasmtime_version': '38.0.0', 'duckdb_version': 'v1.4.3', 'notices': {},
+            'core_abi': FIXTURE_ABI, 'wasmtime_version': FIXTURE_WASMTIME_VERSION, 'duckdb_version': 'v1.4.3', 'notices': {},
         }
         for name, key, value in (
                 ('client_host_wasm.wasm', 'module', b'Independent non-executable Wasm fixture'),
@@ -48,8 +48,8 @@ class LinuxComponentTests(unittest.TestCase):
             self.body[key] = {'file': name, 'bytes': len(value), 'sha256': sha256(value).hexdigest()}
         self.body['compiled_image'] = {
             'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-            'module_sha256': self.body['module']['sha256'], 'core_abi': 89,
-            'wasmtime_version': '38.0.0', 'runtime_library_sha256': sha256(self.library).hexdigest(),
+            'module_sha256': self.body['module']['sha256'], 'core_abi': FIXTURE_ABI,
+            'wasmtime_version': FIXTURE_WASMTIME_VERSION, 'runtime_library_sha256': sha256(self.library).hexdigest(),
             'provider_library_sha256': None, 'platform': 'linux-x64', 'engine_body': self.engine,
             'engine_sha256': sha256(json.dumps(self.engine, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
             'file': 'client_host_wasm.cwasm', 'bytes': len(self.image), 'sha256': sha256(self.image).hexdigest(),
@@ -84,14 +84,14 @@ class LinuxComponentTests(unittest.TestCase):
         self.assertEqual(selected.source_sha, 'a' * 40)
 
     def test_release_and_image_each_refuse_independent_stale_abi_without_native_load(self):
-        # Independent fixed expectations: declared ABI89 is the current cohort;
-        # prior ABI88 remains incompatible in either release or image metadata.
-        for release_abi, image_abi in ((88, 89), (89, 88), (88, 88)):
+        previous_abi = FIXTURE_ABI - 1
+        for release_abi, image_abi in ((previous_abi, FIXTURE_ABI), (FIXTURE_ABI, previous_abi),
+                                       (previous_abi, previous_abi)):
             with self.subTest(release_abi=release_abi, image_abi=image_abi):
                 self.body['core_abi'] = release_abi
                 self.body['compiled_image']['core_abi'] = image_abi
                 self.write()
-                expected = ('release cohort is incompatible' if release_abi == 88
+                expected = ('release cohort is incompatible' if release_abi != FIXTURE_ABI
                             else 'image does not match the selected recipe')
                 with patch('actql_sdk._local_distribution.sys.platform', 'linux'), \
                      patch('actql_sdk._local_distribution.platform.machine', return_value='x86_64'), \
@@ -131,7 +131,7 @@ class LinuxComponentTests(unittest.TestCase):
         library.parent.mkdir(parents=True)
         library.write_bytes(self.library)
         class Distribution:
-            version = '38.0.0'
+            version = FIXTURE_WASMTIME_VERSION
             def locate_file(self, name):
                 if name != 'wasmtime':
                     raise AssertionError('Foreign dependency lookup')

@@ -215,6 +215,41 @@ pub fn captured_effect_checked_proposal_row_available(
 }
 
 ///|
+/// The original checked Mapping supplies the fixed number of change slots.
+pub fn captured_effect_checked_proposal_change_count(
+  plan : CapturedEffectProposalPlan,
+) -> Int? {
+  guard plan.phase is Ready &&
+    captured_effect_checked_proposal_plan_retained(plan) &&
+    plan.command is None &&
+    plan.terminal is Some(terminal) else {
+    return None
+  }
+  guard @environment.mapping_conversion_count(
+      @results.effect_mapping_rule_conversions(
+        @results.effect_plan_terminal_rule(terminal),
+      ),
+    ) ==
+    0 else {
+    return None
+  }
+  Some(terminal.checked_changes)
+}
+
+///|
+/// Borrow the immutable projection data while the caller still holds the
+/// exact row. The data alone cannot authorize a write or replace the pins.
+pub fn captured_effect_checked_proposal_row_data(
+  row : CapturedEffectCheckedProposalRow,
+) -> @results.EffectPlanCheckedRow? {
+  if captured_effect_checked_proposal_row_available(row) {
+    row.checked
+  } else {
+    None
+  }
+}
+
+///|
 pub fn captured_effect_checked_proposal_row_selector(
   row : CapturedEffectCheckedProposalRow,
 ) -> @value.CheckedValue? {

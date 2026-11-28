@@ -90,22 +90,22 @@ come from the Host. The provider's existing token budget still applies.
 
 ## Configure a Host from project Tasks
 
-`createOpenAIChatProvider` returns one asynchronous `registerModelProviders`
+`createRegisteredSdkProvider` returns one asynchronous `registerModelProviders`
 callback for one Host. The Host loads the project's actual model Tasks and
-provider defaults through Common, reads the key file through its existing
-bounded configuration reader, and constructs each Task's profile and execution
-originals under the original initial Resource. Applications supply no runtime,
+provider defaults through Common and constructs each Task's profile and execution
+originals under the initial Resource. The credential is acquired at authorized
+dispatch. Applications supply no runtime,
 Task CID, Program CID, physical fetch, response-profile JSON or Resource token.
 
 ```js
 import {connect} from '@actql/node';
-import {createOpenAIChatProvider} from '@actql/provider-ai-sdk';
+import {createRegisteredSdkProvider} from '@actql/provider-ai-sdk';
 
-const registerModelProviders = createOpenAIChatProvider({
+const registerModelProviders = createRegisteredSdkProvider({
   providerId: 'models/openai', // Matches the project's model_tasks provider.
-  modelId: configuredModelId,
-  apiKeyFile: './secrets/openai-api-key',
+  dataHandlingContractWire,
   generation: {temperature: 0, topP: 1, maxOutputTokens: 100},
+  transportTimeouts: {connectMs: 300, headersMs: 700, bodyMs: 700, callMs: 1000},
   budget: {
     maxCalls: 2n, maxRows: 2, maxTokens: 1000n,
     maxCostUnits: 100000n, maxDurationMs: 1000n,
@@ -113,7 +113,7 @@ const registerModelProviders = createOpenAIChatProvider({
   observeEgress: () => currentInstalledEgressFacts(),
 });
 const client = await connect({mode: 'local', installation: {
-  directory: './.actql', registerModelProviders,
+  directory: './.actql', modelSdkRegistrations, registerModelProviders,
   authorization: configuredAuthorization,
 }});
 try {
@@ -164,8 +164,8 @@ printed in logs or committed.
 
 ## Explicit physical timeouts (development)
 
-The normal factory accepts optional `transportTimeouts` with positive finite
-`connectMs`, `headersMs`, and `bodyMs`, plus optional `callMs`, in milliseconds (integers up to
+The registered factory requires `transportTimeouts` with positive finite
+`connectMs`, `headersMs`, `bodyMs`, and `callMs` in milliseconds (integers up to
 2,147,483,647). It freezes the values
 under the initial construction Resource, includes them in the same original
 configuration/contract bodies through Common's canonical constructor, and
@@ -176,12 +176,11 @@ reservation into an observed duration or a timer.
 The existing Undici connector applies `connectMs` through TCP/TLS setup;
 `headersMs` waits for complete HTTP headers and `bodyMs` bounds the idle time
 between body data. These three phase settings alone are **not** an absolute
-whole-Call or total-body deadline. Optional `callMs` starts immediately after
+whole-Call or total-body deadline. The `callMs` clock starts immediately after
 the actual original physical request begins and stops the same SDK controller
 if bounded response reading has not settled, including continuous body data.
 It does not time Core decoding, Store publication, Result, or Saved restoration.
-Omission preserves the existing transport selection and adds no deadline wrapper
-or Model demand. Selecting `callMs` adds Common's logical control quote to the
+The whole-Call clock adds Common's logical control quote to the
 same per-Task physical profile/Read/Model demand before the original Plan/Scope
 admission, without increasing the top-level budget. This is not a full engine,
 shared timer-heap, async-hooks or native allocation adequacy certificate.
@@ -238,441 +237,32 @@ retry. Current/identity checks, destination authorization, byte ceilings and
 copy-child cleanup still apply across both callback awaits. These Source and
 component contracts do not establish installed-package or live acceptance.
 
-## Original-registration integration
+## Registered SDK request and response ownership
 
-The lower-level Host registration assemblers are `createInstalledOpenAIChatRegistration` and the explicit selected
-`createInstalledUndiciOpenAIChatRegistration`. Its internal send, receipt, raw-response and native Decision
-preparation functions are not package exports. The package remains private;
-the entry is not a published provider, installed profile, capacity or permission
-to send model requests.
+The selected Host supplies the original Runtime, Task and provider binding.
+It derives the Read recipe from the admitted profile and binds the Program
+definition, parameters and barrier to each actual checked Graph. Complete
+funding, the current authority checks and the original approval still belong
+to that Run.
 
-The entry produces the existing `registerModelProviders` callback; the installed
-Host supplies its consuming runtime. Applications do not import a MoonBit
-runtime, construct a second Model Owner or register a dummy synchronous invoke.
-Trusted Host options must retain the original selected profile, checked read
-installation, raw capture policies, canonical binding originals and finite
-quantities. Missing originals/runtime refuse before sending. Matching CIDs,
-configuration copies or positive byte declarations are not original admission.
+The pinned SDK first renders the bounded request without networking. Common
+projects the exact Task, prompt, mapped input and strict output schema.
+The selected adapter verifies the rendered request against those originals and
+the installed route before the original Call can create an Entry.
+The original Call holds the same prepared transport, Reader and credential
+selection through the final send gate. Refusal or an ambiguous send keeps the
+original responsibility and attempt identity.
 
-The selected Chat installation also supplies required closed `originalStringLimits`:
-`maxApiKeyCodeUnits`, `maxBaseURLCodeUnits`, and `maxModelIdCodeUnits`. Each is
-an explicit positive finite integer ceiling in JavaScript UTF-16 code units.
-The constructor snapshots them and the original primitive strings once, and
-checks length before input-dependent concatenation, URL construction, SDK
-preparation or encoding. Missing or excessive inputs refuse; no value is
-truncated, normalized or logged. These are separate from encoded request/header
-byte limits. They do not fund acquiring the original strings, their later
-URL/header/copy/Promise overlap, or establish a normal numerical profile. The
-same Host supplier/installation and its current generation retain that duty.
+The original response is bounded and retained as Raw before the selected SDK
+receives a response to decode. Common checks the typed answer and binds any
+reported model, request, finish and usage observations to that same original
+response. Incomplete transport keeps the original entered attempt unknown.
+Raw, Store confirmation, cleanup and separate Saved reads keep their own
+current checks. Saved does no Provider work.
 
-The Chat entry privately projects the actual builder's OpenAI and ProviderUtils
-module namespaces and its original `createOpenAI` function to the existing Host
-installation. The entry accepts no caller replacement for those originals.
-This is reference DATA, not coverage, a loan, a profile or permission. Only the
-selected trusted Host's original startup/module responsibility may cover the
-fixed, input-independent module graph. The module-default environment read,
-per-call factories, lazy initialization, mutable caches, inputs, copies and
-Promises remain separate duties. Host/Scope retirement does not prove ESM
-cache or module storage reclamation. The new direct ProviderUtils dependency
-selects the already locked5.0.58 bytes; the changed root lock has a new Artifact
-identity, not the former lock CID. Host coverage/caller integration and complete
-phase supply are still required before normal use.
-
-The opt-in selected startup is delivered as an empty, preload-only package
-entry. In an installation containing `@actql/node`, select it before application
-imports with `node --require @actql/node/selected-infer-startup app.mjs`, or use
-the distinct eager recipe
-`node --no-lazy --require @actql/node/selected-infer-startup app.mjs`.
-Direct Local Host installations can select `@actql/local-node/selected-infer-startup`
-instead. These entries expose no original/issuer or runtime factory. Only the
-actual fixed package loader chain on the selected Node22.22.0/Darwin arm64
-runtime qualifies; late imports, other preceding preloads and `NODE_OPTIONS`
-remain unavailable. Existing absolute private-preload recipes are unchanged.
-This selection is neither a supported normal numerical profile nor permission
-to send. Managed startup controls, all per-call holdings and the four original
-resource reservations still need their existing supplier; arbitrary embedded
-processes cannot acquire startup history by importing this entry later.
-
-```js
-import {createInstalledOpenAIChatRegistration} from '@actql/provider-ai-sdk';
-// Host integration skeleton, not a runnable live-provider example.
-// trustedHostOptions comes from the installed Host's existing original
-// admission/funding/policy/secret supply, never from a Program or Run packet.
-const registerModelProviders = createInstalledOpenAIChatRegistration(trustedHostOptions);
-// Supply this callback through @actql/node's existing
-// installation.registerModelProviders alongside its admitted modelInstallation.
-```
-
-The explicit Node HTTP selection uses the same original options except `fetch`:
-
-```js
-import {createInstalledUndiciOpenAIChatRegistration} from '@actql/provider-ai-sdk';
-// Separate trusted Host selection: do not pass a fetch override or derive these
-// original bodies/owners from Program values. This is not live-ready guidance.
-const registerModelProviders =
-  createInstalledUndiciOpenAIChatRegistration(trustedUndiciHostOptions);
-```
-
-Alternatively, replace **both** `originalReadInstallation` and
-`rawCaptureSelection` with the closed `originalMaterials` DATA option. It holds
-the original response-profile wire/CID, four policy originals, explicit reader
-limits, generation installation declaration, read declarations without an
-opaque profile, and raw selection times/callback. The exported
-`OpenAIOriginalMaterials` type lists every field. Missing policies, accessor
-fields, extra fields and mixed opaque/DATA options refuse; there is no fallback.
-
-```js
-const registerModelProviders = createInstalledUndiciOpenAIChatRegistration({
-  ...trustedOptionsWithoutOpaqueSelections,
-  originalMaterials: selectedOriginalMaterials,
-});
-```
-
-The constructor snapshots those descriptors once. Only the actual Host's
-registration callback admits canonical wires/CIDs through its own Common
-readers, then passes that same runtime's opaque profile/policies to the existing
-assembler. Applications need no internal runtime import. A material callback
-is single-installation: reuse (even with the same runtime module), null runtime
-or absent readers refuse before constructing a physical selector. Create a new
-callback for a new Host; DATA identity is not transferable custody. The older
-already-opaque overload retains its existing behavior.
-
-Material admission is not Task authorization, raw capture approval, actual
-Store availability, a loan, a numerical profile or an installed Run. The
-snapshot, captured originals, reader workspace and later opaque aliases must
-all be included in the original Host/Run simultaneous budget. Missing complete
-funding still returns the existing Unavailable; these reader limits cannot
-stand in for it. This remains a development installer, not live-ready guidance.
-
-An installation may select `originalReadRecipe` instead of
-`originalReadInstallation`, either in `originalMaterials` or as an already
-admitted opaque-profile declaration. These selections are mutually exclusive.
-The recipe retains the same original response profile, physical declarations,
-finite quantities and policies. Its layout omits `program_definition_cid`,
-`parameter_values_cid` and `barrier_cid`: the existing Host binds those from each
-actual checked Graph before the original Plan/Scope constructor. Supplying
-prebound identities in recipe DATA refuses. Applications must not manufacture
-those identities or reuse a previous Program's bound installation. This
-connection supplies neither a normal physical profile nor secret resolution;
-this low-level overload does not perform the configured Host setup above.
-Complete physical funding and live acceptance remain separate obligations.
-
-This entry selects the fixed private Undici transport after the same existing
-Host snapshots/profile/original-selection checks. It reuses the existing
-exclusive async registration, physical preflight and original Call cleanup;
-it does not implement another executor or synthesize normal funding. The old
-explicit generic-fetch transport behavior is unchanged; both Chat assemblers
-require the original-string declarations above. An extra fetch in the selected
-Undici options is rejected, not used as a fallback or endpoint override.
-
-`npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure
-for an external installation. The package explicitly constrains its Zod peer to
-the original4.6.5; a newly resolved peer is not interchangeable with that lock.
-The original profile must select the exact current `package-lock.json` bytes;
-a changed direct dependency declaration is not the former lock Artifact. No packages are fetched implicitly from a
-Program/URI. Registry publication, supported numerical installation, public
-Local/HTTPS Named Result and real OpenAI acceptance remain unfinished.
-
-The first physical preparation uses the pinned OpenAI SDK's v4 chat generation
-operation. It starts the SDK exactly once and intercepts the final request
-without networking. An opaque handle retains the original SDK invocation until
-its response is supplied or cancellation settles. Raw SDK exceptions are not
-exposed as diagnostics. No synchronous Model executor is added.
-
-The private original-request consumer obtains generation settings from the
-admitted MoonBit Task rather than inventing SDK defaults. It preserves requested
-temperature, top-p, output-token limit and optional seed. Decision has no such
-settings and refuses this generation builder. Integers outside the selected
-SDK's exact Number range refuse before preparation; this is not a restriction
-of the common Task's Int64 domain. The pinned JS ABI's signed Int64 interpretation
-is explicit. The installation still owns model-selector mapping, admitted
-prompt/schema, credentials and physical-profile compatibility; this projection
-does not establish any of them. The actual fixture verifies this mapping only
-for its selected non-reasoning chat profile, not every OpenAI model.
-
-The first-service preparation candidate is the explicit snapshot
-`gpt-4.1-mini-2025-04-14`, not an automatic replacement for an authored
-selector. Its pinned-SDK test preserves the original strict schema, mapped
-text, temperature, top-p, token ceiling and seed before any transport exists.
-The tested `gpt-6-luna` default SDK rewrite is refused by the same original
-request check; no settings are silently dropped and no fallback request starts.
-These are request-preparation fixtures with a Common generation accessor
-double, not live service, normal funding, installed Run or Result acceptance.
-
-The historical `gpt-4.1-nano` fixture is unchanged. OpenAI's current
-[deprecation schedule](https://developers.openai.com/api/docs/deprecations)
-lists its shutdown on October 23, 2026, and GPT-4.1 mini on January 14, 2027.
-The candidate therefore does not establish a permanent default or an account's
-model access. A different service binding requires its own exact request and
-profile conformance; matching a model name is not a capability or send grant.
-
-The additional private admitted-request consumer reads the closed
-`actql.openai_chat_prompt/0.1` payload, mapped input wire and strict output
-schema from Common's original admitted Provider/Task. It binds the Task,
-prompt and output-schema CIDs plus the selector before SDK preparation. Empty
-instructions are explicit and valid; missing, NULL or extra payload fields
-refuse. One separate data-text message keeps Common's exact input wire,
-including Decimal strings, without parsing it back into JavaScript values.
-The actual intercepted SDK request must match those originals and authored
-generation settings. An SDK model-dependent rewrite refuses, with no fallback.
-
-The bounded schema emitter supports a nonnullable closed Object root, plain
-Text/Number/Boolean/Array/Object children and explicit nested nullability.
-All fields are required. Unsupported constraints and other value kinds refuse
-before send rather than being weakened. This is not a language-wide ban or
-Common output validation. The convenience private request consumer uses finite
-preparation work/byte/node/depth/frame limits; it is not evidence of cooperative
-SDK JSON parsing or a funded public physical-preflight installation.
-
-The additional private `createAdmittedOpenAIChatPreflight` consumes one Common
-projection-child transition per physical-preflight advance. It allocates that
-child only after the existing port validates its installation; projection
-completion retires its borrows before starting one SDK preparation. Cancellation,
-refusal and retirement failure preserve the original cleanup path without a new
-request. The resulting plan still uses the existing fixed transport/Entry/send
-gate and raw-save port. SDK initialization and JSON work remain external
-synchronous work, not a new cooperative guarantee. The child's nine fields,
-phase payloads, output tuple and Node progress reference/callback/context overlap
-must be funded before normal startup; this private integration supplies no
-numerical layout, public capability or execution permission.
-
-The original installed read declaration also selects immutable
-`currentStateCodec` limits (`quantum`, `comparisonWork`, `decode`) for its
-existing Writer/read/comparison child. Those finite serializer limits are not
-physical funding. The original installation's missing selection refuses
-before a child is created; request data or a copied declaration cannot supply
-it. When the existing authorization gate returns dispatch, the original Run
-caller saves its quiescent resource state through the same selected Store,
-confirms the same journal cut, and consumes that journal's invalidation through
-the original Resource Owner before the next Model advance can create an Entry.
-Waiting approval does not perform that transition. Save/COMMIT loss keeps the
-same failed Promise, park and custody without blind retry. This fence removal
-does not issue InferAllow or bypass current authority/egress/Entry/send checks.
-The original codec and dispatch-cut record/Promise overlap still require full
-installation funding; normal public startup and restore are not established
-by these private Store/journal tests.
-
-The private physical preflight can retain the original operation's raw binder
-before Approval. Its installed continuation supplies one actual Store persistence
-port after nominal raw registration, before returning dispatch and creating an
-Entry. Known missing Store/wake installation refuses before Approval. Registration
-pending is not a fabricated capture grant: the existing approval path must finish
-binding first. The port belongs to that exact operation and registration; copies,
-another operation and rebinding refuse. A missing binding observed after an Entry
-cannot start transport or regain the consumed attempt when a late binding arrives.
-It keeps the original Unknown/cleanup responsibility. This is the initial private
-one-Slot connection, not accepted public funding or multi-Slot raw persistence.
-
-The private Chat port validates output and observations from the original saved
-raw response, not the SDK-normalized result. Its installed preflight selects
-private raw-only response consumption: after bounded physical EOF, it ends the
-same intercepted SDK fetch wait without building an unused SDK `Response` copy
-or running the SDK response JSON/schema decoder. Only actual settlement of that
-SDK operation produces the private `retired` consumer observation. This intentional
-consumer retirement is not a Provider error, saved response, validated answer or
-physical cleanup acknowledgement. Malformed original bytes remain available for
-the existing Common decoder's own refusal and observed-usage handling.
-
-Raw persistence, incomplete reads and cleanup can remain pending independently.
-Original raw bytes, request/transport/reader custody, the saved view, failure/Unknown
-and explicit same-call reconciliation remain unchanged. Generic transport defaults
-and Native Decision preflight retain their existing SDK response copy/decoder mode
-and explicit one-time decoded-result transfer; an already transferred immutable
-view is never mutated by alias retirement. This is not physical GC or capacity
-release. SDK request normalization, all actual preparation records, mode/closure
-references and remaining Promise/Store/reader overlap still require complete
-funding. Missing normal numerical funding remains unavailable.
-
-The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
-`registerModelProviders` entry from trusted, already retained installation
-selections. It does not load packages, derive a numerical profile or reconstruct
-opaque Owners from CIDs. Missing originals or a missing consuming runtime hook
-refuse before Provider installation. Exact Task/selector/payload selection is a
-byte/string comparison; Common retains schema interpretation and validation.
-Projection, request and response bounds are distinct immutable declarations.
-The selected SDK, endpoint, generation completion basis, original raw profile,
-quantity and read selections stay with their existing Host/Model Owners.
-
-The exported assembler is a Host integration entry, not a supported numerical
-user installation. The Host must verify actual builder,
-codec, build/lock and validator originals and supply justified complete physical
-funding before public use. Frozen objects, matching declarations and fixture
-allowances do not establish those facts. The actual user execution example and
-external-package Result acceptance still require that original funding.
-
-The existing Common Model Owner must admit the Task, original inputs, complete
-Slot inventory, profile and all simultaneous holdings before using this code.
-The existing original Entry, durable journal acknowledgement and one-shot final
-send gate still need to be connected. Preparation alone sends nothing. The
-private transport accepts only an explicitly installed fetch primitive and the
-original intercepted request; it cannot issue completion/capture evidence or
-authorize transmission.
-
-Before consuming Common's send gate, the installed caller prepares the fixed
-transport and bounded response limits with `prepareSdkTransport`. After that
-gate, `startSdkTransport` invokes that same request immediately, without an
-intervening notification, await, request reconstruction or retry. A synchronous
-throw or lost response remains unknown responsibility, never proof of non-send.
-These private functions are not public capability or admission APIs.
-
-The private initial Node HTTP transport uses direct exact Undici7.30.0, not
-Node's embedded Undici or ambient/global fetch. `createOriginalUndiciFetch`
-is an internal installation selection only; it cannot be invoked directly.
-The existing SDK preparation retains each Call's original URL/init and creates
-its separate HTTP/1 Client and fixed request before Entry, with `allowH2:false`,
-`pipelining:0`, no redirect/retry/pool or automatic content decoding. The final
-SDK start invokes only that original Client request. A body view borrows the
-actual Undici Buffer for the existing bounded reader, without an unused SDK
-Response copy or `BodyReadable.body` conversion copy.
-
-The acquisition controls map response declarations to `maxHeaderSize`,
-`maxResponseSize` and body `highWaterMark`. The all-field/value parser ceiling
-is distinct from the existing observed-header subset limit. Neither the
-body HWM nor the reader's acquired-chunk check is a socket/TLS/Buffer-backing
-physical upper bound. Full constructor/native/parser/header/queue/closure
-overlap remains an original Host/Resource funding requirement, not zero.
-
-The selected Undici options additionally require closed private
-`physicalAcquisitionLimits` DATA: `maxPlaintextBytes`,
-`maxBorrowedBackingBytes`, and `maxReads` (positive bounded integers). The
-original installation snapshots these once before preparation and the same
-Call borrows that snapshot. Missing/extra/accessor declarations refuse; no
-default or normal numerical profile is supplied. Generic/native fetch options
-do not acquire this role.
-
-The same original socket's parser-facing reads count all HTTP plaintext,
-including framing, and check whole distinct Buffer backing extents before
-Undici's parser receives the chunk. Backing accounting conservatively sums
-distinct allocations over the entire Call lifetime, not just simultaneous
-peaks; it never refunds at EOF/cancel/Promise settlement. Weak membership
-retains no additional strong buffer alias, but its controls still need funding.
-A refused chunk destroys that same socket and retains original cleanup duties.
-`maxReads` counts every original socket read invocation, including null/empty
-probes, before calling the captured read method; exhaustion does not perform
-another read. It is not the accepted body-chunk count or a native queue bound.
-The new fixed-input listener also charges its native deliveries to that same
-finite read ceiling, rather than creating an unpriced second allowance. The
-backing union includes the original input, every dedicated copy and later
-parser-facing backings; aliases of an already counted allocation add no bytes.
-
-Parser-facing checks are **post-acquisition**. Selected Node/TLS emission, Readable
-queue and concatenation can allocate before `socket.read()` returns. Their
-first managed allocator/burst/queue envelope remains unresolved; neither a
-clamp nor a successful private fixture proves pre-acquisition reservation.
-Original model/Host coverage must include those holdings and the new snapshot,
-per-read controls, parser/native scratch, raw/Store/SDK borrowers until their
-actual retirement. Normal installation therefore remains Unavailable without
-the complete original same-Ledger envelope. Selected trusted TLS/llhttp/VM
-coverage is not zero managed memory or a whole-RSS claim.
-
-The selected original connector now fixes one dedicated native input buffer
-at preparation, of extent `min(maxChunkBytes, maxBorrowedBackingBytes)`.
-It uses Node's existing `onread` buffer, not a generator or an ambient socket
-owner. The same Call callback checks its receiver/input identity, cumulative
-plaintext and input-plus-copy extent **before** allocating any dedicated
-copy or pushing it into the original socket queue. Native refill cannot change
-an escaped parser/body view. Missing complete original Model funding still
-refuses normal startup; declaration counters do not reserve this buffer.
-
-This closes the selected reusable input/copy primitive, not all acquisition
-memory. Socket queue controls and Readable concatenation (including any pooled
-backing), parser/header, SDK/raw/Store aliases and trusted TLS/VM duties are
-separate terms. Physical close drops only this Call's own aliases; escaped
-Socket/body/raw borrowers may retain the input backing after IO ACK and stay
-in the original Model/SDK/Store holding inventory. No immediate GC or full
-phase/RSS upper bound is asserted.
-
-Cleanup retains the same connector/returned socket and body. Client destroy
-fulfillment alone cannot retire a connection in progress: the original
-connector callback, actual socket close, request settlement and actual body
-close must finish before the existing SDK cleanup can return true. Raw/Store
-pending custody remains independently owned. Private fixture results do not
-establish numerical admission, current-cut ACK, real model or Named Result.
-
-The response reader bounds bytes, individual chunks, chunk count and selected
-headers. Generic and Native SDK mode then feeds a separately funded `Response`
-copy to the original SDK; the installed Chat raw-only mode does not. Both preserve
-raw bytes and incomplete prefixes. HTTP EOF is not endpoint or
-answer completion. A cancel-induced stream EOF is explicitly incomplete.
-No unbounded `text`, `json`, clone or tee precedes the byte check. The pinned SDK's
-synchronous request normalization and, where selected, response JSON/schema work
-are not proven cooperative by this reader; Common's bounded codec and validation
-remain necessary.
-
-Cleanup retains the same pending transport, unread body or failed reader
-retirement and retries that responsibility, not the request. Local abort or
-physical reader retirement does not prove remote stop, Run cancellation,
-capture persistence or reservation release. The original Common Owner must
-retain unknown/evidence custody independently. Escaped raw views and transferred
-decoded values remain the receiving Owner's responsibility.
-
-The SDK's decoded result is not Common output validation or provider-reported
-metadata. Preserve the separately bounded raw response, endpoint completeness,
-nullable observations and original capture through the existing Owners. SDK
-result objects, request copies, parser work, pending Promises and cancellation
-all remain part of C's full funding before public adoption.
-
-The package lock freezes the actual dependency closure. Preparation and
-transport tests use the real pinned SDK with synthetic responses and explicitly
-installed fixture fetches, with no ambient or live network.
-
-The private native `prepareTypeSafeDecisionRequest` reuses that same interceptor
-and fixed transport with the selected TypeSafe v4 `doDecide` operation. It sends
-all mapped questions against one state without generation settings, high-level
-retries, default-provider mutation or SDK workflow restoration. Its input must
-come from the original bounded Common Decision projection and funded caller;
-the private builder itself does not admit a Task or validate native answers.
-The private `prepareProjectedTypeSafeDecisionRequest` consumes the opaque
-Common projection view and rechecks its original Provider/request membership,
-Task/prompt/output-schema CIDs and authored selector before SDK allocation.
-It passes Common's positional question/option aliases unchanged to the pinned
-native SDK and checks the actual intercepted request against the immutable
-projection wires. Only the SDK's Boolean-to-`noul` representation is mapped;
-no generation defaults, question evaluator or answer validator is added.
-The caller retains the separate original view until Common's answer mapping
-retires it. Parsed input trees, verification trees/callback and SDK overlap
-require the original full funding before use, not a grant from codec clamps.
-Selected Node tests use actual SDK execution with Common boundary doubles and
-synthetic responses. They are not actual Common-to-SDK or public Run acceptance.
-
-Common's native raw child is connected privately below; an installed physical
-profile/precision, original Store receipt and funded public caller remain required.
-SDK model fallbacks and reported rounding are not provider observations or
-profile authority. Prototype-key SDK response refusal keeps original raw bytes
-and no repair call; it does not prohibit legal Common IDs. This preparation adds
-no public/native capability or numerical profile. The generation SDK closure and
-the native SDK's separately pinned dependency closure remain distinguishable.
-
-The private `createProjectedTypeSafeDecisionPreflight` connects the original
-opaque projection to Common's dedicated native asynchronous Plan builder.
-Construction starts no SDK operation; its lazy preparation rechecks membership,
-then the existing fixed transport and raw port own the same Entry/call. The
-builder checks the Decision Task, installed async Provider, original view and
-native response/probability/installation binding. It creates no generation
-settings or output-token default. Generation keeps its authored token floor;
-synchronous Decision remains refused. Retired views cannot start that adapter.
-The temporary native tuple and original-view/provider/start callback borrows,
-SDK progress/context and plan callback overlap require funding. Cleanup clears
-those local callback aliases only after the same SDK/raw/progress owners settle;
-it cannot retire the caller-owned escaped projection or invent raw observations.
-This is private Plan/caller preparation, not installed native raw acceptance,
-startup funding, original Store ACK, public capability or a live Jev Result.
-
-Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
-four parallel calls, Decision and Cloud are unfinished M0–M5 work.
-
-The private native Host assembler now consumes the existing exclusive async
-registration shape and starts Common's bounded original Decision projection
-lazily. It keeps the emitted original request through the SDK/raw/Model decode
-lifetimes. Only the outer Model preflight cleanup, after the physical-call/raw
-child cleanup ordering, retires that separate view; inner SDK cleanup alone does
-not. Projection/emitter/view retirement failure keeps the same responsibility
-for retry without another child, Entry or SDK request. Missing original profile,
-probability, runtime or raw context refuses before preparation. This assembler
-is not a package export or an accepted native physical installation. Generation
-and the existing generic/native SDK mode remain unchanged. The extra outer
-cursor, borrowed view, inner cursor, callbacks and selected policy/SDK overlaps
-still require the original complete funding; codec limits are not that funding.
+The SDK dependency lock and shrinkwrap describe the exact same dependency
+closure. A different dependency or peer resolution needs a new admitted
+selection. The Host loads packages at startup through its verified registry.
 
 ### Private native Decision request projection
 

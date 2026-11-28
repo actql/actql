@@ -52,8 +52,8 @@ class RetainedDeliveryCodecStoreTests(unittest.TestCase):
                 frame = core._journal_callbacks(binding._current.ticket).reader
                 self.assertIs(frame.owner, store)
                 retained = []
-                frame.read(rows[3]['table'], rows[3]['key'], retained.append)
-                self.assertEqual(retained[0][1].payload, rows[3]['body'].encode())
+                frame.read(rows[4]['table'], rows[4]['key'], retained.append)
+                self.assertEqual(retained[0][1].payload, rows[4]['body'].encode())
                 self.assertIs(core._loans[first.ticket], first)
                 self.assertIs(core._loans[clock.ticket], clock)
                 calls.append(args)

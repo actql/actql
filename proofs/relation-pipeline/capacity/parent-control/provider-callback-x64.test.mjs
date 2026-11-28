@@ -32,6 +32,19 @@ test('GNU object and linked instructions establish only the observed requested e
   assert.equal(result.scalarPayloadBytesMeasured,false);assert.equal(result.completeConstructorLifetimeUpper,false);
   assert.equal(result.completeParentUpper,false);assert.equal(result.completePipelineUpper,false);
 });
+test('linked debug block labels do not replace the owning callback function',()=>{
+  const labels='2020 t .callback$bb0\n4000 t .moonbit_malloc$bb0\n';
+  for(const indexed of [symbols+labels,labels+symbols]) {
+    const observed=check(object,linked,facts(),indexed);
+    assert.equal(observed.observations[0].callbacks[0].symbol,'callback');
+  }
+});
+test('two actual function symbols at the allocation address remain ambiguous',()=>{
+  for(const alias of ['2020 t other_callback\n','4000 t other_allocator\n']) {
+    for(const indexed of [symbols+alias,alias+symbols])
+      assert.throws(()=>check(object,linked,facts(),indexed),/site sets|allocation site/);
+  }
+});
 test('32-bit zero, descriptor position and code store are all required',()=>{
   for(const [a,b] of [['mov r10d,0x0','mov r10d,0x1'],['r13-0x4','r13-0x8'],
     ['QWORD PTR [r13+0x0]','QWORD PTR [r13+0x8]'],['r10d,0x0','r10,0x0']])

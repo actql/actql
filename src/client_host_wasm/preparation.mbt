@@ -15,6 +15,7 @@ priv struct StoredPreparation {
   slot : @buffers.BufferSlot
   environment : Int
   kind : Int
+  mut project_request : StoredMockProjectRequest?
   mut restoration : Int?
   mut submitted : @preparation.LocalSubmittedPreparation?
   mut started : Bool
@@ -158,6 +159,16 @@ fn input_cursor(
 }
 
 ///|
+// The source-free installation links the Common numeric reducer. Select the
+// same pinned profile as the other installed Local Hosts.
+fn admit_python_local_source_free_environment(
+  body : String,
+  cid : String,
+) -> @checked.CheckEnvironment? {
+  @host.admit_local_relation_check_environment(body, cid)
+}
+
+///|
 /// Private, trusted Host configuration; not caller-provided Check evidence.
 /// The environment Owner validates the original canonical wire and its CID.
 pub fn install_environment(nonce : Int64, input : Int) -> Int {
@@ -174,7 +185,7 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
     return -20
   }
   let body = @utf8.decode(wire) catch { _ => return -12 }
-  guard @host.admit_local_relation_check_environment(body, cid)
+  guard admit_python_local_source_free_environment(body, cid)
     is Some(environment) else {
     return -20
   }
@@ -303,7 +314,15 @@ pub fn reserve_preparation(
   kind : Int,
 ) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
-  guard value.environments.contains(environment) &&
+  let is_project = kind == RETAINED_MOCK_REQUEST_KIND
+  guard (if is_project {
+      project_request_configuration(value, environment) is Some(_) &&
+      value.platform_vm is Some(_) &&
+      !value.closing &&
+      !value.runtime_closing
+    } else {
+      value.environments.contains(environment)
+    }) &&
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
@@ -321,14 +340,20 @@ pub fn reserve_preparation(
   if value.next_handle == 2147483647 {
     return -4
   }
-  if kind != 1 && kind != 2 && kind != 3 {
+  if kind != 1 && kind != 2 && kind != 3 && !is_project {
     return -3
   }
   let handle = value.next_handle
-  let borrow = match
-    @buffers.borrow_buffer(value.pool, slot, () => {
-      physical_reader_stop(physical, handle) == 0
-    }) {
+  let stopped = () => physical_reader_stop(physical, handle) == 0
+  let borrowed = if is_project {
+    if slot.wire_length != 4 {
+      return -31
+    }
+    @buffers.borrow_filled_payload_input(value.pool, slot, stopped)
+  } else {
+    @buffers.borrow_buffer(value.pool, slot, stopped)
+  }
+  let borrow = match borrowed {
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
@@ -337,6 +362,7 @@ pub fn reserve_preparation(
     slot,
     environment,
     kind,
+    project_request: None,
     restoration: None,
     submitted: None,
     started: false,
@@ -354,8 +380,11 @@ pub fn reserve_preparation(
 /// Readiness is not Run admission. A completed call is not silently repeated.
 pub fn prepare_program(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
-  guard value.preparations.get(handle) is Some(record) &&
-    value.environments.get(record.environment) is Some(configuration) else {
+  guard value.preparations.get(handle) is Some(record) else { return -2 }
+  if record.kind == RETAINED_MOCK_REQUEST_KIND {
+    return prepare_project_request(value, record)
+  }
+  guard value.environments.get(record.environment) is Some(configuration) else {
     return -2
   }
   if record.restoration is Some(_) {
@@ -582,8 +611,25 @@ pub fn close_preparation(nonce : Int64, handle : Int) -> Int {
     .any(child => child.failure_preparation == Some(handle)) {
     return -9
   }
-  let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))
+  // Restored preparations borrow the Program owned by the material holder.
+  let program = if record.restoration is None &&
+    record.outcome is Some(Ok(input)) {
+    Some(@preparation.local_prepared_program(input))
+  } else {
+    None
+  }
+  if program is Some(program) &&
+    !@host.prepared_client_local_normalization_retirement_matches(program) {
+    return -9
+  }
+  let result = match record.project_request {
+    Some(held) => close_mock_project_request(value, record, held)
+    None => status(@buffers.return_buffer_borrow(value.pool, record.borrow))
+  }
   if result == 0 {
+    if program is Some(program) {
+      @host.retire_prepared_client_local_normalization_after_cleanup(program)
+    }
     value.preparations.remove(handle) |> ignore
   }
   result
@@ -594,7 +640,18 @@ pub fn close_environment(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) else { return -1 }
   guard value.environments.get(handle) is Some(record) else { return -2 }
   if value.preparations.values().any(prepared => prepared.environment == handle) ||
-    value.client_checks.values().any(report => report.environment == handle) {
+    value.client_checks.values().any(report => report.environment == handle) ||
+    value.original_metadata
+    .values()
+    .any(child => {
+      match child.project {
+        Some(PreparingProjectCheck(held))
+        | Some(MockCheck(held))
+        | Some(LocalCheck(held))
+        | Some(PortableModelCheck(held)) => held.base == handle
+        _ => false
+      }
+    }) {
     return -9
   }
   let result = status(@buffers.return_buffer_borrow(value.pool, record.borrow))

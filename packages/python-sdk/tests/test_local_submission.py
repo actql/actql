@@ -37,8 +37,9 @@ class LocalSubmissionAuthenticationTests(unittest.TestCase):
     def test_original_reference_survives_reopen_without_an_execution(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / 'core.sqlite'
-            with self.store(path) as store, patch('actql_sdk._local_submission.secrets.token_hex',
-                                                 side_effect=['c' * 64, 'b' * 64]):
+            with self.store(path) as store, \
+                    patch('actql_sdk._local_submission.secrets.token_bytes', return_value=b'\xcc' * 32), \
+                    patch('actql_sdk._local_submission.secrets.token_hex', return_value='b' * 64):
                 authority = LocalSubmissionAuthority(store, self.projector,
                                                      now=lambda: 1800000000000, ttl_ms=1000)
                 ref = {'epoch': authority.issue_epoch(SCOPE), 'nonce': 'request-1'}

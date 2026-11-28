@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, unlinkSync, writeFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {runInNewContext} from 'node:vm';
@@ -95,6 +96,43 @@ test('the public Node facade has distinct Source facts and the same Local depend
     '@actql/sdk');
   assert.equal(value.images.some(item => item.sha256 === value.publicNode.images[0].sha256), false);
   assert.equal(f.render().includes(Buffer.from(f.root)), false);
+});
+
+test('the normal Local image captures the pinned Undici once for Local and selected SDK consumers', t => {
+  const f = fixture(t);
+  const manifest = JSON.parse(readFileSync(join(f.destination, 'package.json'), 'utf8'));
+  manifest.dependencies.undici = '7.30.0';
+  f.put('packages/local-node/package.json', JSON.stringify(manifest));
+  const original = dirname(createRequire(import.meta.url).resolve('undici/package.json'));
+  symlinkSync(original, join(f.root, 'node_modules/undici'));
+  const verify = (value: Inventory) => {
+    const selected = value.dependencies.find(binding => binding.name === 'undici')!;
+    const group = value.packages[selected.package];
+    assert.equal(group.name, 'undici');
+    assert.equal(value.packages.filter(other => other.name === 'undici').length, 1);
+    for (const path of ['index.js', 'lib/llhttp/llhttp-wasm.js', 'lib/llhttp/llhttp_simd-wasm.js']) {
+      const bytes = readFileSync(join(original, path));
+      assert.deepEqual(group.images.find(image => image.path === path), {path, bytes: bytes.length, sha256: sha(bytes)});
+    }
+    return selected;
+  };
+  const withoutSdk = f.read(f.render());
+  const mandatory = verify(withoutSdk);
+  assert.equal(withoutSdk.optionalSdkCoverage, 'absent');
+  f.put('packages/provider-ai-sdk/package.json', JSON.stringify({name: '@actql/provider-ai-sdk',
+    version: '0.0.0-development', type: 'module', exports: './index.mjs', files: ['index.mjs'],
+    dependencies: {undici: '7.30.0'}, peerDependencies: {'@actql/local-node': '0.0.0-development'}}));
+  f.put('packages/provider-ai-sdk/index.mjs', 'export const prepared = true;\n');
+  symlinkSync(f.destination, join(f.root, 'node_modules/@actql/local-node'));
+  const prepared = f.read(f.render());
+  assert.equal(prepared.optionalSdkCoverage, 'prepared');
+  assert.deepEqual(verify(prepared), mandatory);
+  const sdk = prepared.packages[prepared.optionalSdk as number] as Inventory['packages'][number] &
+    {dependencies: Dependency[]};
+  assert.deepEqual(sdk.dependencies, [{name: '@actql/local-node', local: true}, mandatory]);
+  manifest.dependencies.undici = '7.30.1';
+  f.put('packages/local-node/package.json', JSON.stringify(manifest));
+  assert.throws(f.render, /WrongInitialControlDependencyVersion:undici/u);
 });
 
 test('optional SDK rollback cannot leave dangling package indices in public Node coverage', t => {

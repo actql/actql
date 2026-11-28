@@ -104,7 +104,7 @@ export const maintenanceFiles = Object.freeze([
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
   'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'spec', 'session-evidence', 'session-controls', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
-  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick', 'client-readme-packed']);
+  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance', 'health-quick', 'client-readme-packed', 'client-direct-model']);
 const validPath = (path: unknown): path is string => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
@@ -152,7 +152,7 @@ export function deepProofRequired(selection: Selection) {
 export function gateJobRequired(selection: Selection, name: string) {
   if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
   if (selection.profile === 'documentation') return false;
-  if (name === 'client-readme-packed') return selection.profile === 'full';
+  if (name === 'client-readme-packed' || name === 'client-direct-model') return selection.profile === 'full';
   if (name === 'main-performance') return selection.profile === 'full' &&
     ['schedule', 'pull_request'].includes(selection.event);
   if (name === 'health-quick') return selection.profile === 'full' && selection.event === 'schedule';
@@ -182,7 +182,7 @@ const pythonWheelInputs = new Set([
   'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
   'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
   'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
-  'scripts/python_interface_inventory.py', 'scripts/release-version.mjs',
+  'scripts/python_interface_inventory.py', 'scripts/release-version.mjs', 'scripts/release-version.mts',
   'scripts/setup-moonbit.mjs', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
 ]);
 const wheelPlatforms = Object.freeze([
@@ -200,7 +200,7 @@ const wheelBuildInputs = new Set([
   'scripts/compile-python-local-image.py', 'scripts/python_release_cohort.py',
   'scripts/prepare-python-local-runtime.py', 'scripts/generate-local-wasm-abi.py',
   'scripts/python_interface_inventory.py', 'scripts/python_wasm_table_geometry.py',
-  'scripts/release-version.mjs', 'spec/contracts/core-wasm-abi.generated.json',
+  'scripts/release-version.mjs', 'scripts/release-version.mts', 'spec/contracts/core-wasm-abi.generated.json',
 ]);
 const ciWorkflow = '.github/workflows/ci.yml';
 

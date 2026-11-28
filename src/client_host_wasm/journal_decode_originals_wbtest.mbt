@@ -46,7 +46,9 @@ fn journal_decode_fixture_row() -> @host.ClientJournalPhysicalRow {
 ///|
 test "journal typed observation quote refuses the original smaller component profile" {
   let (value, _, _, parent) = journal_decode_fixture()
-  let (retention, peak) = journal_observation_construction_capacity().unwrap()
+  let (retention, peak) = journal_observation_construction_capacity(
+    "x".repeat(131072),
+  ).unwrap()
   let limits = @resources.ledger_limits(value.root)
   println(
     "nested observation preconstructor bytes: retention=\{retention}; execution=\{peak}; fixture retained limit=\{limits.retained_bytes}; fixture execution limit=\{limits.execution_bytes}",
@@ -263,7 +265,9 @@ test "journal typed observation exact construction allowance admits and one-shor
     let (value, child, frame, parent) = journal_observation_profile_fixture()
     let row = journal_observation_fixture_row()
     let (_, outer) = journal_decode_row_capacity(row).unwrap()
-    let (_, nested) = journal_observation_construction_capacity().unwrap()
+    let (_, nested) = journal_observation_construction_capacity(
+      @host.decode_client_run_journal_row_with_observation_originals(row.body).unwrap().2.unwrap(),
+    ).unwrap()
     let required = outer + nested
     let usage = @resources.ledger_usage(value.root)
     let available = @resources.ledger_limits(value.root).execution_bytes -
@@ -439,8 +443,8 @@ test "journal same-frame pure original avoids repeated construction but keeps ro
     ..row,
     body: @utf8.encode(
       submission_identity_wire.replace(
-        old="\"cancellation_requested\":false",
-        new="\"cancellation_requested\":true",
+        old="\"cancellation_head\":null",
+        new="\"cancellation_head\":{\"observed_revision\":\"7\",\"record_key\":\"3ec097f4b1602404e88a04cfe7da4c13504e50a5358aae9e3841039c77f6ebcd\"}",
       ),
     ),
   }

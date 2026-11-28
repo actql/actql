@@ -43,7 +43,7 @@ pub fn check_effect_set_footprint_conflicts(Array[EffectMemberFootprint], Int, I
 
 pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int], Array[String], Array[String], Array[String], Array[String], Array[Array[String]], Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
 
-pub fn check_recovered_effect_target_guards(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, RecoveredEffectTargetGuards, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
+pub fn check_recovered_effect_target_guards(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, RecoveredEffectTargetGuards, Array[EffectTargetVersionObservation], Int, Int, selected_member? : Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
 
 pub fn check_table_operation_preview(TableOperation, @run_publication.EffectPreviewIdentity, Int, @logical_request_scope.LogicalRequestScope) -> Result[Unit, TablePreviewIssue]
 
@@ -175,7 +175,9 @@ pub fn recover_effect_claims_from_heads(Array[Array[EffectRecoveryBinding]], Arr
 
 pub fn recover_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int) -> Result[Array[Array[EffectDispatchKey]], EffectPreviewRecoveryKeysIssue]
 
-pub fn recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[RecoveredEffectTargetGuards, EffectSetProgressIssue]
+pub fn recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[LogicalItemLocator]], Array[Array[EffectDispatchKey]], Array[Array[EffectLedgerBasis]], Array[Array[EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int, selected_member? : Int) -> Result[RecoveredEffectTargetGuards, EffectSetProgressIssue]
+
+pub fn retained_effect_application_row_basis(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, EffectDispatchKey, String, String, String, String, Int, Int, String, String, Int) -> Result[(LogicalItemLocator, EffectDispatchKey, EffectLedgerBasis), Unit]
 
 pub fn storage_mapping_reference_cid(StorageMappingReference) -> String
 
