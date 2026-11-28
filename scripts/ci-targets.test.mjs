@@ -2229,18 +2229,21 @@ test('neutral ABI and existing Host source changes retain required current famil
 test('select Mac wheel and workload platforms from affected inputs and event scope', () => {
   const ordinary = ['src/source_frontend/lower.mbt'];
   const loader = ['packages/python-sdk/src/actql_sdk/_local_distribution.py'];
+  const releaseVersion = ['scripts/release-version.mts'];
   const physical = ['src/platform_native/sqlite/moon.pkg'];
   const both = ['toolchain.json'];
   const matrix = selection => pythonWheelMatrix(selection).include.map(({platform}) => platform);
   for (const [paths, options, macos, wheels] of [
     [ordinary, {}, false, ['linux-x64']],
     [loader, {}, false, ['linux-x64', 'darwin-arm64']],
+    [releaseVersion, {draft: false}, false, ['linux-x64', 'darwin-arm64']],
     [physical, {}, true, ['linux-x64']],
     [both, {}, true, ['linux-x64', 'darwin-arm64']],
     [[], {}, true, ['linux-x64', 'darwin-arm64']],
     [ordinary, {failure: 'diff unavailable'}, true, ['linux-x64', 'darwin-arm64']],
     [[], {draft: true}, false, ['linux-x64']],
     [both, {draft: true}, false, ['linux-x64']],
+    [releaseVersion, {draft: true}, false, ['linux-x64']],
     [ordinary, {event: 'push'}, true, ['linux-x64', 'darwin-arm64']],
     [[], {event: 'workflow_dispatch'}, false, ['linux-x64', 'darwin-arm64']],
     [[], {event: 'workflow_dispatch', nativeMacos: true}, true, ['linux-x64', 'darwin-arm64']],
@@ -2477,7 +2480,7 @@ test('Draft normal Python and CI changes automatically select real wheel accepta
     'scripts/build-python-product-wheels.py', 'scripts/produce-python-local-runtime.py',
     'scripts/compile-python-local-image.py', 'scripts/prepare-python-local-runtime.py',
     'scripts/python_release_cohort.py', 'scripts/python_interface_inventory.py',
-    'scripts/generate-local-wasm-abi.py', 'scripts/release-version.mjs',
+    'scripts/generate-local-wasm-abi.py', 'scripts/release-version.mjs', 'scripts/release-version.mts',
     'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
     'packages/python-sdk/src/example.py', 'packages/python-product/pyproject.toml',
     'packages/python-local-runtime/new.py']) {
