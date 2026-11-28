@@ -91,10 +91,12 @@ pub fn local_module_provider_field_inventory(
 ///|
 // Eleven added provider fields plus the callback/merged capacity results:
 // each result is a two-word capacity record and its Some (2H/1R/2W).
+// The Relation and Group candidates each add a Numeric start header and
+// reference to the original four headers and thirteen references.
 // Runtime row chains reserve this transient peak once, not once per child.
 let local_provider_selection_recipe_field_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 4L,
-    reference_slots: 13L,
+    record_headers: 6L,
+    reference_slots: 15L,
     scalar_words: 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -331,6 +333,16 @@ pub fn local_module_managed_provider(
 }
 
 ///|
+/// Borrow the already selected sequence for a checked Local slot. This
+/// exposes its immutable compiler owner without opening a provider or Task.
+pub fn local_module_selected_sequence(
+  installed : LocalComputeModule,
+  slot : Int,
+) -> @execution.GeneratedSequence? {
+  installed.sequences.get(slot)
+}
+
+///|
 /// Read only the existing original/refinement association. This does not
 /// recalculate capacity, execute a provider or observe external currentness.
 pub fn local_module_original_occurrence(
@@ -398,6 +410,211 @@ pub fn local_module_metered_output_start_capacity(
   // demand. It still passes the old same-owner/full-envelope proof below;
   // equal coordinates cannot read another original's retained quote.
   local_module_default_output_start_capacity(installed, slot, sequence)
+}
+
+///|
+/// An installed terminal Model may separately quote its output constructor
+/// when it commits typed rows through the active Task's metered workspace.
+/// The managed dispatcher alone selects this quote. It binds the initial
+/// capacity to the actual selected provider, prefix and whole occurrence.
+pub fn local_module_metered_model_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+  supplied? : @execution.SuppliedRelationRead? = None,
+) -> @execution.ExecutionCapacity? {
+  guard local_module_managed_provider(installed, slot, sequence)
+    is Some(provider) &&
+    provider.infer_relation_prefix
+    is Some(Metered(prefix, boundary, input_limits, measurement, start)) &&
+    boundary > 0 &&
+    @execution.generated_sequence_step_count(sequence) == boundary + 1 &&
+    @execution.generated_sequence_step_count(prefix) == boundary &&
+    physical_equal(
+      @execution.generated_sequence_owner(prefix),
+      @execution.generated_sequence_owner(sequence),
+    ) &&
+    @execution.generated_sequence_step_at(sequence, boundary)
+    is Some(@lower.InferBoundary(actual)) &&
+    actual == boundary &&
+    local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) &&
+    start.retained_bytes < full.retained_bytes &&
+    measurement.max_nodes >= installed.measurement.max_nodes &&
+    measurement.max_bytes >= installed.measurement.max_bytes &&
+    start.execution_bytes <= full.execution_bytes else {
+    return None
+  }
+  for index in 0..<boundary {
+    if @execution.generated_sequence_step_index_at(sequence, index) !=
+      Some(index) ||
+      @execution.generated_sequence_step_index_at(prefix, index) != Some(index) {
+      return None
+    }
+  }
+  let selected = if supplied is Some(read) &&
+    local_metered_model_supplied_unique_capacity(
+      prefix, read, input_limits, measurement,
+    )
+    is Some(measured) &&
+    measured.retained_bytes <= start.retained_bytes &&
+    measured.execution_bytes <= start.execution_bytes {
+    measured
+  } else {
+    start
+  }
+  let custody = metered_model_output_workspace_bytes
+  guard @execution.execution_capacity(custody, custody) is Some(held) else {
+    return None
+  }
+  @execution.add_execution_capacity(selected, held)
+}
+
+///|
+// The started workspace was already held. Charge the new marker and Ref,
+// the Host pair, its provider/start carriers, and live phase references under
+// the existing representation policy before the Task is started.
+let metered_model_output_workspace_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 6L,
+    reference_slots: 12L,
+    scalar_words: 4L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+// UNIQUE forwards every checked value in its only supplied input. The row
+// builder already measured the same immutable values, including text and
+// row containers. Keep the key/index, recheck and frame allowances intact.
+fn local_metered_model_supplied_unique_capacity(
+  prefix : @execution.GeneratedSequence,
+  read : @execution.SuppliedRelationRead,
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> @execution.ExecutionCapacity? {
+  let owner = @execution.generated_sequence_owner(prefix)
+  guard @execution.generated_sequence_step_count(prefix) == 1 &&
+    @execution.generated_sequence_step_index_at(prefix, 0) == Some(0) &&
+    @execution.generated_sequence_step_at(prefix, 0)
+    is Some(@lower.RowStep(kernel)) &&
+    @lower.kernel_body(kernel) is @lower.AssertUnique(_) &&
+    @schema.all_fields_required(@lower.kernel_input_schema(kernel)) &&
+    @lower.node_at(@lower.bound_preparation(owner), 0) is Some(node) &&
+    @schema.all_fields_required(@lower.node_output_schema(node)) &&
+    @execution.supplied_relation_read_matches_operation_input(read, owner, 0, 0) &&
+    @execution.supplied_relation_read_value_usage(read) is Some(actual) &&
+    @execution.select_generated_sequence_step(prefix, 0) is Some(selected) else {
+    return None
+  }
+  let output = limits.rows.output_values
+  let quote = {
+    ..limits,
+    rows: {
+      ..limits.rows,
+      output_values: {
+        ..output,
+        max_nodes: Int::min(output.max_nodes, actual.nodes),
+        max_text_bytes: Int::min(output.max_text_bytes, actual.text_bytes),
+      },
+    },
+  }
+  guard @execution.generated_bounded_sequence_capacity(
+      selected, quote, measurement,
+    )
+    is Some(capacity) &&
+    @execution.checked_preparation_add_product(
+      capacity.execution_bytes,
+      capacity.retained_bytes,
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  @execution.execution_capacity(capacity.retained_bytes, execution)
+}
+
+///|
+/// The managed driver can attach the same reservation to the structural
+/// workspace. The reclaimed JOIN/bindings/projection chain needs only the
+/// constructor metadata before that workspace begins metering.
+pub fn local_module_managed_start_capacity(
+  installed : LocalComputeModule,
+  slot : Int,
+  sequence : @execution.GeneratedSequence,
+) -> (@execution.ExecutionCapacity, Int)? {
+  guard local_module_metered_output_start_capacity(installed, slot, sequence)
+    is Some(start) else {
+    return None
+  }
+  let entries = installed.execution.rows.operation_entries
+  guard selected_metered_join_chain_prefix(sequence) is Some(prefix) &&
+    prefix < entries &&
+    local_module_capacity_for_sequence(installed, slot, sequence) is Some(full) &&
+    start.retained_bytes < full.retained_bytes &&
+    @execution.execution_capacity_inventory_add(
+      0L,
+      @execution.CursorRootSlots,
+      (entries - prefix).to_int64(),
+      1,
+    )
+    is Some(deferred) &&
+    start.execution_bytes >= deferred &&
+    @execution.execution_capacity(
+      start.retained_bytes,
+      Int64::max(start.retained_bytes, start.execution_bytes - deferred),
+    )
+    is Some(quoted) else {
+    return Some((start, entries))
+  }
+  Some((quoted, prefix))
+}
+
+///|
+// Match the same built-in constructors as the reclaimed metered chain quote.
+// Each child has one operation-slot allowance in its E recipe and acknowledges
+// cleanup before the next starts. The row-step constructors admit a metadata
+// prefix before opening RowWorkspace, including the wider stepped name path.
+fn selected_metered_join_chain_prefix(
+  sequence : @execution.GeneratedSequence,
+) -> Int? {
+  guard @execution.generated_sequence_step_count(sequence) == 3 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.JoinStep(join)) &&
+    local_default_join_borrows_input(join) &&
+    @execution.generated_sequence_step_at(sequence, 1)
+    is Some(@lower.RowStep(bindings)) &&
+    @lower.kernel_bindings(bindings) is Some(_) &&
+    @execution.generated_sequence_step_at(sequence, 2)
+    is Some(@lower.RowStep(projection)) &&
+    (
+      @lower.kernel_body(projection) is @lower.Select(_) ||
+      @lower.kernel_is_projection(projection)
+    ) else {
+    return None
+  }
+  // JOIN starts with three key/order slots and at most four borrowed Text
+  // source slots. Both row children reserve the complete selected view and
+  // their input/output names and ordinal arrays. One extra slot covers the
+  // optional stepped metadata source.
+  let mut prefix = 7L
+  for kernel in [bindings, projection] {
+    let view = @lower.kernel_view_entries(kernel).to_int64()
+    let bindings = @lower.kernel_bindings(kernel)
+      .map(@lower.bindings_count)
+      .unwrap_or(0)
+      .to_int64()
+    let input = @schema.field_count(@lower.kernel_input_schema(kernel)).to_int64()
+    let output = @schema.field_count(@lower.kernel_output_schema(kernel)).to_int64()
+    if view < 0L || bindings < 0L || input < 0L || output < 0L {
+      return None
+    }
+    prefix = Int64::max(prefix, view + bindings + 2L * input + 3L * output + 1L)
+  }
+  if prefix > 2147483647L {
+    None
+  } else {
+    Some(prefix.to_int())
+  }
 }
 
 ///|
@@ -1236,7 +1453,15 @@ fn local_module_default_output_start_capacity(
     return None
   }
   let retained = if metered_retention && full.retained_bytes >= data {
-    full.retained_bytes - data
+    let prepaid = full.retained_bytes - data
+    if count > 1 && !bounded_family_chain {
+      // The reclaimed built-in chain retains the quoted child completions
+      // and its own handles. Its attachment funds output DATA before transfer.
+      // The generic sequence's retained root tables are absent here.
+      Int64::min(prepaid, fixed)
+    } else {
+      prepaid
+    }
   } else {
     full.retained_bytes
   }
@@ -1308,7 +1533,10 @@ fn local_module_relation_obligation_segment(
   for provider in installed.managed_providers {
     if managed_provider_accepts(provider, sequence) {
       guard provider.infer_relation_prefix
-        is Some((prefix, boundary, input_execution, input_measurement)) &&
+        is Some(
+          Prepaid(prefix, boundary, input_execution, input_measurement)
+          | Metered(prefix, boundary, input_execution, input_measurement, _)
+        ) &&
         boundary > 0 &&
         step < boundary &&
         physical_equal(

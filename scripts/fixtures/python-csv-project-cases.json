@@ -1,0 +1,198 @@
+{
+  "source_fixture_sha256": "febee5c46e88afacaa39a766946462d860d56b2134cf98e36c12805676933b9d",
+  "cases": [
+    {
+      "id": "original-one-table",
+      "files": {
+        "actql.config.json": {
+          "wire": "{\"version\":\"actql-config/0.1\",\"connectors\":\"./connectors.json\",\"model_tasks\":\"./model-tasks.json\",\"state_dir\":\"./.actql\"}\n",
+          "sha256": "8b8009105868907122ad0768d992806ce3011f936864ff762d61ea9aaf89fed1"
+        },
+        "connectors.json": {
+          "wire": "{\"version\":\"actql-connectors/0.1\",\"connections\":{\"local\":{\"connector\":\"local\",\"root\":\"./data\",\"tables\":{\"small\":{\"path\":\"small.csv\",\"key\":[\"id\"],\"columns\":{\"id\":\"int64\",\"name\":\"string\"}}}}}}\n",
+          "sha256": "ea28ed7a7d631c23464c9c936270c0f3354622b65b20cdabd35f32e72e96bdf1"
+        },
+        "model-tasks.json": {
+          "wire": "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{}}\n",
+          "sha256": "9eed01f5f66bf451700b2d238b59aff1b19bb041e6f1e983fbaa230fab851957"
+        },
+        "data/small.csv": {
+          "wire": "id,name\n1,A\n2,B\n3,C\n",
+          "sha256": "04651c36a9a78920b7c385f9a891bf4ce5dcd63ef8a77565fd84e7622dd5cbca"
+        },
+        "small.sql": {
+          "wire": "SELECT id, name FROM local.small ORDER BY id",
+          "sha256": "145e5d9a7ad7adafa0a75f26cbfcd3214450cd3e67822c4b604494e9bded1e35"
+        },
+        "list.aql": {
+          "wire": "FROM LIST_FILES(local) |> SELECT path |> ORDER BY path",
+          "sha256": "83234223e452176f3f2fa4698f111cc84615485881bda7f8b41f7836e5c7051d"
+        }
+      },
+      "sql": [
+        {
+          "file": "small.sql",
+          "format": "sql",
+          "rows": [
+            {
+              "id": "1",
+              "name": "A"
+            },
+            {
+              "id": "2",
+              "name": "B"
+            },
+            {
+              "id": "3",
+              "name": "C"
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "int64",
+                "nullable": false
+              }
+            },
+            {
+              "name": "name",
+              "contract": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      ],
+      "oracle_sha256": "c23760e6b4783d3345d3f5b553a9d5ce38b65c7d7fab4bef9a1a33bcf3e13871"
+    },
+    {
+      "id": "two-tables",
+      "files": {
+        "actql.config.json": {
+          "wire": "{\"version\":\"actql-config/0.1\",\"connectors\":\"./connectors.json\",\"state_dir\":\"./.actql\"}\n",
+          "sha256": "bd99e50c62d1334f585f69d8a6f744453adf6744ff13a5a9af55d677f87762ac"
+        },
+        "connectors.json": {
+          "wire": "{\"version\":\"actql-connectors/0.1\",\"connections\":{\"local\":{\"connector\":\"local\",\"root\":\"./data\",\"tables\":{\"small\":{\"path\":\"small.csv\",\"key\":[\"id\"],\"columns\":{\"id\":\"int64\",\"name\":\"string\"}},\"other\":{\"path\":\"other.csv\",\"key\":[\"id\"],\"columns\":{\"id\":\"int64\",\"name\":\"string\"}}}}}}\n",
+          "sha256": "3943bd985868d0cc3eb401c09376cc2d13b76558cfff91b7d77a9e938508062b"
+        },
+        "data/small.csv": {
+          "wire": "id,name\n1,A\n2,B\n3,C\n",
+          "sha256": "04651c36a9a78920b7c385f9a891bf4ce5dcd63ef8a77565fd84e7622dd5cbca"
+        },
+        "small.sql": {
+          "wire": "SELECT id, name FROM local.small ORDER BY id",
+          "sha256": "145e5d9a7ad7adafa0a75f26cbfcd3214450cd3e67822c4b604494e9bded1e35"
+        },
+        "data/other.csv": {
+          "wire": "id,name\n4,D\n5,E\n",
+          "sha256": "0a4197792352840ae86dbc465cd2852c3a5f4483e53bd35e0417809bea31faa7"
+        },
+        "other.sql": {
+          "wire": "SELECT id, name FROM local.other ORDER BY id",
+          "sha256": "c8e23aebef358d3fe4cd97a2e88ab61b8b180a9f15894099deebb595d2821748"
+        },
+        "list.aql": {
+          "wire": "FROM LIST_FILES(local) |> SELECT path |> ORDER BY path",
+          "sha256": "83234223e452176f3f2fa4698f111cc84615485881bda7f8b41f7836e5c7051d"
+        }
+      },
+      "sql": [
+        {
+          "file": "small.sql",
+          "format": "sql",
+          "rows": [
+            {
+              "id": "1",
+              "name": "A"
+            },
+            {
+              "id": "2",
+              "name": "B"
+            },
+            {
+              "id": "3",
+              "name": "C"
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "int64",
+                "nullable": false
+              }
+            },
+            {
+              "name": "name",
+              "contract": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          ]
+        },
+        {
+          "file": "other.sql",
+          "format": "sql",
+          "rows": [
+            {
+              "id": "4",
+              "name": "D"
+            },
+            {
+              "id": "5",
+              "name": "E"
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "int64",
+                "nullable": false
+              }
+            },
+            {
+              "name": "name",
+              "contract": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      ],
+      "oracle_sha256": "0ea84e23e5dfc6615a7ce3c98656198d43ab6d893a7e294bf3d5d686dea08495"
+    },
+    {
+      "id": "invalid-second-declaration",
+      "files": {
+        "actql.config.json": {
+          "wire": "{\"version\":\"actql-config/0.1\",\"connectors\":\"./connectors.json\",\"model_tasks\":\"./model-tasks.json\",\"state_dir\":\"./.actql\"}\n",
+          "sha256": "8b8009105868907122ad0768d992806ce3011f936864ff762d61ea9aaf89fed1"
+        },
+        "connectors.json": {
+          "wire": "{\"version\":\"actql-connectors/0.1\",\"connections\":{\"local\":{\"connector\":\"local\",\"root\":\"./data\",\"tables\":{\"small\":{\"path\":\"small.csv\",\"key\":[\"id\"],\"columns\":{\"id\":\"int64\",\"name\":\"string\"}},\"other\":{\"path\":\"other.csv\",\"key\":[\"id\"],\"columns\":{\"id\":\"int64\",\"name\":\"invalid\"}}}}}}\n",
+          "sha256": "71b0d18be80ace360a5092842d7b57787265b97cd4d8f8154bf2ce6d393e5bec"
+        },
+        "model-tasks.json": {
+          "wire": "{\"version\":\"actql-model-tasks/0.1\",\"tasks\":{},\"providers\":{}}\n",
+          "sha256": "9eed01f5f66bf451700b2d238b59aff1b19bb041e6f1e983fbaa230fab851957"
+        },
+        "data/small.csv": {
+          "wire": "id,name\n1,A\n2,B\n3,C\n",
+          "sha256": "04651c36a9a78920b7c385f9a891bf4ce5dcd63ef8a77565fd84e7622dd5cbca"
+        },
+        "data/other.csv": {
+          "wire": "id,name\n4,D\n5,E\n",
+          "sha256": "0a4197792352840ae86dbc465cd2852c3a5f4483e53bd35e0417809bea31faa7"
+        }
+      },
+      "sql": [],
+      "oracle_sha256": "c4bf968904c890b85917a6de0c8fe9166bef0e04863e724dca0b4f7a071d8a55"
+    }
+  ]
+}

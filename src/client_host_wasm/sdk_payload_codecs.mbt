@@ -43,7 +43,7 @@ fn original_sdk_payload_codecs(
     context.source,
     context.current.account,
     context.finite,
-    context.sdk.read,
+    context.selection,
     context.sdk.adoption_cid,
     context.owner,
     context.view,
@@ -94,6 +94,7 @@ pub fn prepare_publication_sdk_payload_codecs(
       run,
       current_configuration,
       same_reader_census=true,
+      read_only_saved_control=true,
     ) {
     Ok(context) => context
     Err(code) => return code

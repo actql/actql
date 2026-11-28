@@ -652,6 +652,8 @@ jobs:
           else
             if [ "${{ needs.select-targets.outputs.moon_test_selection }}" = true ]; then
               node scripts/ci-moon-tests.mjs "${{ matrix.target }}"
+            elif [ "${{ matrix.target }}" = wasm ]; then
+              node scripts/ci-moon-tests.mjs wasm --all
             else
               moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             fi
@@ -3553,9 +3555,16 @@ jobs:
           test "$(uname -s)" = "$EXPECTED_SYSTEM"
           test "$(uname -m)" = "$EXPECTED_ARCHITECTURE"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Prepare the original Portable Model Crypto for this wheel platform
+        run: |
+          python3 -B scripts/prepare-python-model-crypto.py \
+            --source "$GITHUB_SHA" --destination "$RUNNER_TEMP/python-model-crypto"
       - name: Build normal wheels and accept fresh installed Python consumers
         id: python-normal-cohort
-        run: python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"
+        run: |
+          python3 -B scripts/ci-python-wheels.py --source "$GITHUB_SHA" \
+            --destination "$RUNNER_TEMP/python-wheel-acceptance" \
+            --model-crypto-preparation "$RUNNER_TEMP/python-model-crypto/component"
       - name: Select the minimum supported Python version
         id: python-minimum
         if: ${{ !cancelled() && steps.python-normal-cohort.outcome == 'success' }}
@@ -3596,7 +3605,9 @@ jobs:
             ${{ runner.temp }}/python-wheel-acceptance/cohort/cohort.json
             ${{ runner.temp }}/python-wheel-acceptance/cohort/wheels/*.whl
             ${{ runner.temp }}/python-wheel-acceptance/image/image-receipt.json
+            ${{ runner.temp }}/python-wheel-acceptance/artifact/artifact.json
             ${{ runner.temp }}/python-wheel-acceptance/artifact/producer.json
+            ${{ runner.temp }}/python-wheel-acceptance/model-crypto/producer.json
           if-no-files-found: error
           retention-days: 14
   native-separated-network:

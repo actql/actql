@@ -28,15 +28,7 @@ test "analytic chain reclaims scratch without invalidating ranked output" {
   let base = @execution.generated_sequence_capacity(sequence, limits, measure).unwrap()
   // The selection callback fields and its two capacity results coexist once
   // with the chain's handles and read cursors, including analytic children.
-  let handles = count.to_int64() * 256L +
-    512L +
-    @execution.preparation_representation_cost({
-      record_headers: 4L,
-      reference_slots: 13L,
-      scalar_words: 4L,
-      owned_utf16_units: 0L,
-      owned_wire_bytes: 0L,
-    }).unwrap()
+  let handles = chain_lifetime_start_control_bytes(count)
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   assert_eq(
     capacity.execution_bytes,

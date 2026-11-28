@@ -137,7 +137,7 @@ pub fn local_mock_account_configuration(
     Some(target) => [target]
     None => []
   }
-  local_mock_account_configuration_original(subjects, targets)
+  local_mock_account_configuration_original(subjects, targets, false)
 }
 
 ///|
@@ -148,13 +148,18 @@ pub fn local_mock_account_configuration_prepared(
   subjects : LocalMockAccountSubjects,
   update_targets : Array[(String, String)],
   prepare : (AccountConfigurationConstruction) -> Bool,
+  original_result_read? : Bool = false,
 ) -> Result[String, LocalMockProfileIssue]? {
   guard local_mock_account_construction(subjects, update_targets)
     is Some(request) &&
     prepare(request) else {
     return None
   }
-  Some(local_mock_account_configuration_original(subjects, update_targets))
+  Some(
+    local_mock_account_configuration_original(
+      subjects, update_targets, original_result_read,
+    ),
+  )
 }
 
 ///|
@@ -309,6 +314,7 @@ pub fn validate_local_mock_inventory_prepared(
 fn local_mock_account_configuration_original(
   subjects : LocalMockAccountSubjects,
   update_targets : Array[(String, String)],
+  original_result_read : Bool,
 ) -> Result[String, LocalMockProfileIssue] {
   if !valid_name(subjects.account_id) ||
     !valid_name(subjects.principal) ||
@@ -359,13 +365,22 @@ fn local_mock_account_configuration_original(
       ["cancel", "publish", "read", "resolve", "submit"],
       Allow,
     ),
-    // ResultOwner still selects the original committed same-Run name/current
-    // publication. All is safe only in this genuinely disjoint Host domain.
+    // The SDK uses the exact installed Result role after checking the
+    // requested name and current committed Run. Other Mock Hosts select
+    // the named resource in this disjoint control domain themselves.
     local_mock_entry(
-      "local-result-read",
+      if original_result_read {
+        local_original_result_read_entry_id
+      } else {
+        "local-result-read"
+      },
       subjects,
       subjects.control_connection,
-      All,
+      if original_result_read {
+        AnyOf([local_original_result_read_resource])
+      } else {
+        All
+      },
       ["read"],
       Allow,
     ),

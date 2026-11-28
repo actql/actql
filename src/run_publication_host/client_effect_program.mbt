@@ -68,7 +68,7 @@ fn client_effect_program_view(
     sequence_preparation_demand: value.sequence_preparation_demand,
     local_values_max_rows: client_standard_values_sequence_limits().max_rows,
     check_environment_cid: value.check_environment_cid,
-    local_normalization: None,
+    local_normalization: NormalizationNotIssued,
     full_sequences: [],
     task_pipeline_inputs: [],
     compiler_contracts: None,
@@ -236,12 +236,16 @@ pub fn prepare_checked_client_effect_computation(
 
 ///|
 /// Completed original lowering Usage only, not complete binding/Graph work.
+/// The retained Program checker may supply the exact intent it read for
+/// this computation, after selecting that Program and its Parameters.
 pub fn observe_prepare_checked_client_effect_computation(
   computation : @checked.EffectComputationCandidate,
   limits : ClientEffectComputationLimits,
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
+  submitted_program? : ClientSubmittedIntent? = None,
+  debug_graph_work? : Int? = None,
 ) -> (
   Result[PreparedClientEffectComputation, ClientEffectComputationIssue],
   Int64,
@@ -261,6 +265,8 @@ pub fn observe_prepare_checked_client_effect_computation(
     store_targets,
     command_targets,
     lowering_work_out=Some(work),
+    source_intent=submitted_program,
+    debug_graph_work~,
   )
   (result, work.val)
 }
@@ -274,6 +280,7 @@ fn prepare_checked_client_effect_computation_owned(
   command_targets : @update_targets.CommandTargetPublication?,
   lowering_work_out? : Ref[Int64]? = None,
   source_intent? : ClientSubmittedIntent? = None,
+  debug_graph_work? : Int? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let mappings = match
     @checked.check_effect_computation_mappings(
@@ -303,6 +310,7 @@ fn prepare_checked_client_effect_computation_owned(
     command_targets,
     lowering_work_out~,
     source_intent~,
+    debug_graph_work~,
   )
 }
 
@@ -347,6 +355,7 @@ fn compile_static_client_effect_computation(
   command_targets : @update_targets.CommandTargetPublication?,
   lowering_work_out? : Ref[Int64]? = None,
   source_intent? : ClientSubmittedIntent? = None,
+  debug_graph_work? : Int? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let target_selections = match
     prepare_client_effect_target_selections(
@@ -380,7 +389,8 @@ fn compile_static_client_effect_computation(
       candidate,
       owners,
       limits.max_tasks,
-      limits.max_graph_work,
+      debug_graph_work.unwrap_or(limits.max_graph_work),
+      split_debug_operations=debug_graph_work is Some(_),
       captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
         @pipeline.starts_with_values(
@@ -423,6 +433,35 @@ pub fn prepared_client_effect_computation_graph(
   value : PreparedClientEffectComputation,
 ) -> @strategy.CheckedEffectComputationDAG {
   value.graph
+}
+
+///|
+/// Construct a disposable split from the same checked Effect candidate and
+/// lowered owner. Use only under the Request's funded static graph probe.
+pub fn prepare_client_static_effect_debug_graph(
+  prepared : PreparedClientEffectComputation,
+  max_tasks : Int,
+  max_work : Int,
+) -> Result[@strategy.CheckedDAG, @strategy.GraphIssue] {
+  let graph = @strategy.checked_effect_computation_graph(prepared.graph)
+  let checked = @strategy.graph_program(graph)
+  guard @checked.unit_count(checked) == 1 &&
+    @strategy.graph_captured_prefix(graph) == 0 &&
+    @strategy.graph_stage_operation_task(graph, 0, 0) is Some(task) &&
+    @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return Err(DebugEffectTopologyUnavailable)
+  }
+  @strategy.prepare_checked_effect_computation_dag(
+    prepared.candidate,
+    [owner],
+    max_tasks,
+    max_work,
+    source_free_root=@pipeline.starts_with_values(
+      @lower.pipeline(@lower.bound_preparation(owner)),
+    ),
+    captured_prefix=client_program_acquisition_prefix(checked),
+    split_debug_operations=true,
+  ).map(@strategy.checked_effect_computation_graph)
 }
 
 ///|

@@ -65,3 +65,19 @@ test('Linux lint owns source Python callers without a package producer or instal
   assert.ok(lint.steps.some(step => step.run?.includes('pip install --disable-pip-version-check -e ./packages/python-sdk')),
     'The preceding cross-host packaging control prepares the same lightweight SDK');
 });
+
+test('ordinary Python keeps original same-platform Model runtime receipts beside its wheels', () => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const job = workflow.jobs['python-wheels'];
+  const prep = job.steps.findIndex(step => step.run?.includes('scripts/prepare-python-model-crypto.py'));
+  const acceptance = job.steps.findIndex(step => step.id === 'python-normal-cohort');
+  const archive = job.steps.findIndex(step => step.with?.name?.startsWith('python-wheel-acceptance-'));
+  assert(prep >= 0 && acceptance > prep && archive > acceptance);
+  const build = job.steps[acceptance].run;
+  assert.match(build, /--source "\$GITHUB_SHA"/u);
+  assert.match(build, /--model-crypto-preparation "\$RUNNER_TEMP\/python-model-crypto\/component"/u);
+  const retained = new Set(job.steps[archive].with.path.trim().split('\n'));
+  for (const file of ['artifact/artifact.json', 'artifact/producer.json', 'model-crypto/producer.json']) {
+    assert(retained.has('${{ runner.temp }}/python-wheel-acceptance/' + file), file);
+  }
+});

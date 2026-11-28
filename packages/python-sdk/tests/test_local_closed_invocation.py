@@ -164,7 +164,8 @@ class ClosedInvocationTests(unittest.TestCase):
             effects.append(True)
             return 0
         imports = [core._observation_import(name, effect) for name in (
-            'publisher_current', 'publisher_finish', 'input_cleanup', 'reader_stop',
+            'publisher_current', 'publisher_finish', 'input_cleanup', 'input_copy',
+            'journal_query_header', 'platform_vm_observation', 'reader_stop',
             'native_settled', 'execution_child_admit', 'future_unknown_import')]
         def export():
             self.assertEqual(current(), 0)
@@ -212,7 +213,7 @@ class ClosedInvocationTests(unittest.TestCase):
                     self.run_export(core, binding, export)
                 self.assertTrue(core._closing)
 
-    def test_sql_mutation_schema_and_raw_transaction_replacement_refuse(self):
+    def test_sql_mutation_schema_and_owned_transaction_replacement_refuse(self):
         for mutation in ('row', 'schema', 'transaction'):
             with self.subTest(mutation=mutation):
                 core, binding, store, _, current = self.fixture()
@@ -223,8 +224,8 @@ class ClosedInvocationTests(unittest.TestCase):
                     elif mutation == 'schema':
                         store._connection.execute('CREATE TEMP TABLE unexpected (value INTEGER)')
                     else:
-                        store._connection.execute('COMMIT')
-                        store._connection.execute('BEGIN')
+                        store._physical.finish_read()
+                        store._physical.begin_read()
                     return 7
                 with self.assertRaises(LocalStorageError):
                     self.run_export(core, binding, export)
@@ -313,18 +314,6 @@ class ClosedInvocationTests(unittest.TestCase):
             self.run_export(core, binding, export)
         self.assertIs(raised.exception, failures[0])
 
-    def test_user_trace_before_entry_keeps_legacy_and_unsetting_does_not_restore_eligibility(self):
-        core, binding, store, _, current = self.fixture()
-        traced = []
-        store._connection.set_trace_callback(traced.append)
-        store._connection.set_trace_callback(None)
-        def export():
-            self.assertIsNone(core._invocation_observation)
-            self.assertIsNone(binding._observed_reader._invocation_check)
-            self.assertEqual(current(), 0)
-            return 7
-        self.assertEqual(self.run_export(core, binding, export), [7])
-
     def test_write_transaction_readers_do_not_admit_closed_observations(self):
         core, binding, store, _, current = self.fixture()
         def export():
@@ -342,62 +331,7 @@ class ClosedInvocationTests(unittest.TestCase):
             finally:
                 store._physical.rollback()
 
-    def test_other_thread_customization_is_rejected_before_installation_and_is_latched(self):
-        for mode in ('trace', 'factory'):
-            with self.subTest(mode=mode):
-                core, binding, store, _, current = self.fixture()
-                failures, callbacks = [], []
-                def customize():
-                    try:
-                        if mode == 'trace':
-                            store._connection.set_trace_callback(lambda _: callbacks.append(True))
-                        else:
-                            store._connection.text_factory = lambda _: callbacks.append(True)
-                    except RuntimeError as error:
-                        failures.append(error)
-                def export():
-                    self.assertEqual(current(), 0)
-                    thread = Thread(target=customize)
-                    thread.start()
-                    thread.join()
-                    return 7
-                with self.assertRaises(RuntimeError) as raised:
-                    self.run_export(core, binding, export)
-                self.assertIs(raised.exception, failures[0])
-                self.assertFalse(callbacks)
-                self.assertIsNone(store._connection._user_trace)
-                self.assertIs(store._connection.text_factory, str)
-
-    def test_late_primitive_adapter_refuses_without_calling_it(self):
-        core, binding, store, _, current = self.fixture()
-        key = (str, sqlite3.PrepareProtocol)
-        present, previous = key in sqlite3.adapters, sqlite3.adapters.get(key)
-        invoked, failures = [], []
-        def adapter(value):
-            invoked.append(value)
-            return value
-        def export():
-            self.assertEqual(current(), 0)
-            thread = Thread(target=lambda: sqlite3.register_adapter(str, adapter))
-            thread.start()
-            thread.join()
-            try:
-                store._physical.read_header('original')
-            except ValueError as error:
-                failures.append(error)
-            return 7
-        try:
-            with self.assertRaises(ValueError) as raised:
-                self.run_export(core, binding, export)
-            self.assertIs(raised.exception, failures[0])
-            self.assertFalse(invoked)
-        finally:
-            if present:
-                sqlite3.adapters[key] = previous
-            else:
-                sqlite3.adapters.pop(key, None)
-
-    def test_literal_queries_preserve_quotes_nul_unicode_and_maximum_keys(self):
+    def test_closed_inventory_queries_bind_the_same_statement(self):
         core, binding, store, _, current = self.fixture()
         prefix = 'namespace:5:probe:'
         keys = ("quote' nul\x00 café 東京 ?", 'x' * (4096 - len(prefix)))
@@ -406,9 +340,9 @@ class ClosedInvocationTests(unittest.TestCase):
         execute = _TrackedSQLiteConnection.execute
         statements = []
         def capture(connection, sql, parameters=()):
-            if connection._closed_invocation is not None:
-                self.assertEqual(parameters, ())
-                statements.append(sql)
+            if (connection._closed_invocation is not None
+                    and sql.startswith('SELECT generation, length(payload)')):
+                statements.append((sql, parameters))
             return execute(connection, sql, parameters)
         def export():
             self.assertEqual(current(), 0)
@@ -421,43 +355,9 @@ class ClosedInvocationTests(unittest.TestCase):
             return 7
         with patch.object(_TrackedSQLiteConnection, 'execute', capture):
             self.assertEqual(self.run_export(core, binding, export), [7])
-        self.assertTrue(any('CAST(X' in statement for statement in statements))
-        self.assertTrue(all(len(statement.encode('utf-8')) <= 65536 for statement in statements))
-
-    def test_zero_parameters_cannot_dispatch_an_adapter_registered_after_the_guard(self):
-        core, binding, store, _, current = self.fixture()
-        adapter_key = (str, sqlite3.PrepareProtocol)
-        present, previous = adapter_key in sqlite3.adapters, sqlite3.adapters.get(adapter_key)
-        invoked, statements = [], []
-        execute = _TrackedSQLiteConnection.execute
-        def adapter(value):
-            invoked.append(value)
-            return value
-        def race(connection, sql, parameters=()):
-            if connection._closed_invocation is None or 'CAST(X' not in sql:
-                return execute(connection, sql, parameters)
-            self.assertEqual(parameters, ())
-            statements.append(sql)
-            thread = Thread(target=lambda: sqlite3.register_adapter(str, adapter))
-            thread.start()
-            thread.join()
-            try:
-                # Deliberately exercise the final SQLite call after a raced
-                # registry change. With no parameters there is no adaptation.
-                return sqlite3.Connection.execute(connection, sql)
-            finally:
-                if present:
-                    sqlite3.adapters[adapter_key] = previous
-                else:
-                    sqlite3.adapters.pop(adapter_key, None)
-        def export():
-            self.assertEqual(current(), 0)
-            self.assertIsNotNone(store._physical.read_header(binding._fences[0].key))
-            return 7
-        with patch.object(_TrackedSQLiteConnection, 'execute', race):
-            self.assertEqual(self.run_export(core, binding, export), [7])
-        self.assertTrue(statements)
-        self.assertFalse(invoked)
+        self.assertEqual(len(statements), 2)
+        self.assertEqual(statements[0][0], statements[1][0])
+        self.assertEqual([parameters for _, parameters in statements], [(prefix + key,) for key in keys])
 
 
 class ClosedSQLiteEligibilityTests(unittest.TestCase):
@@ -489,33 +389,6 @@ class ClosedSQLiteEligibilityTests(unittest.TestCase):
             self.assertIsInstance(callback, ast.Call)
             self.assertIsInstance(callback.func, ast.Attribute)
             self.assertEqual(callback.func.attr, '_observation_import')
-
-    def test_all_supported_callback_registration_paths_permanently_disable_eligibility(self):
-        registrations = (
-            lambda c: c.set_trace_callback(None),
-            lambda c: c.set_progress_handler(None, 0),
-            lambda c: c.set_authorizer(None),
-            lambda c: c.create_function('probe', 0, lambda: 1),
-            lambda c: c.create_aggregate('probe', 1, object),
-            lambda c: c.create_window_function('probe', 1, object),
-            lambda c: c.create_collation('probe', lambda a, b: 0),
-            lambda c: setattr(c, 'row_factory', None),
-            lambda c: setattr(c, 'text_factory', str),
-            lambda c: c.enable_load_extension(False),
-            lambda c: c.load_extension('/nonexistent/actql-test-extension'),
-        )
-        for register in registrations:
-            connection = sqlite3.connect(':memory:', isolation_level=None, factory=_TrackedSQLiteConnection)
-            try:
-                connection._qualify_encoding()
-                self.assertTrue(connection._closed_eligible())
-                try:
-                    register(connection)
-                except (sqlite3.Error, AttributeError):
-                    pass  # Unsupported extension facilities still disqualify.
-                self.assertFalse(connection._closed_eligible())
-            finally:
-                connection.close()
 
 
 if __name__ == '__main__':

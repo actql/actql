@@ -4,7 +4,7 @@
 pub(all) struct ClientCancellationRunJournalInspection {
   request : ClientRequestIdentity
   definition : @publication.PublicationContract
-  cancellation_requested : Bool
+  cancellation_head : ClientAcceptedCancellationHead?
 }
 
 ///|
@@ -20,13 +20,15 @@ pub fn[E] inspect_client_cancellation_journal_inventory(
     E,
   ],
   custody_lost : E,
+  fund_row? : ((Int64) -> Result[Unit, E])? = None,
 ) -> Result[(Int, Int64), E] {
   inspect_client_cancellation_journal_inventory_with_run_identity(
     max_records,
     scan,
     read,
-    (row, _, _) => validate_run(row),
+    (row, _) => validate_run(row),
     custody_lost,
+    fund_row~,
   )
 }
 
@@ -40,9 +42,27 @@ pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   validate_run : (
     ClientJournalPhysicalRow,
-    ClientRequestIdentity,
-    @publication.PublicationContract,
+    (ClientRequestIdentity, @publication.PublicationContract)?,
   ) -> Result[ClientCancellationRunJournalInspection, E],
+  custody_lost : E,
+  fund_row? : ((Int64) -> Result[Unit, E])? = None,
+) -> Result[(Int, Int64), E] {
+  inspect_client_cancellation_journal_inventory_original(
+    max_records,
+    scan,
+    read,
+    validate_run,
+    custody_lost,
+    fund_row,
+    None,
+  )
+}
+
+///|
+fn[E] read_client_cancellation_journal_issuance(
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   custody_lost : E,
 ) -> Result[(Int, Int64), E] {
   let marker = match read("client_cancel_custody", "issued") {
@@ -64,44 +84,66 @@ pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
     Ok(value) if marker.revision == value.to_int64() => value
     _ => return Err(custody_lost)
   }
+  Ok((count, marker.revision))
+}
+
+///|
+fn[E] inspect_client_cancellation_journal_inventory_original(
+  max_records : Int,
+  scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  validate_run : (
+    ClientJournalPhysicalRow,
+    (ClientRequestIdentity, @publication.PublicationContract)?,
+  ) -> Result[ClientCancellationRunJournalInspection, E],
+  custody_lost : E,
+  fund_row : ((Int64) -> Result[Unit, E])?,
+  run_coverage : (Int, Int64, Int)?,
+) -> Result[(Int, Int64), E] {
+  let (count, revision) = match
+    read_client_cancellation_journal_issuance(
+      max_records, scan, read, custody_lost,
+    ) {
+    Ok(issued) => issued
+    Err(issue) => return Err(issue)
+  }
   let mut cursor = ""
   let mut observed = 0
+  let mut accepted = 0
   while true {
     let row = match scan("client_cancellations", cursor) {
       Ok(Some(value)) => value
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
-    if observed >= count {
+    if observed >= count || row.key <= cursor {
       return Err(custody_lost)
     }
     observed += 1
-    let value = match decode_client_cancellation_journal_row(row) {
+    if fund_row is Some(fund) {
+      guard row.revision == 0L &&
+        client_cancellation_journal_scan_workspace(row.body.length())
+        is Some(bytes) else {
+        return Err(custody_lost)
+      }
+      match fund(bytes) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+    let value = match
+      read_client_cancellation_row_with_witness(row, read, custody_lost) {
       Ok(value) => value
-      Err(_) => return Err(custody_lost)
+      Err(issue) => return Err(issue)
     }
-    let original = match read("client_cancel_originals", row.key) {
-      Ok(Some(value)) => value
+    let run_key = client_request_scope_cid(value.request)
+    let run_row = match read("client_runs", run_key) {
+      Ok(Some(value)) if value.key == run_key => value
       Err(issue) => return Err(issue)
       _ => return Err(custody_lost)
     }
-    if original.revision != 0L ||
-      original.body != @utf8.encode(@sha.hex(row.body)) ||
-      client_cancellation_journal_index(
-        value.namespace_id,
-        client_request_authority_scope_cid(value.request),
-        value.cancel_id,
-      ) !=
-      Some(row.key) {
-      return Err(custody_lost)
-    }
-    let run_row = match
-      read("client_runs", client_request_scope_cid(value.request)) {
-      Ok(Some(value)) => value
-      Err(issue) => return Err(issue)
-      _ => return Err(custody_lost)
-    }
-    let run = match validate_run(run_row, value.request, value.definition) {
+    let run = match
+      validate_run(run_row, Some((value.request, value.definition))) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -109,9 +151,25 @@ pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
       SameRequest ||
       @publication.publication_contract_identity(value.definition) !=
       @publication.publication_contract_identity(run.definition) ||
-      run_row.revision < value.observed_revision ||
-      (value.action != AlreadyTerminal && !run.cancellation_requested) {
+      run_row.revision < value.observed_revision {
       return Err(custody_lost)
+    }
+    match value.action {
+      AcceptCancellation => {
+        guard run.cancellation_head is Some(head) &&
+          head.record_key == row.key &&
+          head.observed_revision == value.observed_revision else {
+          return Err(custody_lost)
+        }
+        accepted += 1
+      }
+      AlreadyRequested => {
+        guard run.cancellation_head is Some(head) &&
+          head.observed_revision <= value.observed_revision else {
+          return Err(custody_lost)
+        }
+      }
+      AlreadyTerminal => ()
     }
     cursor = row.key
   }
@@ -126,12 +184,12 @@ pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
       Ok(None) => break
       Err(issue) => return Err(issue)
     }
-    if originals >= count || row.revision != 0L {
+    if originals >= count || row.revision != 0L || row.key <= original_cursor {
       return Err(custody_lost)
     }
     originals += 1
     match read("client_cancellations", row.key) {
-      Ok(Some(_)) => ()
+      Ok(Some(receipt)) if receipt.key == row.key => ()
       Err(issue) => return Err(issue)
       _ => return Err(custody_lost)
     }
@@ -140,5 +198,54 @@ pub fn[E] inspect_client_cancellation_journal_inventory_with_run_identity(
   if originals != count {
     return Err(custody_lost)
   }
-  Ok((count, marker.revision))
+  // Forward validation proved an injective mapping from accepted receipts
+  // to Run heads in this snapshot. Reverse coverage only needs a bounded
+  // census of the heads. Each original receipt and witness was checked above.
+  let (run_count, run_revision) = match
+    journal_inventory_count(
+      "client_run_custody", max_records, scan, read, custody_lost,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if run_coverage is Some((covered_count, covered_revision, covered_heads)) {
+    if covered_count != run_count ||
+      covered_revision != run_revision ||
+      covered_heads != accepted {
+      return Err(custody_lost)
+    }
+    return Ok((count, revision))
+  }
+  let mut run_cursor = ""
+  let mut runs = 0
+  let mut heads = 0
+  while true {
+    let row = match scan("client_runs", run_cursor) {
+      Ok(Some(value)) => value
+      Ok(None) => break
+      Err(issue) => return Err(issue)
+    }
+    if runs >= run_count || row.key <= run_cursor {
+      return Err(custody_lost)
+    }
+    let run = match validate_run(row, None) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if row.key != client_request_scope_cid(run.request) {
+      return Err(custody_lost)
+    }
+    if run.cancellation_head is Some(_) {
+      heads += 1
+      if heads > accepted {
+        return Err(custody_lost)
+      }
+    }
+    runs += 1
+    run_cursor = row.key
+  }
+  if runs != run_count || heads != accepted {
+    return Err(custody_lost)
+  }
+  Ok((count, revision))
 }

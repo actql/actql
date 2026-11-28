@@ -536,6 +536,89 @@ fn prepare_publication_source_policy(
 pub(all) enum CheckedInferInputPolicy {
   ClosedLocal
   CheckedSources(@environment.DataClassification)
+  PendingModelOutputs(CheckedInferModelInputs)
+}
+
+///|
+/// Checked producer occurrences and their original receiving imports. A
+/// live admission must bind each settled output to the actual receiving read.
+struct CheckedInferModelInputs {
+  program : CheckedProgram
+  receiving_stage : Int
+  receiving_step : Int
+  producers : Array[(Int, Int)]
+  result_dependencies : Array[(BuiltResultInterface, Int, Int)]
+  source_classification : @environment.DataClassification?
+}
+
+///|
+pub fn checked_infer_model_inputs_match(
+  value : CheckedInferModelInputs,
+  program : CheckedProgram,
+  stage : Int,
+  step : Int,
+) -> Bool {
+  physical_equal(value.program, program) &&
+  value.receiving_stage == stage &&
+  value.receiving_step == step
+}
+
+///|
+pub fn checked_infer_model_inputs_count(value : CheckedInferModelInputs) -> Int {
+  value.producers.length()
+}
+
+///|
+pub fn checked_infer_model_input_at(
+  value : CheckedInferModelInputs,
+  index : Int,
+) -> (Int, Int)? {
+  value.producers.get(index)
+}
+
+///|
+pub fn checked_infer_model_input_source_classification(
+  value : CheckedInferModelInputs,
+) -> @environment.DataClassification? {
+  value.source_classification
+}
+
+///|
+/// Count receiving-import / producer pairs, including distinct ports which
+/// borrow the same producer. The producer coordinate count can be smaller.
+pub fn checked_infer_model_result_dependency_count(
+  value : CheckedInferModelInputs,
+) -> Int {
+  value.result_dependencies.length()
+}
+
+///|
+/// Match the exact checked import used to reach this upstream Model. A
+/// sibling import, an unused import and a different checked Program cannot
+/// supply it. This is graph evidence only.
+pub fn checked_infer_model_result_dependency_matches(
+  value : CheckedInferModelInputs,
+  receiving_import : BuiltResultInterface,
+  producer_stage : Int,
+  producer_step : Int,
+) -> Bool {
+  value.result_dependencies.any(dependency => {
+    let (original, stage, step) = dependency
+    physical_equal(original, receiving_import) &&
+    stage == producer_stage &&
+    step == producer_step
+  })
+}
+
+///|
+priv struct InferInputWalk {
+  producers : Array[(Int, Int)]
+  seen : Map[(Int, Int), Bool]
+  result_dependencies : Array[(BuiltResultInterface, Int, Int)]
+  seen_result_dependencies : Map[(Int, Int, Int), Bool]
+  receiving_import : (Int, BuiltResultInterface)?
+  mut closed_local : Bool
+  mut has_models : Bool
 }
 
 ///|
@@ -560,20 +643,50 @@ pub fn prepare_infer_input_policy(
     @pipeline.input_occurrence_at(step, 0) is Some(input) else {
     raise ForeignOwner
   }
-  let closed_local = Ref(false)
+  let walk = {
+    producers: [],
+    seen: Map([]),
+    result_dependencies: [],
+    seen_result_dependencies: Map([]),
+    receiving_import: None,
+    closed_local: false,
+    has_models: false,
+  }
   let policy = prepare_target_source_policy(
     selected,
     unit,
     input.target,
     { work: max_work, bytes: max_bytes, nodes: max_nodes, depth: max_depth, },
     producers=Some(program.units),
-    infer_local=Some(closed_local),
+    infer_input=Some(walk),
     import_depth=max_depth,
   )
-  if closed_local.val {
-    Some(ClosedLocal)
+  if walk.closed_local {
+    return Some(ClosedLocal)
+  }
+  guard policy is Some(value) else { return None }
+  if walk.has_models &&
+    !value.unknown_provenance &&
+    (
+      value.sources.is_empty() ||
+      value.effective.classification != @environment.Unknown
+    ) {
+    Some(
+      PendingModelOutputs({
+        program,
+        receiving_stage: unit,
+        receiving_step: index,
+        producers: walk.producers,
+        result_dependencies: walk.result_dependencies,
+        source_classification: if value.sources.is_empty() {
+          None
+        } else {
+          Some(value.effective.classification)
+        },
+      }),
+    )
   } else {
-    policy.map(value => CheckedSources(value.effective.classification))
+    Some(CheckedSources(value.effective.classification))
   }
 }
 
@@ -666,10 +779,10 @@ fn prepare_target_source_policy(
   original : @pipeline.Target,
   budget : IdentityBudget,
   producers? : Array[BuiltUnit]? = None,
-  infer_local? : Ref[Bool]? = None,
+  infer_input? : InferInputWalk? = None,
   import_depth? : Int = 0,
 ) -> PublicationSourcePolicy? raise UnitBuildFailure {
-  if unit.source_execution.is_empty() && infer_local is None {
+  if unit.source_execution.is_empty() && infer_input is None {
     return None
   }
   let pending = [original]
@@ -723,6 +836,7 @@ fn prepare_target_source_policy(
         visited_steps[index] = true
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
         let mut keyed_right = false
+        let mut defer_model_input = false
         let expected = match step.operation {
           @pipeline.Serialize(_) => {
             // Encoding does not make the captured input public. Retain its
@@ -737,11 +851,30 @@ fn prepare_target_source_policy(
             1
           }
           @pipeline.Infer(infer) => {
-            // Follow the exact input edge without claiming that its policy
-            // attests the external response. The execution/publication owner
-            // must separately bind the model's adopted slot captures.
-            model_steps.push({ step: index, infer, })
-            unknown = true
+            // Ordinary publication follows the input without attributing its
+            // classification to the external response. For a receiving Model,
+            // the exact producer output is a separate missing proof.
+            if infer_input is Some(walk) {
+              identity_charge(budget, 1)
+              let coordinate = (stage, index)
+              if !walk.seen.contains(coordinate) {
+                walk.seen[coordinate] = true
+                walk.producers.push(coordinate)
+              }
+              if walk.receiving_import is Some((input, imported)) {
+                identity_charge(budget, 1)
+                let dependency = (input, stage, index)
+                if !walk.seen_result_dependencies.contains(dependency) {
+                  walk.seen_result_dependencies[dependency] = true
+                  walk.result_dependencies.push((imported, stage, index))
+                }
+              }
+              walk.has_models = true
+              defer_model_input = true
+            } else {
+              model_steps.push({ step: index, infer, })
+              unknown = true
+            }
             1
           }
           @pipeline.Values(_) | @pipeline.TimeSeries(_) => {
@@ -1278,7 +1411,7 @@ fn prepare_target_source_policy(
           // The right keyed response belongs to this join, not to every use of
           // its input declaration. The left edge remains a policy contributor
           // even when no left column survives the output projection.
-          if !keyed_right || index_in != 1 {
+          if !defer_model_input && (!keyed_right || index_in != 1) {
             pending.push(occurrence.target)
           }
         }
@@ -1343,7 +1476,7 @@ fn prepare_target_source_policy(
                 ) {
                 continue
               }
-              if infer_local is Some(_) {
+              if infer_input is Some(_) {
                 let target = @publication.target(
                   @publication.port_result(result.port),
                 )
@@ -1358,40 +1491,61 @@ fn prepare_target_source_policy(
                   raise ForeignOwner
                 }
               }
-              if infer_local is Some(_) &&
+              let parent = if infer_input is Some(walk) &&
                 !(output.source_policy is Some(policy) &&
-                !policy.sources.is_empty()) {
-                // A source-free producer can have no publication policy.
-                // Follow its exact typed export with the same remaining budget.
+                !policy.sources.is_empty() &&
+                policy.effective.classification != @environment.Unknown) {
+                // Follow this exact export using the same budget. Its
+                // publication can be unknown because of an earlier Model.
                 if import_depth == 0 {
                   raise BudgetExceeded
                 }
                 let target = @publication.target(
                   @publication.port_result(result.port),
                 )
-                let closed = Ref(false)
-                ignore(
-                  prepare_target_source_policy(
-                    prior,
-                    prior_stage,
-                    target,
-                    budget,
-                    producers=Some(completed),
-                    infer_local=Some(closed),
-                    import_depth=import_depth - 1,
-                  ),
+                let child = {
+                  producers: walk.producers,
+                  seen: walk.seen,
+                  result_dependencies: walk.result_dependencies,
+                  seen_result_dependencies: walk.seen_result_dependencies,
+                  receiving_import: match walk.receiving_import {
+                    Some(original) => Some(original)
+                    None => Some((index, interface))
+                  },
+                  closed_local: false,
+                  has_models: false,
+                }
+                let analyzed = prepare_target_source_policy(
+                  prior,
+                  prior_stage,
+                  target,
+                  budget,
+                  producers=Some(completed),
+                  infer_input=Some(child),
+                  import_depth=import_depth - 1,
                 )
-                guard closed.val else { return None }
-                local_import = true
-                unknown = unknown ||
-                  (
-                    output.source_policy is Some(policy) &&
-                    policy.unknown_provenance
-                  )
-                found = true
-                break
+                if child.has_models {
+                  walk.has_models = true
+                  analyzed
+                } else if output.source_policy is Some(policy) &&
+                  !policy.sources.is_empty() {
+                  Some(policy)
+                } else if child.closed_local {
+                  local_import = true
+                  unknown = unknown ||
+                    (
+                      output.source_policy is Some(policy) &&
+                      policy.unknown_provenance
+                    )
+                  found = true
+                  break
+                } else {
+                  None
+                }
+              } else {
+                output.source_policy
               }
-              guard output.source_policy is Some(parent) else { return None }
+              guard parent is Some(parent) else { return None }
               imports.push({ input: index, publication: output, })
               unknown = unknown || parent.unknown_provenance
               for check in parent.sources {
@@ -1430,12 +1584,12 @@ fn prepare_target_source_policy(
       }
     }
   }
-  if infer_local is Some(closed_local) &&
+  if infer_input is Some(walk) &&
     sources.is_empty() &&
     locals.is_empty() &&
-    model_steps.is_empty() &&
+    !walk.has_models &&
     (!generators.is_empty() || local_import) {
-    closed_local.val = true
+    walk.closed_local = true
     return None
   }
   let occurrences : Array[SourcePolicyOccurrence] = []

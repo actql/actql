@@ -51,7 +51,8 @@ class LocalWaitReadbackTests(unittest.IsolatedAsyncioTestCase):
         store = host._active()._store
         lost_reply = LocalStorageCommitUnknown(store)
 
-        def commit(candidate, facts, originals, selected_publisher):
+        def commit(candidate, facts, originals, selected_publisher, *, effect_fences=()):
+            self.assertEqual(effect_fences, ())
             self.assertIs(candidate, projection)
             self.assertIs(selected_publisher, publisher)
             events.append('single-store-attempt')
@@ -71,7 +72,8 @@ class LocalWaitReadbackTests(unittest.IsolatedAsyncioTestCase):
         options.update(action='adopt_committed_index', index_error=None,
             read_error=None, post_error=None)
 
-        def prepare(candidate, selected_publisher):
+        def prepare(candidate, selected_publisher, *, effect_fences=()):
+            self.assertEqual(effect_fences, ())
             self.assertIs(candidate, projection)
             self.assertIs(selected_publisher, publisher)
 
@@ -83,7 +85,8 @@ class LocalWaitReadbackTests(unittest.IsolatedAsyncioTestCase):
 
             observation = SimpleNamespace(_projection=projection, _publisher=publisher,
                 advance=lambda _: SimpleNamespace(ready=True),
-                finish=lambda: options['action'], project_observed_index=index)
+                finish=lambda: options['action'], project_observed_index=index,
+                retire_exact_transports=lambda: True)
             host._store_observations[publication.ticket] = observation
 
         host._prepare_original_store_observation = prepare

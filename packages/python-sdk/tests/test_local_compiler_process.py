@@ -17,8 +17,8 @@ from actql_sdk._local_distribution import LocalInstallationError
 class CompilerProcessTests(unittest.TestCase):
     def setUp(self):
         self.parent_case = CompilerParentTests()
-        self.parent_case.setUp()
         self.addCleanup(self.parent_case.doCleanups)
+        self.parent_case.setUp()
         self.stack = ExitStack()
         self.addCleanup(self.stack.close)
         self.domain_fixture = DomainFixture()

@@ -20,6 +20,14 @@ pub(all) enum LocalResultPublicationIssue {
 pub enum LocalInvocationOrigin {
   Captured(LocalSourcePublication)
   SourceFree(LocalComputeStart)
+  SourceFreeModel(LocalComputeStart, @infer.InvocationBinding)
+  WholeSourceModel(
+    LocalComputeStart,
+    @infer.InvocationBinding,
+    @publication.RunEvidenceValue,
+    @publication.RunEvidenceValue,
+    @query.CapturedSourceRelationIdentity
+  )
 }
 
 ///|
@@ -158,34 +166,79 @@ pub fn issue_local_result_publication(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let plan = host.plan
+  issue_local_result_material(
+    output,
+    invocation.invocation,
+    retention,
+    @publication.publication_contract_identity(
+      @host.client_task_compilation_compiled_plan(plan.compilation),
+    ),
+    local_run_invocation_source_cids(invocation),
+    @publication.publication_contract_identity(plan.definition),
+    invocation.data_policy_cid,
+    @host.client_request_authority_scope_cid(plan.request),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    (definition, artifact, derivation, ordering, retention) => {
+      host,
+      invocation,
+      output,
+      definition,
+      artifact,
+      derivation,
+      ordering,
+      retention,
+    },
+  )
+}
+
+///|
+priv struct LocalResultPublicationMaterial {
+  definition : @publication.PublicationContract
+  artifact : @publication.PublicationContract
+  derivation : @publication.PublicationContract
+  ordering : @publication.PublicationContract
+  retention : @publication.PublicationContract
+}
+
+///|
+fn[T] issue_local_result_material(
+  output : @host.PublicationOutputExport,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  computation_contract_cid : String,
+  input_relation_cids : Array[String],
+  scope_cid : String,
+  effective_data_policy_cid : String,
+  authority_scope_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  keep : (
+    @publication.PublicationContract,
+    @publication.PublicationContract,
+    @publication.PublicationContract,
+    @publication.PublicationContract,
+    @publication.PublicationContract,
+  ) -> T,
+) -> Result[T, LocalResultPublicationIssue] {
   let definition = match output.definition() {
     Ok(definition) => definition
     Err(issue) => return Err(Output(issue))
   }
-  let plan = host.plan
   match
     output.issue_result_evidence(
-      @publication.publication_contract_identity(
-        @host.client_task_compilation_compiled_plan(plan.compilation),
-      ),
-      local_run_invocation_source_cids(invocation),
-      @publication.publication_contract_identity(plan.definition),
-      invocation.data_policy_cid,
-      @host.client_request_authority_scope_cid(plan.request),
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      computation_contract_cid, input_relation_cids, scope_cid, effective_data_policy_cid,
+      authority_scope_cid, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Output(issue))
   }
   let artifact = match
     output.issue_artifact(
-      invocation.invocation,
-      retention,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
+      invocation, retention, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(artifact) => artifact
     Err(issue) => return Err(Output(issue))
@@ -198,16 +251,7 @@ pub fn issue_local_result_publication(
     Ok(value) => value
     Err(issue) => return Err(Output(issue))
   }
-  Ok({
-    host,
-    invocation,
-    output,
-    definition,
-    artifact,
-    derivation,
-    ordering,
-    retention,
-  })
+  Ok(keep(definition, artifact, derivation, ordering, retention))
 }
 
 ///|

@@ -83,6 +83,77 @@ test "whole Run inventory requires every original task chunk and rejects unattac
 }
 
 ///|
+test "a same-reader Task range count replaces only the second body census" {
+  let original = inventory_run_original()
+  let key = client_request_scope_cid(original.request)
+  let wire = "verified Task chunks"
+  let cid = client_task_material_original_cid(wire).unwrap()
+  let chunk = inventory_row(key + ":0", @utf8.encode(wire))
+  let rows = inventory_run_rows()
+  rows.push(("client_task_run_materials", chunk))
+  let task_original : ClientTaskMaterialsOriginal[Unit]? = None
+  let calls : Array[String] = []
+  let run = (contents, fact) => {
+    calls.clear()
+    inspect_client_run_journal_inventory_with_task_original(
+      8,
+      (table, cursor) => {
+        if table == "client_task_run_materials" {
+          calls.push("scan")
+        }
+        inventory_scan(contents, table, cursor)
+      },
+      (table, name) => {
+        if table == "client_task_run_materials" {
+          calls.push(name)
+        }
+        inventory_read(contents, table, name)
+      },
+      _ => Ok({ ..original, task_materials_cid: Some(cid), }),
+      () => {
+        calls.push("cancellation")
+        Ok(())
+      },
+      "custody",
+      task_original,
+      task_material_count=Some(expected => {
+        if expected != 1 {
+          return Err("unexpected count")
+        }
+        calls.push("count")
+        fact
+      }),
+    )
+  }
+  let exact = [
+    key + ":0",
+    key + ":1",
+    key + ":2",
+    key + ":3",
+    "count",
+    "cancellation",
+  ]
+  assert_true(run(rows, Ok(Some(true))) is Ok(_))
+  assert_eq(calls, exact)
+  assert_true(run(rows, Ok(None)) is Ok(_))
+  assert_eq(calls[4:8].to_owned(), ["count", "scan", "scan", "cancellation"])
+  assert_eq(run(rows, Err("physical query")), Err("physical query"))
+  assert_eq(calls[4:].to_owned(), ["count"])
+  assert_eq(run(rows, Ok(Some(false))), Err("custody"))
+  assert_eq(calls[4:].to_owned(), ["count", "scan", "scan"])
+  let orphan = rows.copy()
+  orphan.push(
+    ("client_task_run_materials", inventory_row(key + ":4", b"extra")),
+  )
+  assert_eq(run(orphan, Ok(Some(false))), Err("custody"))
+  assert_eq(calls[4:].to_owned(), ["count", "scan", "scan"])
+  let changed = inventory_run_rows()
+  changed.push(("client_task_run_materials", { ..chunk, revision: 1L, }))
+  assert_eq(run(changed, Ok(Some(true))), Err("custody"))
+  assert_eq(calls, [key + ":0"])
+}
+
+///|
 test "Run task-material pointer is optional exact DATA and rejects null malformed CIDs" {
   let original = journal_encoding_original()
   let cid = "sha256:" + "a".repeat(64)
@@ -146,9 +217,9 @@ test "exact saved material skips the fresh hash only after every canonical row p
       key,
       cid,
       Some(wire),
-      (table, name) => {
-        if table != "client_task_run_materials" {
-          return Err("foreign table")
+      (slot, name) => {
+        if slot != reads.length() || slot >= keys.length() || name != keys[slot] {
+          return Err("foreign slot")
         }
         reads.push(name)
         if name == keys[0] {

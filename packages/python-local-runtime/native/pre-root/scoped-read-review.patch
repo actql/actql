@@ -69,7 +69,7 @@
  }
 
  static void lock_capacity(actql_owned_capacity *lease) {
-@@ -570,8 +580,9 @@
+@@ -593,8 +603,9 @@
  }
 
  /* Existing generic placement, called under the original capacity lock. */
@@ -81,7 +81,7 @@
      if (lease->pending_growth_domain != growth) return ACTQL_OWNED_BUSY;
      size_t pages;
      if (!round_pages(bytes, lease->page_size, &pages)) return ACTQL_OWNED_INVALID;
-@@ -607,12 +618,17 @@
+@@ -640,12 +651,16 @@
              return ACTQL_OWNED_INVALID;
          void *base = (void *)address;
          size_t length = pages * lease->page_size;
@@ -89,31 +89,29 @@
 -            /* This output is the same supplier receipt's cleanup custody, not
 -             * a successful payload grant. Its original fence excludes reuse. */
 +        if (growth != NULL || read_owner != NULL) {
-             publish_storage_locked(lease, start, pages, domain_storage);
--            owned_extent(lease, start)->retired = true;
+             publish_storage_locked(lease, mapping, start, pages, domain_storage);
+             extent->retired = true;
 -            *out = base;
-+            struct extent *pending = owned_extent(lease, start);
-+            pending->retired = true;
 +            if (growth != NULL) *out = base;
 +            if (read_owner != NULL) {
-+                pending->read_context = read_owner;
-+                pending->read_process = getpid();
-+                pending->read_released = true;
-+                pending->read_heap = read_heap;
++                extent->read_context = read_owner;
++                extent->read_process = getpid();
++                extent->read_released = true;
++                extent->read_heap = read_heap;
 +            }
          }
          if (mprotect(base, length, PROT_READ | PROT_WRITE) != 0) {
              status = ACTQL_OWNED_PHYSICAL_FAILURE;
-@@ -628,13 +644,21 @@
+@@ -661,13 +676,21 @@
                  lease->extent_work_overflow = true;
              else lease->extent_work[i] += work[i];
          }
--        if (growth == NULL) publish_storage_locked(lease, start, pages, domain_storage);
--        else owned_extent(lease, start)->retired = false;
+-        if (growth == NULL) publish_storage_locked(lease, mapping, start, pages, domain_storage);
+-        else extent->retired = false;
 +        if (growth == NULL && read_owner == NULL)
-+            publish_storage_locked(lease, start, pages, domain_storage);
-+        owned_extent(lease, start)->retired = false;
-+        if (read_owner != NULL) owned_extent(lease, start)->read_released = false;
++            publish_storage_locked(lease, mapping, start, pages, domain_storage);
++        extent->retired = false;
++        if (read_owner != NULL) extent->read_released = false;
          *out = base;
          status = ACTQL_OWNED_OK;
          break;
@@ -128,7 +126,7 @@
  }
 
  static int allocate_storage_locked(actql_owned_capacity *lease, size_t bytes,
-@@ -672,8 +696,11 @@
+@@ -705,8 +728,11 @@
          offset % lease->page_size != 0) return false;
      *start = offset / lease->page_size;
      return !owned_control_page(lease, *start) && owned_extent(lease, *start)->pages != 0 &&
@@ -142,7 +140,7 @@
 
  /* Parent-local physical guards cover every page in this original allocation.
   * Interior page records retain their own external use counts. */
-@@ -706,11 +733,14 @@
+@@ -739,11 +765,14 @@
                                           const void *address, size_t bytes) {
      if (lease == NULL || address == NULL || bytes == 0 ||
          actql_native_owned_current() != lease) return ACTQL_OWNED_INVALID;
@@ -159,7 +157,7 @@
      if (!owned_pointer_offset(lease, address, &offset)) goto done;
      if (bytes > lease->length - offset) goto done;
      size_t start = offset / lease->page_size;
-@@ -724,6 +754,10 @@
+@@ -757,6 +786,10 @@
          owned_extent(lease, start)->domain_storage ||
          owned_extent(lease, start)->retired ||
          pages > lease->page_count - start) goto done;
@@ -170,7 +168,7 @@
      size_t begin = start * lease->page_size;
      size_t length = pages * lease->page_size;
      if (offset >= begin && offset - begin < length && bytes <= length - (offset - begin))
-@@ -851,6 +885,9 @@
+@@ -884,6 +917,9 @@
      if (lease->active_scopes != 0) {
          return ACTQL_OWNED_BUSY;
      }
@@ -180,7 +178,7 @@
      lease->closing = true;
      /* First exclude every live original before reaping any failed retirement.
       * A child may still own the retry receipt for an earlier retired extent;
-@@ -922,3 +959,6 @@
+@@ -955,3 +991,6 @@
 
  /* Child startup and join reuse this provider's original scope and backing. */
  #include "owned_thread.inc"

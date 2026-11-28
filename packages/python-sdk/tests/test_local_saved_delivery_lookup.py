@@ -1,5 +1,6 @@
 """Actual same-Store read frame with scalar Core; no real grant/VM acceptance."""
 import asyncio
+from contextlib import contextmanager
 import json
 from tempfile import TemporaryDirectory
 import unittest
@@ -16,14 +17,23 @@ class SavedDeliveryLookupTests(unittest.TestCase):
     def host(self, directory):
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'kind': 'result-originals', 'resultName': 'answer',
-                  'resultOrdinal': '0', 'bindingOrdinal': '0',
-                  'runDefinitionCid': reference['runDefinitionCid'],
-                  **{key: '{}' for key in ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        packet = fixture.saved_coordinates_wire(reference['runDefinitionCid'], 'answer')
         helper = fixture.LocalSubmissionLookupTests()
         helper.addCleanup = self.addCleanup
         host, core, calls, counts, _ = helper.fixture(directory, packet,
             run_reference=reference, result_name='answer')
+        @contextmanager
+        def original_allowance():
+            core._host_operation_scope = object()
+            core._host_fuel_phase = 'operation'
+            try:
+                yield
+            finally:
+                core._host_operation_scope = None
+                core._host_fuel_phase = None
+
+        core._host_operation = original_allowance
+        core._host_cleanup_depth = 0
         base = core._call
         children = {}
         observed = []
@@ -68,7 +78,7 @@ class SavedDeliveryLookupTests(unittest.TestCase):
 
             async def lookup():
                 for attempt in ('first-attempt', 'second-attempt'):
-                    response = await host._open_operation('delivery-attempt', {
+                    response = await host._open_ordinary_saved('delivery-attempt', {
                         'ref': reference, 'resultName': 'answer', 'attemptId': attempt})
                     try:
                         self.assertFalse(host._saved_result_reads)
@@ -107,7 +117,7 @@ class SavedDeliveryLookupTests(unittest.TestCase):
 
             with patch.object(core, 'close_input', side_effect=close_input):
                 with self.assertRaisesRegex(RuntimeError, 'saved delivery lookup cleanup'):
-                    asyncio.run(host._open_operation('delivery-attempt', {
+                    asyncio.run(host._open_ordinary_saved('delivery-attempt', {
                         'ref': reference, 'resultName': 'answer', 'attemptId': 'same-attempt'}))
                 held, = host._saved_result_reads
                 stream, = host._response_streams
@@ -132,7 +142,7 @@ class SavedDeliveryLookupTests(unittest.TestCase):
             host, reference, calls, state, _ = self.host(directory)
             state.update(produce=-32, close=-9)
             with self.assertRaises(LocalCoreError):
-                asyncio.run(host._open_operation('delivery-attempt', {
+                asyncio.run(host._open_ordinary_saved('delivery-attempt', {
                     'ref': reference, 'resultName': 'answer', 'attemptId': 'same-failed-attempt'}))
             held = host._saved_result_reads[0]
             child = held._projection.pending_outputs[0]

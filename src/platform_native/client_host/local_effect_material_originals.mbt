@@ -395,6 +395,35 @@ pub fn NativeLocalHostConnection::lookup_submitted_effect_material_original(
   NativeClientRetainedEffectMaterials,
   NativeClientSubmittedEffectMaterialsIssue,
 ] {
+  self.read_submitted_effect_material_original(
+    crypto,
+    principal,
+    connection,
+    reference,
+    request,
+    now,
+    (packet, _, _) => packet,
+  )
+}
+
+///|
+// Project a result after the same transaction finishes. The authenticated
+// originals remain in this Read, and the ordinary reader returns the same
+// packet Result. Its transaction callback does not retain the projector.
+fn[R] NativeLocalHostConnection::read_submitted_effect_material_original(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  now : Double,
+  project : (
+    Result[NativeClientRetainedEffectMaterials, NativeClientRunJournalIssue],
+    NativeClientSubmittedIntentRecord,
+    NativeClientSubmittedRunAdmission,
+  ) -> Result[R, NativeClientRunJournalIssue],
+) -> Result[R, NativeClientSubmittedEffectMaterialsIssue] {
   let authority = match
     native_local_policy_authority_for(
       self,
@@ -426,8 +455,7 @@ pub fn NativeLocalHostConnection::lookup_submitted_effect_material_original(
     @host.SameRequest {
     return Err(ChangedIntent)
   }
-  self.journal
-  .transaction(() => {
+  let observed = self.journal.transaction(() => {
     if !authority.current_for(self.journal, request) {
       return Err(AuthorizationDenied)
     }
@@ -470,5 +498,5 @@ pub fn NativeLocalHostConnection::lookup_submitted_effect_material_original(
       materials_cid: packet.materials_cid,
     })
   })
-  .map_err(issue => Journal(issue))
+  project(observed, original, admission).map_err(issue => Journal(issue))
 }

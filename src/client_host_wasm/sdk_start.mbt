@@ -221,7 +221,7 @@ fn prepare_sdk_start_step(
   if row.revision < 0L || row.revision == 9223372036854775807L {
     return Err(-4)
   }
-  if encoding.cancellation_requested || encoding.physical_start_claimed {
+  if encoding.cancellation_requested() || encoding.physical_start_claimed {
     return Err(-35)
   }
   let permit = match
@@ -265,7 +265,7 @@ fn prepare_sdk_start_step(
           definition,
           encoding.dispatch_reserved,
           !encoding.physical_start_claimed,
-          encoding.cancellation_requested,
+          encoding.cancellation_requested(),
           false,
           permit,
           current.account,
@@ -309,23 +309,39 @@ fn sdk_start_material_wire(
     Ok(value) => value
     Err(code) => return Err(code)
   }
+  sdk_start_step_wire(material.kind, step.row, step.body, 1048576).map(wire => {
+    material.sdk_start = Some(step)
+    wire
+  })
+}
+
+///|
+fn sdk_start_step_wire(
+  kind : Int,
+  row : @host.ClientJournalPhysicalRow,
+  body : Bytes,
+  limit : Int,
+  source_count? : Int? = None,
+) -> Result[String, Int] {
   try {
-    let writer = @encode.writer(1048576, 6, 1)
+    let writer = @encode.writer(limit, 6, 1)
     @encode.begin_object(writer)
     for
       (key, text) in [
-        ("kind", if material.kind == 7 { "dispatch" } else { "claim" }),
-        ("key", step.row.key),
-        ("revision", step.row.revision.to_string()),
-        ("body", @utf8.decode(step.body)),
+        ("kind", if kind == 7 { "dispatch" } else { "claim" }),
+        ("key", row.key),
+        ("revision", row.revision.to_string()),
+        ("body", @utf8.decode(body)),
       ] {
       @encode.key(writer, key)
       @encode.string_value(writer, text)
     }
+    if source_count is Some(count) {
+      @encode.key(writer, "source_count")
+      @encode.number_value(writer, count.to_double())
+    }
     @encode.end_object(writer)
-    let wire = @encode.finish(writer)
-    material.sdk_start = Some(step)
-    Ok(wire)
+    Ok(@encode.finish(writer))
   } catch {
     _ => Err(-34)
   }
@@ -333,6 +349,14 @@ fn sdk_start_material_wire(
 
 ///|
 pub fn validate_sdk_start_material(nonce : Int64, handle : Int) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some({ file_start: Some(start), .. }) {
+    return observe_sdk_file_start(value, handle, start, false)
+  }
+  if selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some({ mock_start: Some(start), .. }) {
+    return observe_mock_effect_sdk_start(value, handle, start, false)
+  }
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
     !material.output_closed &&
@@ -493,7 +517,7 @@ fn validate_live_sdk_started_run_current(
     Err(issue) => return issue_code(issue)
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, ["reference", "intent", "now"]) is Ok(object) &&
+    submission_append_input(cursor) is Ok((object, _)) &&
     required_text(object, "reference") is Some(reference_wire) &&
     @host.admit_client_submission_reference_record(reference_wire)
     is Ok(reference) &&
@@ -583,6 +607,14 @@ fn validate_sdk_start_claim(
 
 ///|
 pub fn confirm_sdk_start_material(nonce : Int64, handle : Int) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some({ file_start: Some(start), .. }) {
+    return observe_sdk_file_start(value, handle, start, true)
+  }
+  if selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some({ mock_start: Some(start), .. }) {
+    return observe_mock_effect_sdk_start(value, handle, start, true)
+  }
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
     value.runs.get(material.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
@@ -600,15 +632,55 @@ pub fn reserve_sdk_physical_start(
   guard selected(nonce) is Some(value) &&
     value.runs.get(run) is Some(record) &&
     !record.physical_start_reserved &&
-    record.outcome is Some(Ok(plan)) &&
     value.materials.get(step_handle) is Some(material) &&
-    material.run == run &&
+    material.run == run else {
+    return -2
+  }
+  if material.file_start is Some(claim) {
+    guard material.kind == 8 && material.produced && claim.observed is Some(_) else {
+      return -35
+    }
+    let checked = observe_sdk_file_start(value, step_handle, claim, true)
+    if checked != 0 {
+      return checked
+    }
+    return retain_sdk_physical_start(value, run, record, step_handle, None)
+  }
+  if material.mock_start is Some(claim) {
+    guard material.kind == 8 && claim.confirmed else { return -35 }
+    let checked = observe_mock_effect_sdk_start(
+      value,
+      step_handle,
+      claim,
+      true,
+      read_confirmed_claim=true,
+    )
+    if checked != 0 {
+      return checked
+    }
+    return retain_sdk_physical_start(value, run, record, step_handle, None)
+  }
+  guard record.outcome is Some(Ok(plan)) &&
     material.sdk_start is Some({ start: Some(start), .. }) else {
     return -2
   }
   let code = validate_sdk_start_claim(value, step_handle, plan)
   if code != 0 {
     return code
+  }
+  retain_sdk_physical_start(value, run, record, step_handle, Some(Ok(start)))
+}
+
+///|
+fn retain_sdk_physical_start(
+  value : Instance,
+  run : Int,
+  record : StoredRun,
+  step_handle : Int,
+  outcome : Result[@local_run.LocalRunPhysicalStart, @local_run.LocalRunIssue]?,
+) -> Int {
+  if record.physical_start_reserved {
+    return -35
   }
   if value.next_handle == 2147483647 {
     return -4
@@ -627,9 +699,14 @@ pub fn reserve_sdk_physical_start(
     run,
     current_configuration: record.configuration,
     borrow,
-    invoked: true,
-    outcome: Some(Ok(start)),
+    invoked: outcome is Some(_),
+    outcome,
     sdk_step: Some(step_handle),
+    file_managed: None,
+    model_file: None,
+    mock_managed: None,
+    mock_effect_compute: None,
+    mock_effect_compute_started: false,
   }
   record.physical_start_reserved = true
   value.next_handle += 1

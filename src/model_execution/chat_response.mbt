@@ -92,20 +92,8 @@ fn advance_chat_model_response(
     }
   }
   match advance_chat_envelope_decode(chat) {
-    Err(OutputValue) if provider_refused => {
-      // The original complete, saved HTTP refusal is known even if a gateway
-      // used plain text or HTML. It supplied no decodable usage.
-      let unreported = PhysicalUnknown({
-        input_tokens: None,
-        output_tokens: None,
-      })
-      if observe_model_physical_usage(state, call, unreported) is Err(issue) {
-        return @bounded.Failed(issue, 1, 1)
-      }
-      retire_model_raw_usage_child(call) |> ignore
-      state.progress.observing_response = false
-      accept_failed_model_slot(state, ProviderError)
-    }
+    Err(OutputValue) if provider_refused =>
+      accept_saved_model_http_rejection_without_usage(state, call, raw.status)
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => {
       if chat.facts is Some(facts) {
@@ -124,29 +112,22 @@ fn advance_chat_model_response(
         Err(issue) => return @bounded.Failed(issue, 1, 1)
         Ok(_) => ()
       }
-      retire_model_raw_usage_child(call) |> ignore
-      if provider_refused {
-        state.progress.observing_response = false
-        return accept_failed_model_slot(state, ProviderError)
+      match retire_model_raw_usage_child(call) {
+        Err(issue) => return @bounded.Failed(issue, 1, 1)
+        Ok(_) => ()
       }
-      if !chat_envelope_complete(facts) {
+      if provider_refused {
         state.progress.observing_response = false
         return accept_failed_model_slot(
           state,
-          if facts.refused {
-            Refusal
-          } else if facts.finish_reason == Some("length") {
-            Truncated
-          } else {
-            SchemaInvalid
-          },
+          model_http_rejected_response_failure(raw.status),
         )
       }
       guard state.physical_plans.get(state.progress.slot) is Some(plan) &&
         plan.response_profile is Some(profile) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
       }
-      cursor.observation = Some({
+      let observation : @publication.ModelCaptureObservation = {
         origin: @publication.Reported,
         provider_model: facts.provider_model,
         provider_revision: None,
@@ -159,11 +140,28 @@ fn advance_chat_model_response(
         response_profile_cid: Some(
           @environment.model_response_profile_identity(profile),
         ),
-        response_complete: None,
+        response_complete: Some(false),
         raw_response_artifact_cid: Some(raw.raw_response_artifact_cid),
         provider_metadata: raw.provider_metadata,
         observed_at: raw.observed_at,
-      })
+      }
+      guard valid_reported_model_observation_fields(profile, observation) else {
+        return @bounded.Failed(OutputIdentity, 1, 1)
+      }
+      if !chat_envelope_complete(facts) {
+        retain_chat_failure_observation(raw, observation, profile)
+        return accept_structured_model_failure(
+          state,
+          if facts.refused && !facts.malformed {
+            Refusal
+          } else if facts.finish_reason == Some("length") && !facts.malformed {
+            Truncated
+          } else {
+            SchemaInvalid
+          },
+        )
+      }
+      cursor.observation = Some(observation)
       let parse = match
         @source.start_json_parse(
           facts.answer.unwrap(),
@@ -175,7 +173,8 @@ fn advance_chat_model_response(
           data_keys=true,
         ) {
         Ok(parse) => parse
-        Err(_) => return @bounded.Failed(OutputValue, 1, 1)
+        Err(issue) =>
+          return @bounded.Failed(model_response_source_issue(issue.issue), 1, 1)
       }
       // One cumulative envelope+answer budget. Completing the envelope does
       // not reset the original work or create another physical operation.
@@ -184,6 +183,31 @@ fn advance_chat_model_response(
       @bounded.Continue(1, 1)
     }
   }
+}
+
+///|
+// Report only bounded, observed facts from the same authenticated Chat. The
+// original full response/usage remain on their existing owners.
+fn retain_chat_failure_observation(
+  raw : ModelPhysicalChatResponse,
+  observed : @publication.ModelCaptureObservation,
+  profile : @environment.ModelResponseProfile,
+) -> Unit {
+  let bounded = (value : String?) => value.filter(text => text.length() <= 256)
+  raw.failure_observation = Some({
+    ..observed,
+    provider_model: bounded(observed.provider_model),
+    provider_request_id: bounded(observed.provider_request_id),
+    provider_finish_reason: bounded(observed.provider_finish_reason),
+    provider_metadata: if valid_saved_sdk_report_metadata(
+        profile,
+        observed.provider_metadata,
+      ) {
+      observed.provider_metadata
+    } else {
+      None
+    },
+  })
 }
 
 ///|

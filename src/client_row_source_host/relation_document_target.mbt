@@ -769,9 +769,11 @@ pub fn observe_relation_target(
   document : RelationTargetDocument,
   declaration : RowDeclaration,
   identity : String,
+  before_document? : Ref[@encode.EncodedDocument?]? = None,
 ) -> Result[RelationTargetRow, RowSourceIssue] {
   if !relation_target_original(document) ||
-    !physical_equal(declaration, document.declaration) {
+    !physical_equal(declaration, document.declaration) ||
+    (before_document is Some(slot) && slot.val is Some(_)) {
     return Err(ForeignSource)
   }
   if @scalar.admit_utf8_length(identity, document.limits.max_bytes) is Err(_) {
@@ -789,7 +791,7 @@ pub fn observe_relation_target(
   if index < 0 {
     return Err(InvalidPage)
   }
-  relation_target_observation(document, index)
+  relation_target_observation(document, index, before_document~)
 }
 
 ///|
@@ -1038,6 +1040,7 @@ pub fn relation_ordered_target_document(
 fn relation_target_observation(
   document : RelationTargetDocument,
   index : Int,
+  before_document? : Ref[@encode.EncodedDocument?]? = None,
 ) -> Result[RelationTargetRow, RowSourceIssue] {
   try {
     let limits = document.limits
@@ -1047,7 +1050,14 @@ fn relation_target_observation(
       limits.max_depth,
     )
     emit_relation_target_row(document, index, writer)
-    let before_wire = @encode.finish(writer)
+    let mut encoded : @encode.EncodedDocument? = None
+    let before_wire = if before_document is Some(_) {
+      let original = @encode.finish_document(writer)
+      encoded = Some(original)
+      @encode.document_text(original)
+    } else {
+      @encode.finish(writer)
+    }
     let hash = @encode.hashing_writer(
       limits.max_bytes,
       limits.max_nodes,
@@ -1062,6 +1072,9 @@ fn relation_target_observation(
       version_cid: "sha256:" + @encode.finish_hash(hash),
     }
     row.original = Some(row)
+    if before_document is Some(slot) {
+      slot.val = encoded
+    }
     Ok(row)
   } catch {
     _ => Err(InvalidPage)
@@ -1357,16 +1370,19 @@ fn prepare_relation_target_insert_row(
 }
 
 ///|
-/// Prepare byte-preserving changes for an already checked UPDATE. Exact row
-/// version and original correspondence are required, but remain DATA checks:
-/// only the installed file Owner may bind approval/currentness and replace it.
-pub fn prepare_relation_target_update(
+priv struct RelationTargetUpdateLayout {
+  size : Int
+  replacements : Array[(Int, Int, Bytes)]
+}
+
+///|
+fn plan_relation_target_update(
   document : RelationTargetDocument,
   row : RelationTargetRow,
   expected_version : String,
   value_wire : String,
   max_work : Int,
-) -> Result[Bytes, RowSourceIssue] {
+) -> Result[RelationTargetUpdateLayout, RowSourceIssue] {
   if !relation_target_row_original(row) ||
     !physical_equal(document, row.document) ||
     expected_version != row.version_cid {
@@ -1451,31 +1467,68 @@ pub fn prepare_relation_target_update(
       previous = replacement.1
     }
     relation_document_work(work, size)
-    let mut source = 0
-    let mut replacement_index = 0
-    let mut replacement_offset = 0
-    let output = Bytes::makei(size, _ => {
-      if replacements.get(replacement_index) is Some((start, end, replacement)) &&
-        source == start {
-        let byte = replacement[replacement_offset]
-        replacement_offset += 1
-        if replacement_offset == replacement.length() {
-          source = end
-          replacement_index += 1
-          replacement_offset = 0
-        }
-        byte
-      } else {
-        let byte = document.bytes[source]
-        source += 1
-        byte
-      }
-    })
-    Ok(output)
+    Ok({ size, replacements, })
   } catch {
     RelationDocumentStop(issue) => Err(issue)
     _ => Err(InvalidPage)
   }
+}
+
+///|
+/// Check the exact observed version and prospective replacement extent.
+/// Preview owns only validation DATA and no returned replacement buffer.
+pub fn check_relation_target_update(
+  document : RelationTargetDocument,
+  row : RelationTargetRow,
+  expected_version : String,
+  value_wire : String,
+  max_work : Int,
+) -> Result[Unit, RowSourceIssue] {
+  plan_relation_target_update(
+    document, row, expected_version, value_wire, max_work,
+  ).map(_ => ())
+}
+
+///|
+/// Prepare byte-preserving changes for an already checked UPDATE. Exact row
+/// version and original correspondence are required, but remain DATA checks:
+/// only the installed file Owner may bind approval/currentness and replace it.
+pub fn prepare_relation_target_update(
+  document : RelationTargetDocument,
+  row : RelationTargetRow,
+  expected_version : String,
+  value_wire : String,
+  max_work : Int,
+) -> Result[Bytes, RowSourceIssue] {
+  let plan = match
+    plan_relation_target_update(
+      document, row, expected_version, value_wire, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let mut source = 0
+  let mut replacement_index = 0
+  let mut replacement_offset = 0
+  let output = Bytes::makei(plan.size, _ => {
+    if plan.replacements.get(replacement_index)
+      is Some((start, end, replacement)) &&
+      source == start {
+      let byte = replacement[replacement_offset]
+      replacement_offset += 1
+      if replacement_offset == replacement.length() {
+        source = end
+        replacement_index += 1
+        replacement_offset = 0
+      }
+      byte
+    } else {
+      let byte = document.bytes[source]
+      source += 1
+      byte
+    }
+  })
+  Ok(output)
 }
 
 ///|

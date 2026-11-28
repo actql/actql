@@ -12,10 +12,32 @@ pub struct ClientInferCallScope {
   named_sources : Array[(String, @publication.ModelSourceObservation)]
   result_inputs : Array[ClientInferResultArtifactInput]
   priv original_result_inputs : Array[ClientInferResultArtifactInput]
-  priv saved_result_scope : ClientInferSavedCallScope?
+  priv mut custody : ClientInferCallScopeCustody
+  priv mut whole_terminal : ClientWholeModelTerminal
   generation : ClientSerializationGeneration?
   unit_definition_cid : String
   source_ordinal : Int
+}
+
+///|
+priv enum ClientInferCallScopeCustody {
+  LiveInput
+  PendingWholeOutcome
+  HandingOffWholeOutcome
+  ArmedWholeOutcome
+  CompletingWholeOutcome
+  WholeOutcome(@execution.CompletedOutputOccurrence)
+  SavedInput(ClientInferSavedCallScope)
+}
+
+///|
+fn client_infer_call_scope_saved_input(
+  value : ClientInferCallScope,
+) -> ClientInferSavedCallScope? {
+  match value.custody {
+    SavedInput(original) => Some(original)
+    _ => None
+  }
 }
 
 ///|
@@ -127,7 +149,7 @@ pub fn issue_client_infer_occurrence_call_scope(
     if result_bindings.any(value => value.0 == binding.0) {
       return Err(ForeignInput)
     }
-    if original.original is Whole(artifact, _) &&
+    if original.original is Whole(artifact, _, _) &&
       !(sources is Some(tuple) &&
       client_infer_composed_whole_sources_original(tuple, occurrence) &&
       client_infer_whole_result_sources_match(artifact, tuple)) {
@@ -318,7 +340,13 @@ pub fn issue_client_infer_occurrence_call_scope(
     },
     result_inputs: result_inputs.copy(),
     original_result_inputs: result_inputs,
-    saved_result_scope: None,
+    custody: if sources is Some(tuple) &&
+      client_infer_composed_whole_sources_original(tuple, occurrence) {
+      PendingWholeOutcome
+    } else {
+      LiveInput
+    },
+    whole_terminal: Unclaimed,
     unit_definition_cid,
     source_ordinal: step,
     generation,
@@ -341,7 +369,7 @@ pub fn client_infer_call_scope_matches(
 // Pure original-inventory fence. External Array mutation cannot replace,
 // duplicate, remove or reorder an already sealed Scope's Kernel-bound ports.
 // This is an existing per-input control, not a new authority/token owner.
-fn client_infer_result_input_inventory_current(
+pub fn client_infer_result_input_inventory_current(
   value : ClientInferCallScope,
 ) -> Bool {
   if value.result_inputs.length() != value.original_result_inputs.length() {
@@ -356,13 +384,35 @@ fn client_infer_result_input_inventory_current(
 }
 
 ///|
+/// Confirm the nomination issued by the actual completed prefix after it
+/// consumed its staged Reader. The caller fences the whole Scope inventory
+/// once, then selects each required port without rewalking its Manifest.
+pub fn client_infer_call_scope_matches_whole_result_reader(
+  scope : ClientInferCallScope,
+  reader : ClientInferWholeResultReaderOriginal,
+) -> Bool {
+  guard client_infer_occurrence_matches_plan(reader.occurrence, scope.plan) &&
+    physical_equal(reader.occurrence.owner, scope.owner) &&
+    scope.result_inputs.get(reader.import_index) is Some(input) &&
+    scope.original_result_inputs.get(reader.import_index) is Some(original) &&
+    physical_equal(input, original) &&
+    input.original is Whole(artifact, manifest, Some(consumed)) &&
+    physical_equal(consumed, reader) &&
+    physical_equal(artifact, reader.artifact) &&
+    physical_equal(manifest, reader.manifest) else {
+    return false
+  }
+  client_infer_whole_result_reader_retained(reader)
+}
+
+///|
 fn client_infer_call_scope_generation_available(
   value : ClientInferCallScope,
 ) -> Bool {
   if !client_infer_result_input_inventory_current(value) {
     return false
   }
-  if value.saved_result_scope is Some(saved) &&
+  if client_infer_call_scope_saved_input(value) is Some(saved) &&
     (
       !value.result_inputs.is_empty() ||
       !physical_equal(value.plan, saved.plan) ||
@@ -373,7 +423,7 @@ fn client_infer_call_scope_generation_available(
     return false
   }
   if !value.result_inputs.all(original => {
-      if original.original is Whole(artifact, _) &&
+      if original.original is Whole(artifact, _, _) &&
         !client_infer_whole_result_scope_sources_match(
           artifact,
           value.named_sources,
@@ -579,7 +629,7 @@ fn emit_client_infer_call_scope_snapshot(
     }
     @encode.end_array(writer)
     if !value.result_inputs.is_empty() ||
-      value.saved_result_scope
+      client_infer_call_scope_saved_input(value)
       .map(saved => !saved.result_inputs.is_empty())
       .unwrap_or(false) {
       @encode.key(writer, "result_inputs")
@@ -606,7 +656,7 @@ fn emit_client_infer_call_scope_snapshot(
         )
         @encode.end_object(writer)
       }
-      if value.saved_result_scope is Some(saved) {
+      if client_infer_call_scope_saved_input(value) is Some(saved) {
         for (name, artifact, manifest) in saved.result_inputs {
           @encode.begin_object(writer)
           @encode.key(writer, "name")
@@ -649,7 +699,7 @@ pub fn client_infer_call_scope_snapshot(
 
   // The completed input's availability observer can call out after the first
   // saved-custody observation. Keep the same receiving owner across that cut.
-  if value.saved_result_scope is Some(_) &&
+  if value.custody is SavedInput(_) &&
     !client_infer_call_scope_generation_available(value) {
     return Err(ForeignInput)
   }
@@ -1381,11 +1431,12 @@ pub fn restore_client_infer_call_scope(
     named_sources: value.named_sources.copy(),
     result_inputs: [],
     original_result_inputs: [],
-    saved_result_scope: if value.result_inputs.is_empty() {
-      None
+    custody: if value.result_inputs.is_empty() {
+      LiveInput
     } else {
-      Some(value)
+      SavedInput(value)
     },
+    whole_terminal: Unclaimed,
     unit_definition_cid,
     source_ordinal: occurrence.step,
     generation: None,

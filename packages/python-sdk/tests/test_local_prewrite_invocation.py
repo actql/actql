@@ -97,50 +97,45 @@ class PrewriteInvocationTests(unittest.TestCase):
                 self.assertEqual(writes, [True])
                 self.assertFalse(store._connection.in_transaction)
 
-    def test_prior_unrelated_writes_and_savepoints_keep_legacy_without_rebasing(self):
+    def test_prior_sqlite_write_keeps_full_currentness_checks(self):
         for mode in ('cas', 'capacity', 'readonly'):
-            for mutation in ('row', 'control'):
-                with self.subTest(mode=mode, mutation=mutation):
-                    core, binding, store, _, current = self.fixture()
-                    spans = []
-                    def before(reader):
-                        self.assertIsNotNone(reader._invocation_candidate)
-                        if mutation == 'row':
-                            store._connection.execute("INSERT INTO core_bytes VALUES ('unrelated', 0, X'01')")
-                        else:
-                            for sql in ('SAVEPOINT held', 'ROLLBACK TO held', 'RELEASE held'):
-                                store._connection.execute(sql)
-                    def action():
-                        for _ in range(3):
-                            self.assertEqual(current(), 0)
-                        span = core._invocation_observation
-                        self.assertIsNotNone(span)
-                        self.assertTrue(span.disabled)
-                        self.assertFalse(span.admitted)
-                        self.assertIsNone(store._connection._closed_invocation)
-                        spans.append(span)
-                        return 7
-                    if mode == 'readonly':
-                        core._exports['actql_probe_run'] = lambda *_: action()
-                        with binding.fenced() as fences:
-                            def inspect(reader):
-                                before(reader)
-                                binding.inspect_reader(reader, lambda _: self.assertEqual(core._call('probe', 'run'), 7))
-                            store.inspect_namespaces(fences, inspect=inspect, current=binding._current_observer)
-                    else:
-                        self.perform(core, binding, store, action, mode=mode, before=before)
-                    # A later reader has its own baseline; this call's fallback
-                    # neither poisons the Store nor installs reusable permission.
-                    def fresh():
+            with self.subTest(mode=mode):
+                core, binding, store, _, current = self.fixture()
+                spans = []
+                def before(reader):
+                    self.assertIsNotNone(reader._invocation_candidate)
+                    store._connection.execute("INSERT INTO core_bytes VALUES ('unrelated', 0, X'01')")
+                def action():
+                    for _ in range(3):
                         self.assertEqual(current(), 0)
-                        self.assertTrue(core._invocation_observation.admitted)
-                        self.assertIsNot(core._invocation_observation, spans[0])
-                        return 7
-                    self.assertEqual(closed.ClosedInvocationTests.run_export(self, core, binding, fresh), [7])
+                    span = core._invocation_observation
+                    self.assertIsNotNone(span)
+                    self.assertTrue(span.disabled)
+                    self.assertFalse(span.admitted)
+                    self.assertIsNone(store._connection._closed_invocation)
+                    spans.append(span)
+                    return 7
+                if mode == 'readonly':
+                    core._exports['actql_probe_run'] = lambda *_: action()
+                    with binding.fenced() as fences:
+                        def inspect(reader):
+                            before(reader)
+                            binding.inspect_reader(reader, lambda _: self.assertEqual(core._call('probe', 'run'), 7))
+                        store.inspect_namespaces(fences, inspect=inspect, current=binding._current_observer)
+                else:
+                    self.perform(core, binding, store, action, mode=mode, before=before)
+                # A later reader has its own baseline; this call's fallback
+                # neither poisons the Store nor installs reusable permission.
+                def fresh():
+                    self.assertEqual(current(), 0)
+                    self.assertTrue(core._invocation_observation.admitted)
+                    self.assertIsNot(core._invocation_observation, spans[0])
+                    return 7
+                self.assertEqual(closed.ClosedInvocationTests.run_export(self, core, binding, fresh), [7])
 
     def test_mutation_after_admission_refuses_before_any_owner_write(self):
         for mode in ('cas', 'capacity'):
-            for mutation in ('row', 'schema', 'control', 'file', 'root', 'callback', 'refusal'):
+            for mutation in ('row', 'schema', 'transaction', 'file', 'root', 'refusal'):
                 with self.subTest(mode=mode, mutation=mutation):
                     core, binding, store, path, current = self.fixture()
                     writes, failures = [], []
@@ -151,19 +146,14 @@ class PrewriteInvocationTests(unittest.TestCase):
                             store._connection.execute("INSERT INTO core_bytes VALUES ('unrelated', 0, X'01')")
                         elif mutation == 'schema':
                             store._connection.execute('CREATE TEMP TABLE unexpected (value INTEGER)')
-                        elif mutation == 'control':
-                            for sql in ('SAVEPOINT held', 'ROLLBACK TO held', 'RELEASE held'):
-                                store._connection.execute(sql)
+                        elif mutation == 'transaction':
+                            store._physical.rollback()
+                            store._physical.begin_immediate()
                         elif mutation == 'file':
                             (path / 'source' / binding._account.name).write_bytes(b'changed')
                         elif mutation == 'root':
                             (path / 'source').rename(path / 'source-original')
                             (path / 'source').mkdir(mode=0o700)
-                        elif mutation == 'callback':
-                            try:
-                                store._connection.set_trace_callback(lambda _: None)
-                            except RuntimeError as error:
-                                failures.append(error)
                         else:
                             original = PermissionError('original current refused')
                             def refuse():
@@ -202,8 +192,8 @@ class PrewriteInvocationTests(unittest.TestCase):
                     if mutation == 'schema':
                         connection.execute('CREATE TEMP TABLE unexpected (value INTEGER)')
                     elif mutation == 'transaction':
-                        connection.execute('ROLLBACK')
-                        connection.execute('BEGIN IMMEDIATE')
+                        database.rollback()
+                        database.begin_immediate()
                     else:
                         store._connection = foreign
                     try:
@@ -218,27 +208,6 @@ class PrewriteInvocationTests(unittest.TestCase):
                 self.assertIs(raised.exception, failures[0])
                 self.assertIsNone(store.read(store.namespaced_key('probe', 'output')))
                 self.assertIs(store._physical, database)
-
-    def test_customization_during_candidate_selects_legacy_before_any_reduced_check(self):
-        core, binding, store, _, current = self.fixture()
-        original = _SQLiteByteDatabase._snapshot_identity
-        customized = []
-        def snapshot(database):
-            value = original(database)
-            span = core._invocation_observation
-            if span is not None and not span.admitted and not customized:
-                self.assertIsNone(store._connection._closed_invocation)
-                customized.append(True)
-                store._connection.set_trace_callback(lambda _: None)
-            return value
-        def action():
-            with patch.object(_SQLiteByteDatabase, '_snapshot_identity', snapshot):
-                self.assertEqual(current(), 0)
-            self.assertTrue(core._invocation_observation.disabled)
-            self.assertFalse(core._invocation_observation.admitted)
-            return 7
-        self.assertEqual(self.perform(core, binding, store, action), (0,))
-        self.assertEqual(customized, [True])
 
     def test_foreign_candidate_access_and_swallowed_reentry_are_sticky(self):
         for mode in ('copy', 'thread', 'reentry'):

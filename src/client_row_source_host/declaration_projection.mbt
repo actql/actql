@@ -54,5 +54,6 @@ pub fn project_row_declaration(
     manifest_entry,
     manifest_entry_cid,
     file_read_profiles: None,
+    local_file_store: None,
   })
 }

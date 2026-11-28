@@ -326,7 +326,9 @@ fn[T] original_tokens_match(
   value : OriginalLedgerDescriptor[T],
   completed_outputs? : Bool = false,
   bootstrap_growth? : Bool = false,
+  output_workspace? : StartedTaskWorkspace? = None,
 ) -> Bool {
+  let mut workspace_seen = output_workspace is None
   value.ledger.original_inventory is Some(inventory) &&
   !inventory.closing &&
   (
@@ -345,15 +347,23 @@ fn[T] original_tokens_match(
   ) &&
   value.reservations.all(pair => {
     let (token, snapshot) = pair
-    original_reservation_snapshot(token) == snapshot ||
-    (
+    if output_workspace is Some(workspace) &&
+      physical_equal(workspace.reservation, token) {
+      workspace_seen = true
       completed_outputs &&
+      original_started_workspace_matches(value.ledger, workspace, snapshot)
+    } else {
+      original_reservation_snapshot(token) == snapshot ||
       (
-        original_completed_output_matches(value.ledger, token, snapshot) ||
-        original_capacity_growth_matches(value.ledger, token, snapshot)
+        completed_outputs &&
+        (
+          original_completed_output_matches(value.ledger, token, snapshot) ||
+          original_capacity_growth_matches(value.ledger, token, snapshot)
+        )
       )
-    )
+    }
   }) &&
+  workspace_seen &&
   value.holdings.all(pair => {
     let (token, live) = pair
     token.live == live
@@ -362,6 +372,25 @@ fn[T] original_tokens_match(
     let (token, snapshot) = pair
     original_delegation_snapshot(token) == snapshot
   })
+}
+
+///|
+// The Task binds this opaque workspace before the original Model Read. Only
+// the same started debit can grow its byte extents while that Read is handed
+// off. This predicate consumes no work, grants no capacity and confirms no ACK.
+fn original_started_workspace_matches(
+  ledger : Ledger,
+  workspace : StartedTaskWorkspace,
+  before : OriginalReservationSnapshot,
+) -> Bool {
+  let token = workspace.reservation
+  let now = original_reservation_snapshot(token)
+  before.attempt_started &&
+  token.attempt_sequence == workspace.attempt_sequence &&
+  now.retention >= before.retention &&
+  now.execution >= before.execution &&
+  { ..now, retention: before.retention, execution: before.execution, } == before &&
+  started_task_workspace_current(ledger, token)
 }
 
 ///|

@@ -10,6 +10,80 @@ import {prepareHealthPackages} from './health-monitor-adapters.mjs';
 import {runPackedProviderAI, checkPackedProviderObservation,
   registeredAuthorityAcceptanceCases, registeredProviderAcceptanceCases} from './test-packed-provider-ai-sdk.mjs';
 
+import {observeEnteredCancellation} from './fixtures/normal-provider-diagnostics.fixture.mjs';
+
+test('entered Model cancellation starts the concurrent wait only after original peer entry', async () => {
+  const entered = Promise.withResolvers();
+  const observed = Promise.withResolvers();
+  const steps = [];
+  const terminal = {status: 'needs_reconciliation'};
+  const result = observeEnteredCancellation({
+    awaitEntry: () => entered.promise,
+    wait() {
+      steps.push('wait');
+      return observed.promise;
+    },
+    async cancel() {
+      steps.push('cancel');
+      observed.resolve(terminal);
+    },
+    record: stage => steps.push(stage),
+  });
+  assert.deepEqual(steps, ['entry_pending']);
+  entered.resolve();
+  assert.equal(await result, terminal);
+  assert.deepEqual(steps, ['entry_pending', 'entered', 'wait', 'wait_started', 'cancel', 'wait_returned']);
+});
+
+test('missing Model peer entry does not start wait or issue cancellation', async () => {
+  const failure = new Error('OriginalEnteredRequestUnavailable');
+  const steps = [];
+  await assert.rejects(observeEnteredCancellation({
+    awaitEntry: async () => { throw failure; },
+    wait: () => assert.fail('Unexpected wait'),
+    cancel: () => assert.fail('Unexpected cancel'),
+    record: stage => steps.push(stage),
+  }), error => error === failure);
+  assert.deepEqual(steps, ['entry_pending', 'entry_failed']);
+});
+
+test('entered Model cancellation retains the first failure while its other operation settles', async () => {
+  const waitFailed = Object.assign(new Error('WaitTimeout'), {code: 'WaitTimeout'});
+  const cancelFailed = new Error('CancelObservationFailed');
+  const waitOnlySteps = [];
+  await assert.rejects(observeEnteredCancellation({
+    awaitEntry: async () => {},
+    wait: async () => { throw waitFailed; },
+    cancel: async () => {},
+    record: stage => waitOnlySteps.push(stage),
+  }), error => error === waitFailed);
+  assert.deepEqual(waitOnlySteps, ['entry_pending', 'entered', 'wait_started', 'wait_failed']);
+
+  for (const waitFirst of [true, false]) {
+    const observed = Promise.withResolvers();
+    const steps = [];
+    const result = observeEnteredCancellation({
+      awaitEntry: async () => {},
+      wait: () => observed.promise,
+      async cancel() {
+        if (waitFirst) {
+          observed.reject(waitFailed);
+          await Promise.resolve();
+        }
+        throw cancelFailed;
+      },
+      record: stage => steps.push(stage),
+    });
+    await assert.rejects(result, error => error === (waitFirst ? waitFailed : cancelFailed));
+    if (!waitFirst) {
+      observed.reject(waitFailed);
+      await Promise.resolve();
+    }
+    assert.deepEqual(steps, ['entry_pending', 'entered', 'wait_started',
+      ...(waitFirst ? ['wait_failed', 'cancel_path_failed'] : ['cancel_path_failed', 'wait_failed'])]);
+  }
+});
+
 function httpFailureObservation(status, pid, sends) {
   const cid = digit => 'sha256:' + digit.repeat(64);
   const evidence = Object.fromEntries(['model_attempt_accounting', 'model_attempt_outcome',

@@ -422,8 +422,9 @@ test('a retained Debug entry requires one exact resume across Journal reopen', a
     {code: 'ClientRunDebugEntryRevisionConflict'});
   assert.throws(() => d.resume(d.command({run_ref: {...d.ref, runDefinitionCid: cid('f')}}).wire),
     {code: 'ClientRunDebugEntryForeignCommand'});
-  assert.throws(() => d.resume(d.command({interval: {until: 'breakpoint', guards: null}}).wire),
-    {code: 'ClientRunDebugEntryUnsupportedCommand'});
+  const breakpoint = d.command({interval: {until: 'breakpoint', guards: null,
+    breakpoint_selection: {logical_map_cid: cid('9'), before_step_ids: [cid('a')]}}});
+  assert.throws(() => d.resume(breakpoint.wire), {code: 'ClientRunDebugEntryUnsupportedCommand'});
 
   let authorizationChecks = 0;
   assert.throws(() => d.resume(command.wire, () => ++authorizationChecks === 1),

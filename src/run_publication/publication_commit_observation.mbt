@@ -24,7 +24,7 @@ pub fn PublicationCommitPreparation::begin_observed_commit(
   if remaining < 12 {
     return Err(CommitEncoding)
   }
-  if preparation.retained_effectful is Some(_) && remaining < 13 {
+  if preparation.checked_effectful_receipt is Some(_) && remaining < 13 {
     return Err(CommitEncoding)
   }
   let child = new_publication_commit_preparation(
@@ -37,8 +37,8 @@ pub fn PublicationCommitPreparation::begin_observed_commit(
     },
     remaining,
   )
-  child.retained_effectful = preparation.retained_effectful
-  if child.retained_effectful is Some(_) {
+  child.checked_effectful_receipt = preparation.checked_effectful_receipt
+  if child.checked_effectful_receipt is Some(_) {
     child.live += 1
     child.peak = child.live
   }

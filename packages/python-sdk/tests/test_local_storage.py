@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_storage import (
     LocalByteStore, LocalStorageCommitUnknown, LocalStorageError,
-    LocalStorageInitializationError, StoredBytes,
+    LocalStorageInitializationError, StoredBytes, _DurableStoreLimits,
 )
 
 
@@ -113,15 +113,18 @@ os.kill(os.getpid(), signal.SIGKILL)
     def test_lost_commit_acknowledgement_is_not_automatically_repeated(self) -> None:
         class LostCommit(sqlite3.Connection):
             inserts = 0
+            commits = 0
             lose = False
 
             def execute(self, sql: str, *args: object, **kwargs: object) -> sqlite3.Cursor:
-                if sql.startswith('INSERT'):
+                if sql.startswith('INSERT INTO main.core_bytes '):
                     self.inserts += 1
                 result = super().execute(sql, *args, **kwargs)
-                if sql == 'COMMIT' and self.lose:
-                    self.lose = False
-                    raise OSError('physical commit acknowledgement lost')
+                if sql == 'COMMIT':
+                    self.commits += 1
+                    if self.lose:
+                        self.lose = False
+                        raise OSError('physical commit acknowledgement lost')
                 return result
 
         connect = sqlite3.connect
@@ -129,12 +132,18 @@ os.kill(os.getpid(), signal.SIGKILL)
             with patch('actql_sdk._local_storage.sqlite3.connect',
                        side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
-                    store._connection.lose = True
+                    connection = store._connection
+                    self.assertEqual(connection.execute(
+                        'SELECT reservations, records, payload_bytes FROM main.actql_store_usage').fetchone(),
+                        (0, None, None))
+                    before = connection.commits
+                    connection.lose = True
                     with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange('original', None, b'original-wire')
                     self.assertIs(caught.exception.cleanup_store, store)
                     self.assertEqual(store.read('original'), StoredBytes(0, b'original-wire'))
-                    self.assertEqual(store._connection.inserts, 1)
+                    self.assertEqual(connection.inserts, 1)
+                    self.assertEqual(connection.commits - before, 1)
 
     def test_failed_commit_and_rollback_cannot_expose_uncommitted_bytes(self) -> None:
         class PendingTransaction(sqlite3.Connection):
@@ -166,7 +175,8 @@ os.kill(os.getpid(), signal.SIGKILL)
     def test_row_count_and_aggregate_bytes_reject_without_changing_original(self) -> None:
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
             path = Path(directory) / 'core.sqlite'
-            with self.store(path, records=2, row=4, total=6) as store:
+            with LocalByteStore(path, max_records=2, max_record_bytes=4, max_payload_bytes=6,
+                                durable_limits=_DurableStoreLimits(2, 6, 2)) as store:
                 self.assertEqual(store.compare_exchange('a', None, b'1234'), 0)
                 self.assertEqual(store.compare_exchange('b', None, b'56'), 0)
                 with self.assertRaises(LocalStorageError):

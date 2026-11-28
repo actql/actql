@@ -85,6 +85,32 @@ pub fn project_relation_declaration_input(
 }
 
 ///|
+/// Restore the declared-file view of an admitted Mock catalogue entry.
+/// The caller retains the selected Project entry and supplies its existing
+/// constructor bounds. Physical row access and authorization remain with the
+/// original Source owner.
+pub fn restore_project_mock_relation_declaration(
+  connection : String,
+  entry : Json,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[RowDeclaration, RowHostIssue] {
+  match
+    project_relation_declaration_input(entry, max_bytes, max_nodes, max_depth) {
+    Ok(wire) =>
+      restore_relation_row_declaration(
+        connection,
+        "declared_file",
+        "declared_file/0.1",
+        wire,
+        None,
+      )
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 /// A complete saved Relation schema, not observed rows or physical type names.
 pub(all) struct RowRelationViewSpec {
   resource : String
@@ -113,6 +139,7 @@ pub fn generate_relation_row_declaration(
     limits,
     classifications,
     None,
+    None,
   )
 }
 
@@ -128,6 +155,7 @@ fn generate_relation_row_declaration_with_resource_identities(
   limits : RowDeclarationLimits,
   classifications : Array[@environment.DataClassification]?,
   resource_identity_wires : Array[String?]?,
+  local_file_root : String?,
 ) -> Result[RowDeclaration, RowHostIssue] {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
@@ -362,6 +390,7 @@ fn generate_relation_row_declaration_with_resource_identities(
     Some(requests),
     classifications,
     Some(resource_identities),
+    local_file_root,
     limits,
   ).map_err(issue => Declaration(issue))
 }
@@ -370,6 +399,11 @@ fn generate_relation_row_declaration_with_resource_identities(
 let relation_restore_limits : RowDeclarationLimits = {
   ..declaration_limits,
   max_fields: 1024,
+}
+
+///|
+fn local_csv_column_count_is_valid(width : Int) -> Bool {
+  width > 0 && width <= relation_restore_limits.max_fields
 }
 
 ///|
@@ -384,29 +418,41 @@ pub fn project_local_csv_relation_view(
 ) -> Result[RowRelationViewSpec, RowHostIssue] {
   let limits = relation_restore_limits
   let width = column_names.length()
-  guard width > 0 &&
-    width <= limits.max_fields &&
+  guard local_csv_column_count_is_valid(width) &&
     width == integer_columns.length() &&
     keys.length() <= width else {
     return Err(InvalidSpecification)
   }
   let schema : Map[String, Json] = Map([])
+  let mut field_text_units = 0L
   for index in 0..<width {
     let name = column_names[index]
     if name.is_empty() || name.contains("\u0000") || schema.contains(name) {
       return Err(InvalidSpecification)
     }
+    field_text_units += name.length().to_int64()
     let kind = if integer_columns[index] { "int64" } else { "string" }
     schema[name] = Json::object(
       Map([("nullable", Json::boolean(false)), ("type", Json::string(kind))]),
     )
   }
   let key_fields : Map[String, Unit] = Map([])
+  let mut key_text_units = 0L
   for key in keys {
     if !schema.contains(key) || key_fields.contains(key) {
       return Err(InvalidSpecification)
     }
+    key_text_units += key.length().to_int64()
     key_fields[key] = ()
+  }
+  guard local_csv_encoding_wire_bounds(
+      width,
+      field_text_units,
+      keys.length(),
+      key_text_units,
+    )
+    is Some((schema_bytes, facts_bytes)) else {
+    return Err(InvalidSpecification)
   }
   let facts : Json = if keys.is_empty() {
     Json::object(Map([]))
@@ -420,7 +466,7 @@ pub fn project_local_csv_relation_view(
   let schema_wire = match
     relation_declaration_projection_wire(
       Json::object(schema),
-      limits.max_bytes,
+      Int::min(schema_bytes, limits.max_bytes),
       limits.max_nodes,
       limits.max_depth,
     ) {
@@ -430,7 +476,7 @@ pub fn project_local_csv_relation_view(
   let facts_wire = match
     relation_declaration_projection_wire(
       facts,
-      limits.max_bytes,
+      Int::min(facts_bytes, limits.max_bytes),
       limits.max_nodes,
       limits.max_depth,
     ) {
@@ -449,17 +495,17 @@ pub fn project_local_csv_relation_view(
 }
 
 ///|
-/// Restore a Host-installed view from saved common schema material. The
-/// specification is bounded before JSON reconstruction; restored bytes must
-/// reproduce the original Catalog if an expected identity is supplied.
-pub fn restore_relation_row_declaration(
-  connector_id : String,
-  connector_registration : String,
-  connector_version : String,
+priv struct RelationRestoreInputs {
+  specs : Array[RowRelationViewSpec]
+  classifications : Array[@environment.DataClassification]
+  resource_identities : Array[String?]
+}
+
+///|
+fn read_relation_restore_inputs(
   views_json : String,
-  expected_catalog_cid : String?,
-) -> Result[RowDeclaration, RowHostIssue] {
-  let limits = relation_restore_limits
+  limits : RowDeclarationLimits,
+) -> Result[RelationRestoreInputs, RowHostIssue] {
   let source = match
     @source.parse_json(views_json, {
       max_input_bytes: limits.max_bytes,
@@ -486,9 +532,9 @@ pub fn restore_relation_row_declaration(
     root.get("views") is Some(Array(views)) else {
     return Err(InvalidSpecification)
   }
-  let specs = []
+  let specs : Array[RowRelationViewSpec] = []
   let classifications : Array[@environment.DataClassification] = []
-  let resource_identities = []
+  let resource_identities : Array[String?] = []
   for view in views {
     guard view is Object(entries) &&
       entries.length() >= 4 &&
@@ -539,17 +585,50 @@ pub fn restore_relation_row_declaration(
       acquisition_wire: optional[2],
     })
   }
+  Ok({ specs, classifications, resource_identities, })
+}
+
+///|
+/// Restore a Host-installed view from saved common schema material. The
+/// specification is bounded before JSON reconstruction; restored bytes must
+/// reproduce the original Catalog if an expected identity is supplied.
+pub fn restore_relation_row_declaration(
+  connector_id : String,
+  connector_registration : String,
+  connector_version : String,
+  views_json : String,
+  expected_catalog_cid : String?,
+) -> Result[RowDeclaration, RowHostIssue] {
+  let originals = match
+    read_relation_restore_inputs(views_json, relation_restore_limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  finish_relation_restore(
+    connector_id, connector_registration, connector_version, originals, expected_catalog_cid,
+  )
+}
+
+///|
+fn finish_relation_restore(
+  connector_id : String,
+  connector_registration : String,
+  connector_version : String,
+  originals : RelationRestoreInputs,
+  expected_catalog_cid : String?,
+) -> Result[RowDeclaration, RowHostIssue] {
   let declaration = match
     generate_relation_row_declaration_with_resource_identities(
       connector_id,
       connector_registration,
       connector_version,
-      specs,
+      originals.specs,
       // Preserve the admitted original range. The installed caller already
       // owns reconstruction; explicit generator limits remain independent.
-      { ..limits, max_views: views.length(), },
-      Some(classifications),
-      Some(resource_identities),
+      { ..relation_restore_limits, max_views: originals.specs.length(), },
+      Some(originals.classifications),
+      Some(originals.resource_identities),
+      None,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -559,4 +638,113 @@ pub fn restore_relation_row_declaration(
     return Err(ForeignDeclaration)
   }
   Ok(declaration)
+}
+
+///|
+/// Compile the original catalogue entry with the same Relation restore and
+/// UPDATE Mapping constructor as the Native Project reader. All phases are
+/// admitted by the owner of the same retained input before construction.
+pub fn[E] prepare_funded_project_mock_source_declarations(
+  connection : String,
+  entry : String,
+  prepare : (@execution.PreparationRepresentationUnits) -> Result[Unit, E],
+  mapping : (
+    @execution.ExecutionCapacity,
+    () -> Result[RowMapping, RowMappingIssue],
+  ) -> Result[RowMapping, E],
+  refusal : (RowHostIssue) -> E,
+) -> Result[
+  (
+    RowDeclaration,
+    Array[ProjectMockWriteDeclaration],
+    Array[ProjectMockRowSelection],
+  ),
+  E,
+] {
+  guard relation_public_projection_construction_inventory(entry)
+    is Some(projection) else {
+    return Err(refusal(InvalidSpecification))
+  }
+  if prepare(projection) is Err(issue) {
+    return Err(issue)
+  }
+  let entry_wire = entry
+  let entry = @json.parse(entry_wire) catch {
+    _ => return Err(refusal(InvalidSpecification))
+  }
+  let wire = match
+    project_relation_declaration_input(
+      entry,
+      declaration_limits.max_bytes,
+      declaration_limits.max_nodes,
+      declaration_limits.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(refusal(issue))
+  }
+  guard relation_restore_wire_geometry(wire) is Some(outer) &&
+    relation_restore_inputs_read_inventory(outer) is Some(read) else {
+    return Err(refusal(InvalidSpecification))
+  }
+  if prepare(read) is Err(issue) {
+    return Err(issue)
+  }
+  let originals = match read_relation_restore_inputs(wire, declaration_limits) {
+    Ok(value) => value
+    Err(issue) => return Err(refusal(issue))
+  }
+  let views = originals.specs.length()
+  if views < 1 || views > declaration_limits.max_views {
+    return Err(refusal(InvalidSpecification))
+  }
+  if prepare(relation_restore_inputs_quote_inventory(views)) is Err(issue) {
+    return Err(issue)
+  }
+  let registration = "declared_file"
+  let version = "declared_file/0.1"
+  guard relation_restore_inputs_inventory(
+      connection,
+      registration,
+      version,
+      views,
+      index => {
+        let view = originals.specs[index]
+        (
+          view.resource,
+          view.resource_kind,
+          view.schema_wire,
+          view.request_schema_wire,
+          view.facts_wire,
+          view.acquisition_wire,
+          originals.resource_identities[index],
+        )
+      },
+    )
+    is Some(generation) else {
+    return Err(refusal(InvalidSpecification))
+  }
+  if prepare(generation) is Err(issue) {
+    return Err(issue)
+  }
+  let declaration = match
+    finish_relation_restore(connection, registration, version, originals, None) {
+    Ok(value) => value
+    Err(issue) => return Err(refusal(issue))
+  }
+  guard relation_restore_wire_geometry(entry_wire) is Some(geometry) else {
+    return Err(refusal(InvalidSpecification))
+  }
+  let writes = match
+    prepare_project_mock_writes(
+      entry,
+      declaration,
+      Some({ original: geometry, prepare, mapping, }),
+      _ => refusal(InvalidSpecification),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  prepare_funded_project_mock_row_selections(
+    entry, declaration, prepare, refusal,
+  ).map(rows => (declaration, writes, rows))
 }

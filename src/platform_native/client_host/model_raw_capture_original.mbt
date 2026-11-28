@@ -67,7 +67,7 @@ fn native_model_raw_run_current(
   match host.journal.retained(request, reads=Some(reads)) {
     Ok(Some(run)) if run.dispatch_reserved &&
       run.physical_start_claimed &&
-      !run.cancellation_requested &&
+      !run.cancellation_requested() &&
       run.publication_binding == Some(binding) &&
       @publication.publication_contract_identity(run.definition) ==
       @publication.publication_contract_identity(definition) =>

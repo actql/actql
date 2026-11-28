@@ -904,3 +904,96 @@ test "native machine Program keeps recursive ARRAY through same Request terminal
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "static Debug Plan uses the checked Request without admitting execution" {
+  let document =
+    #|{"version":"actql/0.1","id":"static-debug-read","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":1}]},"as":"seed"},{"from":"seed","filter":{"gt":[{"field":"n"},{"literal":0}]},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(document)
+  prepare_request_native_computation_check(
+    parent,
+    input,
+    request_native_test_value(document),
+    native_json_reader,
+    environment,
+    publication,
+    [],
+    @publication_host.client_standard_program_preparation_limits(),
+    @publication_host.client_standard_effect_computation_limits(),
+  ).unwrap()
+  assert_true(
+    finish_request_checked_debug_plan(parent, [1], environment, publication)
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_false(parent.debug_plan_read)
+  finish_request_checked_debug_plan(parent, input, environment, publication).unwrap()
+  let prepared = parent.compiled_program.unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_task_count(graph), 2)
+  // The original two-operation Stage has one data edge and no extra control
+  // task. Derive the preflight quote from the original graph observations.
+  let data = @strategy.graph_data_count(graph).to_int64()
+  let control = @strategy.graph_control_count(graph).to_int64()
+  let work = 1L + 1L + 7L * 2L + data + control
+  assert_false(prove_static_debug_original_operations(graph, work - 1L))
+  assert_true(prove_static_debug_original_operations(graph, work))
+  let providers = Ref(0)
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  prepare_request_program_compilation(
+    parent,
+    input,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+    retained_output=true,
+    provider_factory=_ => {
+      providers.val += 1
+      []
+    },
+  ).unwrap()
+  |> ignore
+  let loan = prepare_request_original_explanation(
+      parent,
+      input,
+      65536,
+      8192,
+      64,
+      debug_entry_installed=true,
+    )
+    .unwrap()
+    .unwrap()
+  let wire = request_original_static_plan_wire(loan).unwrap()
+  assert_true(wire.contains("\"debug_entry\":true"), msg=wire)
+  assert_true(
+    wire.contains("\"entry_breakpoint_profile\":\"all_operations\""),
+    msg=wire,
+  )
+  assert_true(wire.contains("\"provider_io\":0"), msg=wire)
+  return_request_original_explanation(loan).unwrap() |> ignore
+  assert_true(
+    prepare_request_program_module_body(
+      parent,
+      input,
+      contracts,
+      manifests~,
+      compilation_limits=limits,
+      retained_output=true,
+      provider_factory=_ => {
+        providers.val += 1
+        []
+      },
+    )
+    is Err(Preparation(WrongPhase)),
+  )
+  assert_true(
+    parent.program_source_free is None &&
+    !parent.program_body_attempted &&
+    parent.submitted_intent is None,
+  )
+  assert_eq(providers.val, 0)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

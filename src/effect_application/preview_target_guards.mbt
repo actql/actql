@@ -47,6 +47,7 @@ fn check_effect_preview_target_guards_selected(
   required_rows : Map[String, Bool]?,
   max_rows : Int,
   max_work : Int,
+  selected_member? : Int,
 ) -> Result[Unit, EffectPreviewTargetGuardIssue] {
   if max_rows < 0 || max_work < 0 {
     return Err(InvalidLimits)
@@ -69,7 +70,11 @@ fn check_effect_preview_target_guards_selected(
   }
   let mut total_rows = 0
   let mut known_observations = 0
-  for member_index in 0..<@publication.effect_preview_member_count(preview) {
+  let (first_member, past_member) = match selected_member {
+    Some(selected) => (selected, selected + 1)
+    None => (0, @publication.effect_preview_member_count(preview))
+  }
+  for member_index in first_member..<past_member {
     let count = @publication.effect_preview_row_count(preview, member_index).unwrap()
     if count > max_rows - total_rows || count > remaining {
       return Err(CapacityExceeded)

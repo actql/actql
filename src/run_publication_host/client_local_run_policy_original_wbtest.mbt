@@ -71,6 +71,87 @@ test "original finite policy packet binds exact Submission Run adoption and read
 }
 
 ///|
+test "saved finite policy selects the exact alternate read original" {
+  let profile = client_local_run_policy_profile(product_common_test_originals()).unwrap()
+  let reference = local_run_policy_packet_reference()
+  let request = local_run_policy_packet_request()
+  let definition = local_run_policy_packet_definition()
+  let adoption = "sha256:" + "a".repeat(64)
+  let fixed = "sha256:" + "e".repeat(64)
+  let alternate = "sha256:" + "f".repeat(64)
+  let body = @utf8.encode(local_run_policy_packet_fixture)
+  let original = admit_client_local_run_policy_original(
+    body,
+    profile,
+    reference,
+    request,
+    definition,
+    adoption,
+    fixed,
+    admit_alternate_read_selection=Some(cid => cid == alternate),
+  ).unwrap()
+  assert_eq(
+    client_local_run_policy_original_run_dependencies(
+      original, request, definition,
+    ).unwrap(),
+    (adoption, alternate),
+  )
+  assert_eq(client_local_run_policy_original_body(original), body)
+  let attempts = Ref(0)
+  assert_true(
+    admit_client_local_run_policy_original(
+      body,
+      profile,
+      reference,
+      request,
+      definition,
+      adoption,
+      alternate,
+      admit_alternate_read_selection=Some(_ => {
+        attempts.val += 1
+        false
+      }),
+    )
+    is Ok(_),
+  )
+  assert_eq(attempts.val, 0)
+  assert_true(
+    admit_client_local_run_policy_original(
+      body, profile, reference, request, definition, adoption, fixed,
+    )
+    is Err(InvalidOriginal),
+  )
+  assert_true(
+    admit_client_local_run_policy_original(
+      body,
+      profile,
+      reference,
+      request,
+      definition,
+      adoption,
+      fixed,
+      admit_alternate_read_selection=Some(cid => {
+        cid == "sha256:" + "0".repeat(64)
+      }),
+    )
+    is Err(InvalidOriginal),
+  )
+  assert_true(
+    admit_client_local_run_policy_original(
+      body,
+      profile,
+      reference,
+      request,
+      definition,
+      "sha256:" + "0".repeat(64),
+      fixed,
+      admit_alternate_read_selection=Some(cid => cid == alternate),
+    )
+    is Err(InvalidOriginal),
+  )
+}
+
+///|
 test "saved policy packet rejects changed issuance identity and missing originals" {
   let profile = client_local_run_policy_profile(product_common_test_originals()).unwrap()
   for

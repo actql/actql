@@ -60,6 +60,7 @@ pub fn[I, P] reserve_preparation_capacity_inventory(
   retained_peak : Int64,
   execution_peak : Int64,
   max_borrowers~ : Int,
+  recovered? : LedgerContinuationState? = None,
 ) -> Result[PreparationCapacity[I, P], PreparationCapacityIssue] {
   if max_borrowers < 1 || retained_peak <= 0L || execution_peak < 0L {
     return Err(InvalidExtent)
@@ -76,6 +77,15 @@ pub fn[I, P] reserve_preparation_capacity_inventory(
     (ledger.imported_child is Some(origin) && origin.fixed_capacities) {
     return Err(Resource(InvalidCharge))
   }
+  // Restore exactly once after the nominal input's fresh census cut and
+  // before the first receiving reservation. Preserve historical serials.
+  if recovered is Some(saved) {
+    match restore_quiescent_ledger_state_current(ledger, saved) {
+      Err(Resource(issue)) => return Err(Resource(issue))
+      Err(_) => return Err(Resource(InvalidCharge))
+      Ok(_) => ()
+    }
+  }
   let reservation = match
     reserve_capacity_current(ledger, retained_peak, execution_peak) {
     Err(issue) => return Err(Resource(issue))
@@ -85,7 +95,15 @@ pub fn[I, P] reserve_preparation_capacity_inventory(
     ledger, input, reservation, max_borrowers,
   )
   match
-    begin_preparation_capacity_inventory(owner, input, max_borrowers, 0, 0) {
+    begin_original_ledger_inventory_owned(
+      ledger,
+      reservation,
+      max_borrowers,
+      0,
+      0,
+      PreparationUnbound,
+      recovered~,
+    ) {
     Ok(_) => Ok(owner)
     Err(issue) => {
       // All constructor checks were validated in the same callback-free cut.

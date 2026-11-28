@@ -1,10 +1,9 @@
-"""Exact prepare receipts on real SQLite, files and genuine Wasmtime exports.
+"""Fixed reconciliation read on real SQLite, files and Wasmtime exports.
 
 The mini module is only a neutral physical transport fixture. It neither proves
 Account decisions nor substitutes for an installed product/latency campaign.
 No pinned product method is patched to count calls or inject mutations.
 """
-import copy
 import json
 import os
 from pathlib import Path
@@ -19,15 +18,13 @@ import wasmtime
 
 from actql_sdk._local_commit_projection import OriginalCommitProjection
 from actql_sdk._local_core import (
-    _MEMORY_LIMIT, _RECONCILIATION_PREPARE_BYTES, _Output,
+    _MEMORY_LIMIT, LocalCoreError, _Output,
     _original_metadata_cleanup, _original_metadata_stopped,
 )
+from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_host_binding import _OriginalPublisherPort
 from actql_sdk._local_observation_transfer import OriginalObservationTransfer
 from actql_sdk._local_reader_facts import OriginalReaderFacts
-from actql_sdk._local_reconciliation_prepare import (
-    _EXPORT_NAMES, _PREPARE_MAX_METADATA_BYTES, _prepare_supported,
-)
 from actql_sdk._local_storage import LocalByteStore, LocalStorageError
 from actql_sdk._local_store_reconciliation import OriginalStoreReconciliation
 import test_local_closed_invocation as closed
@@ -36,13 +33,14 @@ import test_local_store_reconciliation as reconciliation
 
 
 class ClosedReconciliationPrepareTests(unittest.TestCase):
-    def fixture(self, *, effect=None):
+    def fixture(self, *, effect=None, publisher_namespace='local'):
         bootstrap = closed.ClosedInvocationTests()
         self.addCleanup(bootstrap.doCleanups)
         core, binding, store, _, _ = bootstrap.fixture()
         scalar_call = core._call
         helper = files.ReaderFactsTests()
-        _, root, _, final = self.enterContext(helper.file())
+        directory, root, _, final = self.enterContext(helper.file())
+        self.payload_path = directory / 'payload-original'
         reader = helper.transfer_ready(root, final)
 
         # Only nominal parent loans are fixture data; all prepare exports and
@@ -61,7 +59,7 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
         engine = wasmtime.Engine()
         core._store = wasmtime.Store(engine)
         fixture = reconciliation.StoreReconciliationTests
-        publisher_fact = json.dumps(dict(stage='request', namespace_id='local',
+        publisher_fact = json.dumps(dict(stage='request', namespace_id=publisher_namespace,
             authority_scope_cid='opaque-scope', run_definition_cid='opaque-run',
             publication_request_cid='opaque-request', public_index_entry_cid=None),
             separators=(',', ':')).encode()
@@ -110,7 +108,8 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
             if (result i32) local.get $p1 i32.const 100 i32.add else i32.const -4 end''')
         export('publication_commit_export_produce_index_key', 2, '''
             i32.const 64 global.set $length i32.const 64 global.set $address
-            global.get $effect_enabled if call $test_effect drop end i32.const 0''')
+            global.get $effect_enabled i32.const 1 i32.eq
+            if call $test_effect drop end i32.const 0''')
         export('publication_commit_export_produce_lookup_reference', 3, '''
             i32.const 71 global.set $length local.get $p2
             if (result i32) i32.const 256 else i32.const 128 end
@@ -120,7 +119,10 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
         export('publication_commit_export_close', 1, '''global.get $refuse_cleanup
             if (result i32) i32.const -9 else
             local.get $p0 i32.const 100 i32.sub call $input_cleanup end''')
-        counted('publication_prepare_lookup', 4, 'lookups')
+        counted('publication_prepare_lookup', 4, 'lookups', '''
+            global.get $effect_enabled i32.const 2 i32.eq
+            if call $test_effect drop end i32.const 0''')
+        constant('publication_observation_exact_index', 2, 0)
         counted('publication_prepare_observation', 4, 'responses')
         def data(offset, raw):
             return f'(data (i32.const {offset}) "' + ''.join(f'\\{byte:02x}' for byte in raw) + '")'
@@ -139,8 +141,8 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
         core._instance = wasmtime.Instance(core._store, module, functions)
         core._exports = core._instance.exports(core._store)
         core._observe_platform_vm(wasmtime)
-        core._closed_wasm_exports = core._closed_wasm_workspace = None
-        core._capture_closed_wasm_exports(wasmtime)
+        # This fixture selects the ordinary SQLite route for its genuine imports.
+        store._ordinary = True
         request = core.reserve_input(b'opaque publisher request',
             cleanup=_original_metadata_cleanup, stopped=_original_metadata_stopped)
         port = _OriginalPublisherPort(binding)
@@ -164,9 +166,6 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
                          (fixture.request_key, fixture.request), (fixture.attempt_key, fixture.attempt)):
             store.compare_exchange(key, None, raw)
         owner = OriginalStoreReconciliation(projection, (facts,), store, originals, publisher, *transfers)
-        self.assertTrue(all(core._closed_wasm_exports._qualify(name, core._exports[name])
-                            for name in _EXPORT_NAMES))
-        self.assertTrue(_prepare_supported(owner, binding), 'Fixture must genuinely admit exact prepare')
         for name in ('bindings', 'snapshots', 'authorizations', 'lookups', 'responses'):
             core._exports[name].set_value(core._store, 0)
         return core, binding, store, owner
@@ -179,12 +178,10 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
         original_loans = dict(core._loans)
         metadata = owner._facts[0].pending_input
         owner.prepare(binding=binding)
-        checkpoints, reads, copied, pairs, authorizations = owner._prepare_counts
-        self.assertEqual((checkpoints, reads, pairs, authorizations), (8, 4, 48, 16))
         source = reconciliation.StoreReconciliationTests
-        self.assertEqual(copied, sum(map(len, (source.ref, source.index, source.request, source.attempt))))
-        self.assertEqual([self.counter(core, name) for name in ('bindings', 'snapshots', 'authorizations')],
-                         [48, 48, 16])
+        for name in ('bindings', 'snapshots', 'authorizations'):
+            self.assertGreater(self.counter(core, name), 0)
+        self.assertEqual([self.counter(core, name) for name in ('lookups', 'responses')], [1, 1])
         for ticket, loan in original_loans.items():
             self.assertIs(core._loans[ticket], loan)
         self.assertIs(owner._facts[0].pending_input, metadata)
@@ -194,13 +191,13 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
         self.assertEqual(json.loads(response), {'kind': 'stored', 'index': source.index.decode(),
             'request': source.request.decode(), 'attempt': source.attempt.decode()})
         self.assertFalse(store._connection.in_transaction)
-        self.assertIsNone(core._reconciliation_prepare)
-        self.assertIsNone(store._connection._closed_prepare)
+        self.assertIsNone(binding._observed_reader)
         self.assertEqual(owner._projection.pending_outputs, ())
 
     def test_private_modules_import_in_either_order(self):
-        source = str(Path(__file__).resolve().parents[1] / 'src')
-        modules = ('actql_sdk._local_reconciliation_prepare', 'actql_sdk._local_store_reconciliation')
+        from actql_sdk import __file__ as sdk_file
+        source = str(Path(sdk_file).resolve().parents[1])
+        modules = ('actql_sdk._local_storage', 'actql_sdk._local_store_reconciliation')
         for order in (modules, tuple(reversed(modules))):
             with self.subTest(first=order[0]):
                 result = subprocess.run([sys.executable, '-c',
@@ -210,30 +207,27 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_real_query_failure_keeps_named_report_and_original_exception(self):
-        held, phases, limits = [], [], []
+        held, interrupted = [], []
         def effect():
             core, binding, store, owner = held[0]
-            phase = core._reconciliation_prepare
-            self.assertIsNotNone(phase)
-            self.assertTrue(phase.suspended)
-            self.assertEqual(phase.reads, 0)
-            phases.append(phase)
+            self.assertIsNotNone(binding._observed_reader)
+            self.assertTrue(store._connection.in_transaction)
             key = reconciliation.StoreReconciliationTests.scope_key
-            # Real SQLite rejects this longer literal publication-row query,
-            # while the shorter original metadata/reservation queries still
-            # run. No product dispatch or callback is replaced to induce it.
-            template = ("SELECT generation,\n"
-                "            CASE WHEN length(payload) <= " + str(store._max_record_bytes)
-                + " THEN payload ELSE NULL END,\n"
-                "            typeof(payload), length(payload)\n"
-                "            FROM core_bytes WHERE key = CAST(X'" + key.encode().hex() + "' AS TEXT)")
-            required = (*binding._fences, binding._frame_epoch,
-                        *(fence for fence, _ in owner._originals))
-            self.assertTrue(all(len(fence.key.encode()) < len(key.encode()) for fence in required))
-            limit = len(template.encode()) - 1
-            previous = sqlite3.Connection.setlimit(store._connection, sqlite3.SQLITE_LIMIT_SQL_LENGTH, limit)
-            limits.append(previous)
+            target = False
+
+            def observe_statement(sql):
+                nonlocal target
+                target = sql.startswith('SELECT generation,') and sql.endswith(
+                    "WHERE key = '" + key + "'")
+                if target:
+                    interrupted.append(sql)
+
+            # The fixed query shares a template with current fences. Interrupt
+            # actual SQLite stepping only for the selected lookup key.
+            store._connection.set_trace_callback(observe_statement)
+            store._connection.set_progress_handler(lambda: int(target), 1)
             return 0
+
         held.append(self.fixture(effect=effect))
         core, binding, store, owner = held[0]
         core._exports['effect_enabled'].set_value(core._store, 1)
@@ -241,17 +235,10 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
             with self.assertRaises(sqlite3.Error) as raised:
                 owner.prepare(binding=binding)
         finally:
-            if limits:
-                sqlite3.Connection.setlimit(store._connection, sqlite3.SQLITE_LIMIT_SQL_LENGTH, limits[0])
-        self.assertEqual(len(phases), 1)
-        self.assertIs(phases[0].failure, raised.exception)
-        self.assertFalse(phases[0].active)
-        self.assertTrue(phases[0].suspended)
-        self.assertEqual(owner._prepare_counts[1], 0)
-        # Two ordinary before-lookup fences preceded the failed query. Its
-        # original named failure continuation adds a third, using full checks.
-        self.assertEqual([self.counter(core, name) for name in ('bindings', 'snapshots', 'authorizations')],
-                         [9, 9, 3])
+            store._connection.set_progress_handler(None, 0)
+            store._connection.set_trace_callback(None)
+        self.assertEqual(len(interrupted), 1)
+        self.assertEqual(raised.exception.sqlite_errorcode, sqlite3.SQLITE_INTERRUPT)
         self.assertEqual(self.counter(core, 'responses'), 1)
         response = owner._response.pending_input
         self.assertIsNotNone(response)
@@ -266,103 +253,36 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
             owner.prepare(binding=binding)
         self.assertEqual(self.counter(core, 'bindings'), before)
 
-    def test_replaced_later_export_selects_legacy_before_entry(self):
-        core, binding, _, owner = self.fixture()
-        name = 'actql_publication_prepare_observation'
-        original = core._exports[name]
-        core._exports._extern_map[name] = lambda *args: original(*args)
-        self.assertFalse(_prepare_supported(owner, binding))
-        owner.prepare(binding=binding)
-        self.assertFalse(hasattr(owner, '_prepare_counts'))
-        self.assertEqual(self.counter(core, 'responses'), 1)
-
     def test_legal_mutation_before_reader_is_not_a_stale_phase(self):
         core, binding, store, owner = self.fixture()
         store.compare_exchange(store.namespaced_key('probe', 'prior'), None, b'legal prior write')
-        self.assertTrue(_prepare_supported(owner, binding))
         owner.prepare(binding=binding)
-        self.assertEqual(owner._prepare_counts[1], 4)
+        self.assertEqual(self.counter(core, 'lookups'), 1)
         self.assertEqual(self.counter(core, 'responses'), 1)
 
-    def test_unknown_effect_raw_schema_changes_are_sticky_even_after_restore(self):
-        for schema in ('main', 'temp'):
-            with self.subTest(schema=schema):
-                held, failures, phases = [], [], []
-                def effect():
-                    core, _, store, _ = held[0]
-                    phase = core._reconciliation_prepare
-                    phases.append(phase)
-                    self.assertTrue(phase.suspended)
-                    self.assertTrue(core._invocation_observation.suspended)
-                    connection = store._connection
-                    sqlite3.Connection.execute(connection, f'CREATE TABLE {schema}.unexpected(value)')
-                    sqlite3.Connection.execute(connection, f'DROP TABLE {schema}.unexpected')
-                    try:
-                        phase.check()
-                    except (ValueError, LocalStorageError) as error:
-                        failures.append(error)
-                    return 0
-                held.append(self.fixture(effect=effect))
-                core, binding, store, owner = held[0]
-                core._exports['effect_enabled'].set_value(core._store, 1)
-                with self.assertRaises((ValueError, LocalStorageError)) as raised:
-                    owner.prepare(binding=binding)
-                self.assertTrue(failures)
-                self.assertIs(raised.exception, failures[0])
-                self.assertFalse(phases[0].active)
-                self.assertIsNone(store._connection._closed_prepare)
-                self.assertEqual(self.counter(core, 'responses'), 0)
-
-    def test_copied_or_retired_phase_cannot_resume(self):
-        for mode in ('copy', 'retire'):
-            with self.subTest(mode=mode):
-                held, failures = [], []
-                def effect():
-                    phase = held[0][0]._reconciliation_prepare
-                    candidate = copy.copy(phase) if mode == 'copy' else phase
-                    if mode == 'retire':
-                        candidate.active = False
-                    try:
-                        candidate.check()
-                    except (ValueError, LocalStorageError) as error:
-                        failures.append(error)
-                        phase._fail(error)
-                    return 0
-                held.append(self.fixture(effect=effect))
-                core, binding, _, owner = held[0]
-                core._exports['effect_enabled'].set_value(core._store, 1)
-                with self.assertRaises((ValueError, LocalStorageError)) as raised:
-                    owner.prepare(binding=binding)
-                self.assertTrue(failures)
-                self.assertIs(raised.exception, failures[0])
-
-    def test_issued_output_callback_replacement_refuses_before_cleanup(self):
-        for field in ('cleanup', 'stopped'):
-            with self.subTest(field=field):
-                held, invoked = [], []
-                def effect():
-                    phase = held[0][0]._reconciliation_prepare
-                    setattr(phase.output_physical, field, lambda *_: invoked.append(True) or True)
-                    return 0
-                held.append(self.fixture(effect=effect))
-                core, binding, _, owner = held[0]
-                core._exports['effect_enabled'].set_value(core._store, 1)
-                with self.assertRaises(ValueError):
-                    owner.prepare(binding=binding)
-                self.assertFalse(invoked)
-                self.assertEqual(len(owner._projection.pending_outputs), 1)
+    def test_reentrant_prepare_cannot_resume_or_be_replayed(self):
+        held = []
+        def effect():
+            _, binding, _, owner = held[0]
+            owner.prepare(binding=binding)
+            raise AssertionError('Original reconciliation accepted reentry')
+        held.append(self.fixture(effect=effect))
+        core, binding, store, owner = held[0]
+        core._exports['effect_enabled'].set_value(core._store, 1)
+        with self.assertRaisesRegex(RuntimeError, 'cannot be repeated'):
+            owner.prepare(binding=binding)
+        self.assertEqual(self.counter(core, 'responses'), 0)
+        self.assertFalse(store._connection.in_transaction)
+        with self.assertRaisesRegex(RuntimeError, 'cannot be repeated'):
+            owner.prepare(binding=binding)
 
     def test_query_and_copy_budgets_remain_cumulative(self):
         for mode in ('queries', 'bytes'):
             with self.subTest(mode=mode):
-                held, phases = [], []
+                held = []
                 def effect():
                     core, _, store, _ = held[0]
-                    phase = core._reconciliation_prepare
-                    self.assertIsNotNone(phase)
-                    self.assertTrue(phase.active)
-                    self.assertEqual(phase.reads, 0)
-                    phases.append(phase)
+                    self.assertTrue(store._connection.in_transaction)
                     # The namespace preamble retained its original capacity.
                     # Reduce only the subsequent publication-read budget.
                     if mode == 'queries':
@@ -377,85 +297,42 @@ class ClosedReconciliationPrepareTests(unittest.TestCase):
                 core._exports['effect_enabled'].set_value(core._store, 1)
                 with self.assertRaises(LocalStorageError) as raised:
                     owner.prepare(binding=binding)
-                self.assertEqual(len(phases), 1)
-                self.assertIs(phases[0].failure, raised.exception)
-                self.assertFalse(phases[0].active)
-                self.assertTrue(hasattr(owner, '_prepare_counts'))
-                self.assertEqual(owner._prepare_counts[1], 3)
                 self.assertEqual(self.counter(core, 'responses'), 0)
                 self.assertFalse(store._connection.in_transaction)
                 before = self.counter(core, 'bindings')
                 with self.assertRaises(RuntimeError):
                     owner.prepare(binding=binding)
                 self.assertEqual(self.counter(core, 'bindings'), before)
-                with self.assertRaises(LocalStorageError) as repeated:
-                    phases[0].check()
-                self.assertIs(repeated.exception, raised.exception)
-
-    def test_foreign_thread_raw_select_poison_is_sticky(self):
-        held, phases, thread_errors, selected = [], [], [], []
+    def test_refuses_a_changed_file_after_the_original_index_was_read(self):
+        changed = []
         def effect():
-            core, _, store, _ = held[0]
-            phase = core._reconciliation_prepare
-            phases.append(phase)
-            self.assertTrue(phase.suspended)
-            before = store._connection._closed_statement_epoch
-            def foreign_read():
-                try:
-                    # Bypass subclass execute deliberately: the retained SQLite
-                    # trace must see activity even through a raw base-class API.
-                    selected.append(sqlite3.Connection.execute(
-                        store._connection, 'SELECT 1').fetchone())
-                except BaseException as error:
-                    thread_errors.append(error)
-            thread = Thread(target=foreign_read)
-            thread.start()
-            thread.join()
-            self.assertEqual(thread_errors, [])
-            self.assertEqual(selected, [(1,)])
-            self.assertGreater(store._connection._closed_statement_epoch, before)
+            os.utime(self.payload_path, ns=(1, 1))
+            changed.append(True)
             return 0
-        held.append(self.fixture(effect=effect))
-        core, binding, store, owner = held[0]
-        core._exports['effect_enabled'].set_value(core._store, 1)
-        with self.assertRaises(LocalStorageError) as raised:
+        core, binding, store, owner = self.fixture(effect=effect)
+        core._exports['effect_enabled'].set_value(core._store, 2)
+        with self.assertRaises(LocalFileError):
             owner.prepare(binding=binding)
-        self.assertEqual(len(phases), 1)
-        self.assertIs(phases[0].failure, raised.exception)
-        self.assertFalse(phases[0].active)
-        self.assertIsNone(store._connection._closed_prepare)
+        self.assertEqual(changed, [True])
+        self.assertEqual(self.counter(core, 'lookups'), 1)
         self.assertEqual(self.counter(core, 'responses'), 0)
-        with self.assertRaises(LocalStorageError) as repeated:
-            phases[0].check()
-        self.assertIs(repeated.exception, raised.exception)
+        self.assertIsNotNone(owner._lookup.pending_input)
+        self.assertFalse(store._connection.in_transaction)
 
-    def test_preentry_dispatch_customization_selects_legacy(self):
-        for target in ('core_instance', 'defining_class'):
-            with self.subTest(target=target):
-                core, binding, _, owner = self.fixture()
-                if target == 'core_instance':
-                    replacement = patch.object(core, '_call', core._call)
-                else:
-                    original = LocalByteStore._read_bytes_locked
-                    def customized(store, *args, **kwargs):
-                        return original(store, *args, **kwargs)
-                    replacement = patch.object(LocalByteStore, '_read_bytes_locked', customized)
-                with replacement:
-                    self.assertFalse(_prepare_supported(owner, binding))
-                    owner.prepare(binding=binding)
-                self.assertFalse(hasattr(owner, '_prepare_counts'))
-                self.assertEqual(self.counter(core, 'responses'), 1)
-
-    def test_maximum_fixed_receipt_metadata_is_funded(self):
-        self.assertGreater(_PREPARE_MAX_METADATA_BYTES, 0)
-        self.assertLessEqual(_PREPARE_MAX_METADATA_BYTES, _RECONCILIATION_PREPARE_BYTES)
+    def test_denied_original_publisher_stops_before_index_lookup(self):
+        core, binding, store, owner = self.fixture(publisher_namespace='denied')
+        with self.assertRaises(LocalCoreError):
+            owner.prepare(binding=binding)
+        self.assertEqual(self.counter(core, 'lookups'), 0)
+        self.assertEqual(self.counter(core, 'responses'), 0)
+        self.assertIsNone(owner._lookup.pending_input)
+        self.assertFalse(store._connection.in_transaction)
 
     def test_refused_output_cleanup_keeps_original_output_and_disallows_replay(self):
         core, binding, _, owner = self.fixture()
         core._exports['refuse_cleanup'].set_value(core._store, 1)
         with self.assertRaises((RuntimeError, ValueError)):
             owner.prepare(binding=binding)
-        self.assertTrue(hasattr(owner, '_prepare_counts'))
         output, = owner._projection.pending_outputs
         self.assertIs(core._loans[output.ticket], output)
         self.assertIn(output.ticket, core._inputs)

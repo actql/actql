@@ -25,6 +25,7 @@ pub fn issue_client_effect_local_source_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  before_body? : ((@encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[@publication.PublicationContract, ClientEffectSourceArtifactIssue] {
   let owner = materials.prepared
   if !physical_equal(materials.compilation.owner, owner) ||
@@ -78,5 +79,6 @@ pub fn issue_client_effect_local_source_artifact(
     max_bytes,
     max_nodes,
     max_depth,
+    before_body~,
   ).map_err(issue => Artifact(issue))
 }

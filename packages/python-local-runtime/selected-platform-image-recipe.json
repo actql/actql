@@ -1,7 +1,7 @@
 {
-  "wasmtime_version": "38.0.0",
-  "runtime_library_sha256": "751b4a5b1b586afcd763773cfd0ae3f1dc5c280e47e418c3934cc114cbd503de",
-  "runtime_library_bytes": 17258096,
+  "wasmtime_version": "51.0.0",
+  "runtime_library_sha256": "630a2ffb03cd3b07b9a7f0056b338c08d588e5afc4fdf91cee6ee61fd4a33aa7",
+  "runtime_library_bytes": 23602592,
   "provider_library_sha256": null,
   "provider_library_bytes": null,
   "engine_body": {
@@ -15,7 +15,6 @@
     "allocation": "pooling",
     "wasm_gc": false,
     "wasm_component_model": false,
-    "async_support": false,
     "memory_reservation": 16777216,
     "memory_guard_size": 0,
     "memory_reservation_for_growth": 0,

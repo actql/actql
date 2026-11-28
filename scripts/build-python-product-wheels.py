@@ -7,6 +7,7 @@ from email.parser import BytesParser
 import hashlib
 import importlib.util
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -14,15 +15,17 @@ import zipfile
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from actql_sdk._local_distribution import _LocalModelCrypto
     from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
-from python_release_cohort import (read_cohort, select_release_version,
+from python_release_cohort import (PYTHON_RUNTIME_REQUIREMENTS, read_cohort, select_release_version,
                                    release_project_metadata, release_runtime_metadata)
 from python_interface_inventory import wheel_source_correspondence
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 _DEFAULT_PACKAGING_TARGET = object()
+_PAIRED_PLATFORMS = ('linux-x64', 'darwin-arm64')
 
 
 def host_capacity_original(source: str, components: object) -> bytes:
@@ -69,7 +72,7 @@ def wheel_metadata(path: Path, name: str, version: str, *, target_platform: str 
         defaults = [value for value in requirements if ';' not in value]
         expected = {'actql': ['actql-sdk==' + version, 'actql-local-runtime==' + version],
                     'actql-sdk': ['httpx==0.28.1', 'rfc8785==0.1.4'],
-                    'actql-local-runtime': ['wasmtime==38.0.0']}[name]
+                    'actql-local-runtime': PYTHON_RUNTIME_REQUIREMENTS}[name]
         if sorted(defaults) != sorted(expected):
             raise ValueError('Python cohort wheel default dependencies mismatch')
         if name == 'actql-sdk' and ('local' in body.get_all('Provides-Extra', [])
@@ -92,18 +95,28 @@ def wheel_metadata(path: Path, name: str, version: str, *, target_platform: str 
 
 def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path, *,
                              selected_recipe: _SelectedImageRecipe | None = None,
-                             release_manifest: bytes | None = None) -> dict[str, str]:
+                             release_manifest: bytes | None = None,
+                             model_crypto: _LocalModelCrypto | None = None) -> dict[str, str]:
     """Match the shipped resource bytes to the same verified original artifact."""
-    from actql_sdk._local_distribution import _component_target
+    from actql_sdk._local_distribution import _component_target, _MODEL_CRYPTO_NOTICE
     if selected_recipe is not None:
         from actql_sdk._local_image_recipe import _SelectedImageRecipe
         if type(selected_recipe) is not _SelectedImageRecipe:
             raise ValueError('Unavailable original runtime wheel recipe')
     target = _component_target(selected_recipe.platform if selected_recipe is not None else 'darwin-arm64')
     with zipfile.ZipFile(wheel) as archive:
-        for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
+        names = ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
                      'client_host_wasm.wasm', target.duckdb_file,
-                     'LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'):
+                     'LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
+        crypto_files = () if model_crypto is None else (model_crypto.file, _MODEL_CRYPTO_NOTICE)
+        known_crypto = {_component_target(platform).model_crypto_file for platform in ('darwin-arm64', 'linux-x64')}
+        known_crypto.add(_MODEL_CRYPTO_NOTICE)
+        observed_crypto = {name.removeprefix('actql_local_runtime/') for name in archive.namelist()
+                           if name.startswith('actql_local_runtime/')
+                           and name.removeprefix('actql_local_runtime/') in known_crypto}
+        if observed_crypto != set(crypto_files):
+            raise ValueError('Python runtime wheel Model crypto member inventory mismatch')
+        for name in names + crypto_files:
             if name == 'artifact.json' and release_manifest is not None:
                 if archive.read('actql_local_runtime/' + name) != release_manifest:
                     raise ValueError('Python wheel release metadata differs from its fixed projection')
@@ -190,9 +203,7 @@ def copy_source(source: str, original: Path, target: Path) -> None:
     target.write_bytes(expected)
 
 
-def build(artifact: Path, destination: Path, *, version: str, bindings_source: Path | None = None,
-          native_libraries: Path | None = None,
-          target_platform: str | object = _DEFAULT_PACKAGING_TARGET) -> dict[str, object]:
+def build_source(version: str):
     release = select_release_version(version)
     version = str(release['pythonVersion'])
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
@@ -209,19 +220,10 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
         raise ValueError('Original Python runtime recipe is unavailable')
     recipe = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(recipe)
-    if target_platform is _DEFAULT_PACKAGING_TARGET:
-        target_platform = recipe._LOCAL_COMPONENT_PLATFORM
-    if type(target_platform) is not str:
-        raise ValueError('Select a named Python cohort target')
-    components = recipe.verify_artifact(artifact, target_platform=target_platform)
-    original_components = components
-    source_artifact_digest = sha256(artifact / 'artifact.json')
-    artifact_body = json.loads((artifact / 'artifact.json').read_bytes())
-    destination.mkdir()
-    stages = destination / 'stages'
-    stages.mkdir()
-    runtime = stages / 'python-local-runtime'
-    recipe.prepare(artifact, runtime, bindings_source=bindings_source, native_libraries=native_libraries, target_platform=target_platform)
+    return source, source_version, release, version, recipe
+
+
+def stage_shared_source(stages: Path, source: str) -> None:
     for package in ('python-product', 'python-sdk'):
         stage = stages / package
         stage.mkdir()
@@ -237,6 +239,140 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
         for name in tracked:
             path = ROOT / name
             copy_source(source, path, stage / path.relative_to(original))
+
+
+def paired_runtime_binding(artifacts: dict[str, Path], *, source: str, source_version: str,
+                           version: str, recipe) -> tuple[bytes, dict[str, tuple[object, str]]]:
+    if type(artifacts) is not dict or set(artifacts) != set(_PAIRED_PLATFORMS):
+        raise ValueError('Select the two original runtime artifacts for a shared Python wheel')
+    pins = {}
+    originals = {}
+    core_abi = None
+    module_sha256 = None
+    for platform in _PAIRED_PLATFORMS:
+        artifact = artifacts[platform]
+        selected = recipe.verify_artifact(artifact, target_platform=platform)
+        manifest = artifact / 'artifact.json'
+        before = manifest.read_bytes()
+        digest = hashlib.sha256(before).hexdigest()
+        metadata = json.loads(before)
+        if (selected.source_sha != source or selected.package_version != source_version
+                or selected.artifact_sha256 != digest or metadata['platform'] != platform
+                or selected.image_recipe.runtime_allocation != 'platform'
+                or type(metadata['core_abi']) is not int):
+            raise ValueError('Foreign original runtime for shared Python wheel')
+        if core_abi is not None and (metadata['core_abi'] != core_abi
+                                     or selected.module_sha256 != module_sha256):
+            raise ValueError('Original runtime pair ABI or Wasm module differs')
+        core_abi = metadata['core_abi']
+        module_sha256 = selected.module_sha256
+        versioned = release_runtime_metadata(before, source, source_version, version)
+        pins[platform] = hashlib.sha256(versioned).hexdigest()
+        originals[platform] = selected, digest
+    if len(set(pins.values())) != len(_PAIRED_PLATFORMS):
+        raise ValueError('Original runtime pair reuses one artifact')
+    binding = {'source_sha': source, 'package_version': version, 'core_abi': core_abi,
+               'runtime_allocation': 'platform', 'artifact_sha256_by_platform': pins}
+    return (json.dumps(binding, sort_keys=True, indent=2) + '\n').encode('ascii'), originals
+
+
+def build_shared_wheels(artifacts: dict[str, Path], destination: Path, *, version: str) -> dict[str, object]:
+    source, source_version, release, version, recipe = build_source(version)
+    binding, originals = paired_runtime_binding(artifacts, source=source,
+        source_version=source_version, version=version, recipe=recipe)
+    destination.mkdir()
+    stages = destination / 'stages'
+    stages.mkdir()
+    stage_shared_source(stages, source)
+    sdk = stages / 'python-sdk/src/actql_sdk/_local_release_binding.json'
+    sdk.write_bytes(binding)
+    wheels = destination / 'wheels'
+    wheels.mkdir()
+    records = []
+    for package, distribution in (('python-sdk', 'actql-sdk'), ('python-product', 'actql')):
+        metadata = stages / package / 'pyproject.toml'
+        metadata.write_bytes(release_project_metadata(metadata.read_bytes(), distribution, source_version, version))
+        before = set(wheels.glob('*.whl'))
+        subprocess.run([sys.executable, '-m', 'build', '--wheel', '--no-isolation',
+                        '--outdir', str(wheels), str(stages / package)], check=True)
+        created = set(wheels.glob('*.whl')) - before
+        if len(created) != 1:
+            raise ValueError('Shared Python build did not produce one wheel per package')
+        wheel = created.pop()
+        wheel_metadata(wheel, distribution, version)
+        if distribution == 'actql-sdk':
+            sdk_runtime_binding(wheel, binding)
+        wheel_source_correspondence(ROOT, wheel, 'packages/' + package + '/pyproject.toml', source, None)
+        records.append({'distribution': distribution, 'file': wheel.name,
+                        'bytes': wheel.stat().st_size, 'sha256': sha256(wheel)})
+    after, current = paired_runtime_binding(artifacts, source=source,
+        source_version=source_version, version=version, recipe=recipe)
+    if (after != binding or current != originals
+            or subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT)
+            or subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != source):
+        raise ValueError('Shared Python source or runtime originals changed during build')
+    receipt = {'source_sha': source, 'package_version': version, 'release_version': release['version'],
+               'binding': json.loads(binding), 'wheels': records}
+    (destination / 'shared-wheel-cohort.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    return receipt
+
+
+def read_shared_wheels(directory: Path, *, source: str, version: str,
+                       platform: str, artifact: str, core_abi: int) -> tuple[bytes, dict[str, tuple[Path, str]]]:
+    from actql_sdk._local_distribution import _read_file, _pairs, _selected_release_binding
+    body = json.loads(_read_file(directory / 'shared-wheel-cohort.json', maximum=65536), object_pairs_hook=_pairs)
+    if (type(body) is not dict or set(body) != {'source_sha', 'package_version', 'release_version', 'binding', 'wheels'}
+            or body['source_sha'] != source or body['package_version'] != version
+            or select_release_version(body['release_version'])['pythonVersion'] != version
+            or type(body['binding']) is not dict or 'artifact_sha256_by_platform' not in body['binding']
+            or body['binding'].get('core_abi') != core_abi
+            or type(body['wheels']) is not list or len(body['wheels']) != 2):
+        raise ValueError('Shared Python originals are not the selected versioned source')
+    binding = (json.dumps(body['binding'], sort_keys=True, indent=2) + '\n').encode('ascii')
+    if _selected_release_binding(binding, version, platform) != (source, artifact, True):
+        raise ValueError('Selected target runtime differs from the shared SDK original')
+    wheels = {}
+    for item in body['wheels']:
+        if (type(item) is not dict or set(item) != {'distribution', 'file', 'bytes', 'sha256'}
+                or item['distribution'] not in ('actql-sdk', 'actql') or item['distribution'] in wheels
+                or type(item['file']) is not str or not item['file'].endswith('.whl')
+                or Path(item['file']).name != item['file'] or type(item['bytes']) is not int
+                or item['bytes'] <= 0 or type(item['sha256']) is not str):
+            raise ValueError('Invalid shared Python wheel inventory')
+        wheel = directory / 'wheels' / item['file']
+        if wheel.is_symlink() or wheel.stat().st_size != item['bytes'] or sha256(wheel) != item['sha256']:
+            raise ValueError('Original shared Python wheel changed')
+        if item['distribution'] == 'actql-sdk':
+            sdk_runtime_binding(wheel, binding)
+        wheel_metadata(wheel, item['distribution'], version)
+        wheels[item['distribution']] = wheel, item['sha256']
+    if len({wheel for wheel, _ in wheels.values()}) != 2:
+        raise ValueError('Shared Python roles reuse a wheel member')
+    return binding, wheels
+
+
+def build(artifact: Path, destination: Path, *, version: str, bindings_source: Path | None = None,
+          native_libraries: Path | None = None, shared_wheels: Path | None = None,
+          target_platform: str | object = _DEFAULT_PACKAGING_TARGET) -> dict[str, object]:
+    source, source_version, release, version, recipe = build_source(version)
+    if target_platform is _DEFAULT_PACKAGING_TARGET:
+        target_platform = recipe._LOCAL_COMPONENT_PLATFORM
+    if type(target_platform) is not str:
+        raise ValueError('Select a named Python cohort target')
+    from actql_sdk._local_distribution import _requires_paired_platform_runtime
+    components = recipe.verify_artifact(artifact, target_platform=target_platform)
+    if (components.image_recipe.runtime_allocation == 'platform'
+            and _requires_paired_platform_runtime(version) and shared_wheels is None):
+        raise ValueError('Select the original shared SDK and facade wheels for this runtime')
+    original_components = components
+    source_artifact_digest = sha256(artifact / 'artifact.json')
+    artifact_body = json.loads((artifact / 'artifact.json').read_bytes())
+    destination.mkdir()
+    stages = destination / 'stages'
+    stages.mkdir()
+    runtime = stages / 'python-local-runtime'
+    recipe.prepare(artifact, runtime, bindings_source=bindings_source, native_libraries=native_libraries, target_platform=target_platform)
+    stage_shared_source(stages, source)
     transforms = []
     for package, distribution in [('python-product', 'actql'), ('python-sdk', 'actql-sdk'),
                                   ('python-local-runtime', 'actql-local-runtime')]:
@@ -265,6 +401,7 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
             or components.image_sha256 != original_components.image_sha256
             or components.image_bytes != original_components.image_bytes
             or components.engine_recipe_sha256 != original_components.engine_recipe_sha256
+            or components.model_crypto != original_components.model_crypto
             or components.image_recipe != replace(original_components.image_recipe, package_version=version)):
         raise ValueError('Python release staging changed original runtime components or recipe')
     artifact_digest = sha256(manifest)
@@ -278,6 +415,12 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
         binding_body['host_capacity_sha256'] = hashlib.sha256(capacity).hexdigest()
     binding = (json.dumps(binding_body,
         sort_keys=True, indent=2) + '\n').encode('ascii')
+    selected_shared = {}
+    if shared_wheels is not None:
+        if capacity is not None:
+            raise ValueError('Shared Python wheels require both original platform allocators')
+        binding, selected_shared = read_shared_wheels(shared_wheels, source=source, version=version,
+            platform=target_platform, artifact=artifact_digest, core_abi=artifact_body['core_abi'])
     (stages / 'python-sdk/src/actql_sdk/_local_release_binding.json').write_bytes(binding)
     if capacity is not None:
         (stages / 'python-sdk/src/actql_sdk/_local_host_capacity.json').write_bytes(capacity)
@@ -288,8 +431,16 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
                                   ('python-local-runtime', 'actql-local-runtime'),
                                   ('python-product', 'actql')]:
         before = set(wheels.glob('*.whl'))
-        subprocess.run([sys.executable, '-m', 'build', '--wheel', '--no-isolation',
-                        '--outdir', str(wheels), str(stages / package)], check=True)
+        if distribution in selected_shared:
+            original, digest = selected_shared[distribution]
+            staged = wheels / original.name
+            with original.open('rb') as source_wheel, staged.open('xb') as target_wheel:
+                shutil.copyfileobj(source_wheel, target_wheel, length=65536)
+            if sha256(staged) != digest:
+                raise ValueError('Shared Python wheel changed while borrowing its original')
+        else:
+            subprocess.run([sys.executable, '-m', 'build', '--wheel', '--no-isolation',
+                            '--outdir', str(wheels), str(stages / package)], check=True)
         created = set(wheels.glob('*.whl')) - before
         if len(created) != 1:
             raise ValueError('Python cohort build did not create one wheel per package')
@@ -302,7 +453,8 @@ def build(artifact: Path, destination: Path, *, version: str, bindings_source: P
                 sdk_host_capacity(wheel, capacity)
         if distribution == 'actql-local-runtime':
             verified_components = runtime_wheel_components(wheel, artifact, runtime,
-                selected_recipe=components.image_recipe, release_manifest=release_manifest)
+                selected_recipe=components.image_recipe, release_manifest=release_manifest,
+                model_crypto=components.model_crypto)
         wheel_source_correspondence(ROOT, wheel,
             'packages/' + package + '/pyproject.toml', source, verified_components)
         records.append({'distribution': distribution, 'file': wheel.name,
@@ -337,7 +489,10 @@ if __name__ == '__main__':
     from actql_sdk._local_distribution import _LOCAL_COMPONENT_PLATFORM, _LOCAL_COMPONENT_PLATFORMS
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--artifact-directory', type=Path, required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--artifact-directory', type=Path)
+    mode.add_argument('--paired-runtime-artifact', nargs=2, action='append', metavar=('PLATFORM', 'ARTIFACT'))
+    parser.add_argument('--shared-wheels', type=Path)
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--version', required=True, help='Explicit complete SemVer; mapped by the shared release parser')
     parser.add_argument('--bindings-source', type=Path)
@@ -345,6 +500,13 @@ if __name__ == '__main__':
     parser.add_argument('--target-platform', choices=_LOCAL_COMPONENT_PLATFORMS, default=_LOCAL_COMPONENT_PLATFORM,
                         help='Original artifact target; not an execution-platform or new wheel-tag permission')
     arguments = parser.parse_args()
-    print(json.dumps(build(arguments.artifact_directory, arguments.destination,
-        version=arguments.version, bindings_source=arguments.bindings_source, native_libraries=arguments.native_libraries,
-        target_platform=arguments.target_platform)))
+    if arguments.paired_runtime_artifact is not None:
+        selected = {platform: Path(location) for platform, location in arguments.paired_runtime_artifact}
+        if len(selected) != len(arguments.paired_runtime_artifact) or arguments.shared_wheels is not None:
+            parser.error('Choose exactly two distinct original runtime artifacts')
+        print(json.dumps(build_shared_wheels(selected, arguments.destination, version=arguments.version)))
+    else:
+        print(json.dumps(build(arguments.artifact_directory, arguments.destination,
+            version=arguments.version, bindings_source=arguments.bindings_source,
+            native_libraries=arguments.native_libraries, shared_wheels=arguments.shared_wheels,
+            target_platform=arguments.target_platform)))

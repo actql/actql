@@ -474,6 +474,15 @@ pub fn[P] complete_trusted_output(
   port : TrustedOutputPort[P],
   proof : P,
 ) -> Result[CompletedOutput, TrustedOutputIssue] {
+  complete_checked_trusted_output(port, proof, readmitted=false)
+}
+
+///|
+fn[P] complete_checked_trusted_output(
+  port : TrustedOutputPort[P],
+  proof : P,
+  readmitted~ : Bool,
+) -> Result[CompletedOutput, TrustedOutputIssue] {
   guard (port.verify)(proof) is Some(rows) else { return Err(Unverified) }
   let owner = completion_preparation_owner(port.generated)
   if !physical_equal(rows.owner, owner) || rows.target != port.target {
@@ -508,7 +517,7 @@ pub fn[P] complete_trusted_output(
   }
   let completion : CompletedSequence = {
     result_identity: Ref(()),
-    readmitted: false,
+    readmitted,
     serialization_output: port.generated.serialization_output,
     contracts: port.generated.contracts,
     sequence: port.generated.sequence,

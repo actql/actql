@@ -22,7 +22,8 @@ from python_release_cohort import read_cohort  # noqa: E402
 from python_wasm_table_geometry import defined_table_limits  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_distribution import (LocalComponents, WASMTIME_VERSION, inspect_local_components,
-    _LOCAL_COMPONENT_PLATFORM, _LOCAL_COMPONENT_PLATFORMS, _OriginalComponentFile, _component_target,
+    _LOCAL_COMPONENT_PLATFORM, _LOCAL_COMPONENT_PLATFORMS, _MODEL_CRYPTO_NOTICE,
+    _OriginalComponentFile, _component_target,
     _inspect_local_components_for_packaging, _read_file)  # noqa: E402
 if TYPE_CHECKING:
     from actql_sdk._local_image_recipe import _SelectedImageRecipe
@@ -158,22 +159,24 @@ def _linux_version_requirements(descriptor: int, header: bytes, size: int) -> li
         return value[:end].decode('ascii', errors='strict')
 
     names: list[str] = []
+    record_offsets: list[int] = []
     position = 0
     for index in range(selected[7]):
         if position + 16 > len(data):
             raise ValueError('Incomplete Linux version requirement record')
+        record_offsets.append(position)
         version, auxiliaries, filename, auxiliary, following = struct.unpack_from('<HHIII', data, position)
         if (version != 1 or not 1 <= auxiliaries <= 4096 - len(names)
                 or auxiliary < 16 or (following != 0 and following < 16)):
             raise ValueError('Invalid Linux version requirement record')
         text(filename)
-        boundary = position + following if following else len(data)
-        if not position + 16 <= boundary <= len(data):
+        if following and position + following > len(data) - 16:
             raise ValueError('Invalid Linux version requirement record boundary')
         cursor = position + auxiliary
         for child in range(auxiliaries):
-            if not position + 16 <= cursor <= boundary - 16:
+            if not position + 16 <= cursor <= len(data) - 16:
                 raise ValueError('Invalid Linux version requirement auxiliary offset')
+            record_offsets.append(cursor)
             _, _, _, name, next_auxiliary = struct.unpack_from('<IHHII', data, cursor)
             names.append(text(name))
             if child + 1 == auxiliaries:
@@ -185,6 +188,12 @@ def _linux_version_requirements(descriptor: int, header: bytes, size: int) -> li
         if (index + 1 == selected[7]) != (following == 0):
             raise ValueError('Inconsistent Linux version requirement count')
         position += following
+    # Linkers may put all requirement headers before all auxiliary records.
+    # Both chains are independently bounded by the same section. Their actual
+    # records must still occupy disjoint bytes, including across libraries.
+    record_offsets.sort()
+    if any(right - left < 16 for left, right in zip(record_offsets, record_offsets[1:])):
+        raise ValueError('Overlapping Linux version requirement records')
     return names
 
 
@@ -415,6 +424,18 @@ def verify_artifact(artifact: Path, *, target_platform: str = _LOCAL_COMPONENT_P
             original_sha256=components.duckdb_sha256, original_bytes=components.duckdb.stat().st_size)
     else:
         library_target(components.duckdb, target_platform=target_platform)
+    if components.model_crypto is not None:
+        selected = components.model_crypto
+        crypto_pin = ROOT / 'packages/python-local-runtime/native/crypto-component/source.json'
+        if selected.notice_sha256 != json.loads(_read_file(crypto_pin, maximum=65536))['license_sha256']:
+            raise ValueError('Python Local Model crypto notice differs from its upstream original')
+        library = artifact / selected.file
+        if target_platform == 'linux-x64':
+            library_target(library, target_platform=target_platform,
+                           original_sha256=selected.sha256, original_bytes=selected.bytes)
+        else:
+            library_target(library, target_platform=target_platform,
+                           identity=('@rpath/' + selected.file).encode('ascii'), rpaths=())
     # Require the official notice bytes, not merely a manifest agreeing with
     # missing or unrelated notices. Component source/hash receipts stay separate.
     for name, original in notice_originals().items():
@@ -441,6 +462,8 @@ def prepare(artifact: Path, destination: Path, *, bindings_source: Path | None =
     files = ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
              'client_host_wasm.wasm', _component_target(target_platform).duckdb_file, 'LICENSE',
              'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
+    if components.model_crypto is not None:
+        files += (components.model_crypto.file, _MODEL_CRYPTO_NOTICE)
     for name in files:
         shutil.copyfile(artifact / name, target / name)
         if name.endswith('LICENSE') or name.endswith('NOTICE'):
@@ -455,7 +478,8 @@ def prepare(artifact: Path, destination: Path, *, bindings_source: Path | None =
         private_runtime = stage_private_runtime(components, bindings_source, native_libraries, target)
     shutil.copyfile(target / 'WASMTIME-LICENSE', destination / 'WASMTIME-LICENSE')
     staged = _inspect_local_components_for_packaging(target, target_platform=target_platform, package_version=components.package_version)
-    if ((staged.source_sha, staged.package_version, staged.module_sha256,
+    if (staged.model_crypto != components.model_crypto or
+            (staged.source_sha, staged.package_version, staged.module_sha256,
          staged.duckdb_sha256, staged.duckdb_version, staged.image_sha256,
          staged.image_bytes, staged.engine_recipe_sha256) !=
             (components.source_sha, components.package_version, components.module_sha256,

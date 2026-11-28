@@ -215,17 +215,27 @@ fn pin_installed_effect_sources_original(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  let pins = @strategy.prepare_captured_effect_pin_admission(run)
+  control.dependency_pin_admission = Some(pins)
   let inputs = match
     @strategy.pin_censused_captured_effect_sources(
       census,
       Some(configured_max_pins),
+      pins,
     ) {
     Ok(value) => value
-    Err(_) => return Err(Unsupported)
+    Err(_) => {
+      // Preserve the original pin refusal. If quiescence cannot finish, the
+      // original control still owns the exact pending acquisition.
+      retire_installed_effect_dependency_inputs(control) |> ignore
+      return Err(Unsupported)
+    }
   }
-  // Before any later current/error can reject, retain this SAME custody for
-  // parent quiescence. Node owns normal release after a successful return.
   control.dependency_inputs = Some(inputs)
+  if !@strategy.complete_captured_effect_pin_admission(pins, inputs) {
+    return Err(ForeignOriginal)
+  }
+  control.dependency_pin_admission = None
   match
     check_installed_effect_operation_original(
       owner,
@@ -241,4 +251,28 @@ fn pin_installed_effect_sources_original(
     return Err(ForeignOriginal)
   }
   Ok(inputs)
+}
+
+///|
+// Called before captured tasks/Source Reads can close. A provisional result
+// stored immediately before adoption still belongs to the acquisition journal.
+fn retire_installed_effect_dependency_inputs(
+  control : ClientEffectOperationControls,
+) -> Bool {
+  if control.dependency_pin_admission is Some(pins) {
+    match @strategy.cancel_captured_effect_pin_admission(pins) {
+      Ok(false) => control.dependency_inputs = None
+      Ok(true) => ()
+      Err(_) => return false
+    }
+    control.dependency_pin_admission = None
+  }
+  if control.dependency_inputs is Some(inputs) {
+    @strategy.release_captured_effect_inputs(inputs) |> ignore
+    if !@strategy.captured_effect_inputs_closed(inputs) {
+      return false
+    }
+    control.dependency_inputs = None
+  }
+  true
 }

@@ -5,7 +5,7 @@
 struct ClientStaticEffectExplanationOriginal {
   prepared : PreparedClientEffectComputation
   compiled : ClientEffectCompilation
-  map : @canonical.CanonicalValue
+  map : @publication.RunEvidenceValue
   declarations : ClientEffectStaticDeclarationSet
 }
 
@@ -28,6 +28,7 @@ pub fn capture_client_static_effect_explanation_original(
   max_nodes : Int,
   max_depth : Int,
   computation_wire? : Ref[String?]? = None,
+  debug_entry? : Bool = false,
 ) -> Result[
   (ClientStaticEffectExplanationOriginal, String),
   ClientStaticExplanationSourceIssue,
@@ -43,12 +44,12 @@ pub fn capture_client_static_effect_explanation_original(
       64,
       10000,
       retained_explanation=Some(retained),
+      debug_entry~,
     ) {
     Ok(wire) => wire
     Err(issue) => return Err(issue)
   }
-  guard retained.val is Some((value, declarations, component)) &&
-    @canonical.object_field(value, "logical_map") is Some(map) else {
+  guard retained.val is Some((map, declarations, component)) else {
     return Err(ForeignOriginal)
   }
   if computation_wire is Some(selected) {
@@ -68,13 +69,14 @@ pub fn measure_client_static_effect_explanation_facts(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientExplanationFactsConstruction, ClientExplanationFactsIssue] {
-  if !client_static_effect_explanation_matches(original, prepared, compiled) {
+  guard client_static_effect_explanation_matches(original, prepared, compiled) &&
+    @publication.interactive_logical_map_original(original.map) is Some(map) else {
     return Err(ForeignOriginal)
   }
   measure_client_explanation_facts_from_map(
     compiled.compiled.owner,
     compiled.compiled.compiled_plan,
-    original.map,
+    map,
     max_bytes,
     max_nodes,
     max_depth,
@@ -93,13 +95,14 @@ pub fn seal_client_static_effect_explanation_facts(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@publication.RunEvidenceValue, ClientExplanationFactsIssue] {
-  if !client_static_effect_explanation_matches(original, prepared, compiled) {
+  guard client_static_effect_explanation_matches(original, prepared, compiled) &&
+    @publication.interactive_logical_map_original(original.map) is Some(map) else {
     return Err(ForeignOriginal)
   }
   seal_client_explanation_facts_from_map(
     compiled.compiled.owner,
     compiled.compiled.compiled_plan,
-    original.map,
+    map,
     max_bytes,
     max_nodes,
     max_depth,
@@ -115,6 +118,20 @@ fn client_static_effect_explanation_matches(
   physical_equal(original.prepared, prepared) &&
   physical_equal(original.compiled, compiled) &&
   physical_equal(compiled.owner, prepared)
+}
+
+///|
+/// The funded Request can select this sealed Map for transfer to its Run.
+pub fn client_static_effect_explanation_logical_map(
+  original : ClientStaticEffectExplanationOriginal,
+  prepared : PreparedClientEffectComputation,
+  compiled : ClientEffectCompilation,
+) -> @publication.RunEvidenceValue? {
+  if client_static_effect_explanation_matches(original, prepared, compiled) {
+    Some(original.map)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -231,11 +248,12 @@ pub fn write_client_static_effect_explanation_context(
   writer : @encode.Writer,
   max_work : Int,
 ) -> Result[Unit, ClientStaticExplanationSourceIssue] {
-  if !client_static_effect_explanation_matches(original, prepared, compiled) {
+  guard client_static_effect_explanation_matches(original, prepared, compiled) &&
+    @publication.interactive_logical_map_original(original.map) is Some(map) else {
     return Err(ForeignOriginal)
   }
   write_client_static_explanation_context(
-    original.map,
+    map,
     compiled.compiled.owner,
     compiled.compiled.compiled_plan,
     Some(compiled.compiled.infers),

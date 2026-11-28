@@ -5,6 +5,7 @@ pub struct ClientEffectCompilationConstructionInput {
   priv owner : PreparedClientEffectComputation
   priv components : Array[ClientInferPlanGraph]
   priv normalization : ClientEffectNormalizationInventory?
+  priv first_file : Bool
 }
 
 ///|
@@ -32,13 +33,32 @@ pub fn client_effect_compilation_construction_matches(
 }
 
 ///|
-// The model component wrappers are original checker/graph outputs. This finite
-// entrance deliberately leaves unmeasured serialization-only families to the
-// existing conservative caller recipe; it never changes their admission.
+/// The original first installed File compiler uses no Model component.
+pub fn client_first_file_effect_compilation_measurement(
+  owner : PreparedClientEffectComputation,
+  normalization : ClientEffectNormalization,
+) -> ClientEffectCompilationConstructionInput? {
+  guard prepared_client_effect_normalization_evidence(owner, normalization)
+    is Ok(_) &&
+    prepared_client_effect_infer_count(owner) == Some(0) &&
+    prepared_client_effect_serialization_occurrences(owner).is_empty() else {
+    return None
+  }
+  Some({
+    owner,
+    components: [],
+    normalization: Some(normalization.inventory),
+    first_file: true,
+  })
+}
+
+///|
+// Model component wrappers remain the actual checker/graph outputs. The
+// zero-component File view borrows the same original Effect graph and source.
 fn client_effect_construction_view(
   input : ClientEffectCompilationConstructionInput,
 ) -> Result[PreparedClientProgram, ClientValuesExecutablePlanIssue] {
-  if input.components.is_empty() {
+  if input.components.is_empty() && !input.first_file {
     return Err(TaskGraph(UnsupportedGraph))
   }
   let result = if input.components.length() == 1 {

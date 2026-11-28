@@ -11,7 +11,7 @@ type Completion = {code: number | null; signal: NodeJS.Signals | null; endedAt: 
 type NativeInstallRecord = {
   command: string; args: readonly string[]; pid: number | null; startedAt: string;
   stdout: string; stderr: string; terminationReason?: 'original-child-timeout' | 'output-limit';
-  stdinFailure?: string; spawnFailure?: string; closeObservationFailure?: string;
+  stdinFailure?: string | undefined; spawnFailure?: string | undefined; closeObservationFailure?: string;
   closeObservationAcknowledged?: boolean; close?: Awaited<ReturnType<typeof observeChildFds>>;
 };
 type CloseMessage = {stage?: string; pid?: number; clientCloseReturned?: boolean; hostCloseReturned?: boolean};
@@ -45,15 +45,17 @@ export async function observeChildFds(child: RunningChild, state: string) {
 }
 
 export async function runNativeInstallCommand(command: string, args: readonly string[],
-  {cwd, env, state, expectedCode = 0, expectedError}: {
+  {cwd, env, state, expectedCode = 0, expectedError, timeoutMs = 180_000}: {
     cwd?: string; env?: NodeJS.ProcessEnv; state?: string; expectedCode?: number; expectedError?: string;
+    timeoutMs?: number;
   } = {}) {
+  assert(Number.isSafeInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 600_000, 'Invalid installed consumer timeout');
   let observation = Promise.resolve(), childRecord!: NativeInstallRecord;
   await new Promise<void>((resolveRun, rejectRun) => {
     const child = spawn(command, args, {cwd, env, stdio: ['pipe', 'pipe', 'pipe']});
     childRecord = {command, args, pid: child.pid ?? null, startedAt: new Date().toISOString(), stdout: '', stderr: ''};
     let bytes = 0, lines = '', observing = false;
-    const timer = setTimeout(() => {childRecord.terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, 180_000);
+    const timer = setTimeout(() => {childRecord.terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, timeoutMs);
     child.stdin.on('error', failure => {childRecord.stdinFailure = (failure as NodeJS.ErrnoException).code;});
     child.on('error', failure => {childRecord.spawnFailure = (failure as NodeJS.ErrnoException).code;});
     const output = (chunk: Buffer, error: boolean) => {

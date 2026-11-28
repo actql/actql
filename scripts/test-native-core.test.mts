@@ -1042,11 +1042,14 @@ function coreInvocationRoles(records: CommandRecord[], target: string) {
       assert.equal(args[args.indexOf('--target') + 1], target);
       assert(args.includes('--deny-warn'));
       if (!args.includes('--build-only')) {
+        assert.equal(target, 'js');
         requireFullSelection(args.slice(1));
         return 'portable-suite';
       }
       assert.equal(target, 'wasm');
-      assert(args.includes('--release') && args.includes('src/client_host_wasm'));
+      assert.match(args[7] ?? '', /^[1-9][0-9]*$/u);
+      assert.deepEqual(args, ['test', '--target', 'wasm', '--release', '--build-only', '--deny-warn',
+        '-j', args[7], 'src/client_host_wasm', '--filter', '*exported validation reaches*']);
       return 'wasm-counter-build';
     }
     assert.equal(command, 'node');
@@ -1071,6 +1074,11 @@ function coreInvocationRoles(records: CommandRecord[], target: string) {
       return 'native-full';
     }
     assert.equal(target, 'wasm');
+    if (args[0] === 'scripts/ci-moon-tests.mjs') {
+      assert.deepEqual(args, ['scripts/ci-moon-tests.mjs', 'wasm', '--all']);
+      return 'wasm-debug-suite';
+    }
+    assert.equal(args.length, 4);
     assert.equal(args[0], 'scripts/test-python-local-metadata-wasm.mjs');
     assert.equal(args[1], '_build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm');
     assert.equal(args[2], '_build/wasm/release/test/client_host_wasm/__whitebox_test_info.json');
@@ -1078,11 +1086,11 @@ function coreInvocationRoles(records: CommandRecord[], target: string) {
     return args[3];
   });
   const expected = target === 'native' ? ['native-prerequisite', 'native-full'] :
-    ['portable-suite', ...(target === 'wasm' ? ['wasm-counter-build', ...wasmCases] : [])];
+    target === 'wasm' ? ['wasm-debug-suite', 'wasm-counter-build', ...wasmCases] : ['portable-suite'];
   assert.deepEqual([...roles].sort(), expected.sort(), 'Missing, duplicate or foreign Core obligation');
   if (target === 'native') assert(roles.indexOf('native-prerequisite') < roles.indexOf('native-full'));
   if (target === 'wasm') {
-    assert(roles.indexOf('portable-suite') < roles.indexOf('wasm-counter-build'));
+    assert(roles.indexOf('wasm-debug-suite') < roles.indexOf('wasm-counter-build'));
     for (const file of wasmCases) assert(roles.indexOf('wasm-counter-build') < roles.indexOf(file));
   }
   return roles;
@@ -2064,14 +2072,30 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
         env:{...environment,ACTQL_FIXTURE_FAIL_FULL:'1'},
       });
       assert.equal(failed.error,undefined);assert.equal(failed.signal,null);assert.equal(failed.status,7);
-    }else{
-      for(const suffix of [['--filter=one'],['--index','0'],['src/other'],['src'],
-        ['--target','native'],['--target=other']])
-        refuses('portable-suite',args=>args.push(...suffix));
-      assert(records.every(record=>record.native==='1'));
-      assert(calls.every(args=>!args.includes('--strip')));
-      const portable=calls[roles.indexOf('portable-suite')];
-      assert.equal(portable[portable.indexOf('-j')+1],'3');
+    } else {
+      assert(records.every(record => record.native === '1'));
+      assert(calls.every(args => !args.includes('--strip')));
+      const invalidScopes = [['--filter=one'], ['--index', '0'], ['src/other'], ['src'],
+        ['--target', 'native'], ['--target=other']];
+      if (target === 'wasm') {
+        for (const suffix of invalidScopes) refuses('wasm-debug-suite', args => args.push(...suffix));
+        refuses('wasm-debug-suite', args => { args.pop(); });
+        refuses('wasm-debug-suite', args => { args[1] = 'js'; });
+        const release = calls[roles.indexOf('wasm-counter-build')];
+        assert.equal(release[release.indexOf('-j') + 1], '3');
+        refuses('wasm-counter-build', args => { args[3] = '--debug'; });
+        refuses('wasm-counter-build', args => { args[8] = 'src/other'; });
+        refuses('wasm-counter-build', args => { args[10] = '*other*'; });
+        refuses('saved_lookup_validation_dispatch_wbtest.mbt', args => {
+          args[1] = args[1].replace('/release/', '/debug/');
+        });
+        const [debug, build, ...cases] = records;
+        assert.throws(() => coreInvocationRoles([build, debug, ...cases], target));
+      } else {
+        for (const suffix of invalidScopes) refuses('portable-suite', args => args.push(...suffix));
+        const portable = calls[roles.indexOf('portable-suite')];
+        assert.equal(portable[portable.indexOf('-j') + 1], '3');
+      }
     }
   }
 });

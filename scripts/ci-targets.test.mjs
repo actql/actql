@@ -1744,7 +1744,10 @@ test('large CI plans launch both original portable Core step command sequences',
         PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: calls}});
     assert.equal(child.status, 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
-    assert.deepEqual(observed[0].args, ['test', '--target', target, '--deny-warn', '-j', '2']);
+    const {command, args} = observed[0];
+    assert.deepEqual([command, ...args], target === 'wasm'
+      ? ['node', 'scripts/ci-moon-tests.mjs', 'wasm', '--all']
+      : ['moon', 'test', '--target', 'js', '--deny-warn', '-j', '2']);
     if (target === 'js') assert(observed.every(entry => entry.command === 'moon'));
     // The Wasm branch below checks each actual required case/argument and
     // producer prerequisite; an old number of node calls is not its contract.
@@ -2319,15 +2322,50 @@ test('a wheel aggregate requires each selected same-source platform result and s
   }
 });
 
-test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
+test('normal Python wheels are mandatory for full profiles independently of optional native macOS', t => {
   const job = jobs['python-wheels'];
   assert.equal(job['runs-on'], '${{ matrix.runner }}');
   assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(scheduled('python-wheels', {'select-targets': {result: 'success', outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', macos: 'false'}},
     lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
-  assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
+  const platformAdmission = job.steps.find(step => step.env?.EXPECTED_SYSTEM);
+  const portable = job.steps.filter(step => step.run?.includes('scripts/prepare-python-model-crypto.py'));
+  const wheel = job.steps.find(step => step.id === 'python-normal-cohort');
+  assert(platformAdmission && portable.length === 1 && wheel);
+  assert(job.steps.indexOf(platformAdmission) < job.steps.indexOf(portable[0]));
+  assert(job.steps.indexOf(portable[0]) < job.steps.indexOf(wheel));
+  for (const step of [...portable, wheel]) {
+    assert.equal(step.if, undefined);
+    assert.equal(step['continue-on-error'], undefined);
+  }
+  const root = mkdtempSync(join(tmpdir(), 'python-wheel-normal-recipe-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const python = join(root, 'python3');
+  writeFileSync(python, '#!/bin/sh\nprintf "%s\\0" "$@"\n');
+  chmodSync(python, 0o755);
+  const wheelRoot = join(root, 'original wheel platform');
+  const cryptoRoot = join(wheelRoot, 'python-model-crypto');
+  const run = step => {
+    const result = spawnSync('/bin/bash', ['-eu', '-c', step.run], {
+      env: {...process.env, PATH: root + ':' + process.env.PATH, RUNNER_TEMP: wheelRoot, GITHUB_SHA: head},
+      encoding: 'utf8', timeout: 5000,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.split('\0').slice(0, -1);
+  };
+  assert.deepEqual(run(portable[0]), ['-B', 'scripts/prepare-python-model-crypto.py',
+    '--source', head, '--destination', cryptoRoot]);
+  assert.deepEqual(run(wheel), ['-B', 'scripts/ci-python-wheels.py', '--source', head,
+    '--destination', join(wheelRoot, 'python-wheel-acceptance'),
+    '--model-crypto-preparation', join(cryptoRoot, 'component')]);
   assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
   const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
+  assert.deepEqual(pythonWheelMatrix(selection).include.map(row => row.platform).sort(), ['darwin-arm64', 'linux-x64']);
+  for (const platform of ['darwin-arm64', 'linux-x64']) {
+    const needs = results(selection);
+    delete needs['python-wheels'].outputs[platform];
+    assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), new RegExp(platform));
+  }
   for (const result of ['failure', 'cancelled', 'skipped']) {
     const needs = results(selection); needs['python-wheels'].result = result;
     assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), /python-wheels/);

@@ -88,7 +88,7 @@ fn begin_restored_model_slot(
       Err(issue) => return @bounded.Failed(InvocationEvidence(issue), 1, 1)
       Ok(_) => ()
     }
-    return accept_failed_model_slot(state, failure)
+    return accept_failed_model_slot(state, failure, restored=true)
   }
   guard read.storage.bundle is Some(bundle) else {
     return @bounded.Failed(OutputIdentity, 1, 1)

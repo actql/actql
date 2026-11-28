@@ -42,7 +42,7 @@ fn journal_append_legacy_fixture(
     definition,
     dispatch_reserved: false,
     physical_start_claimed: false,
-    cancellation_requested: false,
+    cancellation_head: None,
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,

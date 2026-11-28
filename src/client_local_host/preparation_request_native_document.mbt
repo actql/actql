@@ -451,6 +451,7 @@ pub fn[I] request_prepared_static_plan_view(
   max_depth : Int,
   infers? : Array[@publication_host.ClientInferPlanGraph] = [],
   inspect_installed? : Bool = false,
+  effect_debug_entry_installed? : Bool = false,
 ) -> Result[String, ClientRequestTerminalIssue] {
   if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(Preparation(Policy))
@@ -567,8 +568,28 @@ pub fn[I] request_prepared_static_plan_view(
             Err(_) => return Err(Preparation(Policy))
             Ok(value) => value
           }
+          let debug_entry = if effect_debug_entry_installed && infers.is_empty() {
+            match
+              static_effect_debug_entry_probe(
+                owner.effect_capacity.unwrap(),
+                input,
+                prepared,
+                nodes,
+                nodes,
+              ) {
+              Ok((value, _)) => value
+              Err(issue) => return Err(Preparation(Capacity(issue)))
+            }
+          } else {
+            false
+          }
           @publication_host.client_effectful_static_plan_view(
-            prepared, compiled, bytes, nodes, depth,
+            prepared,
+            compiled,
+            bytes,
+            nodes,
+            depth,
+            debug_entry~,
           ).map_err(_ => Preparation(Policy))
         }
       }

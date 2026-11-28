@@ -411,7 +411,8 @@ fn[I] complete_request_program_preparation_owned(
   input : I,
   plan : ClientInstalledManagedSourceFreePreparation,
 ) -> Result[Unit, ClientRequestPreparationIssue] {
-  guard owner.phase == ProgramPlanReserved &&
+  guard !owner.debug_plan_read &&
+    owner.phase == ProgramPlanReserved &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
     plan.owner is Pure(original_prepared) &&
@@ -760,6 +761,7 @@ fn[I] prepare_request_program_module_body_owned(
   )? = None,
   runtime_compilation_limits? : @publication_host.ClientPureCompilationLimits? = None,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
+  guard !owner.debug_plan_read else { return Err(Preparation(WrongPhase)) }
   let prepared = match
     retain_request_program_module_inputs(
       owner,
@@ -965,6 +967,7 @@ fn[I] prepare_request_compilation_owned(
   prepared : @publication_host.PreparedClientProgram,
   manifests : @publication_host.ClientCompilationManifests,
   compilation_limits : @publication_host.ClientPureCompilationLimits,
+  reserve_invocation_metadata? : Bool = true,
 ) -> Result[
   @publication_host.ClientRunCompilation,
   ClientRequestProgramPlanIssue,
@@ -1293,10 +1296,13 @@ fn[I] prepare_request_compilation_owned(
       Err(issue) => return Err(Preparation(Capacity(issue)))
       Ok(_) => ()
     }
-    if domain is Some(RequestModelCompilation(_, _, _, _)) ||
-      domain is Some(RequestModelsCompilation(_, _, _, _)) ||
-      domain is Some(RequestSerializationCompilation(_, _, _, _)) ||
-      domain is Some(RequestKeyedSerializationCompilation(_, _, _, _)) {
+    if reserve_invocation_metadata &&
+      (
+        domain is Some(RequestModelCompilation(_, _, _, _)) ||
+        domain is Some(RequestModelsCompilation(_, _, _, _)) ||
+        domain is Some(RequestSerializationCompilation(_, _, _, _)) ||
+        domain is Some(RequestKeyedSerializationCompilation(_, _, _, _))
+      ) {
       // These actual callers issue their first compiled Run/Definition just
       // after receiving this artifact. Back that co-held metadata NOW, rather
       // than treating a raw TaskCompilation as constructor funding.
@@ -1433,7 +1439,8 @@ pub fn[I] begin_request_program_managed_run(
   owner : ClientRequestPreparation[I],
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
-  guard owner.phase == ProgramBodyReady &&
+  guard !owner.debug_plan_read &&
+    owner.phase == ProgramBodyReady &&
     owner.input is Some(input) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&

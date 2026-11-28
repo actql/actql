@@ -12131,7 +12131,7 @@ fn wire_submission_name_shape(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1420(value : Json) -> Bool {
+fn wire_rule_1425(value : Json) -> Bool {
   if [
       wire_rule_8(value),
       wire_rule_22(value),
@@ -12149,7 +12149,7 @@ fn wire_rule_1420(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1415(value : Json) -> Bool {
+fn wire_rule_1420(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" ||
@@ -12196,7 +12196,7 @@ fn wire_rule_1415(value : Json) -> Bool {
     }
   }
   if fields.get("outcome") is Some(item) {
-    if !wire_rule_1420(item) {
+    if !wire_rule_1425(item) {
       return false
     }
   }
@@ -12204,7 +12204,7 @@ fn wire_rule_1415(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1433(value : Json) -> Bool {
+fn wire_rule_1438(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "authorization" ||
     text == "admission_capacity" ||
@@ -12216,7 +12216,7 @@ fn wire_rule_1433(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1427(value : Json) -> Bool {
+fn wire_rule_1432(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" ||
@@ -12272,7 +12272,7 @@ fn wire_rule_1427(value : Json) -> Bool {
     }
   }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1433(item) {
+    if !wire_rule_1438(item) {
       return false
     }
   }
@@ -12280,7 +12280,7 @@ fn wire_rule_1427(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1439(value : Json) -> Bool {
+fn wire_rule_1444(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "intent") {
     return false
@@ -12289,7 +12289,7 @@ fn wire_rule_1439(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1434(value : Json) -> Bool {
+fn wire_rule_1439(value : Json) -> Bool {
   guard value is Object(fields) else { return false }
   for key, _ in fields {
     if !(key == "kind" ||
@@ -12336,7 +12336,7 @@ fn wire_rule_1434(value : Json) -> Bool {
     }
   }
   if fields.get("reason") is Some(item) {
-    if !wire_rule_1439(item) {
+    if !wire_rule_1444(item) {
       return false
     }
   }
@@ -12345,7 +12345,7 @@ fn wire_rule_1434(value : Json) -> Bool {
 
 ///|
 fn wire_named_submission_attempt_shape(value : Json) -> Bool {
-  if [wire_rule_1415(value), wire_rule_1427(value), wire_rule_1434(value)]
+  if [wire_rule_1420(value), wire_rule_1432(value), wire_rule_1439(value)]
     .filter(fn(ok) { ok })
     .length() !=
     1 {
@@ -12355,7 +12355,7 @@ fn wire_named_submission_attempt_shape(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1441(value : Json) -> Bool {
+fn wire_rule_1446(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.iter().count() < 1 {
     return false
@@ -12367,7 +12367,7 @@ fn wire_rule_1441(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1442(value : Json) -> Bool {
+fn wire_rule_1447(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if text.length() > 16384 {
     return false
@@ -12400,12 +12400,12 @@ fn wire_resolve_item_shape(value : Json) -> Bool {
     }
   }
   if fields.get("resolutionWire") is Some(item) {
-    if !wire_rule_1441(item) {
+    if !wire_rule_1446(item) {
       return false
     }
   }
   if fields.get("approvalEvidenceWire") is Some(item) {
-    if !wire_rule_1442(item) {
+    if !wire_rule_1447(item) {
       return false
     }
   }
@@ -12413,7 +12413,7 @@ fn wire_resolve_item_shape(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1444(value : Json) -> Bool {
+fn wire_rule_1449(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "committed" ||
     text == "duplicate" ||
@@ -12427,7 +12427,7 @@ fn wire_rule_1444(value : Json) -> Bool {
 }
 
 ///|
-fn wire_rule_1445(value : Json) -> Bool {
+fn wire_rule_1450(value : Json) -> Bool {
   guard value is String(text) else { return false }
   if !(text == "approved" || text == "rejected") {
     return false
@@ -12459,12 +12459,12 @@ fn wire_resolve_result_shape(value : Json) -> Bool {
     }
   }
   if fields.get("status") is Some(item) {
-    if !wire_rule_1444(item) {
+    if !wire_rule_1449(item) {
       return false
     }
   }
   if fields.get("decision") is Some(item) {
-    if !wire_rule_1445(item) {
+    if !wire_rule_1450(item) {
       return false
     }
   }

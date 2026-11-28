@@ -7,7 +7,8 @@ struct ClientSubmittedIntent {
   // inventory must not allocate another complete UTF8 body just to count it.
   wire_bytes : Int
   cid : String
-  // Closed original choices: bit0 commit stop, bit1 read-only, bit2 Debug.
+  // Closed original choices: bit0 commit stop, bit1 read-only, bit2 Debug,
+  // high bits count before-Run breakpoints. The original wire keeps their order.
   // Replace two scalar flags with one word; no new Normal holder/Option.
   choices : Int
 } derive(Eq, Debug)
@@ -133,6 +134,81 @@ pub fn client_submitted_intent_execution_profile(
   } else {
     Normal
   }
+}
+
+///|
+/// Bounded geometry of the ordered before-Run marks in the admitted wire.
+pub fn client_submitted_intent_entry_breakpoint_count(
+  value : ClientSubmittedIntent,
+) -> Int {
+  value.choices >> 3
+}
+
+///|
+let submitted_breakpoint_array_prefix = "{\"breakpointSelection\":{\"before_step_ids\":["
+
+///|
+let submitted_breakpoint_map_prefix = "],\"logical_map_cid\":\""
+
+///|
+/// Compare the admitted original's map without copying or decoding its Program.
+/// The canonical first member contains only exact, unescaped ASCII CIDs.
+pub fn client_submitted_intent_breakpoint_map_matches(
+  value : ClientSubmittedIntent,
+  map_cid : String,
+) -> Bool {
+  let count = client_submitted_intent_entry_breakpoint_count(value)
+  guard count > 0 && map_cid.length() == 71 else { return false }
+  let start = submitted_breakpoint_array_prefix.length() +
+    74 * count -
+    1 +
+    submitted_breakpoint_map_prefix.length()
+  value.wire[start:start + 71] == map_cid[:]
+}
+
+///|
+/// Copy a single checked Step identity after the caller funds profile issuance.
+pub fn client_submitted_intent_breakpoint_step(
+  value : ClientSubmittedIntent,
+  index : Int,
+) -> String? {
+  guard index >= 0 &&
+    index < client_submitted_intent_entry_breakpoint_count(value) else {
+    return None
+  }
+  Some(submitted_breakpoint_step_view(value, index).to_owned())
+}
+
+///|
+fn submitted_breakpoint_step_view(
+  value : ClientSubmittedIntent,
+  index : Int,
+) -> StringView {
+  let start = submitted_breakpoint_array_prefix.length() + 74 * index + 1
+  value.wire[start:start + 71]
+}
+
+///|
+/// Compare the bounded original selection without parsing its Program again
+/// or copying any Step IDs from the retained intent.
+pub fn client_submitted_intent_breakpoint_selection_matches(
+  value : ClientSubmittedIntent,
+  map_cid : String,
+  before_steps : ReadOnlyArray[String],
+) -> Bool {
+  let count = client_submitted_intent_entry_breakpoint_count(value)
+  if before_steps.length() != count ||
+    !client_submitted_intent_breakpoint_map_matches(value, map_cid) {
+    return false
+  }
+  for index in 0..<count {
+    let step = before_steps[index]
+    if step.length() != 71 ||
+      submitted_breakpoint_step_view(value, index) != step[:] {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -325,10 +401,21 @@ fn prepare_client_submitted_intent_value(
     Some(@canonical.String("debug")) => true
     _ => return Err(InvalidEnvelope)
   }
+  let breakpoint_count = match
+    @canonical.object_field(value, "breakpointSelection") {
+    None => 0
+    Some(selection) if debug =>
+      match submitted_entry_breakpoint_count(selection) {
+        Some(count) => count
+        None => return Err(InvalidEnvelope)
+      }
+    _ => return Err(InvalidEnvelope)
+  }
   let expected_fields = 3 +
     (if stop_before_commit { 1 } else { 0 }) +
     (if read_only { 1 } else { 0 }) +
-    (if debug { 1 } else { 0 })
+    (if debug { 1 } else { 0 }) +
+    (if breakpoint_count > 0 { 1 } else { 0 })
   if @canonical.object_field_count(value) != Some(expected_fields) {
     return Err(InvalidEnvelope)
   }
@@ -368,11 +455,36 @@ fn prepare_client_submitted_intent_value(
       cid: "sha256:" + @encode.finish_hash(writer),
       choices: (if stop_before_commit { 1 } else { 0 }) +
       (if read_only { 2 } else { 0 }) +
-      (if debug { 4 } else { 0 }),
+      (if debug { 4 } else { 0 }) +
+      8 * breakpoint_count,
     })
   } catch {
     _ => Err(Encoding)
   }
+}
+
+///|
+fn submitted_entry_breakpoint_count(value : @canonical.CanonicalValue) -> Int? {
+  guard @canonical.object_field_count(value) == Some(2) &&
+    @canonical.object_field(value, "logical_map_cid")
+    is Some(@canonical.String(map)) &&
+    local_run_policy_original_cid(map) &&
+    @canonical.object_field(value, "before_step_ids")
+    is Some(@canonical.Array(steps)) else {
+    return None
+  }
+  let count = @canonical.array_count(steps)
+  guard count >= 1 && count <= 32 else { return None }
+  let seen : Map[String, Unit] = Map([])
+  for index in 0..<count {
+    guard @canonical.array_at(steps, index) is Some(@canonical.String(step)) &&
+      local_run_policy_original_cid(step) &&
+      !seen.contains(step) else {
+      return None
+    }
+    seen[step] = ()
+  }
+  Some(count)
 }
 
 ///|

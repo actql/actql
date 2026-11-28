@@ -36,13 +36,13 @@ pub fn client_program_check_context_identity(@program_check.CheckEnvironment) ->
 
 pub fn client_program_check_prepared_source_selector_range(@program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@program_check.CheckEnvironment]) -> ClientCheckSourceSelectorRange?
 
-pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
+pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?, runtime_available? : Bool, original_project_catalog? : Bool) -> String
 
-pub fn client_program_check_program_with_format(String, String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
+pub fn client_program_check_program_with_format(String, String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?, runtime_available? : Bool, original_project_catalog? : Bool) -> String
 
 pub fn client_program_check_reporting_schema_cids() -> (String, String)
 
-pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String, ClientCheckSourceNamespace?) -> String
+pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String, String, ClientCheckSourceNamespace?, runtime_available? : Bool) -> String
 
 pub fn client_program_check_source_namespace(@program_check.CheckEnvironment, String, String, String, String, String) -> ClientCheckSourceNamespace?
 
@@ -99,6 +99,8 @@ pub fn prepare_local_input_material(LocalInput, @program_check.CheckEnvironment,
 pub fn prepare_local_source_computation(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String, public_primary? : Bool, publication_environment? : @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
 
 pub fn prepare_local_submitted_input(String, @program_check.CheckEnvironment, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
+
+pub fn project_local_submitted_preparation(@run_publication_host.ClientSubmittedIntent, @run_publication_host.PreparedClientProgram, String) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
 
 pub fn restore_local_submitted_input(@run_publication_host.ClientSavedTaskMaterials) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
 

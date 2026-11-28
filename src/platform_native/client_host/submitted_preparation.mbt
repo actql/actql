@@ -4,6 +4,7 @@
 struct NativeClientSubmittedPreparation {
   intent_cid : String
   preparation : NativeClientPreparation
+  lowered_effect_query : Bool
 }
 
 ///|
@@ -32,6 +33,15 @@ pub fn native_client_submitted_preparation_intent_cid(
   value : NativeClientSubmittedPreparation,
 ) -> String {
   value.intent_cid
+}
+
+///|
+/// True when this same retained Request compiled an Effect from its original
+/// textual Query lowering. The Submission still binds the authored input.
+pub fn native_client_submitted_preparation_lowered_effect_query(
+  value : NativeClientSubmittedPreparation,
+) -> Bool {
+  value.lowered_effect_query
 }
 
 ///|
@@ -166,5 +176,9 @@ pub fn prepare_native_client_submitted_program(
     !@host.client_submitted_intent_effect_compatible(intent, prepared) {
     return Err(ReadOnlyEffect)
   }
-  Ok({ intent_cid: @host.client_submitted_intent_cid(intent), preparation, })
+  Ok({
+    intent_cid: @host.client_submitted_intent_cid(intent),
+    preparation,
+    lowered_effect_query: false,
+  })
 }

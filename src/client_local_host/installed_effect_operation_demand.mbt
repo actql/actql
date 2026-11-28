@@ -1630,3 +1630,20 @@ pub fn prepared_installed_effect_source_sequence(
   }
   Ok((task, sequence))
 }
+
+///|
+/// Read the same checked header index after a provider has quoted this exact
+/// operation. Canonical target selection and authored member order can differ.
+pub fn installed_effect_operation_demand_original_index(
+  demand : ClientInstalledEffectOperationDemand,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  stage : Int,
+  effect_id : String,
+) -> Int? {
+  guard physical_equal(demand.prepared, prepared) &&
+    demand.stage_index == stage &&
+    demand.effect_id == effect_id else {
+    return None
+  }
+  Some(demand.member_index)
+}

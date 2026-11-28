@@ -136,6 +136,10 @@ test "saved continuation refuses an unsupported catalog before reading originals
       ),
     ],
     source: None,
+    policy_capacity: None,
+    selection_capacity: None,
+    coordinates_capacity: None,
+    selection: None,
     finite: None,
     owner: None,
     view: None,
@@ -169,6 +173,171 @@ test "saved continuation refuses an unsupported catalog before reading originals
   )
   assert_true(physical_equal(retained.snapshot, snapshot))
   assert_eq(retained.advances_remaining, 1)
+}
+
+///|
+test "saved rebind keeps census and fences after ordered task reads" {
+  let material = "original task material"
+  let cid = @host.client_task_material_original_cid(material).unwrap()
+  let mut run_key = ""
+  let rows = indexed_targeted_rows().map(pair => {
+    let (table, row) = pair
+    if table != "client_runs" {
+      return pair
+    }
+    run_key = row.key
+    let run = @host.decode_client_run_journal_row(row.body).unwrap()
+    let body = @host.client_run_journal_row_body({
+      ..run,
+      task_materials_cid: Some(cid),
+    }).unwrap()
+    (table, { ..row, body, })
+  })
+  assert_true(!run_key.is_empty())
+  let table = "client_task_run_materials"
+  rows.push(
+    (
+      table,
+      { key: run_key + ":0", revision: 0L, body: @utf8.encode(material), },
+    ),
+  )
+  let snapshot = targeted_original(rows)
+  let retained : StoredSavedResultRead = {
+    snapshot,
+    result_name: "answer",
+    fences: [("publication_attempt", "original", 0L, b"fence")],
+    source: None,
+    policy_capacity: None,
+    selection_capacity: None,
+    coordinates_capacity: None,
+    selection: None,
+    finite: None,
+    owner: None,
+    view: None,
+    commit_observation: true,
+    advances_remaining: 1,
+  }
+  rows.push(
+    ("publication_attempt", { key: "original", revision: 0L, body: b"fence", }),
+  )
+  for mode in 0..<3 {
+    let ordinal_reads : Array[Int] = []
+    let census_calls = Ref(0)
+    let fence_reads = Ref(0)
+    let read = (name, key) => {
+      if name == table {
+        return Err(-99)
+      }
+      if name == "publication_attempt" {
+        fence_reads.val += 1
+      }
+      targeted_row_read(rows, name, key)
+    }
+    let scan = (name, key) => {
+      census_calls.val += 1
+      targeted_row_scan(rows, name, key)
+    }
+    let take = (key, ordinal) => {
+      if key != run_key {
+        return Err(-98)
+      }
+      ordinal_reads.push(ordinal)
+      let slot = key + ":" + ordinal.to_string()
+      if mode == 1 && ordinal == 0 {
+        let changed : @host.ClientJournalPhysicalRow = {
+          key: slot,
+          revision: 0L,
+          body: b"\xff",
+        }
+        return Ok(Some(changed))
+      }
+      if mode != 0 && ordinal == 3 {
+        return Err(-71)
+      }
+      targeted_row_read(rows, table, slot)
+    }
+    let actual = rebind_saved_result_originals(
+      retained,
+      1,
+      scan,
+      read,
+      read_task_slots=Some((take, -32)),
+    )
+    assert_eq(
+      actual,
+      if mode == 0 {
+        Ok(())
+      } else if mode == 1 {
+        Err(-32)
+      } else {
+        Err(-71)
+      },
+    )
+    assert_eq(ordinal_reads, if mode == 1 { [0] } else { [0, 1, 2, 3] })
+    assert_eq(fence_reads.val, if mode == 0 { 1 } else { 0 })
+    assert_eq(census_calls.val > 0, mode == 0)
+  }
+  // A retained observation is usable only after matching both selected rows
+  // and receiving the live same-reader result for this callback.
+  for mode in 0..<4 {
+    let reads : Array[String] = []
+    let probes : Array[Int] = []
+    let scans = Ref(0)
+    let result = rebind_saved_result_originals(
+      retained,
+      1,
+      (name, key) => {
+        scans.val += 1
+        targeted_row_scan(rows, name, key)
+      },
+      (name, key) => {
+        reads.push(name)
+        if name == table {
+          return Ok(Some({ key, revision: 0L, body: b"different", }))
+        }
+        if mode == 3 && name == "client_runs" {
+          return Err(-71)
+        }
+        targeted_row_read(rows, name, key)
+      },
+      census_ticket=17,
+      census_current=ticket => {
+        probes.push(ticket)
+        if mode == 0 {
+          1L
+        } else if mode == 1 {
+          0L
+        } else {
+          -41L
+        }
+      },
+      reuse_proven_task_material=true,
+    )
+    assert_eq(
+      result,
+      if mode == 0 {
+        Ok(())
+      } else if mode == 1 {
+        Err(-32)
+      } else if mode == 2 {
+        Err(-41)
+      } else {
+        Err(-71)
+      },
+    )
+    assert_eq(
+      reads,
+      if mode == 0 {
+        ["client_submitted_intents", "client_runs", "publication_attempt"]
+      } else if mode == 1 {
+        ["client_submitted_intents", "client_runs", table, table, table, table]
+      } else {
+        ["client_submitted_intents", "client_runs"]
+      },
+    )
+    assert_eq(probes, if mode == 3 { [] } else { [17] })
+    assert_eq(scans.val, 0)
+  }
 }
 
 ///|
@@ -562,4 +731,20 @@ test "indexed saved cold lookup retains original nested query and cancellation f
     let expected = if mode == 0 { -74 } else if mode == 1 { -32 } else { -97 }
     assert_true(actual is Err(code) && code == expected)
   }
+}
+
+///|
+test "an absent indexed submission has no cancellation to inspect" {
+  let mut audits = 0
+  let audit = () => {
+    audits += 1
+    Err(-97)
+  }
+  let read = (_, _) => Err(-98)
+  assert_true(confirm_submission_cancellation(None, read, audit, true) is Ok(_))
+  assert_eq(audits, 0)
+  assert_true(
+    confirm_submission_cancellation(None, read, audit, false) is Err(-97),
+  )
+  assert_eq(audits, 1)
 }

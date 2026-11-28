@@ -147,7 +147,7 @@ fn prepare_original_model_attempt_proof(
 }
 
 ///|
-fn prepare_saved_structured_attempt_report(
+fn prepare_original_model_attempt_report(
   state : ModelState,
   request : ModelRequest,
 ) -> Result[Unit, ModelExecutionIssue] {
@@ -156,7 +156,7 @@ fn prepare_saved_structured_attempt_report(
     return Ok(())
   }
   // The original flat proof was prepaid during request construction. Only
-  // this selected SDK Plan can add a reported failure section to that proof.
+  // the selected closed response Plan can add a failure report to that proof.
   guard request.slot == state.physical_next_slot &&
     model_slot_send_eligible(state, request.slot) &&
     original_model_attempt_proof_capacity_current(state) &&

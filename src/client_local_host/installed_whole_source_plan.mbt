@@ -299,6 +299,7 @@ fn prepare_installed_whole_source_capacity_original(
   limits : @row_source_host.RowInputLimits,
   provider : @execution.ExecutionCapacity?,
   serialization? : @publication_host.ClientSerializationPlanGraph? = None,
+  input_only? : Bool = false,
 ) -> Result[ClientInstalledWholeSourceCapacity, ClientInstalledManagedRunIssue] {
   let stage = @sourceviews.declaration(
       @sourceviews.mode_input(@sourceviews.source_acquisition_mode(original)),
@@ -316,6 +317,25 @@ fn prepare_installed_whole_source_capacity_original(
   // inspecting the narrower Query grammar again would discard root placement
   // and reject the complete-input choice made from the checked Result graph.
   let sequence = match serialization {
+    None if input_only => {
+      // An inline Model can share this task. Whole acquisition consumes its
+      // checked input and leaves all Compute steps to the retained Model module.
+      guard @strategy.graph_task_owner(graph, task) is Some(bound) &&
+        @sourceviews.source_acquisition_input(original) is @pipeline.Input(port) else {
+        return Err(ForeignOriginal)
+      }
+      match
+        @lower.prepare_sequence_prefix(
+          bound,
+          -1,
+          @publication_host.prepared_client_values_sequence_limits(prepared),
+          original_input=Some(port),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Sequence(issue))
+      }
+    }
+    Some(_) if input_only => return Err(ForeignOriginal)
     None =>
       match
         @publication_host.prepare_prepared_client_full_sequence(

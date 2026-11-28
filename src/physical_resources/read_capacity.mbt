@@ -176,6 +176,26 @@ pub fn shrink_capacity_reservation(
 }
 
 ///|
+/// Return a finished constructor's scratch and keep its measured result on
+/// the same byte-only reservation. The caller has released construction
+/// temporaries and keeps the returned bytes and token until actual cleanup.
+pub fn retain_capacity_reservation_after_construction(
+  ledger : Ledger,
+  capacity : CapacityReservation,
+  retained : Int64,
+) -> Result[Unit, LedgerIssue] {
+  let token = capacity.reservation
+  match reservation_check(ledger, token) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if retained < 0L || token.retention != 0L || retained > token.execution {
+    return Err(InvalidCharge)
+  }
+  resize_capacity_reservation_current(ledger, capacity, retained, 0L)
+}
+
+///|
 // Check an exact previously admitted byte-only token without exposing its
 // mutable inner reservation or creating transfer/quantity/send authority.
 pub fn capacity_reservation_matches(

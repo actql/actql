@@ -37,7 +37,7 @@ fn start_native_envelope_decode(
       data_keys=true,
     ) {
     Ok(parse) => parse
-    Err(_) => return Err(OutputValue)
+    Err(issue) => return Err(model_response_source_issue(issue.issue))
   }
   Ok({
     phase: ParseNativeEnvelope(parse),
@@ -134,16 +134,20 @@ fn advance_native_envelope_decode(
               max_total_string_bytes: child.limits.response_bytes,
             }) {
             Ok(admit) => admit
-            Err(_) => {
+            Err(issue) => {
               cancel_native_envelope_decode(child)
-              return Err(OutputValue)
+              return Err(model_response_admission_issue(issue.kind))
             }
           }
           child.phase = AdmitNativeEnvelope(admit)
         }
-        _ => {
+        Ok(@source.JsonParseFailed(issue, ..)) => {
           cancel_native_envelope_decode(child)
-          return Err(OutputValue)
+          return Err(model_response_source_issue(issue.issue))
+        }
+        Err(_) => {
+          cancel_native_envelope_decode(child)
+          return Err(OutputIdentity)
         }
       }
     AdmitNativeEnvelope(admit) =>
@@ -171,9 +175,13 @@ fn advance_native_envelope_decode(
           child.frames.push({ source: root, role: RootEnvelope, next: 0, })
           child.phase = ScanNativeEnvelope(root)
         }
-        _ => {
+        Ok(@decode.AdmissionFailed(issue, ..)) => {
           cancel_native_envelope_decode(child)
-          return Err(OutputValue)
+          return Err(model_response_admission_issue(issue.kind))
+        }
+        Err(_) => {
+          cancel_native_envelope_decode(child)
+          return Err(OutputIdentity)
         }
       }
     ScanNativeEnvelope(root) => {

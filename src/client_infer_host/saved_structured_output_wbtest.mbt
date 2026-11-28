@@ -164,6 +164,7 @@ let structured_raw_wire : String =
 fn observe_structured_fixture_raw(
   fixture : RawSaveFixture,
   eof? : Bool = true,
+  observed_at? : String = "2026-10-03T00:00:00.000Z",
 ) -> @model.ModelRawCaptureSave {
   let bytes = @utf8.encode(structured_raw_wire)
   @model.observe_model_raw_capture(
@@ -173,7 +174,7 @@ fn observe_structured_fixture_raw(
     bytes.length(),
     200,
     eof,
-    "2026-10-03T00:00:00.000Z",
+    observed_at,
   ).unwrap()
 }
 
@@ -207,7 +208,10 @@ test "structured answer adoption requires the original saved raw receipt" {
   let active = raw_save_fixture(structured=true)
   let foreign = raw_save_fixture(structured=true)
   let save = observe_structured_fixture_raw(active)
-  let foreign_save = observe_structured_fixture_raw(foreign)
+  let foreign_save = observe_structured_fixture_raw(
+    foreign,
+    observed_at="2026-10-03T00:00:01.000Z",
+  )
   let receipt = @model.acknowledge_saved_model_raw_capture(save).unwrap()
   let foreign_receipt = @model.acknowledge_saved_model_raw_capture(foreign_save).unwrap()
   let bytes = @utf8.encode(structured_raw_wire)
@@ -256,8 +260,51 @@ test "structured answer adoption requires the original saved raw receipt" {
     abort("the same saved receipt must reach typed settlement")
   }
   let wire = async_settlement_wire(active.active)
-  let raw = @publication.model_raw_response_value(
-    @model.model_raw_capture_save_binding(save),
+  let settlement = call_settlement(active.active).unwrap()
+  let exact = @model.model_call_settlement_success_raw(settlement).unwrap()
+  assert_true(
+    physical_equal(exact, @model.model_raw_capture_save_binding(save)),
+  )
+  assert_true(@model.model_call_settlement_failure_raw(settlement) is None)
+  let original = active.active.run_binding.unwrap()
+  let slot = @publication.bind_model_slot_capture(
+    active.slot_original,
+    issued_slot_capture(active.active, 0).unwrap(),
+  ).unwrap()
+  let attempt = attempt_evidence(active.active, 0).unwrap()
+  let evidence = @publication.bind_model_slot_attempt_evidence(
+    slot,
+    @model.model_attempt_identity(attempt),
+    @model.model_attempt_accounting(attempt),
+    @model.model_attempt_outcome(attempt),
+    @model.model_attempt_authority(attempt),
+    @publication_host.client_compiled_run_admission(original.compiled),
+    original.definition,
+  ).unwrap()
+  let reported = invocation_evidence(active.active, 0).unwrap()
+  assert_true(
+    @publication.verify_model_attempt_success_raw(
+      evidence,
+      active.scope,
+      reported,
+      exact,
+    )
+    is Ok(_),
+  )
+  let raw = @publication.model_raw_response_value(exact)
+  let other = @model.model_raw_capture_save_binding(foreign_save)
+  assert_eq(
+    @publication.model_raw_response_store_binding(exact).3,
+    @publication.model_raw_response_store_binding(other).3,
+  )
+  assert_true(
+    @publication.verify_model_attempt_success_raw(
+      evidence,
+      active.scope,
+      reported,
+      other,
+    )
+    is Err(_),
   )
   assert_true(
     wire.contains(
@@ -273,14 +320,145 @@ test "structured answer adoption requires the original saved raw receipt" {
     @model.model_execution_quantity_usage(active.active.model.unwrap()).consumed.tokens,
     3L,
   )
-  assert_true(
-    @model.acknowledge_model_call_settlement(
-      call_settlement(active.active).unwrap(),
-    ),
-  )
+  assert_true(@model.acknowledge_model_call_settlement(settlement))
+  assert_true(@model.model_call_settlement_success_raw(settlement) is None)
   assert_true(
     fixture_finish(active.active, initial_work=work) is Complete(_, ..),
   )
+  let model = active.active.model.unwrap()
+  let bundle_value = @publication.admit_run_evidence_value(
+    "model_capture_bundle", wire, 16384, 1024, 32,
+  ).unwrap()
+  let bundle_cid = @publication.run_evidence_value_identity(bundle_value)
+  let bundle = @publication.read_model_capture_bundle(
+    wire, bundle_cid, 16384, 1024, 32,
+  ).unwrap()
+  let record = @publication.model_capture_bundle_record(bundle, 0).unwrap()
+  let quote = Ref(0L)
+  let measured_work = Ref(1000000)
+  assert_true(
+    @model.verify_completed_model_capture_value(
+      model,
+      0,
+      record,
+      bytes => {
+        quote.val = bytes
+        true
+      },
+      remaining_work=Some(measured_work),
+    )
+    is Ok(_),
+  )
+  assert_true(quote.val > 0L)
+  let work_used = 1000000 - measured_work.val
+  assert_true(work_used > 0)
+  for short in [0, 1] {
+    let remaining = Ref(work_used - short)
+    let result = @model.verify_completed_model_capture_value(
+      model,
+      0,
+      record,
+      _ => true,
+      remaining_work=Some(remaining),
+    )
+    if short == 0 {
+      assert_true(result is Ok(_))
+      assert_eq(remaining.val, 0)
+    } else {
+      assert_true(result is Err(@model.WorkLimit))
+    }
+  }
+  assert_true(
+    @model.verify_completed_model_capture_value(model, 0, record, bytes => {
+      bytes <= quote.val - 1L
+    })
+    is Err(@model.Ledger(_)),
+  )
+  assert_true(
+    @model.verify_completed_model_capture_value(model, 1, record, _ => {
+      abort("foreign slot must refuse before capacity")
+    })
+    is Err(@model.OutputIdentity),
+  )
+  assert_true(@publication.release_model_capture_bundle_read(bundle))
+
+  let archived_answer =
+    #|{"reason":null,"risk":"high"}
+  let other_answer =
+    #|{"reason":"xx","risk":"high"}
+  let original_body = wire.replace(
+    old="\"bundle_cid\":\"" + bundle_cid + "\",",
+    new="",
+  )
+  assert_true(original_body.contains(archived_answer))
+  assert_eq(archived_answer.length(), other_answer.length())
+  let different = @publication.seal_run_evidence_value(
+    "model_capture_bundle",
+    original_body.replace(old=archived_answer, new=other_answer),
+    16384,
+    1024,
+    32,
+  ).unwrap()
+  let different_bundle = @publication.read_model_capture_bundle(
+    @publication.run_evidence_value_json(different),
+    @publication.run_evidence_value_identity(different),
+    16384,
+    1024,
+    32,
+  ).unwrap()
+  let different_record = @publication.model_capture_bundle_record(
+    different_bundle, 0,
+  ).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_identity(
+      @publication.model_capture_record_evidence(different_record),
+    ),
+    @publication.run_evidence_value_identity(reported),
+  )
+  assert_true(
+    @model.verify_completed_model_capture_value(model, 0, different_record, bytes => {
+      bytes == quote.val
+    })
+    is Err(@model.OutputIdentity),
+  )
+  assert_true(@publication.release_model_capture_bundle_read(different_bundle))
+
+  // The same capture reader must preserve JSON data even when its key forms
+  // would collide as identifiers. This wire-only control keeps the existing
+  // accepted typed slot and deliberately substitutes its archived response.
+  let nested =
+    #|{"$json":{"é":"first\r\nline","é":7}}
+  let nested_value = @publication.seal_run_evidence_value(
+    "model_capture_bundle",
+    original_body.replace(old=archived_answer, new=nested),
+    16384,
+    1024,
+    32,
+  ).unwrap()
+  let nested_bundle = @publication.read_model_capture_bundle(
+    @publication.run_evidence_value_json(nested_value),
+    @publication.run_evidence_value_identity(nested_value),
+    16384,
+    1024,
+    32,
+  ).unwrap()
+  let nested_record = @publication.model_capture_bundle_record(nested_bundle, 0).unwrap()
+  assert_eq(
+    @canonical.stringify_value(
+      @publication.model_capture_record_response(nested_record),
+      1024,
+      32,
+      12,
+    ),
+    nested,
+  )
+  assert_true(
+    @model.verify_completed_model_capture_value(model, 0, nested_record, _ => {
+      true
+    })
+    is Err(@model.OutputIdentity),
+  )
+  assert_true(@publication.release_model_capture_bundle_read(nested_bundle))
   assert_true(release_output(acquire_output(active.active).unwrap()))
   assert_true(cleanup(active.active).unwrap())
   assert_eq(active.calls.val, 1)

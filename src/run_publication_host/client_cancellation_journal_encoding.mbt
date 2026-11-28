@@ -192,3 +192,50 @@ pub fn decode_client_cancellation_journal_row(
   }
   Ok(value)
 }
+
+///|
+// Workspace for the existing stored row, nested Request/Definition, its
+// canonical equality, operation key and witness hashes. The caller keeps the
+// physical row and any simultaneously decoded Run in separate backing.
+fn client_cancellation_journal_scan_workspace(bytes : Int) -> Int64? {
+  guard bytes > 0 &&
+    bytes <= 262144 &&
+    @decode.preserving_json_admission_construction_inventory(bytes, 4096, 64)
+    is Some(outer) &&
+    client_run_decode_request_construction() is Some(request) &&
+    client_run_decode_definition_construction() is Some(definition) &&
+    @encode.text_writer_construction_inventory(131072, 32, 4) is Some(row) &&
+    @encode.text_writer_construction_inventory(4096, 8, 1) is Some(identity) &&
+    @encode.hash_writer_live_key_inventory(0, 0) is Some(digest) else {
+    return None
+  }
+  // Four small writers cover scope, operation id, fingerprint and index.
+  // The three fixed SHA workspaces cover fingerprint, index and row witness.
+  // Co-count them with the outer cursor and two independently admitted values.
+  let journal = client_run_decode_units(
+    outer.record_headers +
+    row.record_headers +
+    4L * identity.record_headers +
+    3L * digest.record_headers +
+    48L,
+    outer.reference_slots +
+    row.reference_slots +
+    4L * identity.reference_slots +
+    3L * digest.reference_slots +
+    72L,
+    outer.scalar_words +
+    row.scalar_words +
+    4L * identity.scalar_words +
+    3L * digest.scalar_words +
+    64L,
+    outer.owned_utf16_units +
+    row.owned_utf16_units +
+    4L * identity.owned_utf16_units +
+    3L * digest.owned_utf16_units +
+    3L * 71L,
+    2L * 131072L + 2L * 4096L + 3L * digest.owned_wire_bytes,
+  )
+  @execution.compose_preparation_representation([journal, request, definition]).bind(
+    @execution.preparation_representation_cost,
+  )
+}

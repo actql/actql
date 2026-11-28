@@ -34,6 +34,7 @@ pub fn prepare_original_effect_free_capture_plan(
   snapshots : Array[CapturedResultSnapshot],
   authoring : RunEvidenceValue,
   models : Array[RunEvidenceValue],
+  limits? : (Int, Int, Int, Int)? = None,
 ) -> CapturedRunConstructionPlan? {
   // These private reference inventories sever every caller-owned Array alias.
   // Nominal children (contracts, snapshots and canonical values) are immutable.
@@ -47,6 +48,18 @@ pub fn prepare_original_effect_free_capture_plan(
     )
     is Some(extent) else {
     return None
+  }
+  let workspace = publication_evidence_workspace(extent.max_nodes)
+  let (bytes, nodes, depth, workspace) = match limits {
+    Some((bytes, nodes, depth, limit)) =>
+      (
+        Int::min(bytes, extent.max_wire_bytes),
+        Int::min(nodes, extent.max_nodes),
+        Int::min(depth, extent.max_depth),
+        Int::min(limit, workspace),
+      )
+    None =>
+      (extent.max_wire_bytes, extent.max_nodes, extent.max_depth, workspace)
   }
   Some({
     inputs: Some({
@@ -65,13 +78,13 @@ pub fn prepare_original_effect_free_capture_plan(
       content_generations: [],
       preview: None,
       plan_values: [],
-      max_wire_bytes: extent.max_wire_bytes,
-      max_nodes: extent.max_nodes,
-      max_depth: extent.max_depth,
+      max_wire_bytes: bytes,
+      max_nodes: nodes,
+      max_depth: depth,
       dependency_inventory: None,
     }),
     extent,
-    max_workspace: publication_evidence_workspace(extent.max_nodes),
+    max_workspace: workspace,
   })
 }
 

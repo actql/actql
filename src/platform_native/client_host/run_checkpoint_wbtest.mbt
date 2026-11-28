@@ -261,12 +261,7 @@ test "Native Checkpoint current deadline and revision fence historical approval"
           changed.val = true
           // Another observer commits cancellation while signature admission is
           // outside the transaction. Its revision must not be overwritten.
-          journal
-          .transaction(() => {
-            journal.save({ ..waiting, cancellation_requested: true, })
-          })
-          .unwrap()
-          |> ignore
+          journal.accept_fixture_cancellation(waiting)
         }
         true
       },
@@ -277,7 +272,7 @@ test "Native Checkpoint current deadline and revision fence historical approval"
   guard journal.lookup(request, true) is Ok(Retained(after)) else {
     fail("original cancellation missing")
   }
-  assert_true(after.cancellation_requested)
+  assert_true(after.cancellation_requested())
   assert_eq(
     after.checkpoint.unwrap().state.status,
     @publication.WaitingCheckpoint,
@@ -299,12 +294,7 @@ test "Native Checkpoint signature admission cannot overwrite a concurrent revisi
       () => {
         calls.val += 1
         if calls.val == 3 {
-          journal
-          .transaction(() => {
-            journal.save({ ..waiting, cancellation_requested: true, })
-          })
-          .unwrap()
-          |> ignore
+          journal.accept_fixture_cancellation(waiting)
         }
         true
       },
@@ -316,7 +306,7 @@ test "Native Checkpoint signature admission cannot overwrite a concurrent revisi
     fail("original Run missing")
   }
   assert_eq(after.revision, waiting.revision + 1L)
-  assert_true(after.cancellation_requested)
+  assert_true(after.cancellation_requested())
   assert_eq(
     after.checkpoint.unwrap().state.status,
     @publication.WaitingCheckpoint,

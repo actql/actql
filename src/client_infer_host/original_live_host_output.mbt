@@ -42,3 +42,45 @@ pub fn borrow_original_live_host_output(
     ),
   )
 }
+
+///|
+/// Project the actual physical execution's own retained admission. A
+/// separately issued admission for the same checked Plan cannot supply the
+/// producer classification.
+pub fn original_live_whole_model_egress(
+  held : OutputUse,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  artifact : @publication_host.ClientWholeLocalResultArtifact,
+  manifest : @publication_host.ClientWholeLocalResultManifest,
+) -> Result[
+  @publication_host.ClientWholeModelEgressOriginal,
+  @publication_host.ClientInferEgressIssue,
+] {
+  let active = held.owner
+  guard original_host_output_matches(held, compiled, definition, plan) &&
+    active.source is Physical(_) &&
+    active.saved_call_scope is None &&
+    active.call_scope is Some(call) &&
+    active.egress_admission is Some(admission) else {
+    return Err(ForeignOwner)
+  }
+  @publication_host.verify_client_whole_model_egress_original(
+    admission,
+    call,
+    held.output,
+    artifact,
+    manifest,
+  ).bind(original => {
+    if original_host_output_matches(held, compiled, definition, plan) &&
+      active.call_scope is Some(current) &&
+      physical_equal(current, call) &&
+      active.egress_admission is Some(admitted) &&
+      physical_equal(admitted, admission) {
+      Ok(original)
+    } else {
+      Err(ForeignOwner)
+    }
+  })
+}

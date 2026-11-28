@@ -211,6 +211,57 @@ pub fn[I] finish_request_checked_computation(
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
 ) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
+  guard !owner.debug_plan_read else { return Err(Preparation(WrongPhase)) }
+  finish_request_checked_computation_owned(
+    owner, input, environment, publication,
+  )
+}
+
+///|
+/// Select the same Debug compiler as a submitted intent for a read-only
+/// Request. The original semantic check and installed Catalog stay in place.
+pub fn[I] finish_request_checked_debug_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+) -> Result[Unit, ClientRequestTerminalIssue] {
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  guard owner.phase == ProgramCheck &&
+    owner.submitted_intent is None &&
+    owner.program_check is Some(child) &&
+    child.effect_limits is None &&
+    (
+      child.phase == SemanticCheckComplete ||
+      (
+        owner.debug_plan_read &&
+        (
+          child.phase == DebugCompilationInspecting ||
+          child.phase is DebugCompilationQuoted(_)
+        )
+      )
+    ) else {
+    return Err(Preparation(WrongPhase))
+  }
+  finish_request_checked_computation_owned(
+    owner,
+    input,
+    environment,
+    publication,
+    debug_plan_read=true,
+  ).map(_ => ())
+}
+
+///|
+fn[I] finish_request_checked_computation_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  environment : @checked.CheckEnvironment,
+  publication : @source_publication.PreparedPublishedQueryEnvironment,
+  debug_plan_read? : Bool = false,
+) -> Result[ClientRequestComputationKind, ClientRequestTerminalIssue] {
   guard owner.input is Some(original) &&
     physical_equal(original, input) &&
     owner.program_check is Some(child) &&
@@ -230,6 +281,7 @@ pub fn[I] finish_request_checked_computation(
   guard @checked.source_catalog_same_original(original_catalog, catalog) else {
     return Err(Preparation(ForeignOriginal))
   }
+  owner.debug_plan_read = debug_plan_read
   finish_request_checked_computation_targets(
     owner, input, update, store, command,
   )

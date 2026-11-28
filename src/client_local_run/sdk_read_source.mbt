@@ -5,6 +5,7 @@ priv struct LocalSavedSDKReadSource {
   definition : @publication.PublicationContract
   publication_request_cid : String
   policy : @publication.CapturedEffectDependencyBody
+  accepted_retention : @publication.PublicationContract?
   principal : String
   connection : String
   adoption_cid : String
@@ -58,6 +59,7 @@ pub fn prepare_local_saved_sdk_read_source(
   owner : @publication.PublicationCommitPreparation,
   view : @publication.PublicationCommitReadView,
   selection~ : @publication.LocalSDKResultReadSelection,
+  fund_accepted_policy? : ((@host.ClientTaskPolicyConstructionStage) -> Bool)? = None,
 ) -> Result[LocalSDKReadSource, LocalSDKReadOriginalsIssue] {
   guard @host.client_saved_submission_run_row(snapshot) is Some(row) &&
     @host.decode_client_run_journal_row_with_observation_originals(row.body)
@@ -112,16 +114,39 @@ pub fn prepare_local_saved_sdk_read_source(
     original_read {
     return Err(InvalidOriginal)
   }
-  let policy = match
-    @host.admit_source_free_result_policy_body(
-      source_policy.0,
-      source_policy.1,
-      65536,
-      8192,
-      64,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(PolicyUnavailable)
+  let uses_accepted_run_policy = @publication.local_sdk_result_read_selection_uses_accepted_run_policy(
+    selection,
+  )
+  let policy = if uses_accepted_run_policy {
+    let task = run.task_materials_cid is Some(_) &&
+      @host.client_saved_submission_task_materials_original(snapshot) is Some(_) &&
+      run.effect_material_originals is None
+    let effect = run.task_materials_cid is None &&
+      run.effect_material_originals is Some(_) &&
+      owner.is_stored_effectful_read(view)
+    guard (task || effect) && run.publication_policy_originals is Some(wire) else {
+      return Err(PolicyUnavailable)
+    }
+    guard fund_accepted_policy is Some(fund) else {
+      return Err(PolicyUnavailable)
+    }
+    match @host.read_client_run_policy_originals(wire, fund=Some(fund)) {
+      // The Common closure reader has already proved the root and its bodies.
+      Ok(bodies) => bodies[0]
+      Err(_) => return Err(PolicyUnavailable)
+    }
+  } else {
+    match
+      @host.admit_source_free_result_policy_body(
+        source_policy.0,
+        source_policy.1,
+        65536,
+        8192,
+        64,
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(PolicyUnavailable)
+    }
   }
   let source : LocalSDKReadSource = {
     origin: Saved({
@@ -130,6 +155,11 @@ pub fn prepare_local_saved_sdk_read_source(
       definition,
       publication_request_cid: projected.publication_request_cid,
       policy,
+      accepted_retention: if uses_accepted_run_policy {
+        Some(@host.client_local_run_policy_original_retention(finite))
+      } else {
+        None
+      },
       principal,
       connection,
       adoption_cid,
@@ -308,10 +338,21 @@ fn LocalSDKReadSource::validate_current(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match
+      let materials = match
         saved.owner.observed_result_read_materials(saved.view, result_name, 16) {
-        Ok(_) => ()
+        Ok(value) => value
         Err(issue) => return Err(StoredChain(issue))
+      }
+      if saved.accepted_retention is Some(retention) &&
+        (
+          materials.read.effective_data_policy_cid !=
+          @publication.captured_effect_dependency_body_cid(saved.policy) ||
+          !@publication.result_retention_bounds_equal(
+            materials.retention,
+            retention,
+          )
+        ) {
+        return Err(PolicyUnavailable)
       }
       let tuple : @authorization.AccessTuple = {
         principal: saved.principal,

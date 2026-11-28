@@ -1,0 +1,306 @@
+{
+  "deployment": {
+    "account.json": {
+      "account_id": "local-cli",
+      "entries": [
+        {
+          "connection": {
+            "any_of": [
+              "local"
+            ]
+          },
+          "entry_id": "control",
+          "exclusions": [],
+          "operation": {
+            "any_of": [
+              "cancel",
+              "publish",
+              "read",
+              "submit"
+            ]
+          },
+          "outcome": "allow",
+          "principal": {
+            "any_of": [
+              "local-cli"
+            ]
+          },
+          "resource": {
+            "any_of": [
+              "run"
+            ]
+          }
+        },
+        {
+          "connection": {
+            "any_of": [
+              "operator"
+            ]
+          },
+          "entry_id": "example",
+          "exclusions": [],
+          "operation": {
+            "any_of": [
+              "infer"
+            ]
+          },
+          "outcome": "allow",
+          "principal": {
+            "any_of": [
+              "local-cli"
+            ]
+          },
+          "resource": {
+            "any_of": [
+              "sha256:e672bc4e7bc042bf5fd95712095c32d902065a876e8bf775bf1741f795bba1bd"
+            ]
+          }
+        },
+        {
+          "connection": {
+            "any_of": [
+              "local"
+            ]
+          },
+          "entry_id": "local-result-original-read",
+          "exclusions": [],
+          "operation": {
+            "any_of": [
+              "read"
+            ]
+          },
+          "outcome": "allow",
+          "principal": {
+            "any_of": [
+              "local-cli"
+            ]
+          },
+          "resource": {
+            "any_of": [
+              "result"
+            ]
+          }
+        },
+        {
+          "connection": {
+            "any_of": [
+              "operator"
+            ]
+          },
+          "entry_id": "raw",
+          "exclusions": [],
+          "operation": {
+            "any_of": [
+              "model_raw_capture"
+            ]
+          },
+          "outcome": "allow",
+          "principal": {
+            "any_of": [
+              "local-cli"
+            ]
+          },
+          "resource": {
+            "any_of": [
+              "sha256:e672bc4e7bc042bf5fd95712095c32d902065a876e8bf775bf1741f795bba1bd"
+            ]
+          }
+        }
+      ],
+      "version": "actql-execution-account-config/0.1"
+    },
+    "configuration-contract.json": {
+      "required": [
+        "model_defaults"
+      ]
+    },
+    "execution.json": {
+      "backoff": "{\"delays_ms\":[],\"self_cid\":\"sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56\",\"version\":\"actql-model-backoff/0.1\"}",
+      "contract": "{\"backoff_contract_cid\":\"sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56\",\"default_publication\":\"outcomes\",\"max_attempts_per_slot\":1,\"max_total_attempts\":1,\"max_total_cost_units\":0,\"max_total_duration_ms\":6000,\"max_total_token_reservation\":1024,\"max_total_wire_bytes\":131072,\"media_input_contracts\":{},\"model_task_contract_cid\":\"sha256:e672bc4e7bc042bf5fd95712095c32d902065a876e8bf775bf1741f795bba1bd\",\"retry_classification_contract_cid\":\"sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90\",\"self_cid\":\"sha256:c38e5dfb36f13ef1038be9df792095cdf5064b9679f8ff419acc4c018f8f494b\",\"version\":\"actql-model-execution-contract/0.1\"}",
+      "contract_cid": "sha256:c38e5dfb36f13ef1038be9df792095cdf5064b9679f8ff419acc4c018f8f494b",
+      "prompt": "{\"payload\":{\"format\":\"actql.openai_chat_prompt/0.1\",\"instructions\":\"\"},\"self_cid\":\"sha256:569a0ace73cebaae33dc947794fdb88961739bf54f4b61257af9a07305e3c976\",\"version\":\"actql-model-prompt/0.1\"}",
+      "retry_policy": "{\"retryable_failures\":[],\"self_cid\":\"sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90\",\"version\":\"actql-model-retry-policy/0.1\"}"
+    },
+    "installation.json": {
+      "revision": "installed"
+    },
+    "provider.json": {
+      "adapter_kind": "portable-http",
+      "api_mode": "chat-completions",
+      "configuration_contract_cid": "sha256:7831c4ac9941f7a2fa227511c2b1d530fb1d1c3bd16f52946d257ae5deeb8824",
+      "credential_ref": "file:provider.key",
+      "installation_revision_cid": "sha256:e9d13530a5e43b458edc3d00533f2a8c2cbb0d8fce7092b884256d4d63c51440",
+      "model_defaults": {
+        "default_model": "first",
+        "models": [
+          {
+            "data_handling": {
+              "body": {
+                "accepted_classifications": [
+                  "public",
+                  "internal"
+                ],
+                "allowed_regions": [
+                  "explicit-region"
+                ],
+                "retention": "none",
+                "training_use": "forbidden"
+              },
+              "cid": "sha256:4ae245d55eb9bcb462b0e709d9b7495429918caab5207eb27c3e359428ca3763",
+              "id": "operator-model-policy",
+              "kind": "request_data_handling",
+              "schema": "actql.contract/0.1",
+              "version": "operator-revision-1"
+            },
+            "generation_config": {
+              "max_output_tokens": 100,
+              "temperature": 0,
+              "top_p": 1
+            },
+            "model": "first"
+          }
+        ]
+      },
+      "model_id": "deployed-chat",
+      "provider_id": "operator",
+      "selector": "first"
+    },
+    "selection.json": {
+      "attempt": {
+        "cost_units": 0,
+        "duration_ms": 6000,
+        "tokens": 1024
+      },
+      "credential_file": "provider.key",
+      "egress": {
+        "classification": "public",
+        "provider_retention": false,
+        "region": "explicit-region",
+        "training_use": false
+      },
+      "execution_file": "execution.json",
+      "raw_crypto_policy": "builtin-aes-256-gcm"
+    }
+  },
+  "expect": [
+    {
+      "id": "original",
+      "outcome": "ok",
+      "value": {}
+    }
+  ],
+  "program": {
+    "id": "portable-check",
+    "results": {
+      "answer": {
+        "from": {
+          "result": "answer",
+          "stage": "main"
+        }
+      }
+    },
+    "stages": [
+      {
+        "id": "main",
+        "inputs": {},
+        "results": {
+          "answer": {
+            "fields": [
+              "id",
+              "outcome",
+              "value"
+            ],
+            "from": "inferred"
+          }
+        },
+        "steps": [
+          {
+            "as": "items",
+            "values": {
+              "rows": [
+                {
+                  "id": "original"
+                }
+              ],
+              "schema": {
+                "id": {
+                  "nullable": false,
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "as": "unique",
+            "assert_rows": {
+              "unique_by": [
+                "id"
+              ]
+            }
+          },
+          {
+            "as": "inferred",
+            "infer": {
+              "contract": "model-task:public.opaque",
+              "input": {},
+              "key": "id"
+            }
+          }
+        ]
+      }
+    ],
+    "version": "actql/0.1"
+  },
+  "project": {
+    "actql.config.json": {
+      "model_tasks": "./registry.json",
+      "profile": "production",
+      "state_dir": "./state",
+      "version": "actql-config/0.1"
+    },
+    "registry.json": {
+      "default_provider": "operator",
+      "providers": {
+        "operator": {
+          "type": "portable-http"
+        }
+      },
+      "tasks": {
+        "model-task:public.opaque": "./task.json"
+      },
+      "version": "actql-model-tasks/0.1"
+    },
+    "task.json": {
+      "input": {},
+      "instructions": "",
+      "limits": {
+        "max_output_tokens": 200
+      },
+      "output": {},
+      "task": "model-task:public.opaque"
+    }
+  },
+  "reply": {
+    "choices": [
+      {
+        "finish_reason": "stop",
+        "index": 0,
+        "message": {
+          "content": "{}",
+          "role": "assistant"
+        }
+      }
+    ],
+    "id": "loopback",
+    "model": "deployed-chat",
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 3
+    }
+  },
+  "task_binding": {
+    "contract_cid": "sha256:e672bc4e7bc042bf5fd95712095c32d902065a876e8bf775bf1741f795bba1bd",
+    "input_schema_cid": "sha256:f89257995d800e6fda8e5c4ea89ec10e01702a86253b6ef701930d4be9aac7fb",
+    "output_schema_cid": "sha256:f89257995d800e6fda8e5c4ea89ec10e01702a86253b6ef701930d4be9aac7fb"
+  }
+}

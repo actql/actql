@@ -154,13 +154,15 @@ class _OriginalFileReader:
     """Physical reader of saved originals, not an adoption or authority witness."""
 
     __slots__ = ('root', 'name', 'max_bytes', 'descriptor', 'identity', 'stamp',
-                 'offset', 'chunk', 'hash', 'result', 'invalid', 'closing', 'close_pending', 'eof', 'expected')
+                 'offset', 'chunk', 'hash', 'result', 'invalid', 'closing', 'close_pending', 'eof',
+                 'expected', 'verified_payload')
 
     def __init__(self, root: 'LocalFileRoot', name: str, max_bytes: int) -> None:
         self.root = root
         self.name = name
         self.max_bytes = max_bytes
         self.expected: PhysicalFileSnapshot | None = None
+        self.verified_payload: PhysicalFileChunk | None = None
         self.descriptor: int | None = None
         self.identity: PhysicalFileIdentity | None = None
         self.stamp: tuple[int, ...] | None = None
@@ -1088,6 +1090,31 @@ class LocalFileRoot:
             reader.invalid = True
             raise
 
+    def _require_distinct_model_trust_original(
+            self, reader: _OriginalFileReader, credential: str | _OriginalFileReader) -> None:
+        """Compare the CA with a credential name before opening or its actual FD."""
+        with self._lock:
+            stamp = self._validate_original(reader)
+            root = self._validate_original_directory()
+            if type(credential) is str:
+                self._name(credential)
+                name = credential
+                named = os.stat(name, dir_fd=root, follow_symlinks=False)
+                identity = (named.st_dev, named.st_ino)
+            else:
+                # The later entered credential must be the actual opened
+                # child. Do not substitute an earlier pathname observation.
+                identity = self._validate_original(credential)[:2]
+                name = credential.name
+            if (reader.name == name or stamp[:2] == identity
+                    or any(other is not reader and other.stamp is not None
+                           and other.stamp[:2] == stamp[:2]
+                           for other in self._original_readers.values())):
+                raise LocalFileError('Selected Model trust aliases another protected original')
+            if self._validate_original_directory() != root:
+                raise LocalFileError('Protected Model trust root changed')
+            self._validate_original_member(reader, root)
+
     def read_original(self, reader: _OriginalFileReader) -> PhysicalFileChunk:
         """Read one bounded chunk; reuses its loan without rereading or advancing."""
         with self._lock:
@@ -1108,6 +1135,26 @@ class LocalFileRoot:
                 reader.invalid = True
                 raise
             return reader.chunk
+
+    def verify_small_saved_payload(self, reader: _OriginalFileReader) -> None:
+        """Retain the same bounded bytes whose digest is admitted for delivery."""
+        with self._lock:
+            stamp = self._validate_original(reader)
+            if (reader.expected is None or reader.offset != 0 or reader.eof
+                    or reader.chunk is not None or stamp[2] > self._max_chunk_bytes):
+                raise LocalFileError('Saved Local payload is not a single original chunk')
+            chunk = self.read_original(reader)
+            self.release_original_chunk(reader, chunk)
+            self._observe_original_validated(reader, stamp)
+            reader.verified_payload = chunk
+
+    def verified_saved_payload(self, reader: _OriginalFileReader) -> PhysicalFileChunk | None:
+        with self._lock:
+            self._owned_original(reader)
+            if reader.verified_payload is not None:
+                stamp = self._validate_original(reader)
+                self._observe_original_validated(reader, stamp)
+            return reader.verified_payload
 
     def release_original_chunk(self, reader: _OriginalFileReader, chunk: PhysicalFileChunk) -> None:
         """Release the exact chunk only after its original Core borrow retires."""
@@ -1195,6 +1242,7 @@ class LocalFileRoot:
                         return False
                 reader.descriptor = None
             reader.chunk = None
+            reader.verified_payload = None
             del self._original_readers[id(reader)]
             return True
 
@@ -1438,17 +1486,3 @@ class LocalFileRoot:
                 return False
             self._descriptor = None
             return True
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(LocalFileRoot, (
-        '_final_name_stamp', '_match_name', '_nominal_root',
-        '_observation_root', '_observe_originals', '_observe_original_validated', '_open',
-        '_owned', '_owned_finalization', '_owned_original',
-        '_owned_reader', '_validate_original', '_validate_original_directory',
-        '_validate_original_member', '_validate_reader', 'observe_completed_reader',
-        'observe_original',
-    )),
-)

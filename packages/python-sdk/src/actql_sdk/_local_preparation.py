@@ -6,7 +6,7 @@ references, admission records, execution permits, or a second Checker.
 from dataclasses import dataclass
 from typing import Literal
 
-from ._local_core import LocalCore, LocalCoreError, _Input
+from ._local_core import LocalCore, LocalCoreError, _Input, _Output
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -22,6 +22,15 @@ class _Preparation:
     handle: int
     environment: _Environment
     input: _Input
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class _MockRequest:
+    owner: object
+    handle: int
+    environment: _Output
+    input: _Input
+    submission: _Output
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,7 +68,7 @@ class LocalPreparation:
         self._core = core
         self._identity = object()
         self._environments: dict[int, _Environment] = {}
-        self._preparations: dict[int, _Preparation] = {}
+        self._preparations: dict[int, _Preparation | _MockRequest] = {}
         self._failures: dict[int, LocalPreparationFailure] = {}
 
     def _active(self) -> None:
@@ -127,6 +136,44 @@ class LocalPreparation:
             self._preparations[handle] = value
             return value
 
+    def _mock_request(self, value: _MockRequest) -> None:
+        self._nominal()
+        if (type(value) is not _MockRequest or value.owner is not self._identity
+                or self._preparations.get(value.handle) is not value):
+            raise ValueError('Foreign or released original Mock Request')
+        self._core._owned_output(value.environment, 'original')
+        self._core._owned_input(value.input)
+        self._core._owned_output(value.submission, 'submission_append')
+
+    def reserve_mock_request(self, environment: _Output, input: _Input,
+                             submission: _Output) -> _MockRequest:
+        """Bind the same checker and retained Submission loan to the Request."""
+        with self._core._lock:
+            self._active()
+            self._core._owned_output(environment, 'original')
+            self._core._owned_input(input)
+            self._core._owned_output(submission, 'submission_append')
+            if input.length != 4:
+                raise ValueError('Invalid original Mock Request reference extent')
+            handle = self._core._call('program', 'reserve_preparation',
+                                      environment.handle, input.handle, 5)
+            if handle <= 0:
+                raise LocalCoreError('reserve_preparation', handle)
+            value = _MockRequest(self._identity, handle, environment, input, submission)
+            self._preparations[handle] = value
+            return value
+
+    def prepare_mock_request(self, value: _MockRequest, current: _Output) -> None:
+        """Reobserve and check the retained Submission within this entered Read."""
+        with self._core._lock:
+            self._active()
+            self._mock_request(value)
+            callbacks = self._core._host_current_ready(current)
+            code = self._core._call('program', 'prepare', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._core._check('prepare_mock_request', code)
+
     def prepare(self, value: _Preparation) -> PreparedShape:
         """Ask the original Owner; failure/trap retains the issued handle.
 
@@ -166,10 +213,13 @@ class LocalPreparation:
             self._preparation(failure.preparation)
             return failure.preparation
 
-    def close_preparation(self, value: _Preparation) -> bool:
+    def close_preparation(self, value: _Preparation | _MockRequest) -> bool:
         """Return the same original borrow only when its Core Owner succeeds."""
         with self._core._lock:
-            self._preparation(value)
+            if isinstance(value, _MockRequest):
+                self._mock_request(value)
+            else:
+                self._preparation(value)
             code = self._core._call('program', 'close_preparation', value.handle)
             if code == -9:
                 return False

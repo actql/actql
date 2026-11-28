@@ -28,7 +28,7 @@ pub(all) struct LedgerUsage {
 
 ///|
 struct Ledger {
-  limits : LedgerLimits
+  mut limits : LedgerLimits
   mut usage : LedgerUsage
   mut next_attempt_serial : Int?
   mut next_holding_serial : Int?
@@ -236,12 +236,21 @@ fn reserve_attempt_current(
     ledger.limits.attempts - u.attempts - ledger.delegated_attempts {
     return Err(AttemptLimit)
   }
-  if transfer_bytes >
-    ledger.limits.transfer_bytes -
-    u.transferred_bytes -
-    u.uncertain_transfer_bytes -
-    u.reserved_transfer_bytes {
-    return Err(TransferLimit)
+  let used = u.transferred_bytes +
+    u.uncertain_transfer_bytes +
+    u.reserved_transfer_bytes
+  let transfer_growth = if transfer_bytes > ledger.limits.transfer_bytes - used {
+    guard transfer_bytes <= 9223372036854775807L - used &&
+      ledger.imported_child is Some(origin) &&
+      origin.ledger is Some(original) &&
+      physical_equal(original, ledger) &&
+      origin.working is Some((working, _, _)) &&
+      working.fund_transfer is Some(fund) else {
+      return Err(TransferLimit)
+    }
+    Some((fund, used + transfer_bytes))
+  } else {
+    None
   }
   if retained_bytes >
     ledger.limits.retained_bytes - u.held_bytes - u.reserved_retention_bytes {
@@ -268,12 +277,13 @@ fn reserve_attempt_current(
     return Err(IdentityOverflow)
   }
   let retained = u.held_bytes + u.reserved_retention_bytes + retained_bytes
-  match
-    grow_imported_platform_working_current(
-      ledger,
-      retained,
-      u.reserved_execution_bytes + execution_bytes,
-    ) {
+  let executing = u.reserved_execution_bytes + execution_bytes
+  let backed = if transfer_growth is Some((fund, required)) {
+    fund(required, retained, executing)
+  } else {
+    grow_imported_platform_working_current(ledger, retained, executing)
+  }
+  match backed {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -500,6 +510,30 @@ pub fn mark_transfer_uncertain(
     ..usage,
     uncertain_transfer_bytes: usage.uncertain_transfer_bytes + bytes,
     reserved_transfer_bytes: usage.reserved_transfer_bytes - bytes,
+  }
+  Ok(())
+}
+
+///|
+/// Check the exact intact allowance before entering one original transfer.
+/// This leaves the existing reservation and attempt unspent.
+pub fn require_intact_transfer_reservation(
+  ledger : Ledger,
+  reservation : Reservation,
+  ceiling : Int64,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if ceiling <= 0L ||
+    reservation.attempt_sequence > 0 ||
+    reservation.cleanup_pending ||
+    reservation.completed_output is Some(_) {
+    return Err(InvalidCharge)
+  }
+  if reservation.transfer != ceiling {
+    return Err(TransferLimit)
   }
   Ok(())
 }

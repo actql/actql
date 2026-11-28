@@ -1,16 +1,51 @@
 ///|
+priv struct NodeCardinalityInputs {
+  count : Int
+  first : Int
+  second : Int
+  total : Int64
+}
+
+///|
+fn collect_node_cardinality_inputs(
+  count : Int,
+  input_at : (Int) -> Int?,
+) -> NodeCardinalityInputs? {
+  let mut first = 0
+  let mut second = 0
+  let mut total = 0L
+  for index in 0..<count {
+    guard input_at(index) is Some(value) && value >= 0 else { return None }
+    if index == 0 {
+      first = value
+    } else if index == 1 {
+      second = value
+    }
+    // Both the positional input count and each admitted value are Ints.
+    total += value.to_int64()
+  }
+  Some({ count, first, second, total, })
+}
+
+///|
 /// A cardinality fact about the original checked node, not execution authority.
 /// Unknown/expanding operations deliberately return None. Input occurrences are
 /// positional, so repeated Append inputs contribute independently.
 pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
-  if inputs.length() != node.input_targets.length() {
+  let count = inputs.length()
+  guard count == node.input_targets.length() &&
+    collect_node_cardinality_inputs(count, index => inputs.get(index))
+    is Some(bounds) else {
     return None
   }
-  for count in inputs {
-    if count < 0 {
-      return None
-    }
-  }
+  node_row_count_bound_from_inputs(node, bounds)
+}
+
+///|
+fn node_row_count_bound_from_inputs(
+  node : PreparedNode,
+  inputs : NodeCardinalityInputs,
+) -> Int? {
   match node.payload {
     Values(_) | Serialize(_) => node_input_independent_row_count_bound(node)
     InnerJoin(join) =>
@@ -28,7 +63,7 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
     Unnest(operation) => {
       // The checked array bound and positional input count prove this product.
       // Missing bounds remain unknown; a policy ceiling is never an item bound.
-      guard inputs.length() == 1 &&
+      guard inputs.count == 1 &&
         @relation.reshape(operation)
         is Some(@relation.Unnest(outer~, max_items=Some(items), ..)) &&
         items >= 0L &&
@@ -36,7 +71,7 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
         return None
       }
       let per_row = if outer { Int64::max(1L, items) } else { items }
-      let total = inputs[0].to_int64() * per_row
+      let total = inputs.first.to_int64() * per_row
       if total > 2147483647L {
         None
       } else {
@@ -52,24 +87,19 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
     | Distinct(_)
     | Dedupe(_)
     | Sort(_)
-    | AssertRows(_) => if inputs.length() == 1 { Some(inputs[0]) } else { None }
+    | AssertRows(_) => if inputs.count == 1 { Some(inputs.first) } else { None }
     CountGroup(_) =>
-      if inputs.length() == 1 {
-        Some(Int::max(1, inputs[0]))
+      if inputs.count == 1 {
+        Some(Int::max(1, inputs.first))
       } else {
         None
       }
-    AppendRows(_) => {
-      let mut total = 0L
-      for count in inputs {
-        total += count.to_int64()
-      }
-      if total > 2147483647L {
+    AppendRows(_) =>
+      if inputs.total > 2147483647L {
         None
       } else {
-        Some(total.to_int())
+        Some(inputs.total.to_int())
       }
-    }
     _ => None
   }
 }
@@ -174,13 +204,13 @@ fn declared_join_row_bound(output_guard : @join.Guard?, ports : Int) -> Int? {
 fn intrinsic_join_row_bound(
   kind : @join.Kind,
   output_guard : @join.Guard?,
-  inputs : Array[Int],
+  inputs : NodeCardinalityInputs,
 ) -> Int? {
-  if inputs.length() != 2 || inputs[0] < 0 || inputs[1] < 0 {
+  if inputs.count != 2 {
     return None
   }
-  let left = inputs[0].to_int64()
-  let right = inputs[1].to_int64()
+  let left = inputs.first.to_int64()
+  let right = inputs.second.to_int64()
   let intrinsic = match kind {
     @join.Inner => left * right
     @join.Left => left * Int64::max(1L, right)

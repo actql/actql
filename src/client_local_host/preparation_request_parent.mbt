@@ -32,6 +32,11 @@ priv enum ClientRequestPreparationPhase {
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
+  PortableModelArtifactReady
+  PortableModelMetadataQuoted(PortableModelMetadataInputs, Int64, Int64, Int64)
+  PortableModelMetadataReserved(PortableModelMetadataInputs, Int64)
+  PortableModelMetadataIssued(PortableModelRunOriginal)
+  PortableModelModuleReady(PortableModelRunOriginal)
   ModelScopeQuoted
   ContentPlanReserved
   ProgramBodyReady
@@ -218,6 +223,7 @@ struct ClientRequestPreparation[I] {
   mut program_content : ClientInstalledContentPreparation
   mut program_content_request : @publication_host.ClientRequestIdentity?
   mut program_body_attempted : Bool
+  mut debug_plan_read : Bool
   mut phase : ClientRequestPreparationPhase
 }
 
@@ -335,7 +341,8 @@ let request_preparation_fixed_control_envelope : @execution.PreparationRepresent
   record_headers: 271L,
   reference_slots: 505L,
   // The adopted Run keeps one scalar high-water extent for its Sample start.
-  scalar_words: 562L,
+  // The preparation owner retains one scalar for its read-only Debug Plan.
+  scalar_words: 563L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -402,10 +409,28 @@ pub fn[I] begin_request_preparation(
 }
 
 ///|
+/// Only the fixed reporting Host can supply the authenticated stopped state.
+/// Seed the same imported Node child before any receiving preparation debit.
+pub fn[I] begin_restored_request_preparation(
+  initial : @resources.NodePreparationAdmission[I],
+  input : I,
+  policy : ClientLocalResourcePolicy,
+  saved : @resources.LedgerContinuationState,
+) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
+  begin_request_preparation_original(
+    NodeRequestInitial(initial),
+    input,
+    policy,
+    recovered=Some(saved),
+  )
+}
+
+///|
 fn[I] begin_request_preparation_original(
   initial : ClientPreparationInitial[I],
   input : I,
   policy : ClientLocalResourcePolicy,
+  recovered? : @resources.LedgerContinuationState? = None,
 ) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
   guard client_local_preparation_initial_limits(policy) is Some(expected) &&
     client_request_preparation_control_capacity(policy)
@@ -445,6 +470,7 @@ fn[I] begin_request_preparation_original(
       retained,
       execution,
       max_borrowers=request_preparation_borrow_limit,
+      recovered~,
     ) {
     Err(issue) => return Err(Capacity(issue))
     Ok(value) => value
@@ -515,6 +541,7 @@ fn[I] begin_request_preparation_original(
     program_content: NoContent,
     program_content_request: None,
     program_body_attempted: false,
+    debug_plan_read: false,
     phase: Open,
   })
 }

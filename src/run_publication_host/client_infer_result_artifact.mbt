@@ -11,7 +11,11 @@ struct ClientInferResultArtifactInput {
 ///|
 priv enum ClientInferResultArtifactOriginal {
   Effect(ClientEffectLocalResultArtifact, ClientEffectLocalManifest)
-  Whole(ClientWholeLocalResultArtifact, ClientWholeLocalResultManifest)
+  Whole(
+    ClientWholeLocalResultArtifact,
+    ClientWholeLocalResultManifest,
+    ClientInferWholeResultReaderOriginal?
+  )
 }
 
 ///|
@@ -21,7 +25,7 @@ fn client_infer_result_artifact_original_cids(
   match value.original {
     Effect(artifact, manifest) =>
       (client_effect_local_result_artifact_cid(artifact), manifest.cid)
-    Whole(artifact, manifest) =>
+    Whole(artifact, manifest, _) =>
       (client_whole_local_result_artifact_cid(artifact), manifest.cid)
   }
 }
@@ -181,6 +185,7 @@ pub fn prepare_client_infer_whole_result_artifact_input(
   completed : @execution.CompletedSegmentInputs,
   artifact : ClientWholeLocalResultArtifact,
   manifest : ClientWholeLocalResultManifest,
+  reader? : ClientInferWholeResultReaderOriginal? = None,
 ) -> Result[ClientInferResultArtifactInput, ClientInferCallScopeIssue] {
   let owner = artifact.invocation.owner
   let program = @strategy.graph_program(occurrence.owner.graph)
@@ -217,7 +222,26 @@ pub fn prepare_client_infer_whole_result_artifact_input(
     client_whole_local_result_manifest_matches(manifest, artifact) else {
     return Err(ForeignInput)
   }
-  Ok({ occurrence, input, original: Whole(artifact, manifest), interface, })
+  if reader is Some(original) &&
+    !(physical_equal(original.occurrence, occurrence) &&
+    original.import_index == import_index &&
+    physical_equal(original.artifact, artifact) &&
+    physical_equal(original.manifest, manifest) &&
+    @execution.completed_segment_inputs_has_exact_pipeline_reader(
+      completed,
+      occurrence.preparation,
+      slot,
+      original.read,
+    ) &&
+    client_infer_whole_result_reader_retained(original)) {
+    return Err(ForeignInput)
+  }
+  Ok({
+    occurrence,
+    input,
+    original: Whole(artifact, manifest, reader),
+    interface,
+  })
 }
 
 ///|
@@ -288,7 +312,7 @@ fn client_infer_result_artifact_original_current(
         artifact,
         artifact.invocation.owner,
       )
-    Whole(artifact, manifest) =>
+    Whole(artifact, manifest, _) =>
       client_whole_local_result_manifest_matches(manifest, artifact)
   }
 }
@@ -404,4 +428,78 @@ pub fn client_infer_whole_result_input_edge(
     selected = Some(i)
   }
   selected
+}
+
+///|
+/// Match a receiving import to the exact previously staged Reader. The
+/// Artifact and Manifest remain borrowed from the original producer Run.
+pub fn client_infer_whole_result_reader_matches(
+  occurrence : ClientInferOccurrence,
+  import_index : Int,
+  artifact : ClientWholeLocalResultArtifact,
+  manifest : ClientWholeLocalResultManifest,
+  read : @execution.ProducerRead,
+) -> Bool {
+  prepare_client_infer_whole_result_reader(
+    occurrence, import_index, artifact, manifest, read,
+  )
+  is Some(_)
+}
+
+///|
+/// Original checked receiving edge after matching its actual staged Reader.
+/// Its authority is limited to reobserving the already installed retention.
+struct ClientInferWholeResultReaderOriginal {
+  occurrence : ClientInferOccurrence
+  import_index : Int
+  artifact : ClientWholeLocalResultArtifact
+  manifest : ClientWholeLocalResultManifest
+  edge : Int
+  read : @execution.ProducerRead
+}
+
+///|
+pub fn prepare_client_infer_whole_result_reader(
+  occurrence : ClientInferOccurrence,
+  import_index : Int,
+  artifact : ClientWholeLocalResultArtifact,
+  manifest : ClientWholeLocalResultManifest,
+  read : @execution.ProducerRead,
+) -> ClientInferWholeResultReaderOriginal? {
+  let owner = artifact.invocation.owner
+  guard client_whole_local_result_manifest_member(manifest, artifact)
+    is Some(index) &&
+    @strategy.captured_completed_unit_result_export_original(
+      artifact.custody,
+      owner.results,
+      index,
+    )
+    is Some((port, receipt)) &&
+    physical_equal(receipt, artifact.export_receipt) &&
+    client_infer_whole_result_input_edge(
+      occurrence,
+      import_index,
+      owner.run,
+      port,
+    )
+    is Some(edge) &&
+    @strategy.captured_completed_unit_result_input_matches(
+      artifact.custody,
+      edge,
+      read,
+    ) else {
+    return None
+  }
+  Some({ occurrence, import_index, artifact, manifest, edge, read, })
+}
+
+///|
+pub fn client_infer_whole_result_reader_retained(
+  original : ClientInferWholeResultReaderOriginal,
+) -> Bool {
+  @strategy.captured_completed_unit_result_input_retained(
+    original.artifact.custody,
+    original.edge,
+    original.read,
+  )
 }

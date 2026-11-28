@@ -120,7 +120,7 @@ fn selected_policy_fixture_record() -> NativeClientRunRecord raise {
     definition,
     dispatch_reserved: false,
     physical_start_claimed: false,
-    cancellation_requested: false,
+    cancellation_head: None,
     publication_binding: None,
     publication_policy_originals: Some(selected_policy_fixture_packet),
     effect_material_originals: None,
@@ -200,7 +200,7 @@ test "wire-only lookup selects exact Policy without changing the ordinary row" {
   )
   assert_eq(restored.revision, 0L)
   assert_false(restored.physical_start_claimed)
-  assert_false(restored.cancellation_requested)
+  assert_false(restored.cancellation_requested())
 }
 
 ///|
@@ -308,13 +308,34 @@ test "wire-only extraction rejects Effect Checkpoint and canonical damage" {
 
 ///|
 test "wire-only lookup leaves cancellation start and revision facts unchanged" {
-  let original = {
+  let before = {
     ..selected_policy_fixture_record(),
     dispatch_reserved: true,
     physical_start_claimed: true,
-    cancellation_requested: true,
-    revision: 7L,
+    revision: 6L,
   }
+  let append : Result[
+    @host.ClientCancellationJournalAppendPlan[NativeClientRunRecord],
+    @host.ClientCancellationJournalOperationIssue[NativeClientRunJournalIssue],
+  ] = @host.prepare_client_cancellation_journal_append(
+    before.request,
+    "namespace-a",
+    "fixture-cancel",
+    6,
+    8,
+    before.publication_binding,
+    () => Ok((0, 0L)),
+    () => Ok(Some(before)),
+    cancellation_run_operation_facts,
+    _ => Ok(None),
+    _ => Ok(false),
+    () => true,
+  )
+  guard append is Ok(@host.AppendCancellation(plan)) &&
+    @host.client_cancellation_append_accepted_head(plan) is Some(head) else {
+    fail("original accepted cancellation head")
+  }
+  let original = { ..before, cancellation_head: Some(head), revision: 7L, }
   let row = selected_policy_fixture_row(original)
   selected_policy_require_body(
     row,
@@ -329,7 +350,8 @@ test "wire-only lookup leaves cancellation start and revision facts unchanged" {
   )
   assert_true(restored.dispatch_reserved)
   assert_true(restored.physical_start_claimed)
-  assert_true(restored.cancellation_requested)
+  assert_true(restored.cancellation_requested())
+  assert_eq(restored.cancellation_head, Some(head))
   assert_eq(restored.revision, 7L)
   assert_eq(
     selected_policy_require(

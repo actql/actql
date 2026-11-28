@@ -5,6 +5,7 @@
 fn writer_frame_construction_extent(
   live_keys : Int,
   depth : Int,
+  unordered_depth? : Int = depth,
 ) -> @shape.CollectionConstructionExtent {
   let d = depth.to_int64()
   @shape.collection_construction_extent({
@@ -15,7 +16,7 @@ fn writer_frame_construction_extent(
     reference_items: d,
     scalar_arrays: 0L,
     scalar_items: 0L,
-    maps: d,
+    maps: unordered_depth.to_int64(),
     map_entries: live_keys.to_int64(),
   }).unwrap()
 }

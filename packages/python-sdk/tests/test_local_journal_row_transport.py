@@ -1,5 +1,9 @@
 """Independent two-import row oracles; no Run, admission or latency acceptance."""
+from contextlib import closing
 from ctypes import POINTER, c_uint8, cast
+import hashlib
+import json
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import RLock
@@ -379,7 +383,7 @@ class JournalRowTransportTests(unittest.TestCase):
                         self.assertIs(original.memory, memory)
                         self.assertEqual(original.body, b'payload')
                         self.assertEqual(original.generation, 9007199254740993)
-                        self.assertEqual(sys.getsizeof(original), sys.getsizeof((None,) * 10))
+                        self.assertEqual(sys.getsizeof(original), sys.getsizeof((None,) * 11))
                         self.assertEqual(self.copy(core, caller), -41)
                         self.assertEqual(self.header(core, caller), -41)
                         self.assertIs(callbacks.failure, first)
@@ -436,27 +440,25 @@ class JournalRowTransportTests(unittest.TestCase):
                     self.assertEqual(memory.writes, [(128, 16)] if phase == 'header'
                                      else [(128, 16), (256, 3)])
 
-    def test_new_imports_use_closed_memory_method_guard(self):
+    def test_new_imports_keep_the_same_sql_reader_frame(self):
         core, callbacks, memory, caller, _, _, _ = self.fixture()
         guards = []
         span = SimpleNamespace(failure=None, suspended=False, reader=callbacks.reader,
             binding=SimpleNamespace(_current_observer=callbacks.current), admitted=True,
-            closed_import=False, _guard_sql=lambda: guards.append('sql'),
-            _guard_wasm_methods=lambda: guards.append('memory'))
+            closed_import=False, _guard_sql=lambda: guards.append('sql'))
         core._invocation_observation = span
         header = core._observation_import('journal_query_header', core._journal_query_header)
         copy = core._observation_import('journal_copy_row', core._journal_copy_row)
         self.assertEqual(header(caller, 7, 1, 64, 2, 66, 3, 128), 0)
         self.assertEqual(copy(caller, 7, 256, 3, 8192, 7), 0)
-        self.assertEqual(guards.count('memory'), 2)
+        self.assertEqual(guards, ['sql'] * 4)
         self.assertFalse(span.closed_import)
 
     def test_both_original_reservations_charge_header_and_bounded_transfer_before_query(self):
         from actql_sdk._local_host_binding import _InvocationObservation
-        from actql_sdk._local_storage_physical import _CLOSED_SQL_BYTES
         from test_local_host_current import LocalHostCurrentTests
         from test_local_journal_port import LocalJournalBridgeCustodyTests
-        transfer_bytes = (sys.getsizeof((None,) * 10) + 64 + 16
+        transfer_bytes = (sys.getsizeof((None,) * 11) + 64 + 16
             + 2 * sys.getsizeof(bytearray()) + sys.getsizeof(b'') + 2 * 16384
             + sys.getsizeof((None, None)) + 2 * sys.getsizeof((None, None, None)))
         self.assertEqual(LocalCore._journal_transfer_bytes(), transfer_bytes)
@@ -469,10 +471,7 @@ class JournalRowTransportTests(unittest.TestCase):
         original = (2 * (source.length + 256) + 2 * 262144 + 4096
             + sys.getsizeof(callbacks) + sys.getsizeof(core._inputs[loan.ticket])
             + sys.getsizeof(object.__new__(_InvocationObservation))
-            + sys.getsizeof((None,) * 4) + 4096 + 3 * _CLOSED_SQL_BYTES
-            # The same current Owner also funds the fixed prepare receipt.
-            + 40 * 1024)
-        self.assertEqual(core._inputs[loan.ticket].prepare_bytes, 40 * 1024)
+            + sys.getsizeof((None,) * 4) + 2 * 4096)
         self.assertEqual(calls[0], ('current', 'reserve', (source.handle, loan.ticket, original + transfer_bytes)))
         fixture = LocalJournalBridgeCustodyTests()
         self.addCleanup(fixture.doCleanups)
@@ -488,14 +487,17 @@ class JournalRowTransportTests(unittest.TestCase):
             (material.handle, 8, loan.ticket, original + transfer_bytes)))
 
     def test_real_wasmtime_and_sqlite_copy_exact_large_revision_and_bytes(self):
-        with TemporaryDirectory() as directory, LocalByteStore(Path(directory) / 'physical.sqlite',
-                max_records=4, max_record_bytes=65536, max_payload_bytes=262144) as store:
-            payload = bytes(range(256)) * 128 + b'\x00/\xf0\x9f\x98\x80/e\xcc\x81'
+        self.observe_real_wasmtime_and_sqlite_row_transport()
+
+    def observe_real_wasmtime_and_sqlite_row_transport(self, parent=None):
+        rows = []
+        with TemporaryDirectory(dir=parent) as directory, LocalByteStore(Path(directory) / 'physical.sqlite',
+                max_records=4, max_record_bytes=262144, max_payload_bytes=524288) as store:
+            original = bytes(range(256)) * 128 + b'\x00/\xf0\x9f\x98\x80/e\xcc\x81'
+            block_sizes = (1024, 16384, 262144)
+            payloads = (original, *(bytes(range(256)) * (size // 256) for size in block_sizes))
             key = store.namespaced_key('ns', 'key')
             self.assertEqual(store.compare_exchange('epoch', None, b'original'), 0)
-            self.assertEqual(store.compare_exchange(key, None, payload), 0)
-            with sqlite3.connect(Path(directory) / 'physical.sqlite') as physical:
-                physical.execute('UPDATE core_bytes SET generation=? WHERE key=?', (9007199254740993, key))
             core, callbacks, _, _, _, _, _ = self.fixture()
             callbacks.store = store
             callbacks.reader = None
@@ -515,23 +517,101 @@ class JournalRowTransportTests(unittest.TestCase):
                     call $copy i32.eqz if else unreachable end
                     i32.const 7 call $current i32.eqz if else unreachable end
                     i32.const 136 i64.load))''')
+            imports_seen, blocks, scalars = [], [], []
+            row_copy = _JournalCallbacks.row_copy.__code__
+            scalar_transfer = (_JournalCallbacks.byte.__code__, _JournalCallbacks.row_byte.__code__)
+
+            def track_blocks(frame, event, returned):
+                if event != 'return' or frame.f_code not in (row_copy, *scalar_transfer):
+                    return
+                args = frame.f_locals
+                if args.get('self') is not callbacks:
+                    return
+                if frame.f_code is row_copy:
+                    blocks.append((args['field'], args['index'], len(returned) if type(returned) is bytes else None))
+                else:
+                    scalars.append(frame.f_code.co_name)
+
+            def track_import(callback):
+                def observed(*args):
+                    result = callback(*args)
+                    imports_seen.append((callback.__name__, result))
+                    return result
+                return observed
+
             i32 = wasmtime.ValType.i32()
             imports = [wasmtime.Func(core._store, wasmtime.FuncType([i32] * count, [i32]),
-                callback, access_caller=caller) for callback, count, caller in (
+                track_import(callback), access_caller=caller) for callback, count, caller in (
                     (core._journal_query_header, 7, True), (core._journal_copy_row, 5, True),
                     (core._journal_current, 1, False))]
             instance = wasmtime.Instance(core._store, module, imports)
             core._exports = instance.exports(core._store)
+
             def inspect(reader):
+                nonlocal body_sha256
+                previous = sys.getprofile()
                 callbacks.reader = reader
                 try:
-                    self.assertEqual(core._exports['read'](core._store), 9007199254740993)
-                    memory = core._exports['memory']
-                    self.assertEqual(bytes(memory.read(core._store, 256, 259)), b'key')
-                    self.assertEqual(bytes(memory.read(core._store, 8192, 8192 + len(payload))), payload)
-                    self.assertIsNone(callbacks.transfer)
-                    self.assertIsNone(callbacks.row)
+                    sys.setprofile(track_blocks)
+                    self.assertEqual(core._exports['read'](core._store), revision)
                 finally:
+                    sys.setprofile(previous)
                     callbacks.reader = None
-            store.inspect_namespaces((ByteFence('epoch', 0, b'original'),), inspect=inspect, current=lambda: None)
-            self.assertEqual(store.read(key), StoredBytes(9007199254740993, payload))
+                memory = core._exports['memory']
+                self.assertEqual(bytes(memory.read(core._store, 256, 259)), b'key')
+                actual = bytes(memory.read(core._store, 8192, 8192 + len(payload)))
+                self.assertEqual(actual, payload)
+                self.assertIsNone(callbacks.transfer)
+                self.assertIsNone(callbacks.row)
+                body_sha256 = hashlib.sha256(actual).hexdigest()
+
+            revision = None
+            body_sha256 = None
+            for payload in payloads:
+                with self.subTest(body_bytes=len(payload)):
+                    next_revision = 0 if revision is None else revision + 1
+                    self.assertEqual(store.compare_exchange(key, revision, payload), next_revision)
+                    if revision is None:
+                        next_revision = 9007199254740993
+                        with closing(sqlite3.connect(Path(directory) / 'physical.sqlite')) as physical, physical:
+                            physical.execute('UPDATE core_bytes SET generation=? WHERE key=?', (next_revision, key))
+                    revision = next_revision
+                    imports_seen.clear()
+                    blocks.clear()
+                    scalars.clear()
+                    body_sha256 = None
+                    store.inspect_namespaces((ByteFence('epoch', 0, b'original'),),
+                                             inspect=inspect, current=lambda: None)
+                    self.assertEqual(store.read(key), StoredBytes(revision, payload))
+                    self.assertEqual(imports_seen, [('_journal_current', 0), ('_journal_query_header', 0),
+                                                    ('_journal_copy_row', 0), ('_journal_current', 0)])
+                    self.assertEqual(blocks, [(0, 0, 3), *(
+                        (1, index, min(16384, len(payload) - index))
+                        for index in range(0, len(payload), 16384)
+                    )])
+                    self.assertEqual(scalars, [])
+                    if len(payload) in block_sizes:
+                        self.assertIsNotNone(body_sha256)
+                        rows.append(dict(bytes=len(payload), bodySha256=body_sha256, revision=str(revision),
+                                         bodyBlocks=[(start, count) for field, start, count in blocks if field == 1],
+                                         keyBlocks=[(start, count) for field, start, count in blocks if field == 0],
+                                         imports=imports_seen.copy(), scalarCalls=scalars.copy()))
+        return rows
+
+
+if __name__ == '__main__':
+    import argparse
+    import actql_sdk
+    from actql_sdk._local_distribution import installed_local_components
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--installed-diagnostic', required=True, metavar='SOURCE_SHA')
+    args = parser.parse_args()
+    identity = installed_local_components()
+    assert identity.source_sha == args.installed_diagnostic
+    assert Path(actql_sdk.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
+    rows = JournalRowTransportTests().observe_real_wasmtime_and_sqlite_row_transport(Path.cwd())
+    assert [row['bytes'] for row in rows] == [1024, 16384, 262144]
+    print(json.dumps(dict(source=identity.source_sha, module=identity.module_sha256, image=identity.image_sha256,
+                          pid=os.getpid(), rows=rows, sqliteClosed=True,
+                          scope='installed-journal-row-transport-component')), flush=True)

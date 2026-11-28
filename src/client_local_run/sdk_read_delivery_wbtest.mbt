@@ -238,7 +238,7 @@ test "SDK delivery storage projects six original CAS writes and rejects partial 
   let prepare = (
     read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, String],
   ) => {
-    prepare_local_sdk_read_delivery_storage_from_store(
+    prepare_local_sdk_read_delivery_installation_from_store(
       fixture.preflight,
       fixture.account,
       fixture.original,
@@ -265,25 +265,19 @@ test "SDK delivery storage projects six original CAS writes and rejects partial 
       Ok(None)
     }
   }
-  let wire = prepare(read).unwrap()
-  let (first, same_wire) = prepare_local_sdk_read_delivery_installation_from_store(
-    fixture.preflight,
-    fixture.account,
-    fixture.original,
-    fixture.selection,
-    "sha256:" + "a".repeat(64),
-    fixture.owner,
-    fixture.view,
-    "answer",
-    "jsonl",
-    "sdk-read-original",
-    "2026-10-13T00:00:04.000Z",
-    16,
-    read,
-    () => Ok(()),
-  ).unwrap()
-  assert_eq(same_wire, wire)
-  assert_true(@utf8.encode(wire).length() <= 1048576)
+  let first = prepare(read).unwrap()
+  let bytes = measure_sdk_read_delivery_installation(first)
+  let wire = sdk_read_delivery_installation_wire(first, bytes)
+  assert_eq(@utf8.encode(wire).length(), bytes)
+  assert_true(bytes < 1048576)
+  let short = try {
+    ignore(sdk_read_delivery_installation_wire(first, bytes - 1))
+    false
+  } catch {
+    @encode.OutputLimit => true
+    _ => false
+  }
+  assert_true(short)
   guard @json.parse(wire) is Array(rows) && rows.length() == 6 else {
     fail("Expected six original physical writes")
   }
@@ -330,5 +324,78 @@ test "SDK delivery storage projects six original CAS writes and rejects partial 
       }
     })
     is Err(Observation("original head query failed")),
+  )
+}
+
+///|
+test "SDK first delivery joins exact evidence and six CAS rows" {
+  let fixture = sdk_read_fixture()
+  defer (fixture.cleanup)()
+  let (key, packet) = sdk_delivery_evidence(fixture)
+  let prepare = (
+    read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, String],
+  ) => {
+    prepare_local_sdk_read_delivery_group_for_source(
+      live_sdk_read_source(fixture.preflight, selection=fixture.selection),
+      fixture.account,
+      fixture.original,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      fixture.owner,
+      fixture.view,
+      "answer",
+      "jsonl",
+      "sdk-read-original",
+      "2026-10-13T00:00:04.000Z",
+      16,
+      read,
+      () => Ok(()),
+    )
+  }
+  let first = prepare((_, _) => Ok(None)).unwrap()
+  let original = prepare((table, requested) => {
+    if table == "client_local_read_evidence" && requested == key {
+      Ok(Some({ key, revision: 0L, body: packet, }))
+    } else {
+      Ok(None)
+    }
+  }).unwrap()
+  let bytes = measure_sdk_read_delivery_installation(first)
+  let wire = sdk_read_delivery_installation_wire(first, bytes)
+  assert_eq(wire, sdk_read_delivery_installation_wire(original, bytes))
+  assert_eq(@utf8.encode(wire).length(), bytes)
+  guard @json.parse(wire) is Array(rows) && rows.length() == 7 else {
+    fail("Expected evidence and six original physical writes")
+  }
+  let staged : Map[(String, String), @host.ClientJournalPhysicalRow] = Map(
+    [],
+    capacity=7,
+  )
+  for encoded in rows {
+    guard encoded is Object(row) &&
+      row.get("table") is Some(String(table)) &&
+      row.get("key") is Some(String(key)) &&
+      row.get("body") is Some(String(body)) else {
+      fail("Expected closed group row")
+    }
+    staged[(table, key)] = { key, revision: 0L, body: @utf8.encode(body), }
+  }
+  let before = staged[("client_local_read_evidence", key)]
+  assert_eq(before.body, packet)
+  let read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, String] = (
+    table,
+    key,
+  ) => Ok(staged.get((table, key)))
+  assert_true(observe_sdk_read_delivery_group(first, read) is Ok(_))
+  staged[("client_local_read_evidence", key)] = { ..before, revision: 1L, }
+  assert_true(
+    observe_sdk_read_delivery_group(first, read) is Err(ChangedObservation),
+  )
+  staged[("client_local_read_evidence", key)] = before
+  let head = @publication.publication_contract_identity(first.attempt)
+  let previous = staged[("delivery_record_head", head)]
+  staged[("delivery_record_head", head)] = { ..previous, body: b"changed", }
+  assert_true(
+    observe_sdk_read_delivery_group(first, read) is Err(ChangedObservation),
   )
 }

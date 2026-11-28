@@ -182,7 +182,7 @@ fn open_native_client_local_values_work(
         return Err(local_values_work_failure(Journal(ForeignRun)))
       }
       if record.physical_start_claimed ||
-        record.cancellation_requested ||
+        record.cancellation_requested() ||
         record.checkpoint is Some(_) {
         return Err(
           local_values_work_failure(Start(NeedsOriginalReconciliation)),

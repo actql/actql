@@ -12,7 +12,8 @@ fn fund_installed_relation_sample_journal(
     is Some(namespace_id) else {
     return Err(SampleAdoptionOriginalUnavailable)
   }
-  let bound = 1024L + 6L * namespace_id.length().to_int64()
+  let namespace_bound = 6L * namespace_id.length().to_int64()
+  let bound = 1024L + namespace_bound
   let (relation_bytes, prefix_nodes, prefix_depth) = @encode.document_usage(
     input.relation,
   )
@@ -23,21 +24,29 @@ fn fund_installed_relation_sample_journal(
     input.reference,
   ]
   let mut wire_bytes = relation_bytes.to_int64() + bound
+  let mut readmission = 0L
   for original in originals {
     guard @publication.run_evidence_value_wire_usage(original)
-      is Some((bytes, _, _)) else {
+      is Some((bytes, nodes, _)) &&
+      installed_sample_seal_construction(bytes, nodes) is Some(cost) &&
+      @execution.checked_preparation_add_product(readmission, cost, 1L)
+      is Some(total) else {
       return Err(SampleAdoptionLimits)
     }
     wire_bytes += bytes.to_int64()
+    readmission = total
   }
   guard bound <= 131072L &&
     wire_bytes <= 2147483647L &&
     installed_sample_adoption_construction(
-      bound.to_int(),
+      (installed_sample_generation_bytes.to_int64() + namespace_bound).to_int(),
+      (installed_sample_reference_bytes.to_int64() + namespace_bound).to_int(),
       prefix_nodes,
       prefix_depth,
     )
     is Some(prefix_charge) &&
+    installed_sample_seal_construction(bound.to_int(), 32)
+    is Some(receipt_charge) &&
     @execution.preparation_representation_cost({
       // Four closed JS record trees, receipt body and projections, the
       // callback/transaction frames, positional operands and bounded rows.
@@ -55,13 +64,18 @@ fn fund_installed_relation_sample_journal(
       owned_wire_bytes: 3L * wire_bytes,
     })
     is Some(bridge_charge) &&
-    @execution.checked_preparation_add_product(bridge_charge, prefix_charge, 3L)
+    @execution.checked_preparation_add_product(bridge_charge, prefix_charge, 1L)
+    is Some(with_prefix) &&
+    @execution.checked_preparation_add_product(with_prefix, readmission, 1L)
+    is Some(with_readmission) &&
+    @execution.checked_preparation_add_product(
+      with_readmission, receipt_charge, 2L,
+    )
     is Some(total) else {
     return Err(SampleAdoptionLimits)
   }
-  // Twice the four-record constructor additionally covers the four Common
-  // readmissions and receipt seal/readmission. Include the existing prefix
-  // charge when growing this exact reservation, never a new durable owner.
+  // All original seals, four readmissions, receipt seal/readmission and the
+  // JS/SQLite frame stay funded during the synchronous Journal call.
   let ledger = @strategy.captured_dag_ledger(profile.captured)
   @resources.grow_capacity_reservation(ledger, reservation, total, total)
   .map_err(issue => SampleAdoptionCapacity(issue))

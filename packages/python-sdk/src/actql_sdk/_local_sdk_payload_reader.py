@@ -51,6 +51,8 @@ class OriginalSDKPayloadReader:
             self._input: _Input | None = None
             self._uncertain_input: int | None = None
             self._output: _Output | None = None
+            self._borrows_verified_payload = False
+            self._delivered_verified_payload = False
             self._active = self._reading = self._closing = False
             self._closed = False
             self._confirmed: int | None = None
@@ -62,7 +64,11 @@ class OriginalSDKPayloadReader:
                     expected = fact._observe_reader()
                     try:
                         if isinstance(fact._reader, _OriginalFileReader):
-                            self._reader = self._root.open_saved_payload(fact._reader.name, expected)
+                            if self._root.verified_saved_payload(fact._reader) is not None:
+                                self._reader = fact._reader
+                                self._borrows_verified_payload = True
+                            else:
+                                self._reader = self._root.open_saved_payload(fact._reader.name, expected)
                         else:
                             self._reader = self._root.open_reader(fact._reader.finalization)
                     except (LocalReaderAcquisitionError, LocalOriginalAcquisitionError) as error:
@@ -89,7 +95,7 @@ class OriginalSDKPayloadReader:
         with self._core._lock:
             self._nominal()
             if (self._active or self._closing or self._reader is None
-                    or self._chunk is not None or self._input is not None
+                    or self._delivered_verified_payload or self._chunk is not None or self._input is not None
                     or self._uncertain_input is not None or self._output is not None):
                 raise RuntimeError('Original SDK payload reader is unavailable or cleanup is pending')
             self._active = True
@@ -97,9 +103,15 @@ class OriginalSDKPayloadReader:
                 self._storage.prepare_original_input(self._request, clock)
                 self._reading = True
                 try:
-                    self._chunk = (self._root.read_original(self._reader)
-                                   if isinstance(self._reader, _OriginalFileReader)
-                                   else self._root.read_reader(self._reader))
+                    if isinstance(self._reader, _OriginalFileReader):
+                        if self._borrows_verified_payload:
+                            self._chunk = self._root.verified_saved_payload(self._reader)
+                            if self._chunk is None:
+                                raise ValueError('Original verified Saved payload is unavailable')
+                        else:
+                            self._chunk = self._root.read_original(self._reader)
+                    else:
+                        self._chunk = self._root.read_reader(self._reader)
                 finally:
                     self._reading = False
                 chunk = self._chunk
@@ -130,6 +142,17 @@ class OriginalSDKPayloadReader:
             finally:
                 self._active = False
 
+    def check_transfer_current(self) -> None:
+        with self._core._lock, self._root._lock:
+            self._nominal()
+            reader = self._reader
+            if self._closing or reader is None:
+                raise ValueError('Original SDK payload reader is unavailable')
+            if isinstance(reader, _OriginalFileReader):
+                self._root._validate_original(reader)
+            else:
+                self._root._validate_reader(reader)
+
     def accept(self, output: _Output) -> int:
         """Record sink acceptance, return original Core loans, then advance FD.
 
@@ -153,7 +176,10 @@ class OriginalSDKPayloadReader:
                     raise SDKPayloadReaderCleanupPending(self)
                 self._input = None
                 if isinstance(self._reader, _OriginalFileReader):
-                    self._root.release_original_chunk(self._reader, self._chunk)
+                    if self._borrows_verified_payload:
+                        self._delivered_verified_payload = True
+                    else:
+                        self._root.release_original_chunk(self._reader, self._chunk)
                 else:
                     self._root.release_reader_chunk(self._reader, self._chunk)
                 self._chunk = None
@@ -191,11 +217,12 @@ class OriginalSDKPayloadReader:
                     return False
                 self._input = None
             if self._reader is not None:
-                closed = (self._root.close_original(self._reader)
-                          if isinstance(self._reader, _OriginalFileReader)
-                          else self._root.close_reader(self._reader))
-                if not closed:
-                    return False
+                if not self._borrows_verified_payload:
+                    closed = (self._root.close_original(self._reader)
+                              if isinstance(self._reader, _OriginalFileReader)
+                              else self._root.close_reader(self._reader))
+                    if not closed:
+                        return False
                 self._reader = None
             self._chunk = None
             self._confirmed = None

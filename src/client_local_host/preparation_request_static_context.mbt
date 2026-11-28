@@ -9,6 +9,101 @@ pub(all) enum ClientRequestStaticContextIssue {
 } derive(Debug)
 
 ///|
+// Use the normal original for lowering and borrow only a disposable Debug
+// topology. The first task must be ready and every operation independently
+// controllable, as required at actual Effect start.
+fn[I, P] static_effect_debug_entry_probe(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  max_tasks : Int,
+  work : Int,
+) -> Result[(Bool, Int), @resources.PreparationCapacityIssue] {
+  let limits = @publication_host.client_standard_effect_computation_limits().program
+  let tasks = Int::min(max_tasks, limits.max_tasks)
+  let graph_work = Int::min(work / 2, limits.max_graph_work)
+  let time_work = work - graph_work
+  let (stoppable, spent) = match
+    with_static_debug_graph_probe(
+      capacity,
+      input,
+      1,
+      tasks,
+      graph_work,
+      observed => {
+        @publication_host.measure_client_static_effect_debug_graph_construction(
+          prepared, tasks, graph_work, observed,
+        )
+      },
+      (remaining, boundary_work) => {
+        guard @publication_host.prepare_client_static_effect_debug_graph(
+            prepared, tasks, remaining,
+          )
+          is Ok(graph) else {
+          return false
+        }
+        let tasks = @strategy.graph_task_count(graph)
+        let extent = 1L +
+          7L * tasks.to_int64() +
+          2L * @strategy.graph_data_count(graph).to_int64() +
+          2L * @strategy.graph_control_count(graph).to_int64()
+        if extent > boundary_work ||
+          !@strategy.graph_source_free_inputs_complete(graph) ||
+          !@strategy.checked_source_free_effect_control_has_entry(graph) {
+          return false
+        }
+        // The admitted Effect geometry has one Unit with one task per
+        // operation. Match the original forward coordinate for every task.
+        for operation in 0..<tasks {
+          if @strategy.checked_task_control_operation_task(graph, 0, operation) !=
+            Some(operation) {
+            return false
+          }
+        }
+        true
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !stoppable {
+    return Ok((false, spent))
+  }
+  // QueryTime inspection retains a temporary checked expression-slot vector.
+  // It runs after the split is released. Back its records and array growth
+  // before collecting at most one slot per unit of bounded inspection work.
+  let base = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let slots = time_work.to_int64()
+  guard @execution.preparation_representation_cost({
+      record_headers: 16L + 4L * slots,
+      reference_slots: 32L + 8L * slots,
+      scalar_words: 24L + 4L * slots,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(base.0, bytes, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(base.1, bytes, 1L) is Some(e) &&
+    @resources.reserve_working_preparation_phase(capacity, input, r, e) is Ok(_) else {
+    return Ok((false, spent))
+  }
+  let independent = @publication_host.prepared_client_effect_requires_query_time(
+      prepared, time_work, time_work,
+    )
+    is Ok(false)
+  @resources.reconcile_current_working_preparation_phase(
+    capacity,
+    input,
+    base.0,
+    base.1,
+  ).map(_ => (independent, spent + time_work))
+}
+
+///|
 // The deepest Context branch is root/items/Effect set/members/member/
 // declaration/contract. Its simultaneous object keys are bounded by the
 // complete records: root(5), set(3), member(2), declaration(8), contract(4).
@@ -528,12 +623,22 @@ pub fn[I] request_prepared_static_effect_explanation(
   max_depth : Int,
   max_work : Int,
   infers? : Array[@publication_host.ClientInferPlanGraph] = [],
+  debug_entry_installed? : Bool = false,
 ) -> Result[
   ClientRequestStaticEffectExplanation,
   ClientRequestStaticContextIssue,
 ] {
   prepare_static_effect_explanation_facets(
-    owner, input, manifests, max_bytes, max_nodes, max_depth, max_work, infers, true,
+    owner,
+    input,
+    manifests,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_work,
+    infers,
+    true,
+    debug_entry_installed~,
   )
 }
 
@@ -548,6 +653,7 @@ fn[I] prepare_static_effect_explanation_facets(
   max_work : Int,
   infers : Array[@publication_host.ClientInferPlanGraph],
   reserve_js_delivery : Bool,
+  debug_entry_installed? : Bool = false,
 ) -> Result[
   ClientRequestStaticEffectExplanation,
   ClientRequestStaticContextIssue,
@@ -595,9 +701,31 @@ fn[I] prepare_static_effect_explanation_facets(
         Err(issue) => return Err(Preparation(issue))
         Ok(value) => value
       }
+      let (debug_entry, probe_work) = if debug_entry_installed &&
+        infers.is_empty() {
+        match
+          static_effect_debug_entry_probe(
+            capacity,
+            input,
+            prepared,
+            nodes,
+            Int::min(nodes, max_work / 4),
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Preparation(Capacity(issue)))
+        }
+      } else {
+        (false, 0)
+      }
+      guard current() else { return Err(Preparation(ForeignOriginal)) }
       let (original, plan) = match
         @publication_host.capture_client_static_effect_explanation_original(
-          prepared, compiled, bytes, nodes, depth,
+          prepared,
+          compiled,
+          bytes,
+          nodes,
+          depth,
+          debug_entry~,
         ) {
         Err(issue) => return Err(Context(issue))
         Ok(value) => value
@@ -609,7 +737,7 @@ fn[I] prepare_static_effect_explanation_facets(
         plan,
         current,
         limits,
-        max_work,
+        max_work - probe_work,
         max_bytes,
         reserve_js_delivery,
       )

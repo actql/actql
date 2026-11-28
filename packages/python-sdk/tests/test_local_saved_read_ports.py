@@ -3,6 +3,7 @@ import asyncio
 import copy
 import unittest
 from contextlib import contextmanager
+from threading import RLock
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -21,14 +22,41 @@ import test_local_submission_lookup as host_fixture
 
 
 class SavedReadPortsTests(unittest.TestCase):
+    def test_saved_return_checks_the_original_deadline_before_and_after_current(self):
+        deadline = '2026-11-27T12:00:00.001Z'
+        allowed = '2026-11-27T12:00:00.000Z'
+        for times, reason, observed in (
+                ((allowed, allowed), None, 1),
+                ((deadline,), 'return context expired', 0),
+                ((allowed, deadline), 'expired during its return observation', 1)):
+            with self.subTest(times=times):
+                clock = iter(times)
+                host = SimpleNamespace(_core=SimpleNamespace(_lock=RLock()),
+                                       _original_physical_observed_at=lambda: next(clock))
+                saved = OriginalSavedResultRead(host)
+                saved._return_target = saved_read_module._SavedRunControl('sha256:' + 'a' * 64, 0, 1, deadline)
+                calls = []
+                reader, selection = object(), object()
+                saved._root = SimpleNamespace(observe_original=calls.append)
+                saved._reader, saved._payload_selection = reader, selection
+
+                def current(action, selected):
+                    self.assertIs(selected, selection)
+                    action()
+
+                with patch.object(saved, '_current', side_effect=current):
+                    if reason is None:
+                        saved._check_transfer_current()
+                    else:
+                        with self.assertRaisesRegex(ValueError, reason):
+                            saved._check_transfer_current()
+                self.assertEqual(calls, [reader] * observed)
+
     def test_incremental_saved_pending_yields_outside_reader_and_keeps_the_original_loan(self):
         from tempfile import TemporaryDirectory
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
-                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
-                  **{name: '{}' for name in
-                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        packet = host_fixture.saved_coordinates_wire(reference['runDefinitionCid'], 'answer')
         body = {'ref': reference, 'resultName': 'answer', 'format': 'jsonl', 'attemptId': 'old-result'}
         for cancel in (False, True):
             with self.subTest(cancel=cancel), TemporaryDirectory() as directory:
@@ -53,7 +81,7 @@ class SavedReadPortsTests(unittest.TestCase):
                         core._host_fuel_phase = None
 
                 async def run():
-                    read = asyncio.create_task(host._open_ordinary_result(body))
+                    read = asyncio.create_task(host._open_ordinary_saved('read', body))
                     await asyncio.sleep(0)
                     carrier, = host._saved_result_reads
                     original = carrier._source
@@ -77,7 +105,7 @@ class SavedReadPortsTests(unittest.TestCase):
                         with self.assertRaises(OSError) as caught:
                             await read
                         self.assertIs(caught.exception, failure)
-                        self.assertEqual(counts, {'produce': 3, 'validate': 2})
+                        self.assertEqual(counts, {'produce': 3, 'validate': 0})
                     self.assertIs(carrier._source, original)
                     self.assertIs(core._loans[original.ticket], original)
                     self.assertFalse(carrier._preparing)
@@ -95,10 +123,7 @@ class SavedReadPortsTests(unittest.TestCase):
         from tempfile import TemporaryDirectory
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
-                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
-                  **{name: '{}' for name in
-                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        packet = host_fixture.saved_coordinates_wire(reference['runDefinitionCid'], 'answer')
         body = b'original-bytes'
         helper = host_fixture.LocalSubmissionLookupTests()
         helper.addCleanup = self.addCleanup
@@ -122,7 +147,7 @@ class SavedReadPortsTests(unittest.TestCase):
                          'authority', 'material', 0, 0)
 
             def prepare(source, observed):
-                self.assertEqual(observed, packet)
+                self.assertEqual(observed, (0, 0))
                 self.assertTrue(core._inputs[source.ticket].payload)
                 return selection
 
@@ -159,10 +184,7 @@ class SavedReadPortsTests(unittest.TestCase):
         from tempfile import TemporaryDirectory
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
-                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
-                  **{name: '{"fixture":"transport"}' for name in
-                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        packet = host_fixture.saved_coordinates_wire(reference['runDefinitionCid'], 'answer')
         helper = host_fixture.LocalSubmissionLookupTests()
         helper.addCleanup = self.addCleanup
         failure = OSError('original next payload acquisition')
@@ -171,13 +193,18 @@ class SavedReadPortsTests(unittest.TestCase):
                 run_reference=reference, result_name='answer')
             saved = OriginalSavedResultRead(host)
             host._saved_result_reads.append(saved)
+            core._host_operation_scope = object()
+            core._host_fuel_phase = 'operation'
+            core._host_cleanup_depth = 0
             with patch('actql_sdk._local_saved_read._object', wraps=saved_read_module._object) as decode, patch.object(
                     core, 'reserve_saved_payload_record', side_effect=failure) as acquire:
                 with self.assertRaises(OSError) as caught:
-                    saved.prepare(reference, 'answer', 'jsonl', 'original-attempt')
+                    asyncio.run(saved.prepare_incremental(reference, 'answer', 'jsonl', 'original-attempt'))
+            core._host_operation_scope = None
+            core._host_fuel_phase = None
             self.assertIs(caught.exception, failure)
             acquire.assert_called_once()
-            self.assertEqual(counts, {'produce': 1, 'validate': 2})
+            self.assertEqual(counts, {'produce': 1, 'validate': 0})
             decode.assert_not_called()
             source = saved._source
             self.assertIsNotNone(source)
@@ -191,10 +218,7 @@ class SavedReadPortsTests(unittest.TestCase):
         from tempfile import TemporaryDirectory
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
-                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
-                  **{name: '{}' for name in
-                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        packet = host_fixture.saved_coordinates_wire(reference['runDefinitionCid'], 'answer')
         helper = host_fixture.LocalSubmissionLookupTests()
         helper.addCleanup = self.addCleanup
         with TemporaryDirectory() as directory:
@@ -209,7 +233,7 @@ class SavedReadPortsTests(unittest.TestCase):
             original_call = core._call
 
             def prepare(source, observed):
-                self.assertEqual(observed, packet)
+                self.assertEqual(observed, (0, 0))
                 physical = core._inputs[source.ticket]
                 self.assertTrue(physical.payload)
                 retained.append((source, physical))
@@ -240,38 +264,57 @@ class SavedReadPortsTests(unittest.TestCase):
             self.assertEqual(counts['produce'], 1)
             self.assertTrue(host.close())
 
-    def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses(self):
+    def test_ordinary_delivery_lookup_uses_the_yielding_original_then_never_opens_a_payload(self):
         from tempfile import TemporaryDirectory
         reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
                      'runDefinitionCid': 'sha256:' + 'd' * 64}
-        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
-                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
-                  **{name: '{}' for name in
-                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        packet = host_fixture.saved_coordinates_wire(reference['runDefinitionCid'], 'answer')
         helper = host_fixture.LocalSubmissionLookupTests()
         helper.addCleanup = self.addCleanup
-        failure = ValueError('original saved lookup clock refused')
-        with TemporaryDirectory(prefix='actql-saved-lookup-original-') as directory:
+        body = {'ref': reference, 'resultName': 'answer', 'attemptId': 'exact-saved-attempt'}
+        with TemporaryDirectory() as directory:
             host, core, _, counts, _ = helper.fixture(directory, packet,
-                run_reference=reference, result_name='answer')
-            saved = OriginalSavedResultRead(host)
-            host._saved_result_reads.append(saved)
-            with patch.object(host, '_original_sdk_delivery_clock', side_effect=failure) as clock:
+                run_reference=reference, result_name='answer', pending_saved_result=2)
+            scope = object()
+            core._host_cleanup_depth = 0
+            failure = ValueError('Original saved lookup clock refused')
+
+            @contextmanager
+            def allowance():
+                core._host_operation_scope = scope
+                core._host_fuel_phase = 'operation'
+                try:
+                    yield
+                finally:
+                    core._host_operation_scope = None
+                    core._host_fuel_phase = None
+
+            async def run():
+                lookup = asyncio.create_task(host._open_ordinary_saved('delivery-attempt', body))
+                await asyncio.sleep(0)
+                carrier, = host._saved_result_reads
+                source = carrier._source
+                self.assertIsNotNone(source)
+                self.assertEqual(counts, {'produce': 1, 'validate': 0})
+                self.assertIs(core._host_operation_scope, scope)
+                self.assertFalse(core._lock._is_owned())
+                self.assertIsNone(host._installation.binding._observed_reader)
+                self.assertFalse(host._installation._store._connection.in_transaction)
+                self.assertFalse(lookup.done())
                 with self.assertRaises(ValueError) as caught:
-                    saved.prepare_lookup(reference, 'answer', 'original-attempt')
-            self.assertIs(caught.exception, failure)
-            clock.assert_called_once_with()
-            self.assertEqual(counts, {'produce': 1, 'validate': 2})
-            source = saved._source
-            self.assertIs(host._projections[-1], source)
-            self.assertIs(core._loans[source.ticket], source)
-            self.assertIsNotNone(saved._projection)
-            self.assertFalse(saved._preparing)
-            with patch.object(core, 'close_submission_lookup', return_value=False):
-                self.assertFalse(saved.close())
-                self.assertIs(saved._source, source)
+                    await lookup
+                self.assertIs(caught.exception, failure)
+                self.assertIs(carrier._source, source)
                 self.assertIs(core._loans[source.ticket], source)
-            self.assertTrue(saved.close())
+                self.assertEqual(counts, {'produce': 3, 'validate': 0})
+                self.assertFalse(carrier._preparing)
+
+            with (patch.object(core, '_host_operation', allowance),
+                  patch.object(host, '_original_sdk_delivery_clock', side_effect=failure) as clock,
+                  patch.object(core, 'reserve_saved_payload_record') as payload):
+                asyncio.run(run())
+                clock.assert_called_once_with()
+                payload.assert_not_called()
             self.assertTrue(host.close())
 
     def test_payload_output_uses_its_live_or_saved_original_parent_until_child_ack(self):
@@ -407,15 +450,15 @@ class SavedReadPortsTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             host, _, _, _, _ = helper.fixture(directory, {'kind': 'missing'})
             seen = []
-            def prepare(carrier, actual_reference, name, format, attempt):
+            async def prepare(carrier, actual_reference, name, format, attempt):
                 self.assertIs(host._saved_result_reads[-1], carrier)
                 self.assertFalse(host._run_loans)
                 self.assertFalse(host._prepared_inputs)
                 seen.append((carrier, actual_reference, name, format, attempt))
                 return httpx.Response(200, content=b'{"n":1}\n')
-            with patch.object(OriginalSavedResultRead, 'prepare', prepare), patch.object(
+            with patch.object(OriginalSavedResultRead, 'prepare_incremental', prepare), patch.object(
                     host, '_select_original_run', side_effect=AssertionError('cold is not live')):
-                response = asyncio.run(host._open_operation('read', {
+                response = asyncio.run(host._open_ordinary_saved('read', {
                     'ref': reference, 'resultName': 'answer', 'format': 'jsonl', 'attemptId': 'original-read'}))
             self.assertEqual(response.content, b'{"n":1}\n')
             self.assertEqual(seen[0][1:], (reference, 'answer', 'jsonl', 'original-read'))
@@ -429,12 +472,12 @@ class SavedReadPortsTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             host, _, _, _, _ = helper.fixture(directory, {'kind': 'missing'})
             calls = []
-            def fail(carrier, *args):
+            async def fail(carrier, *args):
                 calls.append(carrier)
                 raise OSError('same original supplier failure')
-            with patch.object(OriginalSavedResultRead, 'prepare', fail):
+            with patch.object(OriginalSavedResultRead, 'prepare_incremental', fail):
                 with self.assertRaises(OSError):
-                    asyncio.run(host._open_operation('read', {'ref': {}, 'resultName': 'answer',
+                    asyncio.run(host._open_ordinary_saved('read', {'ref': {}, 'resultName': 'answer',
                         'format': 'jsonl', 'attemptId': 'original-failure'}))
             self.assertEqual(len(calls), 1)
             self.assertIs(host._saved_result_reads[0], calls[0])

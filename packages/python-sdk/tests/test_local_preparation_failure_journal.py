@@ -32,6 +32,7 @@ class PreparationFailureJournalTests(unittest.TestCase):
         reference = original.reference(host)
         base = core._call
         selected, outputs, plans = {}, {}, {}
+        lookup_sources = {}
         counts = {'prepare': 0, 'failure': 0, 'lookup': 0, 'validate': 0}
         intent_cid = content_cid({'version': 'actql-submitted-intent/0.1',
             'intent': json.loads(original_append.INTENT)}, data_keys=True)
@@ -61,6 +62,7 @@ class PreparationFailureJournalTests(unittest.TestCase):
             if family == 'submission' and name == 'reserve' and args[2] == 4:
                 handle = 100 + args[3]
                 selected[handle] = 'lookup'
+                lookup_sources[handle] = args[1]
                 return handle
             if family == 'submission' and name == 'reserve_failure':
                 self.assertEqual(args[0], host._configuration.handle)
@@ -80,6 +82,20 @@ class PreparationFailureJournalTests(unittest.TestCase):
                         {'kind': 'preparation_failed', 'intentCid': intent_cid,
                          'problemCode': 'ClientProgramInvalidInput', 'problemClassification': 'invalid_input'}
                         if original_row.payload == FAILED else {'kind': 'preparing', 'intentCid': intent_cid})
+                    request = json.loads(core._inputs[lookup_sources[args[0]] - 100].payload)
+                    if 'intent' in request:
+                        expected = content_cid({'version': 'actql-submitted-intent/0.1',
+                            'intent': json.loads(request['intent'])}, data_keys=True)
+                        self.assertEqual(request['intentCid'], expected)
+                        if original_row is None:
+                            action = 'missing'
+                        elif expected != intent_cid:
+                            action = 'conflict'
+                        elif original_row.payload == FAILED:
+                            action = 'already_satisfied'
+                        else:
+                            action = 'recorded'
+                        observed.update(observation=action, expectedIntentCid=expected)
                 else:
                     counts['failure'] += 1
                     self.assertEqual(original_row.payload, original_append.PREPARING)

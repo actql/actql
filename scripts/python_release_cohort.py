@@ -3,6 +3,9 @@ from pathlib import Path
 import tomllib
 
 
+PYTHON_RUNTIME_REQUIREMENTS = ('wasmtime==51.0.0',)
+
+
 def select_release_version(value: str) -> dict[str, object]:
     """Use the sole build-time SemVer/PEP 440 projection; no Python grammar fork."""
     import json
@@ -101,13 +104,13 @@ def read_cohort(root: Path) -> str:
             or product['dependencies'] != ['actql-sdk==' + version, 'actql-local-runtime==' + version]
             or sdk['dependencies'] != ['httpx==0.28.1', 'rfc8785==0.1.4']
             or 'local' in sdk.get('optional-dependencies', {})
-            or runtime['dependencies'] != ['wasmtime==38.0.0']):
+            or runtime['dependencies'] != list(PYTHON_RUNTIME_REQUIREMENTS)):
         raise ValueError('Python standard product/SDK/runtime do not form the selected release cohort')
     return version
 
 
 def verify_built_cohort(directory: Path, source: str, version: str, *,
-                        frozen_layout: bool = False) -> dict[str, object]:
+                        frozen_layout: bool = False, frozen_wheels: Path | None = None) -> dict[str, object]:
     """Reobserve actual wheel bytes/metadata without loading a runtime or publishing.
 
     The producer's component/source correspondence and actual install acceptance
@@ -187,7 +190,9 @@ def verify_built_cohort(directory: Path, source: str, version: str, *,
     seen = set()
     if type(frozen_layout) is not bool:
         raise ValueError('Select an explicit original or upper-fixed wheel layout')
-    wheel_root = root if frozen_layout else root / 'wheels'
+    if frozen_wheels is not None and not frozen_layout:
+        raise ValueError('A shared wheel directory requires the explicitly frozen layout')
+    wheel_root = (frozen_wheels or root) if frozen_layout else root / 'wheels'
     if wheel_root.is_symlink() or not wheel_root.is_dir():
         raise ValueError('Original wheel directory is unavailable')
     for record in records:
@@ -278,6 +283,23 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
     artifacts = plan['artifacts']
     if [item['name'] for item in artifacts] != ['actql-sdk', 'actql-local-runtime', 'actql']:
         raise ValueError('Incomplete original Python cohort')
+    approved_artifacts = plan.get('approvedArtifacts', artifacts)
+    if 'approvedArtifacts' in plan or 'platform' in plan:
+        import platform
+        actual = {('darwin', 'arm64'): 'darwin-arm64', ('linux', 'x86_64'): 'linux-x64'}.get(
+            (sys.platform, platform.machine()))
+        if (actual is None or plan.get('platform') != actual or type(approved_artifacts) is not list
+                or [item['name'] for item in approved_artifacts] != ['actql-sdk', 'actql-local-runtime', 'actql-local-runtime', 'actql']
+                or len({Path(item['path']).name for item in approved_artifacts}) != 4
+                or not all(item in approved_artifacts for item in artifacts)
+                or any(item['version'] != '0.0.3' for item in approved_artifacts)):
+            raise ValueError('Paired Python install plan differs from the actual platform or exact four originals')
+        runtime = next(item for item in artifacts if item['name'] == 'actql-local-runtime')
+        # The parent selected this exact file from the original platform
+        # manifest and independently ran the existing wheel metadata verifier.
+        runtime_tag = {'linux-x64': 'manylinux_2_28_x86_64', 'darwin-arm64': 'macosx_11_0_arm64'}[actual]
+        if not Path(runtime['path']).name.endswith('-py3-none-' + runtime_tag + '.whl'):
+            raise ValueError('Selected runtime wheel differs from the installed interpreter platform')
     names = ['actql-sdk'] if entry == 'actql-sdk' else [item['name'] for item in artifacts]
     original_report = stable_file(report_path, 4 * 1024 * 1024, lambda f: f.read())
     def public_wheel(url):
@@ -353,17 +375,28 @@ def verify_installed_release(plan: dict[str, object], report_path: Path,
             if package.get('source') != {'registry': 'https://pypi.org/simple'}:
                 raise ValueError('uv resolution contains a non-public or local source')
             if name.startswith('actql'):
+                wheels = package.get('wheels')
                 if (name not in names or set(package) - {'name', 'version', 'source', 'dependencies', 'wheels'}
-                        or type(package.get('wheels')) is not list or len(package['wheels']) != 1):
+                        or type(wheels) is not list or not wheels):
                     raise ValueError('Unexpected ActQL uv resolution or artifact alternatives')
                 original = next(value for value in artifacts if value['name'] == name)
-                wheel = package['wheels'][0]
-                if (set(wheel) - {'url', 'hash', 'size', 'upload-time'} or not {'url', 'hash', 'size'} <= set(wheel)
-                        or package['version'] != original['version']
-                        or public_wheel(wheel['url']) != Path(original['path']).name
-                        or wheel['hash'] != 'sha256:' + original['sha256']
-                        or type(wheel['size']) is not int or wheel['size'] != original['bytes']):
-                    raise ValueError('uv resolution differs from the fixed original wheel')
+                candidates = {Path(value['path']).name: value for value in approved_artifacts if value['name'] == name}
+                if len(wheels) > len(candidates):
+                    raise ValueError('Unexpected ActQL uv artifact alternatives')
+                wheel_names = set()
+                for wheel in wheels:
+                    if (set(wheel) - {'url', 'hash', 'size', 'upload-time'}
+                            or not {'url', 'hash', 'size'} <= set(wheel)):
+                        raise ValueError('Unexpected ActQL uv wheel fields')
+                    filename = public_wheel(wheel['url'])
+                    candidate = candidates.get(filename)
+                    if (candidate is None or filename in wheel_names or package['version'] != candidate['version']
+                            or wheel['hash'] != 'sha256:' + candidate['sha256']
+                            or type(wheel['size']) is not int or wheel['size'] != candidate['bytes']):
+                        raise ValueError('uv resolution differs from the fixed original wheel')
+                    wheel_names.add(filename)
+                if Path(original['path']).name not in wheel_names:
+                    raise ValueError('uv resolution omits the selected original platform wheel')
                 selected[name] = package
         expected_root = {'name': 'release-consumer-check', 'version': '0.0.0', 'source': {'virtual': '.'},
             'dependencies': [{'name': entry}],
@@ -498,6 +531,7 @@ if __name__ == '__main__':
     parser.add_argument('--source', required=True)
     parser.add_argument('--version', required=True)
     parser.add_argument('--frozen-layout', action='store_true')
+    parser.add_argument('--frozen-wheels', type=Path)
     arguments = parser.parse_args()
     print(json.dumps(verify_built_cohort(arguments.verify_directory, arguments.source, arguments.version,
-                                       frozen_layout=arguments.frozen_layout)))
+                                       frozen_layout=arguments.frozen_layout, frozen_wheels=arguments.frozen_wheels)))

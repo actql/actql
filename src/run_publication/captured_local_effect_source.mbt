@@ -670,3 +670,24 @@ pub fn captured_local_effect_source_json(
 ) -> String? {
   canonical_value_wire(evidence.value, max_wire_bytes, max_nodes, max_depth)
 }
+
+///|
+/// Count the original admitted tree without recreating its canonical wire.
+/// The awaiting Capture owns this complete tree until it transfers or closes.
+pub fn captured_local_effect_source_representation_extent(
+  evidence : CapturedLocalEffectSourceEvidence,
+  max_nodes : Int,
+  max_depth : Int,
+  max_utf16_units : Int,
+) -> @json.CanonicalRepresentationExtent? {
+  match
+    @json.representation_extent(
+      evidence.value,
+      max_nodes,
+      max_depth,
+      max_utf16_units,
+    ) {
+    Ok(extent) => Some(extent)
+    Err(_) => None
+  }
+}

@@ -140,6 +140,8 @@ pub fn decimal_from_coefficient(String, Int, Int) -> Value?
 
 pub fn decimal_wire_text(DecimalValue) -> String
 
+pub fn decode_canonical_base64(StringView, Int) -> Bytes?
+
 pub fn[T] element_at(FrozenArray[T], Int) -> T?
 
 pub fn[T] element_count(FrozenArray[T]) -> Int
@@ -149,6 +151,8 @@ pub fn[T] elements(FrozenArray[T]) -> Array[T]
 pub fn emit_checked_wire_value(CheckedValue, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_wire_value(Value, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn encode_canonical_base64(BytesView) -> String
 
 pub fn epoch_milliseconds_timestamp(Int64) -> String?
 
@@ -200,7 +204,7 @@ pub fn recheck_pending_frames(RecheckCursor) -> Int
 
 pub fn recheck_runtime_value(Value, @value_contract.Contract, Limits) -> CheckedValue?
 
-pub fn recheck_runtime_value_usage(Value, @value_contract.Contract, Limits) -> (CheckedValue, Int, Int)?
+pub fn recheck_runtime_value_usage(Value, @value_contract.Contract, Limits, max_work? : Int?) -> (CheckedValue, Int, Int)?
 
 pub fn reference_available(ReferenceValue) -> Bool
 
@@ -271,6 +275,8 @@ pub fn timestamp_numeric_part(String, String) -> Int64?
 pub fn timestamp_order_text(String) -> String?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
+
+pub fn wire_emit_bounded_construction_inventory(Int) -> WireEmitConstructionInventory?
 
 pub fn wire_emit_fragment_byte_bound() -> Int
 

@@ -73,6 +73,8 @@ pub fn issue_path_construction_extent(Int64) -> @decode_shape.CollectionConstruc
 
 pub fn lookup(ObjectView, String) -> Cursor?
 
+pub fn lookup_original_field(Cursor, String) -> Cursor?
+
 pub fn object_field_names(Cursor) -> Result[Array[String], Issue]
 
 pub fn object_length(Cursor) -> Int?

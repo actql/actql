@@ -18,7 +18,8 @@ class PayloadBindingCustodyTests(unittest.TestCase):
         core._next_ticket = 8
         record = _Output(core._identity, 7, 23, 65536, 'payload_record')
         core._loans = {7: record}
-        state = {'reserve': 29, 'produce': 0, 'validate': 0, 'close': -9, 'ready': False}
+        state = {'transport_limit': 2170, 'reserve': 29, 'produce': 0,
+                 'validate': 0, 'close': -9, 'ready': False}
         wire = b'{"byte_count":12,"result_fields":["next"],"physical_sha256":"eb9a6cfb7dc9e43152fefb085f2004515b205c9b084ac6fbc785958eb3d8138d"}'
         calls = []
 
@@ -28,9 +29,11 @@ class PayloadBindingCustodyTests(unittest.TestCase):
                 self.assertEqual(name, 'byte')
                 return wire[args[1]]
             self.assertEqual(family, 'payload_binding')
+            if name == 'transport_limit':
+                self.assertEqual(args, (23,))
             if name == 'reserve':
                 self.assertEqual(args[:2], (23, 8))
-                self.assertGreaterEqual(args[2], 2 * 65536)
+                self.assertGreaterEqual(args[2], 2 * state['transport_limit'])
             if name == 'length':
                 return state.get('length', len(wire))
             if name == 'close' and state['close'] == 0:
@@ -44,6 +47,8 @@ class PayloadBindingCustodyTests(unittest.TestCase):
         core, record, calls, _, wire = self.bridge()
         binding = core.reserve_payload_binding(record, cleanup=lambda: True)
         core.produce_payload_binding(binding, 31)
+        core.validate_payload_binding(binding, 35)
+        self.assertFalse(any(f == 'buffer' for f, _, _ in calls))
         self.assertEqual(core.read_payload_binding(binding, 37), wire)
         self.assertIn(('payload_binding', 'produce', (29, 31)), calls)
         self.assertIn(('payload_binding', 'validate', (29, 37)), calls)
@@ -92,7 +97,7 @@ class PayloadBindingCustodyTests(unittest.TestCase):
     def test_invalid_lengths_refuse_before_reading_any_byte(self):
         core, record, calls, state, _ = self.bridge()
         binding = core.reserve_payload_binding(record, cleanup=lambda: True)
-        for length in (-1, 65537):
+        for length in (-1, state['transport_limit'] + 1):
             state['length'] = length
             with self.assertRaises((LocalCoreError, ValueError)):
                 core.read_payload_binding(binding, 31)

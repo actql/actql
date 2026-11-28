@@ -413,18 +413,122 @@ test "composed egress follows checked source-free imports for each sibling" {
 }
 
 ///|
-fn client_composed_whole_sibling_test_program() -> PreparedClientProgram raise {
-  let document =
+fn client_composed_whole_sibling_test_program(
+  confidential? : Bool = false,
+  unknown? : Bool = false,
+  authored? : String? = None,
+  project_second_model? : Bool = false,
+) -> PreparedClientProgram raise {
+  let base =
     #|{"version":"actql/0.1","id":"model-whole-egress","stages":[{"id":"source","inputs":{"left":{"connector":"crm/main","resource":"r","view":"v"},"right":{"connector":"crm/right","resource":"r","view":"v"}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":100,"select":{"id":"left.id","amount":"right.amount"}},"as":"joined"}],"results":{"rows":{"from":"joined","fields":["id","amount"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"literal":"fixture"}}},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"literal":"fixture"}}},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id","outcome","value"]}}}],"results":{"a":{"from":{"stage":"first","result":"rows"}},"b":{"from":{"stage":"second","result":"rows"}}}}
+  let document = if project_second_model {
+    let final_result = "\"as\":\"answer\"}],\"results\":{\"rows\":{\"from\":\"answer\",\"fields\":[\"id\",\"outcome\",\"value\"]}}}],"
+    base.replace(
+      old=final_result,
+      new="\"as\":\"answer\"},{\"select\":[\"id\",\"outcome\"],\"as\":\"projected\"}],\"results\":{\"rows\":{\"from\":\"projected\",\"fields\":[\"id\",\"outcome\"]}}}],",
+    )
+  } else {
+    base
+  }
+  // The original right View and its Catalog are independently sealed with a
+  // Confidential policy. Both controls keep the exact same Program and Tasks.
+  let (environment_wire, environment_cid) = if unknown {
+    (
+      local_normalization_environment_wire, "sha256:afebeb63f2e0e48434bf005f65ab0af8a0c2704f0afb5a8c70df72e91b26e86e",
+    )
+  } else if confidential {
+    let wire = mixed_known_policy_environment
+      .replace_all(
+        old="\"classification\":\"internal\"",
+        new="\"classification\":\"confidential\"",
+      )
+      .replace_all(
+        old="\"data_classification\":\"internal\"",
+        new="\"data_classification\":\"confidential\"",
+      )
+      .replace_all(
+        old="sha256:49c2c1c7fa4075fd3b6fe3f4475af5fc8928c0f4afb6555407777475e436fa71",
+        new="sha256:fa43c4bc38c5d8122483eeef4309239e61a69752983a953d029e5c42411ea702",
+      )
+      .replace_all(
+        old="sha256:dadbf9cb08280610faba740ca1699ba0f21e3f4f53c466bf1e47cc077aca7451",
+        new="sha256:e4b0e5d281576fca9fbc98fad7340cc30fe5813739a92df07c11f2701fb3e10b",
+      )
+      .replace_all(
+        old="sha256:370a20e504ba8d42463f6adf972fa3df9ae4e70657ba28e70f2da0e72f416f0d",
+        new="sha256:1bd69695dbcdf833492f8137a9aa7bae945755dfe4df49de6c2a5c8aa35b9d53",
+      )
+      .replace_all(
+        old="sha256:a789489e096d742e32125c57801a7b8662174befe3c3b2a6369e19533a471115",
+        new="sha256:1fe36b910d3b3bb4f18a862533658777abfa7f9311a2e55980e45a19f9a2630e",
+      )
+    // The two exact Snapshot member hashes reverse order under the new wire.
+    let value = parse_plan_identity_value(wire, 20000, 4000, 64).unwrap()
+    let writer = @encode.writer(20000, 4000, 64)
+    @encode.begin_object(writer)
+    for (name, item) in @canonical.object_fields(value).unwrap() {
+      @encode.key(writer, name)
+      if name == "schema_snapshots" {
+        guard item is @canonical.Array(original_snapshots) else {
+          fail("Missing original fixture Snapshot array")
+        }
+        let snapshots = @canonical.array_values(original_snapshots)
+        assert_eq(snapshots.length(), 2)
+        @encode.begin_array(writer)
+        @canonical.emit_value(snapshots[1], writer)
+        @canonical.emit_value(snapshots[0], writer)
+        @encode.end_array(writer)
+      } else if name == "connector_catalogs" {
+        guard item is @canonical.Array(original_catalogs) else {
+          fail("Missing original fixture Catalog array")
+        }
+        let catalogs = @canonical.array_values(original_catalogs)
+        assert_eq(catalogs.length(), 2)
+        @encode.begin_array(writer)
+        @encode.begin_object(writer)
+        for (field, content) in @canonical.object_fields(catalogs[0]).unwrap() {
+          @encode.key(writer, field)
+          if field == "contracts" {
+            guard content is @canonical.Array(original_contracts) else {
+              fail("Missing original right Catalog contracts")
+            }
+            let contracts = @canonical.array_values(original_contracts)
+            assert_eq(contracts.length(), 5)
+            @encode.begin_array(writer)
+            for index in [0, 2, 3, 4, 1] {
+              @canonical.emit_value(contracts[index], writer)
+            }
+            @encode.end_array(writer)
+          } else {
+            @canonical.emit_value(content, writer)
+          }
+        }
+        @encode.end_object(writer)
+        @canonical.emit_value(catalogs[1], writer)
+        @encode.end_array(writer)
+      } else {
+        @canonical.emit_value(item, writer)
+      }
+    }
+    @encode.end_object(writer)
+    (
+      @encode.finish(writer),
+      "sha256:1fe36b910d3b3bb4f18a862533658777abfa7f9311a2e55980e45a19f9a2630e",
+    )
+  } else {
+    (
+      mixed_known_policy_environment, "sha256:a789489e096d742e32125c57801a7b8662174befe3c3b2a6369e19533a471115",
+    )
+  }
   let known = admit_client_check_environment(
-    mixed_known_policy_environment,
-    "sha256:a789489e096d742e32125c57801a7b8662174befe3c3b2a6369e19533a471115",
+    environment_wire,
+    environment_cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   match
     prepare_effect_free_client_program(
-      document,
+      authored.unwrap_or(document),
       Json,
       client_composed_effect_test_environment(known),
       None,
@@ -469,6 +573,43 @@ test "composed egress retains both source policies at each sibling input" {
         })
       })
       is Ok(_),
+    )
+  }
+}
+
+///|
+test "composed egress refuses a Confidential contributing Whole View for either sibling" {
+  let prepared = client_composed_whole_sibling_test_program(confidential=true)
+  let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let program = @strategy.graph_program(prepared_client_graph(prepared))
+  for occurrence in occurrences {
+    assert_true(
+      @checked.prepare_infer_input_policy(
+        program,
+        occurrence.stage,
+        occurrence.step,
+        1000000,
+        1000000,
+        100000,
+        100,
+      )
+      is Some(@checked.CheckedSources(@environment.Confidential)),
+    )
+    let execution = client_infer_graph_test_execution(
+      prepared,
+      occurrence=Some(occurrence),
+    )
+    assert_true(
+      admit_client_infer_occurrence_egress(occurrence, execution, () => {
+        Some({
+          classification: @environment.Public,
+          region: "fixture-region",
+          provider_retention: false,
+          training_use: false,
+        })
+      })
+      is Err(ClassificationDenied),
     )
   }
 }
@@ -565,7 +706,7 @@ test "Whole sibling INFER prefixes receive the same original declared Result por
 ///|
 test "composed egress refuses unattested prior Model output without acquisitions" {
   let document =
-    #|{"version":"actql/0.1","id":"model-output-policy-unproven","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":false}},"rows":[{"id":"one","text":"first prompt"}]},"as":"rows"}],"results":{"rows":{"from":"rows","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"first","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"outcome"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"second","result":"rows"}}}}
+    #|{"version":"actql/0.1","id":"model-output-policy-unproven","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":false}},"rows":[{"id":"one","text":"first prompt"}]},"as":"rows"}],"results":{"rows":{"from":"rows","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"first","result":"rows"}},"unused":{"result":{"stage":"first","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"outcome"}}},"as":"assessed"}],"results":{"rows":{"from":"assessed","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"second","result":"rows"}}}}
   let prepared = client_composed_infer_test_program(authored=Some(document))
   let graph = prepared_client_graph(prepared)
   assert_eq(@strategy.graph_captured_prefix(graph), 0)
@@ -581,6 +722,100 @@ test "composed egress refuses unattested prior Model output without acquisitions
   }
   let first = occurrences[0]
   let second = occurrences[1]
+  let program = @strategy.graph_program(graph)
+  guard @checked.prepare_infer_input_policy(
+      program,
+      second.stage,
+      second.step,
+      1000000,
+      1000000,
+      100000,
+      100,
+    )
+    is Some(@checked.PendingModelOutputs(waiting)) else {
+    fail("exact first Model output must remain pending at the receiving input")
+  }
+  assert_true(
+    @checked.checked_infer_model_inputs_match(
+      waiting,
+      program,
+      second.stage,
+      second.step,
+    ),
+  )
+  assert_true(
+    !@checked.checked_infer_model_inputs_match(
+      waiting,
+      program,
+      first.stage,
+      first.step,
+    ),
+  )
+  let foreign = client_composed_infer_test_program(authored=Some(document))
+  assert_true(
+    !@checked.checked_infer_model_inputs_match(
+      waiting,
+      @strategy.graph_program(prepared_client_graph(foreign)),
+      second.stage,
+      second.step,
+    ),
+  )
+  let receiving = @checked.unit_result_import_at(program, second.stage, 0).unwrap()
+  let unused = @checked.unit_result_import_at(program, second.stage, 1).unwrap()
+  assert_eq(receiving.input_name, "rows")
+  assert_eq(unused.input_name, "unused")
+  assert_eq(receiving.result_name, unused.result_name)
+  assert_eq(
+    receiving.producer_unit_definition_cid,
+    unused.producer_unit_definition_cid,
+  )
+  assert_true(
+    @checked.checked_infer_model_result_dependency_matches(
+      waiting,
+      receiving,
+      first.stage,
+      first.step,
+    ),
+  )
+  assert_false(
+    @checked.checked_infer_model_result_dependency_matches(
+      waiting,
+      unused,
+      first.stage,
+      first.step,
+    ),
+  )
+  let foreign_import = @checked.unit_result_import_at(
+    @strategy.graph_program(prepared_client_graph(foreign)),
+    second.stage,
+    0,
+  ).unwrap()
+  assert_eq(receiving.cid, foreign_import.cid)
+  assert_false(
+    @checked.checked_infer_model_result_dependency_matches(
+      waiting,
+      foreign_import,
+      first.stage,
+      first.step,
+    ),
+  )
+  assert_false(
+    @checked.checked_infer_model_result_dependency_matches(
+      waiting,
+      receiving,
+      first.stage,
+      first.step + 1,
+    ),
+  )
+  assert_eq(@checked.checked_infer_model_inputs_count(waiting), 1)
+  assert_eq(
+    @checked.checked_infer_model_input_at(waiting, 0),
+    Some((first.stage, first.step)),
+  )
+  assert_eq(@checked.checked_infer_model_input_at(waiting, 1), None)
+  assert_true(
+    @checked.checked_infer_model_input_source_classification(waiting) is None,
+  )
   assert_true(
     admit_client_infer_occurrence_egress(
       first,
@@ -597,6 +832,293 @@ test "composed egress refuses unattested prior Model output without acquisitions
     )
     is Err(UnknownClassification),
   )
+}
+
+///|
+test "composed egress retains direct Whole policy beside a pending Model export" {
+  let document =
+    #|{"version":"actql/0.1","id":"model-whole-dependent-egress","stages":[{"id":"source","inputs":{"left":{"connector":"crm/main","resource":"r","view":"v"},"right":{"connector":"crm/right","resource":"r","view":"v"}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":100,"select":{"id":"left.id","amount":"right.amount"}},"as":"joined"}],"results":{"rows":{"from":"joined","fields":["id","amount"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"rows","assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"literal":"fixture"}}},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"first_rows":{"result":{"stage":"first","result":"rows"}},"source_rows":{"result":{"stage":"source","result":"rows"}}},"steps":[{"from":"first_rows","join":{"with":"source_rows","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":100,"select":{"id":"left.id","outcome":"left.outcome","amount":"right.amount"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"outcome"}}},"as":"answer"}],"results":{"rows":{"from":"answer","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"second","result":"rows"}}}}
+  for
+    (unknown, confidential, expected) in [
+      (false, false, Some(@environment.Internal)),
+      (false, true, Some(@environment.Confidential)),
+      (true, false, None),
+    ] {
+    let authored = if unknown {
+      document.replace_all(old=",\"view\":\"v\"", new="")
+    } else {
+      document
+    }
+    let prepared = client_composed_whole_sibling_test_program(
+      unknown~,
+      confidential~,
+      authored=Some(authored),
+    )
+    let graph = prepared_client_graph(prepared)
+    let program = @strategy.graph_program(graph)
+    let occurrences = prepared_client_composed_infer_occurrences(prepared).unwrap()
+    assert_eq(occurrences.length(), 2)
+    let first = occurrences[0]
+    let second = occurrences[1]
+    let policy = @checked.prepare_infer_input_policy(
+      program,
+      second.stage,
+      second.step,
+      1000000,
+      1000000,
+      100000,
+      100,
+    )
+    match expected {
+      None =>
+        assert_true(
+          policy is Some(@checked.CheckedSources(@environment.Unknown)),
+        )
+      Some(classification) => {
+        guard policy is Some(@checked.PendingModelOutputs(waiting)) else {
+          fail("the checked Whole policy must survive the pending Model output")
+        }
+        let model_import = @checked.unit_result_import_at(
+          program,
+          second.stage,
+          0,
+        ).unwrap()
+        let whole_import = @checked.unit_result_import_at(
+          program,
+          second.stage,
+          1,
+        ).unwrap()
+        assert_eq(model_import.input_name, "first_rows")
+        assert_eq(whole_import.input_name, "source_rows")
+        assert_true(
+          @checked.checked_infer_model_result_dependency_matches(
+            waiting,
+            model_import,
+            first.stage,
+            first.step,
+          ),
+        )
+        assert_false(
+          @checked.checked_infer_model_result_dependency_matches(
+            waiting,
+            whole_import,
+            first.stage,
+            first.step,
+          ),
+        )
+        assert_eq(@checked.checked_infer_model_inputs_count(waiting), 1)
+        assert_eq(
+          @checked.checked_infer_model_input_at(waiting, 0),
+          Some((first.stage, first.step)),
+        )
+        assert_eq(
+          @checked.checked_infer_model_input_source_classification(waiting),
+          Some(classification),
+        )
+      }
+    }
+    let execution = client_infer_graph_test_execution(
+      prepared,
+      occurrence=Some(second),
+    )
+    let observed : Ref[ClientInferEgressObservation?] = Ref(
+      Some({
+        classification: @environment.Public,
+        region: "fixture-region",
+        provider_retention: false,
+        training_use: false,
+      }),
+    )
+    assert_true(
+      admit_client_infer_occurrence_egress(second, execution, () => observed.val)
+      is Err(UnknownClassification),
+    )
+    let selected = prepare_client_infer_occurrence_egress(second, execution, () => {
+      observed.val
+    })
+    if unknown {
+      assert_true(selected is Err(UnknownClassification))
+      continue
+    }
+    if confidential {
+      assert_true(selected is Err(ClassificationDenied))
+      continue
+    }
+    guard selected is Ok(EgressPending(pending)) else {
+      fail("known Source policy with an unsettled producer must be pending")
+    }
+    assert_true(pending.candidate.classification == @environment.Internal)
+    assert_eq(client_infer_pending_egress_result_count(pending), 1)
+    assert_true(
+      client_infer_pending_egress_accepts_classification(
+        pending,
+        @environment.Public,
+      ),
+    )
+    assert_false(
+      client_infer_pending_egress_accepts_classification(
+        pending,
+        @environment.Confidential,
+      ),
+    )
+    assert_false(
+      client_infer_pending_egress_accepts_classification(
+        pending,
+        @environment.Unknown,
+      ),
+    )
+    assert_true(
+      client_infer_pending_egress_classification(
+        pending,
+        @environment.Public,
+        @environment.Internal,
+      )
+      is Ok(@environment.Internal),
+    )
+    assert_true(
+      client_infer_pending_egress_classification(
+        pending,
+        @environment.Public,
+        @environment.Confidential,
+      )
+      is Err(ClassificationDenied),
+    )
+    assert_true(
+      client_infer_pending_egress_classification(
+        pending,
+        @environment.Public,
+        @environment.Unknown,
+      )
+      is Err(UnknownClassification),
+    )
+    fn plan_for(
+      occurrence : ClientInferOccurrence,
+      selected_execution : @environment.ModelExecutionContract,
+    ) -> ClientInferPlanGraph {
+      issue_prepared_client_composed_infer_plan_graph(
+        occurrence,
+        selected_execution,
+        "sha256:" + "b".repeat(64),
+        "sha256:" + "c".repeat(64),
+        run_materials_limits().sequence,
+        100000,
+        10000,
+        100,
+        include_results=false,
+      ).unwrap()
+    }
+    let first_execution = client_infer_graph_test_execution(
+      prepared,
+      occurrence=Some(first),
+    )
+    let first_plan = plan_for(first, first_execution)
+    let second_plan = plan_for(second, execution)
+    let fresh = client_composed_whole_sibling_test_program(
+      authored=Some(document),
+    )
+    let foreign = prepared_client_composed_infer_occurrences(fresh).unwrap()[0]
+    let foreign_execution = client_infer_graph_test_execution(
+      fresh,
+      occurrence=Some(foreign),
+    )
+    let foreign_plan = plan_for(foreign, foreign_execution)
+    let original = admit_client_infer_occurrence_egress(
+      first,
+      first_execution,
+      () => observed.val,
+    ).unwrap()
+    assert_true(original.observed.classification == @environment.Public)
+    assert_true(original.classification == @environment.Internal)
+    assert_true(client_infer_pending_egress_matches(pending, second_plan))
+    assert_false(client_infer_pending_egress_matches(pending, first_plan))
+    assert_true(
+      resolve_client_infer_pending_egress(pending, second_plan, [], () => true)
+      is Err(ForeignOwner),
+    )
+    assert_true(
+      client_infer_pending_egress_result_matches(
+        pending, second_plan, 0, first_plan,
+      ),
+    )
+    assert_false(
+      client_infer_pending_egress_result_matches(
+        pending, second_plan, 1, first_plan,
+      ),
+    )
+    assert_false(
+      client_infer_pending_egress_result_matches(
+        pending, second_plan, 0, foreign_plan,
+      ),
+    )
+    assert_false(
+      client_infer_pending_egress_result_matches(
+        pending, second_plan, 0, second_plan,
+      ),
+    )
+    assert_true(check_client_infer_pending_egress_current(pending) is Ok(_))
+    observed.val = Some({ ..observed.val.unwrap(), region: "elsewhere", })
+    assert_true(
+      check_client_infer_pending_egress_current(pending)
+      is Err(ChangedObservation),
+    )
+    observed.val = None
+    assert_true(
+      check_client_infer_pending_egress_current(pending)
+      is Err(MissingObservation),
+    )
+    let two_ports = document
+      .replace(
+        old="\"source_rows\":{\"result\":{\"stage\":\"source\",\"result\":\"rows\"}}",
+        new="\"source_rows\":{\"result\":{\"stage\":\"first\",\"result\":\"rows\"}}",
+      )
+      .replace(
+        old="\"outcome\":\"left.outcome\",\"amount\":\"right.amount\"",
+        new="\"outcome\":\"left.outcome\",\"copy\":\"right.outcome\"",
+      )
+    let two_ports = client_composed_whole_sibling_test_program(
+      authored=Some(two_ports),
+    )
+    let two = prepared_client_composed_infer_occurrences(two_ports).unwrap()
+    let selected = client_infer_graph_test_execution(
+      two_ports,
+      occurrence=Some(two[1]),
+    )
+    let two_ports_policy = prepare_client_infer_occurrence_egress(
+      two[1],
+      selected,
+      () => {
+        Some({
+          classification: @environment.Public,
+          region: "fixture-region",
+          provider_retention: false,
+          training_use: false,
+        })
+      },
+    ).unwrap()
+    guard two_ports_policy is EgressPending(two_ports_policy) else {
+      fail("two ports from one checked producer remain separate obligations")
+    }
+    assert_eq(
+      @checked.checked_infer_model_inputs_count(two_ports_policy.dependency),
+      1,
+    )
+    assert_eq(client_infer_pending_egress_result_count(two_ports_policy), 2)
+    let receiving = plan_for(two[1], selected)
+    let producing = plan_for(
+      two[0],
+      client_infer_graph_test_execution(two_ports, occurrence=Some(two[0])),
+    )
+    assert_true(
+      client_infer_pending_egress_result_matches(
+        two_ports_policy, receiving, 0, producing,
+      ),
+    )
+    assert_true(
+      client_infer_pending_egress_result_matches(
+        two_ports_policy, receiving, 1, producing,
+      ),
+    )
+  }
 }
 
 ///|
@@ -630,6 +1152,17 @@ test "composed egress binds the actual Unit and refuses changed or foreign autho
   ).unwrap()
   assert_true(client_infer_egress_matches(admission, prepared, graph))
   assert_true(check_client_infer_egress_current(admission) is Ok(_))
+  let retained_reader = Ref(true)
+  let dependent = {
+    ..admission,
+    dispatch_current: Some(() => retained_reader.val),
+  }
+  assert_true(check_client_infer_egress_current(dependent) is Ok(_))
+  retained_reader.val = false
+  assert_true(
+    check_client_infer_egress_current(dependent) is Err(MissingObservation),
+  )
+  assert_true(check_client_infer_egress_observation(dependent) is Ok(_))
   assert_true(
     admit_client_infer_occurrence_egress(
       occurrence,
@@ -647,9 +1180,15 @@ test "composed egress binds the actual Unit and refuses changed or foreign autho
   assert_true(
     check_client_infer_egress_current(admission) is Err(ChangedObservation),
   )
+  assert_true(
+    check_client_infer_egress_observation(dependent) is Err(ChangedObservation),
+  )
   observed.val = None
   assert_true(
     check_client_infer_egress_current(admission) is Err(MissingObservation),
+  )
+  assert_true(
+    check_client_infer_egress_observation(dependent) is Err(MissingObservation),
   )
 }
 
@@ -904,6 +1443,7 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
     owner,
     components: [component],
     normalization: None,
+    first_file: false,
   }
   let codec = {
     max_facts: 1000,
@@ -1142,7 +1682,12 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
   )
   assert_true(
     measure_prepared_client_effect_compilation_construction(
-      { owner: foreign, components: [component], normalization: None, },
+      {
+        owner: foreign,
+        components: [component],
+        normalization: None,
+        first_file: false,
+      },
       manifests,
       run_materials_limits().sequence,
       codec,
@@ -1457,6 +2002,32 @@ test "plural inventory count does not admit two Model boundaries inside one Whol
   let authored =
     #|{"version":"actql/0.1","id":"same-unit-model-boundaries","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":false}},"rows":[{"id":"a","text":"original"}]},"as":"items"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"first"},{"select":["id"]},{"derive":{"text":{"literal":"second"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"second"}],"results":{"rows":{"from":"second","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let prepared = client_composed_infer_test_program(authored=Some(authored))
+  let program = @strategy.graph_program(prepared_client_graph(prepared))
+  assert_true(
+    @checked.prepare_infer_input_policy(
+      program, 0, 6, 1000000, 1000000, 100000, 100,
+    )
+    is Some(@checked.CheckedSources(@environment.Unknown)),
+  )
+  assert_true(prepared_client_composed_infer_occurrences(prepared) is None)
+  assert_true(prepared_client_composed_infer_occurrence(prepared) is None)
+}
+
+///|
+test "a direct same-Unit Model input identifies its predecessor without enabling the compiled route" {
+  let authored =
+    #|{"version":"actql/0.1","id":"same-unit-dependent-model-boundary","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":false}},"rows":[{"id":"a","text":"original"}]},"as":"items"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"first"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"outcome"}}},"as":"second"}],"results":{"rows":{"from":"second","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let prepared = client_composed_infer_test_program(authored=Some(authored))
+  let program = @strategy.graph_program(prepared_client_graph(prepared))
+  guard @checked.prepare_infer_input_policy(
+      program, 0, 4, 1000000, 1000000, 100000, 100,
+    )
+    is Some(@checked.PendingModelOutputs(waiting)) else {
+    fail("the second checked occurrence must identify its first Model input")
+  }
+  assert_true(@checked.checked_infer_model_inputs_match(waiting, program, 0, 4))
+  assert_eq(@checked.checked_infer_model_inputs_count(waiting), 1)
+  assert_eq(@checked.checked_infer_model_input_at(waiting, 0), Some((0, 2)))
   assert_true(prepared_client_composed_infer_occurrences(prepared) is None)
   assert_true(prepared_client_composed_infer_occurrence(prepared) is None)
 }

@@ -76,7 +76,10 @@ pub fn[T] prepare_captured_completed_unit_result_handoff(
       preparation, receipt,
     ) &&
     @execution.completed_relation_export_original_source(receipt)
-    is Some(original) else {
+    is Some(original) &&
+    // The managed publication bridge already admitted the canonical rows.
+    // A consumer of this handoff must use that copy directly.
+    @execution.completed_has_cell_access(original) else {
     return Err(ForeignCandidate)
   }
   let retained = () => {
@@ -108,6 +111,24 @@ pub fn captured_completed_unit_result_export_original(
 }
 
 ///|
+/// Verify that the selected Unit Result was exported from the exact terminal
+/// completion of its producer task. A checked Result view can project or
+/// order rows, but its receipt must still hold the original completed output.
+pub fn captured_completed_unit_result_export_matches_output(
+  value : CapturedCompletedUnitResultHandoff,
+  run : CapturedDAG,
+  unit : Int,
+  task : Int,
+  output : @execution.CompletedOutput,
+) -> Bool {
+  value.producer == task &&
+  captured_completed_unit_results_match(value.unit, run, unit) &&
+  (value.retained)() &&
+  @execution.completed_relation_export_matches_output(value.receipt, output) &&
+  (value.retained)()
+}
+
+///|
 /// The exact canonical representation staged at the receiving port. The
 /// completed consumer still needs its own proof that it used this original.
 pub fn captured_completed_unit_result_input_original(
@@ -121,15 +142,48 @@ pub fn captured_completed_unit_result_input_original(
 }
 
 ///|
+/// Check the very Reader staged at the checked receiving edge. A second
+/// Reader of the same canonical output cannot replace it, and another
+/// receiving port cannot borrow this edge's proof.
+pub fn captured_completed_unit_result_input_matches(
+  value : CapturedCompletedUnitResultHandoff,
+  edge_index : Int,
+  read : @execution.ProducerRead,
+) -> Bool {
+  captured_completed_unit_result_input_retained(value, edge_index, read) &&
+  @execution.producer_read_original_output(read) is Some(original) &&
+  physical_equal(original, value.source) &&
+  captured_completed_unit_result_input_retained(value, edge_index, read)
+}
+
+///|
+/// Recheck only the installed retention of an already admitted Reader.
+/// This reads neither the producer's material nor its availability callback.
+pub fn captured_completed_unit_result_input_retained(
+  value : CapturedCompletedUnitResultHandoff,
+  edge_index : Int,
+  read : @execution.ProducerRead,
+) -> Bool {
+  let run = value.unit.run
+  (value.retained)() &&
+  @graph.graph_data_at(run.graph, edge_index) is Some(edge) &&
+  edge.producer == value.producer &&
+  @graph.graph_result_input_port(run.graph, edge_index) is Ok(Some(port)) &&
+  physical_equal(port, value.port) &&
+  run.inputs[edge.consumer][edge.input] is Some(staged) &&
+  physical_equal(read, staged)
+}
+
+///|
 /// Stage the checked receiving port before registration or activation. Both
-/// siblings borrow the same handoff. Repeat selection of the same original is
-/// harmless, but another (even equivalent) conversion cannot replace a Read.
+/// siblings borrow the same handoff. Return the actual task input position and
+/// retained Read so the starting consumer can check its supplied input.
 pub fn retain_captured_completed_unit_result_input(
   value : CapturedCompletedUnitResultHandoff,
   edge_index : Int,
   max_entries : Int,
   max_name_bytes : Int,
-) -> Result[Unit, RunIssue] {
+) -> Result[(Int, @execution.ProducerRead), RunIssue] {
   let run = value.unit.run
   guard next_captured_task(run) is Some(task) &&
     @graph.graph_data_at(run.graph, edge_index) is Some(edge) &&
@@ -154,7 +208,7 @@ pub fn retain_captured_completed_unit_result_input(
       physical_equal(current, read) else {
       return Err(ForeignCandidate)
     }
-    return Ok(())
+    return Ok((edge.input, read))
   }
   let read = match
     prepare_captured_pending_data_edge_read(
@@ -171,5 +225,5 @@ pub fn retain_captured_completed_unit_result_input(
     return Err(NotReady)
   }
   run.inputs[task][edge.input] = Some(read)
-  Ok(())
+  Ok((edge.input, read))
 }

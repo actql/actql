@@ -219,6 +219,18 @@ pub fn[P] cleanup_prepared_run_admission(
 }
 
 ///|
+pub fn[P] stopped_prepared_run_ledger_state(
+  value : PreparedRunAdmission[P],
+  ledger : Ledger,
+) -> Result[LedgerContinuationState, LedgerContinuationIssue] {
+  match value {
+    NodePreparedRun(original) =>
+      stopped_node_managed_run_ledger_state(original, ledger)
+    BackedPreparedRun(_) => Err(ChangedOriginal)
+  }
+}
+
+///|
 // Only the closed Resource operations below consume this immediate result.
 // The original consumer can neither retain it nor acquire a current proof.
 fn[P, E] check_prepared_run_operation_original(

@@ -14,3 +14,18 @@ pub fn client_model_read_consumer_handed_off_current(
   }
   client_model_origin_matches(origin, compiled, definition, plan)
 }
+
+///|
+/// The earlier Model may lend its Result only under the exact Scope that
+/// funded its handed-off Read on this Run's ledger.
+pub fn client_model_read_scope_handed_off_from(
+  scope : ClientModelReadScope,
+  consumer : ClientModelReadConsumer,
+  ledger : @resources.Ledger,
+) -> Bool {
+  physical_equal(scope.ledger, ledger) &&
+  @resources.original_ledger_inventory_live(scope.identity) &&
+  @resources.funded_read_consumer_handed_off_origin(consumer.consumer)
+  is Some(origin) &&
+  physical_equal(origin, scope.origin)
+}

@@ -78,7 +78,7 @@ pub fn is_known_local_mock_profile(BootstrapProfile) -> Bool
 
 pub fn local_mock_account_configuration(LocalMockAccountSubjects) -> Result[String, LocalMockProfileIssue]
 
-pub fn local_mock_account_configuration_prepared(LocalMockAccountSubjects, Array[(String, String)], (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalMockProfileIssue]?
+pub fn local_mock_account_configuration_prepared(LocalMockAccountSubjects, Array[(String, String)], (AccountConfigurationConstruction) -> Bool, original_result_read? : Bool) -> Result[String, LocalMockProfileIssue]?
 
 pub fn local_mock_account_construction_before_signing(LocalMockAccountSubjects, Array[(String, String)], Int) -> AccountConfigurationConstruction?
 
@@ -99,6 +99,8 @@ pub fn local_result_read_authority_resource(AdmittedAccountConfiguration, Access
 pub fn local_standard_account_configuration(LocalStandardAccountSubjects) -> Result[String, LocalStandardProfileIssue]
 
 pub fn local_standard_account_configuration_prepared(LocalStandardAccountSubjects, (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalStandardProfileIssue]?
+
+pub fn local_standard_file_account_configuration_prepared(Array[(String, String)], (AccountConfigurationConstruction) -> Bool) -> Result[(String, String), LocalStandardProfileIssue]?
 
 pub fn local_standard_profile_body() -> String
 

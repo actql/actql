@@ -50,6 +50,8 @@ pub fn local_dispatch_preparation_managed_task_capacity(LocalDispatchPreparation
 
 pub fn local_dispatch_preparation_retained_bytes(LocalDispatchPreparation) -> Int64?
 
+pub fn local_dispatch_preparation_selected_sequence(LocalDispatchPreparation, @physical_strategy.CheckedDAG, Int) -> @execution_relation.GeneratedSequence?
+
 pub fn local_dispatch_preparation_task_capacity(LocalDispatchPreparation, Int) -> @physical_strategy_host.PhysicalEnvelope?
 
 pub fn local_dispatch_preparation_transfer_bytes(LocalDispatchPreparation) -> Int64?
@@ -115,6 +117,8 @@ pub fn[T] start_local_managed_dispatch(LocalManagedDispatchConfiguration[T], ret
 pub fn start_local_managed_dispatch_node(LocalManagedDispatchConfiguration[Int], retained_relation? : Bool, canonical_managed_rows? : Bool, on_relation_commit? : ((@execution_relation.ManagedCompletedOutput[Int], @execution_relation.CompletedOutput?) -> Unit)?) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue]
 
 pub fn validate_local_dispatch_binding(LocalDispatchModule, @physical_host_dispatch.DispatchDriver, @connector_sdk.CapabilityRegistry) -> Result[Unit, LocalDispatchIssue]
+
+pub fn[T] with_local_managed_continuation_relation(LocalManagedDispatchOperations[T], (@execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, () -> Bool) -> Unit) -> Bool
 
 // Errors
 
@@ -239,6 +243,7 @@ pub struct LocalManagedDispatchOperations[T] {
   complete_carrier : () -> Result[@execution_relation.CarrierManagedCompletedOutput, LocalDispatchIssue]
   output_rows : () -> Int
   output_row : (Int) -> Result[String, LocalDispatchIssue]
+  visit_continuation_relation : (((@execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, () -> Bool) -> Unit) -> Bool)?
   material : () -> @execution_relation.ManagedRetainedOutput[T]?
   carrier_material : () -> @managed_carrier_runtime.Material?
   prepare_carrier_snapshot : (() -> Bool) -> Result[LocalManagedSnapshot?, LocalDispatchIssue]

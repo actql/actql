@@ -21,14 +21,26 @@ class SDKDeliveryHostTests(unittest.TestCase):
         _, store, core, binding, observation, request, _, _, codes, _ = values
         rows = storage_fixture.SDKDeliveryStorageTests().rows()
         packet = json.dumps(rows).encode()
+        host._publications = [observation._projection._publication]
         previous = core._call
         outputs, calls = {}, []
         def call(family, name, *args):
-            if family == 'publication_commit_export' and name == 'produce_sdk_read_delivery_storage':
+            if family == 'publication_commit_export' and name == 'reserve_bounded':
+                return storage_fixture.reserve_measured_delivery_output(self, observation._projection, packet, args)
+            if (family, name) == ('publication_commit_export', 'retire_sdk_delivery_output'):
+                loan = observation._projection._core._loans
+                ticket = next(value.ticket for value in loan.values() if value.handle == args[0])
+                return 0 if core._cleanup(ticket) == 0 else -9
+            if family == 'publication_commit_export' and name in (
+                    'measure_sdk_read_delivery_storage', 'emit_sdk_read_delivery_storage',
+                    'validate_sdk_read_delivery_storage'):
                 frame = core._journal_callbacks(binding._current.ticket).reader
                 self.assertIs(frame.owner, store)
-                calls.append(args)
-                outputs[args[0]] = packet
+                calls.append((name, args))
+                if name == 'measure_sdk_read_delivery_storage':
+                    return len(packet)
+                if name == 'emit_sdk_read_delivery_storage':
+                    outputs[args[0]] = packet
                 return 0
             if family == 'publication_commit_export' and name == 'length' and args[0] in outputs:
                 return len(outputs[args[0]])
@@ -51,11 +63,11 @@ class SDKDeliveryHostTests(unittest.TestCase):
             for candidate in (copy.copy(run),):
                 with self.assertRaises(ValueError): host._original_sdk_delivery_store(candidate, projection)
             host._persist_original_sdk_delivery(run, projection, request)
-            self.assertEqual(len(calls), 2)
-            self.assertEqual(store.read(store.namespaced_key(rows[3]['table'], rows[3]['key'])),
-                             StoredBytes(0, rows[3]['body'].encode()))
+            self.assertEqual(len(calls), 3)
+            self.assertEqual(store.read(store.namespaced_key(rows[4]['table'], rows[4]['key'])),
+                             StoredBytes(0, rows[4]['body'].encode()))
             with self.assertRaises(LocalStorageError): host._persist_original_sdk_delivery(run, projection, request)
-            self.assertEqual(len(calls), 2)
+            self.assertEqual(len(calls), 3)
             codes['current', 'bind'] = -35
             with self.assertRaises(LocalCoreError): host._original_sdk_delivery_store(run, projection)
             self.assertIs(host._sdk_deliveries[projection._publication.ticket], holder)

@@ -229,10 +229,7 @@ test "Native unknown observation remains durable and idempotent after cancellati
   guard journal.lookup(request, true) is Ok(Retained(before)) else {
     fail("Run missing")
   }
-  journal
-  .transaction(() => journal.save({ ..before, cancellation_requested: true, }))
-  .unwrap()
-  |> ignore
+  journal.accept_fixture_cancellation(before)
   assert_true(
     journal.effect_resume_fence(claim, () => true, () => 1100L) is Ok(Stale),
   )
@@ -247,7 +244,7 @@ test "Native unknown observation remains durable and idempotent after cancellati
     fail("Run missing")
   }
   assert_eq(again.revision, observed.revision)
-  assert_true(again.cancellation_requested)
+  assert_true(again.cancellation_requested())
   assert_eq(again.checkpoint.unwrap().effect_ledger.length(), 3)
   database.close_checked().unwrap()
   let reopened = epoch_test_database("client-row-unknown")
@@ -292,7 +289,7 @@ test "Native unknown observation remains durable and idempotent after cancellati
     fail("Run missing")
   }
   assert_eq(after_retry.revision, before_retry.revision)
-  assert_true(after_retry.cancellation_requested)
+  assert_true(after_retry.cancellation_requested())
   reopened.close_checked().unwrap()
 }
 
@@ -420,12 +417,7 @@ test "Native row claim checks current resume fence Preview and original logical 
   assert_eq(before.checkpoint.unwrap().effect_ledger.length(), 0)
   assert_true(
     journal.record_effect_row_dispatch(claim, locator, key, basis, () => true, () => {
-      journal
-      .transaction(() => {
-        journal.save({ ..before, cancellation_requested: true, })
-      })
-      .unwrap()
-      |> ignore
+      journal.accept_fixture_cancellation(before)
       1001L
     })
     is Ok(NoSend),

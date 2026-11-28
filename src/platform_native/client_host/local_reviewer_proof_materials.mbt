@@ -123,7 +123,7 @@ fn local_reviewer_proof_snapshot_from_admitted_record(
   Ok({
     artifact: checkpoint.artifact,
     revision: record.revision,
-    cancellation_requested: record.cancellation_requested,
+    cancellation_requested: record.cancellation_requested(),
     state: checkpoint.state,
     reported_unknown_effect_count: checkpoint.unknown_effects.length(),
     settlement_only: checkpoint.settlement_only,

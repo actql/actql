@@ -247,6 +247,7 @@ fn dependency_boundary_execute_static(
   expect_execution_refusal? : Bool = false,
   selected_memory? : Int64? = None,
   duplicate_root? : Bool = false,
+  observe_inventory_retained? : ((Int64) -> Unit)? = None,
 ) -> Unit raise {
   // The 2050-port component retains its original Request/Source alongside
   // the materializing Compute quote. Complete variants additionally retain
@@ -601,6 +602,7 @@ fn dependency_boundary_execute_static(
         0L
       },
       duplicate_root~,
+      observe_inventory_retained~,
     )
   }
   let interfaces = bodies
@@ -761,6 +763,7 @@ fn dependency_boundary_complete_inventory(
   consumer_static : Array[(String, @checked.CheckedLocalDependencyBody)],
   minimum_data_bytes : Int64,
   duplicate_root? : Bool = false,
+  observe_inventory_retained? : ((Int64) -> Unit)? = None,
 ) -> Unit raise {
   let plan = original.plan
   let max_bytes = 1000000
@@ -1203,6 +1206,7 @@ fn dependency_boundary_complete_inventory(
     wires.length(),
     selected_artifacts.length(),
   ).unwrap()
+  let retention_before = @resources.ledger_usage(original.parent.ledger).reserved_retention_bytes
   let inventory_result = prepare_installed_effect_dependency_inventory(
     original.run,
     plan.prepared,
@@ -1239,6 +1243,12 @@ fn dependency_boundary_complete_inventory(
     Err(ForeignOriginal) => fail("DependencyBoundary.Inventory.ForeignOriginal")
     Err(InsufficientCapacity) => fail("DependencyBoundary.Inventory.Capacity")
     Err(_) => fail("DependencyBoundary.Inventory.Other")
+  }
+  if observe_inventory_retained is Some(observe) {
+    observe(
+      @resources.ledger_usage(original.parent.ledger).reserved_retention_bytes -
+      retention_before,
+    )
   }
   assert_true(
     physical_equal(
@@ -1319,7 +1329,19 @@ test "genuine two-import complete producer consumer Artifact Manifest inventory"
 
 ///|
 test "same original Result selected twice keeps complete inventory and retained inputs" {
-  dependency_boundary_execute_static(2, complete=true, duplicate_root=true)
+  let retained : Array[Int64] = []
+  let observe_inventory_retained = Some(bytes => retained.push(bytes))
+  for duplicate_root in [false, true] {
+    dependency_boundary_execute_static(
+      2,
+      complete=true,
+      duplicate_root~,
+      observe_inventory_retained~,
+    )
+  }
+  assert_eq(retained.length(), 2)
+  assert_true(retained[0] > 0L)
+  assert_eq(retained[0], retained[1])
 }
 
 ///|

@@ -1,12 +1,19 @@
 """Bounded physical query transport; original Core Owners decide inventory facts."""
 from dataclasses import dataclass
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import ExitStack as _ExitStack
+from contextlib import contextmanager
 from typing import NamedTuple
-from ._local_storage import _NamespaceReader, StoredBytes, LocalByteStore
+from ._local_storage import (_JOURNAL_NAME_AUTHENTICATE, _JOURNAL_NAME_KEY_SCAN, _JOURNAL_NAME_TABLE,
+                             _NamespaceReader, _TargetKey, _TargetRead, StoredBytes, LocalByteStore)
 
 _QUERY_BYTES = 8192
 _KEY_BYTES = 4096
 _ROW_BYTES = 262144
+# Cumulative copied bytes, with at most one Host row held at a time. Common
+# must still see the first invalid row after a valid 256 KiB material prefix.
+_TASK_MATERIAL_BATCH_COPY_BYTES = 2 * _ROW_BYTES
+_TASK_MATERIAL_NAMESPACE = 'client_task_run_materials'
 
 
 class _JournalRowTransfer(NamedTuple):
@@ -23,6 +30,7 @@ class _JournalRowTransfer(NamedTuple):
     key: bytes
     body: bytes
     generation: int
+    task_material_scope: object | None = None
 
 
 @dataclass(slots=True)
@@ -42,6 +50,15 @@ class _JournalCallbacks:
     transfer: _JournalRowTransfer | None = None
     transfer_ready: bool = False
     transfer_started: bool = False
+    name_authenticate: Callable[[bytes], bytes] | None = None
+    task_material_scope: object | None = None
+    task_material_take: Callable[[int], int] | None = None
+    task_material_frame: _ExitStack | None = None
+    task_material_run_key: bytes | None = None
+    saved_identity_request: tuple[bytes, int, int] | None = None
+    saved_identity_child: _ExitStack | None = None
+    saved_identity_final_copy: bool = False
+    physical_reader_serial: int = 0
 
     def _fail(self, error: BaseException) -> int:
         if self.failure is None:
@@ -101,12 +118,15 @@ class _JournalCallbacks:
 
     def begin(self, mode: int, namespace_length: int, key_length: int) -> int:
         try:
+            # A released row leaves the same reader available for the original
+            # current check between takes. A pending row still blocks entry.
             if (self.request is not None or self.queried or self.row is not None
                     or self.transfer is not None
-                    or type(mode) is not int or mode not in (0, 1)
+                    or type(mode) is not int
+                    or mode not in (0, 1, _JOURNAL_NAME_KEY_SCAN, _JOURNAL_NAME_AUTHENTICATE)
                     or type(namespace_length) is not int or not 0 < namespace_length <= _KEY_BYTES
                     or type(key_length) is not int or not 0 <= key_length <= _KEY_BYTES
-                    or (mode == 1 and key_length == 0)
+                    or (mode in (1, _JOURNAL_NAME_AUTHENTICATE) and key_length == 0)
                     or namespace_length + key_length > _QUERY_BYTES):
                 raise ValueError('Invalid original Local journal physical query')
             if self.check_frame() != 0:
@@ -168,6 +188,142 @@ class _JournalCallbacks:
             raise ValueError('Original Local row changed during current check')
         return payload[index:index + length]
 
+    def _retain_row(self, row: tuple[str, StoredBytes] | None) -> None:
+        if row is None:
+            return
+        if type(row) is not tuple or len(row) != 2:
+            raise ValueError('Invalid original Local journal physical row')
+        name, body = row
+        if type(name) is not str:
+            raise ValueError('Invalid original Local journal physical row')
+        encoded = name.encode('utf-8')
+        if (not 0 < len(encoded) <= _KEY_BYTES or type(body) is not StoredBytes
+                or type(body.payload) is not bytes or len(body.payload) > _ROW_BYTES
+                or type(body.generation) is not int or not 0 <= body.generation < 2**63):
+            raise ValueError('Invalid original Local journal physical row')
+        # This same reserved ticket owns the immutable row until copy/release.
+        self.row = (encoded, body)
+
+    def _check_returned_row(self, reader: _NamespaceReader, *, frame_only: bool) -> int:
+        # Frozen StoredBytes can still be changed by an ill-behaved callback.
+        original = self.row
+        original_key = None if original is None else original[0]
+        original_body = None if original is None else original[1].payload
+        original_generation = None if original is None else original[1].generation
+        if (self.check_frame() if frame_only else self.check_current()) != 0:
+            return -41
+        if (self.reader is not reader or self.row is not original
+                or original is not None and (original[0] is not original_key
+                    or original[1].payload is not original_body
+                    or type(original[1].generation) is not int
+                    or original[1].generation != original_generation)):
+            raise ValueError('Original Local journal returned row changed')
+        # Only a confirmed physical miss/end returns 1.
+        return 1 if original is None else 0
+
+    @contextmanager
+    def task_material_rows(self, run_key: str, max_bytes: int) -> Iterator[Callable[[int], int]]:
+        """Borrow four exact task-material slots from the current physical reader."""
+        if (type(run_key) is not str or len(run_key) != 71 or not run_key.startswith('sha256:')
+                or any(ch not in '0123456789abcdef' for ch in run_key[7:])):
+            error = ValueError('Invalid original Local task-material loan')
+            self._fail(error)
+            assert self.failure is not None
+            raise self.failure
+        keys = tuple((_TASK_MATERIAL_NAMESPACE, f'{run_key}:{ordinal}') for ordinal in range(4))
+        with self._target_rows(keys, max_bytes) as take:
+            yield take
+
+    @contextmanager
+    def saved_identity_rows(self, submission: str, run: str,
+                            sizes: tuple[int, int], max_bytes: int) -> Iterator[Callable[[int], int]]:
+        """Use the same physical target port for the two retained identity rows."""
+        for key in (submission, run):
+            if (type(key) is not str or len(key) != 71 or not key.startswith('sha256:')
+                    or any(ch not in '0123456789abcdef' for ch in key[7:])):
+                error = ValueError('Invalid original Saved identity key')
+                self._fail(error)
+                assert self.failure is not None
+                raise self.failure
+        with self._target_rows((('client_submitted_intents', submission, sizes[0]),
+                                ('client_runs', run, sizes[1])), max_bytes) as take:
+            yield take
+
+    @contextmanager
+    def _target_rows(self, requests: tuple[_TargetKey, ...],
+                     max_bytes: int) -> Iterator[Callable[[int], int]]:
+        reader, current, store = self.reader, self.current, self.store
+        scope = object()
+
+        def require_scope(original_reader: _NamespaceReader, original_current: Callable[[], object],
+                          original_store: LocalByteStore) -> None:
+            if self.failure is not None:
+                raise self.failure
+            if (self.task_material_scope is not scope or self.reader is not original_reader
+                    or self.current is not original_current or self.store is not original_store):
+                raise ValueError('Original Local task-material loan expired or changed')
+
+        try:
+            if self.failure is not None:
+                raise self.failure
+            if (type(reader) is not _NamespaceReader or reader.owner is not store
+                    or reader.get_many is None or self.task_material_scope is not None
+                    or self.request is not None or self.queried or self.row is not None
+                    or self.transfer is not None
+                    or type(max_bytes) is not int or not 0 <= max_bytes <= _TASK_MATERIAL_BATCH_COPY_BYTES):
+                raise ValueError('Invalid original Local task-material loan')
+        except BaseException as error:
+            self._fail(error)
+            raise
+
+        self.task_material_scope = scope
+        active: tuple[_NamespaceReader, Callable[[], object], LocalByteStore, _TargetRead,
+                      tuple[str, ...]] | None = None
+        try:
+            try:
+                keys = tuple(request[1] for request in requests)
+                take_body = reader.get_many(reader, requests, max_bytes, current)
+                require_scope(reader, current, store)
+            except BaseException as error:
+                self._fail(error)
+                if self.failure is not None and self.failure is not error:
+                    raise self.failure from error
+                raise
+
+            active = (reader, current, store, take_body, keys)
+
+            def take(ordinal: int) -> int:
+                try:
+                    if active is None:
+                        raise ValueError('Original Local task-material loan expired or changed')
+                    physical_reader, observer, owner, take_original_body, original_keys = active
+                    require_scope(physical_reader, observer, owner)
+                    if (type(ordinal) is not int or not 0 <= ordinal < len(original_keys)
+                            or self.queried or self.row is not None or self.transfer is not None):
+                        raise ValueError('Invalid original Local task-material take')
+                    self.queried = True
+                    body = take_original_body(physical_reader, ordinal)
+                    require_scope(physical_reader, observer, owner)
+                    if self.queried is not True or self.row is not None or self.transfer is not None:
+                        raise ValueError('Original Local task-material row changed')
+                    changed = body is False
+                    self._retain_row(None if body is None or body is False else (original_keys[ordinal], body))
+                    result = self._check_returned_row(physical_reader, frame_only=True)
+                    require_scope(physical_reader, observer, owner)
+                    if self.queried is not True:
+                        raise ValueError('Original Local task-material row changed')
+                    # Code 2 is an observed original mismatch, not missing data.
+                    return 2 if changed and result == 1 else result
+                except BaseException as error:
+                    return self._fail(error)
+
+            self.task_material_take = take
+            yield take
+        finally:
+            active = None
+            self.task_material_take = None
+            self.task_material_scope = None
+
     def query(self) -> int:
         try:
             if (self.request is None or self.received != len(self.request)
@@ -186,48 +342,28 @@ class _JournalCallbacks:
             if self.reader is not reader:
                 raise ValueError('Original Local journal transaction loan expired')
 
-            def consume(row: tuple[str, StoredBytes] | None) -> None:
-                if row is None:
-                    return
-                if type(row) is not tuple or len(row) != 2:
-                    raise ValueError('Invalid original Local journal physical row')
-                name, body = row
-                if type(name) is not str:
-                    raise ValueError('Invalid original Local journal physical row')
-                encoded = name.encode('utf-8')
-                if (not 0 < len(encoded) <= _KEY_BYTES or type(body) is not StoredBytes
-                        or type(body.payload) is not bytes or len(body.payload) > _ROW_BYTES
-                        or type(body.generation) is not int or not 0 <= body.generation < 2**63):
-                    raise ValueError('Invalid original Local journal physical row')
-                # The exact borrowed immutable payload stays under this reserved
-                # ticket until Core finishes copying/consuming and releases it.
-                self.row = (encoded, body)
-
-            if query_current is not None:
+            if self.mode == _JOURNAL_NAME_KEY_SCAN and (
+                    query_current is None or namespace != _JOURNAL_NAME_TABLE):
+                raise ValueError('Original Local name key scan is unavailable')
+            if self.mode == _JOURNAL_NAME_AUTHENTICATE:
+                authenticate = self.name_authenticate
+                if authenticate is None or namespace != _JOURNAL_NAME_TABLE:
+                    raise ValueError('Original Local name authentication is unavailable')
+                authenticator = authenticate(key.encode('utf-8'))
+                if (self.reader is not reader or self.name_authenticate is not authenticate
+                        or type(authenticator) is not bytes or len(authenticator) != 32):
+                    raise ValueError('Original Local name authentication changed')
+                self._retain_row(('authenticator', StoredBytes(0, authenticator)))
+            elif query_current is not None:
                 # The original Store has completed the query/current fences.
                 # Only this closed bounded packaging runs before ABI transfer;
                 # there is no external consumer callback to fence separately.
-                consume(query_current(reader, self.mode, namespace, key, self.current))
+                self._retain_row(query_current(reader, self.mode, namespace, key, self.current))
             elif self.mode == 0:
-                reader.scan_after(namespace, key, consume)
+                reader.scan_after(namespace, key, self._retain_row)
             else:
-                reader.read(namespace, key, consume)
-            # Keep independent returned DATA across the final reader/current
-            # callback. Frozen StoredBytes is not a mutable comparison baseline.
-            original = self.row
-            original_key = None if original is None else original[0]
-            original_body = None if original is None else original[1].payload
-            original_generation = None if original is None else original[1].generation
-            if (self.check_current() if query_current is None else self.check_frame()) != 0:
-                return -41
-            if (self.reader is not reader or self.row is not original
-                    or original is not None and (original[0] is not original_key
-                        or original[1].payload is not original_body
-                        or type(original[1].generation) is not int
-                        or original[1].generation != original_generation)):
-                raise ValueError('Original Local journal returned row changed')
-            # Only the actual physical reader's confirmed miss/end yields 1.
-            return 1 if original is None else 0
+                reader.read(namespace, key, self._retain_row)
+            return self._check_returned_row(reader, frame_only=query_current is not None)
         except BaseException as error:
             return self._fail(error)
 
@@ -264,16 +400,3 @@ class _JournalCallbacks:
         self.mode = -1
         self.queried = False
         return 0 if self.failure is None else -41
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(_JournalCallbacks, (
-        '_fail', 'begin', 'byte',
-        'check_current', 'check_frame', 'length',
-        'query', 'query_copy', 'release',
-        'revision', 'row_byte', 'row_copy',
-        'schema',
-    )),
-)

@@ -142,6 +142,7 @@ test "Result snapshot rejects another export receipt from the same completion" {
   let source = export_fixture(capture_fixture())
   let (stream, receipt) = snapshot_export_fixture(source)
   let (other, other_receipt) = snapshot_export_fixture(source)
+  assert_true(completed_relation_export_is_unprojected(receipt))
   // Logical equality and the same completed generation do not establish which
   // immutable view issued the receipt.
   assert_eq(
@@ -363,6 +364,7 @@ test "Named Result export applies its exact projection and total order as views"
     text.write_string(part)
   }
   let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
+  assert_false(completed_relation_export_is_unprojected(receipt))
   text.write_string(tail)
   assert_eq(text.to_string(), "[{\"s\":\"😀\"},{\"s\":\"é\"}]")
   let content = completed_relation_export_content(receipt)

@@ -9,10 +9,12 @@ test "closed item demand refuses an expanding Graph path even with a checked out
   )
   let node = @lowering_relation.node_at(prepared, 0).unwrap()
   assert_true(
-    @lowering_relation.node_closed_item_count_bound(node, [3]) is None,
+    @lowering_relation.node_closed_item_count_bound(node, 1, _ => Some(3))
+    is None,
   )
   assert_true(
-    @lowering_relation.node_closed_item_count_bound(node, [0]) is None,
+    @lowering_relation.node_closed_item_count_bound(node, 1, _ => Some(0))
+    is None,
   )
 }
 

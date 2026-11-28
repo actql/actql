@@ -444,3 +444,27 @@ test "byte-only growth observes original current once and rejects its reentrant 
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
+
+///|
+test "return original constructor scratch while retaining its exact returned bytes" {
+  let ledger = read_capacity_fixture(73L, 100L)
+  let other = reserve_capacity(ledger, 10L, 10L).unwrap()
+  let workspace = reserve_capacity(ledger, 0L, 90L).unwrap()
+  let before = ledger_usage(ledger)
+  let serial = ledger.next_capacity_serial
+  assert_eq(
+    retain_capacity_reservation_after_construction(ledger, workspace, 64L),
+    Err(RetentionLimit),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger.next_capacity_serial, serial)
+  assert_true(capacity_reservation_matches(ledger, workspace, 0L, 90L))
+  retain_capacity_reservation_after_construction(ledger, workspace, 63L).unwrap()
+  assert_true(capacity_reservation_matches(ledger, workspace, 63L, 0L))
+  assert_true(capacity_reservation_matches(ledger, other, 10L, 10L))
+  assert_eq(ledger.next_capacity_serial, serial)
+  settle_capacity(ledger, workspace).unwrap()
+  settle_capacity(ledger, other).unwrap()
+  assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
+}

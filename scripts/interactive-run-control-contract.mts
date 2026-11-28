@@ -111,8 +111,15 @@ export function interactiveRunControlSchemas() {
     valid_until: timestamp});
   schemas.control_guards = object({estimated_cost_ceiling:
     ref('control_money')});
-  schemas.control_interval = object({until: choice('step', 'batch', 'gate',
-    'boundary', 'breakpoint', 'terminal'), guards: nullable(ref('control_guards'))});
+  const breakpointSelection = object({logical_map_cid: cid, before_step_ids: {
+    ...list(cid, 1), uniqueItems: true,
+  }});
+  schemas.control_interval = {oneOf: [
+    object({until: choice('step', 'batch', 'gate', 'boundary', 'terminal'),
+      guards: nullable(ref('control_guards'))}),
+    object({until: {const: 'breakpoint'}, guards: nullable(ref('control_guards')),
+      breakpoint_selection: breakpointSelection}),
+  ]};
   schemas.control_profile = envelope('control_profile', {
     execution: object({stop_on_entry: bool,
       default_until: choice('terminal', 'breakpoint', 'step'),
@@ -194,13 +201,21 @@ export function interactiveRunControlSchemas() {
     observation: {const: 'static'}, provider_io: {const: 0},
     quantities: list(ref('control_quantity')),
     capabilities: ref('run_control_capabilities'),
-  });
+    entry_breakpoint_profile: {const: 'all_operations'},
+  }, ['entry_breakpoint_profile'], [{
+    if: {required: ['entry_breakpoint_profile']},
+    then: {properties: {capabilities: {required: ['debug_entry']}}},
+  }]);
   schemas.control_resume_origin = {oneOf: [
     object({kind: {const: 'manual'}, command_cid: cid,
       continuation_generation_cid: cid, fence_cid: cid}),
     object({kind: {const: 'checkpoint_resolution'}, checkpoint_cid: cid,
       resolution_cid: cid, continuation_generation_cid: cid, fence_cid: cid}),
   ]};
+  const effectWriteSelection = object({
+    unit_id: {$ref: 'actql-client-host.json#/schemas/installed_effect_continuation/properties/unit_id'},
+    effect_preview_cid: cid, member_preview_cid: cid,
+  });
   // Embed the original closed old schema by reference. The new envelope does
   // not relax it, replace its discriminator or synthesize approval fields.
   schemas.controlled_run_state = envelope('controlled_run_state', {
@@ -210,10 +225,14 @@ export function interactiveRunControlSchemas() {
     legacy_state: {$ref: 'actql-protocol-schemas.json#/artifact_schemas/run_state'},
     resume_origin: ref('control_resume_origin'),
     stop_reason: choice('entry', 'step', 'batch', 'boundary', 'gate',
-      'breakpoint', 'pause', 'guard_exceeded', 'guard_unavailable'),
+      'breakpoint', 'pause', 'guard_exceeded', 'guard_unavailable', 'effect_write'),
     boundary: object({step_id: nullable(cid), position: choice('before', 'after'),
-      kind: choice('entry', 'logical_step', 'batch', 'gate', 'boundary'),
-      consumed_boundary_cid: cid}),
+      kind: choice('entry', 'logical_step', 'batch', 'gate', 'boundary', 'effect_write'),
+      consumed_boundary_cid: cid, effect_write: effectWriteSelection}, ['effect_write'], [
+      when('kind', 'effect_write', {required: ['effect_write'], properties: {
+        step_id: {type: 'null'}, position: {const: 'before'},
+      }}, {not: {required: ['effect_write']}}),
+    ]),
     matched_breakpoints: list(cid), paused_at: timestamp, expires_at: timestamp,
     ttl_policy_cid: cid, pause_pending: bool, expiry_pending: bool,
     cleanup_pending: bool,
@@ -230,16 +249,25 @@ export function interactiveRunControlSchemas() {
     {if: {properties: {resume_origin: {properties: {kind: {const: 'manual'}},
       required: ['kind']}}, required: ['resume_origin']},
     then: {not: {required: ['legacy_state']}}},
+    when('stop_reason', 'effect_write',
+      {properties: {boundary: {properties: {kind: {const: 'effect_write'}}}}},
+      {properties: {boundary: {properties: {kind: {not: {const: 'effect_write'}}}}}}),
     when('stop_reason', 'breakpoint',
       {properties: {matched_breakpoints: {type: 'array', minItems: 1}}}),
   ]);
   schemas.control_command = envelope('control_command', {
-    operation: choice('pause', 'resume'),
+    operation: choice('pause', 'resume', 'confirm_write'),
     run_ref: {$ref: 'actql-client-host.json#/schemas/run_ref'},
     expected_control_revision: integer, operation_id: text,
-    interval: ref('control_interval'), self_cid: cid,
-  }, ['interval'], [when('operation', 'resume', {required: ['interval']},
-    {not: {required: ['interval']}})]);
+    interval: ref('control_interval'),
+    effect_write: effectWriteSelection,
+    self_cid: cid,
+  }, ['interval', 'effect_write'], [
+    when('operation', 'resume', {required: ['interval']}, {not: {required: ['interval']}}),
+    when('operation', 'confirm_write', {required: ['effect_write'], properties: {
+      expected_control_revision: {...integer, minimum: 2, maximum: 2147483646},
+    }}, {not: {required: ['effect_write']}}),
+  ]);
   schemas.control_operation_ref = object({
     run_ref: {$ref: 'actql-client-host.json#/schemas/run_ref'},
     operation_id: text, command_cid: cid, accepted_from_revision: integer,
@@ -344,9 +372,31 @@ export function interactiveRunControlSchemas() {
       provenance_cid: nullable(cid)})),
     quantities: list(ref('control_quantity')), sample: ref('run_sample'),
     available_operations: {...list(choice('inspect', 'wait_view', 'pause',
-      'resume', 'cancel', 'resolve', 'lookup_control_operation')),
+      'resume', 'cancel', 'resolve', 'lookup_control_operation', 'confirm_write')),
     uniqueItems: true}, capabilities: ref('run_control_capabilities'),
-  });
+    breakpoint_targets: {...list(cid, 1), uniqueItems: true},
+    entry_breakpoint_selection: {...breakpointSelection, properties: {
+      ...breakpointSelection.properties, before_step_ids: {...breakpointSelection.properties.before_step_ids, maxItems: 32},
+    }},
+  }, ['breakpoint_targets', 'entry_breakpoint_selection'], [{
+    if: {required: ['breakpoint_targets']},
+    then: {properties: {
+      logical_map_cid: cid,
+      run_state: {properties: {status: {const: 'paused'}, boundary: {properties: {
+        kind: {const: 'logical_step'}, position: {const: 'before'}, step_id: cid,
+      }}}},
+    }},
+  }, {
+    if: {required: ['entry_breakpoint_selection']},
+    then: {not: {required: ['breakpoint_targets']}, properties: {
+      logical_map_cid: cid,
+      run_state: {required: ['boundary', 'stop_reason'], properties: {
+        status: {const: 'paused'}, stop_reason: {const: 'entry'}, boundary: {properties: {
+          kind: {const: 'entry'}, position: {const: 'before'}, step_id: cid,
+        }},
+      }},
+    }},
+  }]);
   // Original Run binding is a read-only envelope, not a new identity domain.
   schemas.run_plan_view = envelope('run_plan_view', {
     run_ref: {$ref: 'actql-client-host.json#/schemas/run_ref'},

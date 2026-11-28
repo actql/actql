@@ -168,6 +168,23 @@ fn decode_retained_presence_cells(
     Ok(cursor) => cursor
     Err(issue) => return Err(Decode(issue))
   }
+  decode_retained_presence_cells_at(
+    schema,
+    cursor,
+    limits,
+    reference_cells?,
+    reference_issuer?,
+  )
+}
+
+///|
+fn decode_retained_presence_cells_at(
+  schema : @schema.Schema,
+  cursor : @decode.Cursor,
+  limits : RetainedRowDecodeLimits,
+  reference_cells? : Array[Array[@admitted.ReferenceValue]],
+  reference_issuer? : @admitted.ReferenceIssuer,
+) -> Result[Array[@admitted.CheckedValue?], RetainedRowDecodeIssue] {
   let width = @schema.field_count(schema)
   if width > limits.max_nodes ||
     (reference_cells is Some(cells) && cells.length() != width) {
@@ -341,37 +358,119 @@ fn append_admitted_output_wire_references(
   if !output.buffer.open || output.buffer.reading {
     return Err(Admission(ClosedCapture))
   }
-  if !@schema.all_fields_required(output.buffer.schema) {
-    let row = match
-      read_retained_relation_row_references(
-        output.buffer.schema,
-        text,
-        limits,
-        output.buffer.budget.limits,
-        reference_cells?,
-      ) {
-      Ok(row) => row
-      Err(issue) => {
-        cancel_admitted_output(output) |> ignore
-        return Err(Wire(issue))
-      }
-    }
-    return append_admitted_output_presence(output, row).map_err(issue => {
-      Admission(issue)
-    })
-  }
-  let values = match
-    decode_retained_row(output.buffer.schema, text, limits, reference_cells?) {
-    Ok(value) => value
+  append_decoded_retained_output(
+    output,
+    decode_retained_presence_cells(
+      output.buffer.schema,
+      text,
+      limits,
+      reference_cells?,
+    ),
+  )
+}
+
+///|
+fn append_decoded_retained_output(
+  output : AdmittedOutput,
+  decoded : Result[Array[@admitted.CheckedValue?], RetainedRowDecodeIssue],
+) -> Result[Unit, AdmittedOutputWireIssue] {
+  let cells = match decoded {
+    Ok(cells) => cells
     Err(issue) => {
       cancel_admitted_output(output) |> ignore
       return Err(Wire(issue))
     }
   }
-  match append_admitted_output(output, values) {
-    Ok(_) => Ok(())
-    Err(issue) => Err(Admission(issue))
+  if @schema.all_fields_required(output.buffer.schema) {
+    return append_admitted_output(output, cells.map(cell => cell.unwrap())).map_err(issue => {
+        Admission(issue)
+      },
+    )
   }
+  let row = match
+    admit_relation_row(output.buffer.schema, cells, output.buffer.budget.limits) {
+    Ok(row) => row
+    Err(issue) => {
+      cancel_admitted_output(output) |> ignore
+      return Err(Wire(Presence(issue)))
+    }
+  }
+  append_admitted_output_presence(output, row).map_err(issue => Admission(issue))
+}
+
+///|
+/// Decode the existing full logical Relation representation under the
+/// receiving checked output schema. The Host authenticates the exact Store
+/// bytes and funds the parser, cursor and receiving material separately.
+/// This only admits provisional rows. It cannot make a completed predecessor.
+pub fn read_retained_logical_relation(
+  owner : @lower.BoundPrepared,
+  target : @pipeline.Target,
+  document : @decode.Cursor,
+  expected_rows : Int,
+  limits : RetainedRowDecodeLimits,
+  values : ValueLimits,
+  current : () -> Bool,
+) -> Result[AdmittedOutputRows, AdmittedOutputWireIssue] {
+  guard current() else { return Err(Admission(ClosedCapture)) }
+  let usage = @decode.admission_usage(document)
+  let span = @decode.cursor_span(document)
+  if limits.max_bytes < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_text_bytes < 0 ||
+    limits.max_depth < 0 ||
+    limits.max_depth > 64 {
+    return Err(Wire(InvalidLimits))
+  }
+  if span.start_byte < 0 ||
+    span.end_byte < span.start_byte ||
+    span.end_byte - span.start_byte > limits.max_bytes {
+    return Err(Wire(InputLimit))
+  }
+  if usage.nodes > limits.max_nodes ||
+    usage.depth > limits.max_depth ||
+    usage.total_string_bytes > limits.max_text_bytes {
+    return Err(Wire(ShapeLimit))
+  }
+  if @decode.object_length(document) != Some(2) {
+    return Err(Wire(InvalidShape))
+  }
+  let envelope = match @decode.closed_object(document, ["sort", "value"]) {
+    Ok(value) => value
+    Err(issue) => return Err(Wire(Decode(issue)))
+  }
+  guard @decode.lookup(envelope, "sort") is Some(sort) &&
+    @decode.text(sort) == Ok("relation") &&
+    @decode.lookup(envelope, "value") is Some(rows) &&
+    @decode.array_length(rows) == Some(expected_rows) else {
+    return Err(Wire(InvalidShape))
+  }
+  let output = match
+    prepare_admitted_output(owner, target, expected_rows, values) {
+    Ok(value) => value
+    Err(issue) => return Err(Admission(issue))
+  }
+  // On failure no partially admitted row or cursor retains read authority.
+  defer cancel_admitted_output(output) |> ignore
+  if !admitted_output_charge_control_work(output, usage.nodes) {
+    return Err(Admission(CaptureLimit))
+  }
+  for index in 0..<expected_rows {
+    guard current() else { return Err(Admission(ClosedCapture)) }
+    let row = @decode.element_at(rows, index).unwrap()
+    match
+      append_decoded_retained_output(
+        output,
+        decode_retained_presence_cells_at(output.buffer.schema, row, limits),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  if !current() {
+    return Err(Admission(ClosedCapture))
+  }
+  finish_admitted_output(output).map_err(issue => Admission(issue))
 }
 
 ///|

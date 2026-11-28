@@ -44,7 +44,7 @@ fn sdk_payload_access_current(
     context.source,
     context.current.account,
     context.finite,
-    context.sdk.read,
+    context.selection,
     context.sdk.adoption_cid,
     context.owner,
     context.view,
@@ -109,6 +109,8 @@ pub fn prepare_publication_sdk_payload_input(
       current_configuration,
       same_reader_census=true,
       reuse_proven_fence_rows=true,
+      targeted_task_material=true,
+      read_only_saved_control=true,
     ) {
     Ok(context) => context
     Err(code) => return code
@@ -208,6 +210,8 @@ pub fn produce_publication_sdk_payload_chunk(
       run,
       current_configuration,
       same_reader_census=true,
+      targeted_task_material=true,
+      read_only_saved_control=true,
     ) {
     Ok(context) => context
     Err(code) => return code
@@ -352,7 +356,13 @@ pub fn produce_publication_sdk_payload_receipt(
     return -33
   }
   let context = match
-    original_sdk_read_context(value, first, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      first,
+      run,
+      current_configuration,
+      read_only_saved_control=true,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }

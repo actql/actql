@@ -14,7 +14,7 @@ pub(all) enum StoredPublicationReadIssue[E] {
 /// current snapshot and its original physical input loans through validation,
 /// observed-commit confirmation and response transfer. Failure never writes or
 /// substitutes a contract. All returned inputs remain owned by the preparation.
-fn[E] load_stored_effect_free_publication(
+fn[E] load_stored_publication(
   index : PublicationContract,
   index_wire : String,
   namespace_id : String,
@@ -28,6 +28,7 @@ fn[E] load_stored_effect_free_publication(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+  effect_preview : String?,
 ) -> Result[PublicationCommitPreparation, StoredPublicationReadIssue[E]] {
   if max_contracts < 8 ||
     max_total_bytes <= 0 ||
@@ -197,6 +198,19 @@ fn[E] load_stored_effect_free_publication(
     Err(issue) => return Err(Read(issue))
     Ok(_) => ()
   }
+  if effect_preview is Some(preview) &&
+    !stored_file_effect_computation_matches(
+      roots[5],
+      roots[6],
+      roots[0],
+      roots[1],
+      preview,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    return Err(References)
+  }
   let preparation = start_effect_free_publication_commit_check(
     roots[0],
     roots[1],
@@ -221,6 +235,11 @@ fn[E] load_stored_effect_free_publication(
   // The first complete validation is still required before a read view exists.
   let inputs = preparation.inputs.unwrap()
   preparation.inputs = Some({ ..inputs, origin: StoredInputs, })
+  if effect_preview is Some(_) {
+    preparation.checked_effectful_receipt = Some(roots[5])
+    preparation.live += 1
+    preparation.peak = Int::max(preparation.peak, preparation.live)
+  }
   Ok(preparation)
 }
 
@@ -241,6 +260,74 @@ pub fn[E] read_stored_effect_free_publication(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]] {
+  read_stored_publication(
+    namespace_id,
+    authority_scope_cid,
+    definition_cid,
+    read,
+    current,
+    max_contracts,
+    max_total_bytes,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    None,
+  )
+}
+
+///|
+/// The trusted read owner first checks the completed journal and same Store.
+/// Re-admit the index's actual final Receipt, captured computation and result
+/// chain without reopening the private Preview or reissuing an operation.
+pub fn[E] read_stored_effect_publication(
+  namespace_id : String,
+  authority_scope_cid : String,
+  definition_cid : String,
+  read : (String, String) -> Result[Bytes?, E],
+  current : () -> Result[Unit, E],
+  max_contracts : Int,
+  max_total_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+  completed_preview : String,
+) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]] {
+  if !valid_contract_cid(completed_preview) {
+    return Err(References)
+  }
+  read_stored_publication(
+    namespace_id,
+    authority_scope_cid,
+    definition_cid,
+    read,
+    current,
+    max_contracts,
+    max_total_bytes,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    Some(completed_preview),
+  )
+}
+
+///|
+fn[E] read_stored_publication(
+  namespace_id : String,
+  authority_scope_cid : String,
+  definition_cid : String,
+  read : (String, String) -> Result[Bytes?, E],
+  current : () -> Result[Unit, E],
+  max_contracts : Int,
+  max_total_bytes : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+  effect_preview : String?,
 ) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]] {
   if max_contracts < 8 ||
     max_total_bytes <= 71 ||
@@ -327,7 +414,7 @@ pub fn[E] read_stored_effect_free_publication(
   // Keep physical errors distinct from admission errors when adapting the raw
   // namespace port. Both remain refusal, never a confirmed missing dependency.
   match
-    load_stored_effect_free_publication(
+    load_stored_publication(
       index,
       index_wire,
       namespace_id,
@@ -341,6 +428,7 @@ pub fn[E] read_stored_effect_free_publication(
       max_nodes,
       max_depth,
       max_workspace,
+      effect_preview,
     ) {
     Ok(value) => Ok(Some(value))
     Err(Read(issue)) => Err(issue)
@@ -374,4 +462,49 @@ fn admit_stored_contract_original(
     return Ok(index)
   }
   admit_publication_contract(name, wire, max_wire_bytes, max_nodes, max_depth)
+}
+
+///|
+fn stored_file_effect_computation_matches(
+  receipt : PublicationContract,
+  capture : PublicationContract,
+  definition : PublicationContract,
+  invocation : PublicationContract,
+  preview : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  guard saved_file_final_receipt_matches(receipt, preview, capture.identity) &&
+    capture.name == "captured_run" &&
+    evidence_string(receipt.value, "compiled_plan_cid") ==
+    contract_string(definition, "compiled_plan_cid") &&
+    evidence_string(receipt.value, "invocation_cid") ==
+    Some(invocation.identity) &&
+    evidence_object(capture.value, "effect_context") is Ok(context) &&
+    evidence_identity_valid(
+      context, "effect_context_cid", max_bytes, max_nodes, max_depth,
+    ) &&
+    evidence_object(capture.value, "receipt") is Ok(original) &&
+    @json.object_without_field(original, "receipt_identity_cid") is Some(before) &&
+    @json.object_without_field(receipt.value, "receipt_identity_cid")
+    is Some(final_body) &&
+    @json.object_without_field(final_body, "effect_preview_cid")
+    is Some(final_body) &&
+    @json.object_without_field(final_body, "effect_set_apply_receipt_cid")
+    is Some(final_body) &&
+    @json.object_without_field(final_body, "captured_run_cid") is Some(after) else {
+    return false
+  }
+  evidence_value_equal(before, after, max_bytes, max_nodes, max_depth)
+}
+
+///|
+pub fn PublicationCommitPreparation::is_stored_effectful_read(
+  self : PublicationCommitPreparation,
+  view : PublicationCommitReadView,
+) -> Bool {
+  self.read_view_inputs(view) is Ok({ origin: StoredInputs, computation, .. }) &&
+  self.checked_effectful_receipt is Some(receipt) &&
+  physical_equal(receipt, computation.receipt)
 }

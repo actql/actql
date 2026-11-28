@@ -9,6 +9,7 @@ priv struct StoredRunInvocation {
   mut preparation : @local_run.LocalSourcePublicationPreparation?
   mut publication : @local_run.LocalSourcePublication?
   mut invocation : @local_run.LocalRunInvocation?
+  mut model_issuance : PortableModelInvocation?
   mut observed_at : String?
   mut capture_interval : (String, String)?
   mut invoked : Bool
@@ -73,8 +74,17 @@ fn reserve_run_invocation_output(
     return -3
   }
   let handle = value.next_handle
+  // The installed Model's publisher borrows a nominal invocation. It needs
+  // a physical close ticket but does not copy execution evidence to Python.
+  let limit = if source_free &&
+    value.computes.get(compute) is Some({ host: Some(host), .. }) &&
+    @local_run.local_compute_model_run(host) is Some(_) {
+    0
+  } else {
+    65536
+  }
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, 65536, physical_copy_bytes, () => {
+    @buffers.reserve_output_buffer(value.pool, limit, physical_copy_bytes, () => {
       physical_input_cleanup(physical_ticket) == 0
     }) {
     Ok(slot) => slot
@@ -91,6 +101,7 @@ fn reserve_run_invocation_output(
     preparation: None,
     publication: None,
     invocation: None,
+    model_issuance: None,
     observed_at: None,
     capture_interval: None,
     invoked: false,
@@ -369,12 +380,24 @@ fn close_run_invocation(
   if record.pending {
     return -33
   }
-  if value.publication_preflights.values().any(child => child.source == handle) ||
+  if value.publication_preflights
+    .values()
+    .any(child => {
+      child.origin is ComputePublicationPreflight({ source, .. }) &&
+      source == handle
+    }) ||
     value.publications.values().any(publication => publication.source == handle) {
     return -9
   }
   if record.preparation is Some(preparation) {
     preparation.cancel() |> ignore
+  }
+  if record.model_issuance is Some(issuance) {
+    if !close_portable_model_invocation(issuance) {
+      return -9
+    }
+    record.invocation = None
+    record.model_issuance = None
   }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))

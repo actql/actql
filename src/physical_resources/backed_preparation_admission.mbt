@@ -165,6 +165,32 @@ pub fn[I] cleanup_backed_preparation_admission(
 }
 
 ///|
+/// Report the same stopped Request child before its physical owner ACKs
+/// retirement. Both an aborted preparation and an adopted Run keep this
+/// original report. Cumulative uncertainty remains in the returned usage.
+pub fn[I] report_stopped_backed_preparation_usage(
+  owner : BackedPreparationAdmission[I],
+) -> Result[LedgerUsage?, ImportedChildLedgerIssue] {
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.transitioning {
+    return Err(Unknown)
+  }
+  let frame = owner.initial.frame
+  guard frame.ledger is Some(ledger) else {
+    return stopped_imported_child_usage(frame)
+  }
+  if !frame.attempted || !frame.taken || !frame.origin.stopping {
+    return Err(Unavailable)
+  }
+  owner.transitioning = true
+  let reported = report_backed_initialization_cleanup_usage(owner.initial)
+  owner.transitioning = false
+  reported.map(_ => Some(ledger_usage(ledger)))
+}
+
+///|
 /// Same original child and two existing preparation holders after transfer.
 /// The erased cleanup captures the existing input admission, not a callback
 /// supplied by a driver. Neither this view nor the body grants execution.

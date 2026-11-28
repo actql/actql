@@ -10,6 +10,8 @@ pub fn admit_utf8_length(String, Int) -> Result[Int, Utf8AdmissionIssue]
 
 pub fn admit_utf8_length64(String, Int64) -> Result[Int64, Utf8AdmissionIssue]
 
+pub fn copy_utf8_byte_range(String, Int, Int) -> Bytes?
+
 pub fn read_decimal_int64(String) -> Result[Int64, DecimalIssue]
 
 pub fn read_duration_ms(String) -> Int64?

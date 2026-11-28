@@ -10,6 +10,14 @@ priv struct ClientRequestEffectRunExplanationData[I] {
   limits : (Int, Int, Int)
   max_work : Int
   mut facets : ClientRequestEffectRunExplanationFacets?
+  mut debug_map : (@publication.RunEvidenceValue, String)?
+}
+
+///|
+priv struct ClientInstalledEffectDebugMap {
+  definition : @publication.PublicationContract
+  map : @publication.RunEvidenceValue
+  entry : String
 }
 
 ///|
@@ -146,6 +154,19 @@ pub fn[I] capture_request_effect_run_explanation(
       guard computation_wire.val is Some(plan) else {
         return Err(Preparation(ForeignOriginal))
       }
+      let debug_map = if owner.submitted_intent is Some(intent) &&
+        @publication_host.client_submitted_intent_execution_profile(intent) ==
+        Debug {
+        guard @publication_host.client_static_effect_explanation_logical_map(
+            original, prepared, compiled,
+          )
+          is Some(map) else {
+          return Err(Preparation(ForeignOriginal))
+        }
+        Some((map, @publication_host.client_submitted_intent_cid(intent)))
+      } else {
+        None
+      }
       Ok({
         original: Some({
           owner,
@@ -154,6 +175,7 @@ pub fn[I] capture_request_effect_run_explanation(
           definition,
           limits,
           max_work,
+          debug_map,
           facets: Some({
             plan,
             // Both already have immutable encoder output in the original
@@ -335,6 +357,223 @@ pub fn[I] original_effect_run_explanation_facets(
 }
 
 ///|
+fn installed_effect_debug_definition(
+  bound : @publication_host.PreparedClientEffectRun,
+) -> @publication.PublicationContract {
+  @effect_binding.effect_program_run_definition(
+    @strategy.checked_effect_run_owner(
+      @publication_host.prepared_client_effect_run_graph(bound),
+    ),
+  )
+}
+
+///|
+fn installed_effect_debug_map_backing(
+  map : @publication.RunEvidenceValue,
+) -> Int64? {
+  guard @publication.run_evidence_value_wire_usage(map) is Some(geometry) &&
+    program_artifact_parse_layout(geometry) is Some(layout) else {
+    return None
+  }
+  // The sealed tree, canonical wire, original CID, and private handoff
+  // carriers coexist on the adopted body after the earlier scratch returns.
+  let retained = layout.value
+  @execution.preparation_representation_cost({
+    record_headers: retained.record_headers + 12L,
+    reference_slots: retained.reference_slots + 24L,
+    scalar_words: retained.scalar_words + 20L,
+    owned_utf16_units: retained.owned_utf16_units + geometry.0.to_int64() + 71L,
+    owned_wire_bytes: retained.owned_wire_bytes,
+  })
+}
+
+///|
+/// Transfer the already issued Map from the original working Debug Request
+/// to its adopted managed body. Only the installed first-admission caller can
+/// supply both nominal originals before it returns the Journal scratch.
+pub fn[I] retain_installed_effect_debug_map(
+  run : ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  request : @publication_host.ClientRequestIdentity,
+  submitted : @publication_host.ClientSubmittedIntent,
+  explanation : ClientRequestEffectRunExplanation[I],
+  max_work : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if run.effect_debug_map is Some(_) || run.source_free_opening {
+    return Err(AlreadyBound)
+  }
+  guard explanation.original is Some(original) &&
+    explanation.scratch is Some(_) &&
+    original.facets is Some(_) &&
+    original.debug_map is Some((map, intent)) &&
+    @publication_host.client_submitted_intent_cid(submitted) == intent &&
+    original.owner.phase == Selected &&
+    run.ledger is Some(ledger) &&
+    physical_equal(ledger, original.owner.ledger) &&
+    physical_equal(
+      original.definition,
+      installed_effect_debug_definition(bound),
+    ) &&
+    physical_equal(
+      original.prepared,
+      @publication_host.prepared_client_effect_run_computation(bound),
+    ) else {
+    return Err(ForeignOriginal)
+  }
+  original.owner.phase = Selecting
+  defer {
+    original.owner.phase = Selected
+  }
+  let cid = @publication.run_evidence_value_identity(map)
+  install_effect_debug_map_on_body(
+    run,
+    bound,
+    request,
+    map,
+    cid,
+    None,
+    max_work,
+    () => {
+      explanation.original is Some(selected) &&
+      physical_equal(selected, original) &&
+      original.owner.phase == Selecting
+    },
+  )
+}
+
+///|
+/// Adopt the Map already admitted from the original Run's retained Plan.
+/// The Host keeps that Read and its input claim current through this call.
+/// The managed body pays for the retained Map before returning to the Read.
+pub fn restore_installed_effect_debug_map(
+  run : ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  request : @publication_host.ClientRequestIdentity,
+  map : @publication.RunEvidenceValue,
+  definition_cid : String,
+  map_cid : String,
+  entry_step : String,
+  max_work : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if @publication.publication_contract_identity(
+      installed_effect_debug_definition(bound),
+    ) !=
+    definition_cid {
+    return Err(ForeignOriginal)
+  }
+  install_effect_debug_map_on_body(
+    run,
+    bound,
+    request,
+    map,
+    map_cid,
+    Some(entry_step),
+    max_work,
+    () => true,
+  )
+}
+
+///|
+fn install_effect_debug_map_on_body(
+  run : ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  request : @publication_host.ClientRequestIdentity,
+  map : @publication.RunEvidenceValue,
+  map_cid : String,
+  expected_entry : String?,
+  max_work : Int,
+  original_current : () -> Bool,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if run.effect_debug_map is Some(_) || run.source_free_opening {
+    return Err(AlreadyBound)
+  }
+  guard run.preparation is Some(PlannedEffectManaged(_, plan)) &&
+    effect_unit_publication_body(run, plan, request) is Ok(holder) else {
+    return Err(ForeignOriginal)
+  }
+  let entry = match
+    preflight_installed_effect_compute_steps(
+      run, bound, request, map, map_cid, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(None) => return Err(Unsupported)
+    Ok(Some(value)) => value
+  }
+  if expected_entry is Some(expected) && expected != entry {
+    return Err(ForeignOriginal)
+  }
+  run.source_free_opening = true
+  defer {
+    run.source_free_opening = false
+  }
+  let (r, e) = match
+    @resources.preparation_body_borrow_reserved_extents(holder) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(value) => value
+  }
+  guard installed_effect_debug_map_backing(map) is Some(backing) &&
+    @execution.checked_preparation_add_product(r, backing, 1L) is Some(next_r) &&
+    @execution.checked_preparation_add_product(e, backing, 1L) is Some(next_e) else {
+    return Err(InsufficientCapacity)
+  }
+  match
+    @resources.reserve_preparation_publication_phase(
+      holder, plan, next_r, next_e,
+    ) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(_) => ()
+  }
+  guard effect_unit_publication_body(run, plan, request) is Ok(current) &&
+    physical_equal(current, holder) &&
+    original_current() else {
+    return Err(ForeignOriginal)
+  }
+  run.effect_debug_map = Some({
+    definition: installed_effect_debug_definition(bound),
+    map,
+    entry,
+  })
+  Ok(())
+}
+
+///|
+/// Project the selected entry Step and the original Map identity while this
+/// original has no captured physical host. The Map stays with its managed body.
+pub fn installed_effect_debug_entry(
+  run : ClientInstalledManagedRun,
+  bound : @publication_host.PreparedClientEffectRun,
+  request : @publication_host.ClientRequestIdentity,
+  definition_cid : String,
+) -> Result[(String, String), ClientInstalledManagedRunIssue] {
+  let prepared = @publication_host.prepared_client_effect_run_computation(bound)
+  guard !run.source_free_opening &&
+    !run.effect_operation_opening &&
+    run.source_free_captured is None &&
+    run.effect_debug_map is Some(selected) &&
+    physical_equal(
+      selected.definition,
+      installed_effect_debug_definition(bound),
+    ) &&
+    @publication.publication_contract_identity(selected.definition) ==
+    definition_cid else {
+    return Err(ForeignOriginal)
+  }
+  match check_installed_effect_managed_run(run, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard !run.source_free_opening &&
+    !run.effect_operation_opening &&
+    !run.effect_operation_closing &&
+    run.source_free_captured is None &&
+    run.effect_debug_map is Some(current) &&
+    physical_equal(current, selected) else {
+    return Err(ForeignOriginal)
+  }
+  Ok((selected.entry, @publication.run_evidence_value_identity(selected.map)))
+}
+
+///|
 /// Drop the original facet aliases after the Journal has dropped its copies.
 /// Only a live decline or acknowledged admission returns the measured scratch.
 /// Ordinary retirement keeps the charge under the original capacity owner.
@@ -353,6 +592,7 @@ pub fn[I] discard_original_effect_run_explanation(
     return Err(Preparation(WrongPhase))
   }
   selected.facets = None
+  selected.debug_map = None
   if reclaim {
     // The JS caller has already unwound its sizing frame and cleared its
     // aliases. Keep the exact cleanup token when current refuses repayment.

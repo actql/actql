@@ -649,6 +649,7 @@ pub fn client_infer_completed_whole_result_artifact_input(
   import_index : Int,
   artifact : @publication_host.ClientWholeLocalResultArtifact,
   manifest : @publication_host.ClientWholeLocalResultManifest,
+  reader? : @publication_host.ClientInferWholeResultReaderOriginal? = None,
 ) -> Result[
   @publication_host.ClientInferResultArtifactInput,
   @publication_host.ClientInferCallScopeIssue,
@@ -658,8 +659,16 @@ pub fn client_infer_completed_whole_result_artifact_input(
     return Err(@publication_host.ForeignInput)
   }
   @publication_host.prepare_client_infer_whole_result_artifact_input(
-    occurrence, plan, import_index, output, sequence, bindings, proof, artifact,
+    occurrence,
+    plan,
+    import_index,
+    output,
+    sequence,
+    bindings,
+    proof,
+    artifact,
     manifest,
+    reader~,
   )
 }
 

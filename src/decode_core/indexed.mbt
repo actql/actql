@@ -35,3 +35,18 @@ pub fn field_at(cursor : Cursor, position : Int) -> (String, Cursor)? {
     _ => None
   }
 }
+
+///|
+/// Borrow one field of a small original object without building a field map.
+/// Missing fields and other container kinds return None; null is a cursor.
+pub fn lookup_original_field(cursor : Cursor, name : String) -> Cursor? {
+  guard cursor.tree[cursor.index].value is ObjectValue(fields) else {
+    return None
+  }
+  for field in fields {
+    if field.key == name {
+      return Some({ ..cursor, index: field.index, })
+    }
+  }
+  None
+}

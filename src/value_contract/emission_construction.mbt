@@ -43,3 +43,29 @@ pub fn checked_emission_next_construction_extent(
     )
   }
 }
+
+///|
+/// The JSON Schema cursor retains bounded frames and at most one scalar
+/// cursor. Fields and enumeration bodies stay borrowed from its Contract.
+pub fn json_schema_emission_bounded_construction_extent(
+  max_frames : Int,
+) -> @shape.CollectionConstructionExtent? {
+  if max_frames < 1 {
+    return None
+  }
+  // Include spare backing from the previous stack high-water mark. The
+  // CheckedEmission record, key/text cursors and Result/Option carriers are
+  // separate from the bounded Emission variants.
+  let slots = 2L * (max_frames.to_int64() + 1L)
+  @shape.collection_construction_extent({
+    records: 8L + slots,
+    record_references: 17L + 2L * slots,
+    record_words: 14L + 2L * slots,
+    reference_arrays: 2L,
+    reference_items: slots,
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 0L,
+    map_entries: 0L,
+  })
+}

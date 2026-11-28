@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor, table_module, linux_version_library
+from image_fixture import (FIXTURE_ABI, FIXTURE_WASMTIME_VERSION, IMAGE, ORIGINAL, RUNTIME_HASH,
+                           descriptor, linux_version_library, table_module)
 import hashlib
 import errno
 import importlib.util
@@ -91,8 +92,8 @@ class LocalArtifactProducerTests(unittest.TestCase):
                        'public_local_acceptance': False, 'wheel_acceptance': False}
         self.image_path = self.root / 'original.cwasm'
         self.image_path.write_bytes(IMAGE)
-        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 89,
-            'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
+        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': FIXTURE_ABI,
+            'wasmtime_version': FIXTURE_WASMTIME_VERSION, 'runtime_library_sha256': RUNTIME_HASH,
             'provider_library_sha256': json.loads(ORIGINAL)['provider_library_sha256'],
             'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
             'image': str(self.image_path), 'image_sha256': hash_bytes(IMAGE),

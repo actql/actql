@@ -52,7 +52,30 @@ fn binary_quad_valid(wire : String, offset : Int) -> Bool {
 pub fn bytes_value(bytes : Bytes, max_wire_bytes : Int) -> Value? {
   let size = (bytes.length().to_int64() + 2L) / 3L * 4L
   guard size <= max_wire_bytes.to_int64() else { return None }
-  Some(Binary({ wire: @base64.encode(bytes), }))
+  Some(Binary({ wire: encode_canonical_base64(bytes), }))
+}
+
+///|
+/// Encode a checked Bytes view in standard, padded, canonical Base64.
+/// The caller owns the representation budget for the input extent.
+pub fn encode_canonical_base64(bytes : BytesView) -> String {
+  @base64.encode(bytes)
+}
+
+///|
+/// Decode canonical padded Base64 within the caller's checked byte limit.
+pub fn decode_canonical_base64(wire : StringView, max_bytes : Int) -> Bytes? {
+  let size = wire.length()
+  guard max_bytes >= 0 &&
+    size % 4 == 0 &&
+    size.to_int64() <= (max_bytes.to_int64() + 2L) / 3L * 4L else {
+    return None
+  }
+  let bytes = @base64.decode(wire) catch { _ => return None }
+  guard bytes.length() <= max_bytes && encode_canonical_base64(bytes)[:] == wire else {
+    return None
+  }
+  Some(bytes)
 }
 
 ///|

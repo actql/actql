@@ -144,7 +144,7 @@ fn NativeLocalHostConnection::lookup_submitted_checkpoint_metadata_with_operatio
             checkpoint_cid: checkpoint.artifact.checkpoint_cid,
             run_definition_cid,
             revision: record.revision,
-            cancellation_requested: record.cancellation_requested,
+            cancellation_requested: record.cancellation_requested(),
             state: checkpoint.state,
           }),
         )
@@ -358,7 +358,7 @@ fn NativeLocalHostConnection::lookup_effect_checkpoint_metadata_in_owned_transac
       checkpoint_cid: checkpoint.artifact.checkpoint_cid,
       run_definition_cid: definition,
       revision: current.revision,
-      cancellation_requested: current.cancellation_requested,
+      cancellation_requested: current.cancellation_requested(),
       state: checkpoint.state,
     }),
   )

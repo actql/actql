@@ -27,26 +27,37 @@ fn adopted_model_slot_outcome(slot : AdoptedModelSlot) -> String {
 fn accept_failed_model_slot(
   state : ModelState,
   failure : ModelProviderFailure,
+  restored? : Bool = false,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   if model_failure_outcome(failure) is None {
     return @bounded.Failed(Provider(failure), 1, 1)
   }
   adopt_model_outcome(state, NoResponseFailure(failure))
-  if state.attempts.get(state.progress.slot) is Some(trace) {
+  if !restored && state.attempts.get(state.progress.slot) is Some(trace) {
     trace.category = "provider_failure"
     trace.failure = model_failure_outcome(failure).map(value => {
       value[7:].to_owned()
     })
     trace.work = state.work
   }
-  if state.durable_calls {
+  let unsettled = state.durable_calls && !restored
+  if unsettled {
     state.progress.settlement = Some(state.progress.slot)
   }
   state.progress.slot += 1
   state.progress.phase = DispatchSlot
   if @infer.result_mode(@relation.prepared_infer_rows_owner(state.rows)) is Fail {
-    // Prior and current observations remain private until cleanup; no output
-    // is accepted, and later unattempted slots are not fabricated failures.
+    if unsettled {
+      // Keep the selected original frame through persistence and physical
+      // retirement. The adopted slot already owns the first failure value.
+      state.progress.phase = FailAfterSettlement
+      return @bounded.Continue(1, 1)
+    }
+    if state.durable_calls {
+      // A verified restored failure owns no new settlement, but it still
+      // closes dispatch for every peer frame of this execution.
+      state.stop_requested = true
+    }
     return @bounded.Failed(Provider(failure), 1, 1)
   }
   if state.progress.slot == @relation.prepared_infer_rows_count(state.rows) {

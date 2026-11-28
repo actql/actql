@@ -65,7 +65,7 @@ def main():
     from actql_sdk._local_core import LocalCore, _Output
     from actql_sdk._local_distribution import installed_local_components
     from wasmtime import Trap
-    fuel_trap_code = run_path(str(Path(__file__).with_name('ci-python-installed-fuel.py')))['fuel_trap_code']
+    fuel_fixture = run_path(str(Path(__file__).with_name('ci-python-installed-fuel.py')))
     if not Path(actql.__file__).is_relative_to(Path(sys.prefix)):
         raise ValueError('Installed public facade required; no source overlay')
     installed = installed_local_components()
@@ -86,10 +86,10 @@ def main():
                 'closing': self._closing,
             })
         if (selected[0] and family == 'publication_commit_export'
-                and name == 'validate_payload_binding' and len(arguments) == 5
-                and arguments[0] > 0 and arguments[1] > 0):
-            # The preceding zero-loan capability query never enters this
-            # selection. The input must be the live original Saved parent.
+                and name == 'validate_saved_reader_facts' and len(arguments) == 6
+                and arguments[0] > 0 and arguments[1] > 0 and arguments[5] > 0):
+            # The input must be the live original Saved parent and the
+            # observation an independent sealed input on that same instance.
             selected[0] = False
             if entered[0] or held:
                 raise AssertionError('The same selected invocation must not repeat')
@@ -145,7 +145,8 @@ def main():
         except BaseException as error:
             report['expectedOperationFailure'] = error_chain(error)
             trap, = [cause for cause in causes(error) if type(cause) is Trap]
-            report['originalTrapCode'] = fuel_trap_code(trap)
+            report['originalTrapCode'] = fuel_fixture['fuel_trap_code'](trap)
+            report['outOfFuelTrapCode'] = fuel_fixture['expected_fuel_trap_code']()
         else:
             raise AssertionError('Selected interruption did not fail the operation')
         if len(held) != 1 or len(report['injections']) != 1:

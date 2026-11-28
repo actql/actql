@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ._local_core import LocalCore, LocalCoreError, _Input, _Compute, _Output
-from ._local_preparation import LocalPreparation, _Preparation
+from ._local_preparation import LocalPreparation, _MockRequest, _Preparation
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -26,7 +26,7 @@ class _Run:
     owner: object
     handle: int
     configuration: _RunConfiguration
-    preparation: _Preparation
+    preparation: _Preparation | _MockRequest
     input: _Input
 
 
@@ -106,7 +106,16 @@ class LocalRunCustody:
                 or self._runs.get(value.handle) is not value):
             raise ValueError('Foreign or released Local Run loan')
         self._configuration(value.configuration)
-        self._preparation._preparation(value.preparation)
+        self._run_preparation(value.configuration, value.preparation)
+
+    def _run_preparation(self, configuration: _RunConfiguration,
+                         preparation: _Preparation | _MockRequest) -> None:
+        if isinstance(preparation, _MockRequest):
+            self._preparation._mock_request(preparation)
+            if not configuration.sdk or configuration.current is None:
+                raise ValueError('Original Mock Run requires the installed SDK configuration')
+        else:
+            self._preparation._preparation(preparation)
 
     def _start(self, value: _PhysicalStart) -> None:
         self._nominal()
@@ -243,13 +252,13 @@ class LocalRunCustody:
             self._configurations[handle] = value
             return value
 
-    def reserve(self, configuration: _RunConfiguration, preparation: _Preparation,
+    def reserve(self, configuration: _RunConfiguration, preparation: _Preparation | _MockRequest,
                 input: _Input) -> _Run:
         """Retain invocation custody before compilation; this is not admission."""
         with self._core._lock:
             self._active()
             self._configuration(configuration)
-            self._preparation._preparation(preparation)
+            self._run_preparation(configuration, preparation)
             self._core._owned_input(input)
             handle = self._core._call('run', 'reserve', configuration.handle,
                                       preparation.handle, input.handle)
@@ -269,7 +278,8 @@ class LocalRunCustody:
             self._core._check('prepare', self._core._call('run', 'prepare', value.handle))
             self._core._check('prepared', self._core._call('run', 'prepared', value.handle))
 
-    def prepare_sdk(self, value: _Run, submission: _Output) -> Literal['prepared', 'restore_required']:
+    def prepare_sdk(self, value: _Run, submission: _Output) -> Literal[
+            'prepared', 'prepared_effect', 'prepared_file', 'prepared_model', 'restore_required']:
         """Let Core look up first; readiness never acknowledges a Store write.
 
         An existing ready request requires original restoration, not a newly
@@ -279,6 +289,8 @@ class LocalRunCustody:
             self._active()
             self._run(value)
             self._core._owned_output(submission, 'submission_append')
+            if isinstance(value.preparation, _MockRequest) and submission is not value.preparation.submission:
+                raise ValueError('Foreign original Mock Run submission')
             if not value.configuration.sdk or value.configuration.current is None:
                 raise ValueError('Missing original SDK configuration')
             current = value.configuration.current
@@ -289,9 +301,17 @@ class LocalRunCustody:
                 raise callbacks.failure
             if code == 2:
                 return 'restore_required'
-            self._core._check('prepare_sdk', code)
+            prepared: Literal['prepared', 'prepared_effect', 'prepared_file', 'prepared_model'] = 'prepared'
+            if type(value.preparation) is _MockRequest and code == 3:
+                prepared = 'prepared_effect'
+            elif type(value.preparation) is _MockRequest and code == 4:
+                prepared = 'prepared_file'
+            elif type(value.preparation) is _MockRequest and code == 5:
+                prepared = 'prepared_model'
+            else:
+                self._core._check('prepare_sdk', code)
             self._core._check('prepared', self._core._call('run', 'prepared', value.handle))
-            return 'prepared'
+            return prepared
 
     def reserve_submitted_rows(self, value: _Run, current: _RunConfiguration,
                                input: _Input, *, cleanup: Callable[[], bool]) -> _Output:
@@ -370,6 +390,20 @@ class LocalRunCustody:
             self._starts[handle] = value
             return value
 
+    def observe_sdk_file_start(self, value: _PhysicalStart) -> None:
+        """Reobserve the retained claim on the caller's protected Store Read."""
+        with self._core._lock:
+            self._active()
+            self._start(value)
+            current = value.current.current
+            if not value.current.sdk or current is None:
+                raise ValueError('Original managed File start is unavailable')
+            callbacks = self._core._host_current_ready(current)
+            code = self._core._call('run', 'physical_start_ready', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._core._check('physical_start_ready', code)
+
     def close_physical_start(self, value: _PhysicalStart) -> bool:
         with self._core._lock:
             self._start(value)
@@ -432,8 +466,8 @@ class LocalRunCustody:
         self._core._owned_compute(value.core)
 
     def configure_source_free_compute(self, value: _SourceFreeCompute,
-                                      current: _RunConfiguration) -> None:
-        """Configure original task resources; no task execution or Result issuance."""
+                                      current: _RunConfiguration) -> bool:
+        """Configure the original Compute, or return its selected Source request."""
         with self._core._lock:
             self._active()
             self._compute(value)
@@ -441,8 +475,16 @@ class LocalRunCustody:
             # Retain the first current configuration before Core can trap.
             # Core refuses a different configuration after invocation begins.
             self._compute_currents.setdefault(value.core.handle, current)
-            self._core._check('configure_source_free_compute', self._core._call(
-                'compute', 'configure_source_free', value.core.handle, current.handle))
+            code = self._core._call('compute', 'configure_source_free', value.core.handle, current.handle)
+            if code == 1:
+                return False
+            self._core._check('configure_source_free_compute', code)
+            self._require_source_free_compute_configured(value)
+            return True
+
+    def _require_source_free_compute_configured(self, value: _SourceFreeCompute) -> None:
+        with self._core._lock:
+            self._compute(value)
             self._core._check('source_free_compute_configured', self._core._call(
                 'compute', 'configured', value.core.handle))
 

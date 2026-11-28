@@ -1,5 +1,5 @@
 ///|
-/// The complete checked Result inventory of one finished Whole Source Unit.
+/// The complete checked Result inventory of one finished Whole Unit.
 struct ClientWholeLocalResultManifest {
   unit : ClientWholeLocalUnitPublication
   artifacts : Array[ClientWholeLocalResultArtifact]
@@ -68,6 +68,7 @@ pub fn issue_client_whole_local_result_manifest(
   }
   if !fund_controls(count) ||
     artifacts.length() != count ||
+    !unit.invocation.owner.model.map(model => (model.current)()).unwrap_or(true) ||
     !client_whole_local_result_manifest_inputs_match(unit, artifacts) {
     return Err(ForeignArtifact)
   }
@@ -113,7 +114,10 @@ pub fn issue_client_whole_local_result_manifest(
   if !fund_body(geometry) {
     return Err(Encoding)
   }
-  if !client_whole_local_result_manifest_inputs_match(unit, artifacts) {
+  if !unit.invocation.owner.model
+    .map(model => (model.current)())
+    .unwrap_or(true) ||
+    !client_whole_local_result_manifest_inputs_match(unit, artifacts) {
     return Err(ForeignArtifact)
   }
   let hash = @encode.hashing_writer(max_bytes, max_nodes, max_depth) catch {
@@ -174,6 +178,24 @@ pub fn client_whole_local_result_manifest_matches(
   value : ClientWholeLocalResultManifest,
   artifact : ClientWholeLocalResultArtifact,
 ) -> Bool {
-  client_whole_local_result_manifest_inputs_match(value.unit, value.artifacts) &&
-  value.artifacts.any(original => physical_equal(original, artifact))
+  client_whole_local_result_manifest_member(value, artifact) is Some(_)
+}
+
+///|
+fn client_whole_local_result_manifest_member(
+  value : ClientWholeLocalResultManifest,
+  artifact : ClientWholeLocalResultArtifact,
+) -> Int? {
+  if !client_whole_local_result_manifest_inputs_match(
+      value.unit,
+      value.artifacts,
+    ) {
+    return None
+  }
+  for index, original in value.artifacts {
+    if physical_equal(original, artifact) {
+      return Some(index)
+    }
+  }
+  None
 }

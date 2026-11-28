@@ -79,6 +79,7 @@ fn begin_original_ledger_inventory_owned(
   max_holdings : Int,
   max_delegations : Int,
   binding : OriginalInventoryBinding,
+  recovered? : LedgerContinuationState? = None,
 ) -> Result[OriginalLedgerIdentity, OriginalReadIssue] {
   // Empty preparation owns retained controls, not Model working memory.
   // The later original binding/descriptor/read predicates still require the
@@ -91,16 +92,54 @@ fn begin_original_ledger_inventory_owned(
   } else {
     original_read_bootstrap_available(ledger, bootstrap)
   }
-  if ledger.original_inventory is Some(_) ||
-    !bootstrap_ready ||
-    bootstrap.reservation.serial != -1 ||
-    ledger.next_capacity_serial != Some(-2) {
+  if ledger.original_inventory is Some(_) || !bootstrap_ready {
     return Err(InvalidBootstrap)
   }
-  if ledger.next_attempt_serial != Some(0) ||
-    ledger.next_holding_serial != Some(0) ||
-    !original_ledger_has_only_bootstrap(ledger, bootstrap) {
-    return Err(ChangedOriginalState)
+  match recovered {
+    None => {
+      if bootstrap.reservation.serial != -1 ||
+        ledger.next_capacity_serial != Some(-2) {
+        return Err(InvalidBootstrap)
+      }
+      if ledger.next_attempt_serial != Some(0) ||
+        ledger.next_holding_serial != Some(0) ||
+        !original_ledger_has_only_bootstrap(ledger, bootstrap) {
+        return Err(ChangedOriginalState)
+      }
+    }
+    Some(saved) => {
+      // This private route accepts only the exact historical accounting and
+      // one freshly charged preparation token. Other censuses stay pristine.
+      guard binding == PreparationUnbound &&
+        ledger.continuation_restored &&
+        saved.state.next_capacity_serial is Some(serial) &&
+        bootstrap.reservation.serial == serial else {
+        return Err(InvalidBootstrap)
+      }
+      let state = saved.state
+      let retained = bootstrap.reservation.retention
+      let expected = {
+        ..state,
+        next_capacity_serial: if serial == -2147483648 {
+          None
+        } else {
+          Some(serial - 1)
+        },
+        usage: {
+          ..state.usage,
+          live_reservations: 1,
+          reserved_retention_bytes: retained,
+          reserved_execution_bytes: bootstrap.reservation.execution,
+          peak_retention_bytes: Int64::max(
+            state.usage.peak_retention_bytes,
+            retained,
+          ),
+        },
+      }
+      if original_ledger_snapshot(ledger) != expected {
+        return Err(ChangedOriginalState)
+      }
+    }
   }
   if max_reservations < 0 ||
     max_holdings < 0 ||

@@ -40,6 +40,8 @@ pub fn accept_charged_row_run_values(RowRun, RowPageCharge, Array[String], Array
 
 pub fn accept_keyed_row_page(RowSourceRead, Bytes) -> Result[Int, RowSourceIssue]
 
+pub fn accept_local_csv_whole_response(LocalCsvWholeResponse, Bytes) -> Result[Int, LocalCsvWholeResponseIssue]
+
 pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
 
 pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
@@ -82,6 +84,8 @@ pub fn begin_keyed_row_run(RowRun, reference_issuer? : @value_admission.Referenc
 
 pub fn begin_keyed_row_run_response_attempt(RowRun, RowKeyedAcquisition) -> Result[Unit, RowHostIssue]
 
+pub fn begin_local_csv_whole_response(LocalCsvWholeResponse) -> Result[Unit, LocalCsvWholeResponseIssue]
+
 pub fn begin_row_capture(RowRun) -> Result[Unit, RowHostIssue]
 
 pub fn begin_row_run(RowRun, Int, Int, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]
@@ -121,6 +125,10 @@ pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
 pub fn check_native_row_input_original(RowRun, RowInputAcquisition) -> Result[Unit, RowHostIssue]
+
+pub fn[R, S] check_project_mock_writable_collections(Array[R], Array[ProjectMockWriteDeclaration], Array[S], (R) -> String, (R) -> Array[String], (S) -> Array[R], (S) -> Array[ProjectMockWriteDeclaration]) -> Bool
+
+pub fn check_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Unit, RowSourceIssue]
 
 pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
 
@@ -182,6 +190,8 @@ pub fn export_row_original_read(@execution_relation.SuppliedRelationRead) -> Res
 
 pub fn extend_row_run_page_charge(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]
 
+pub fn fail_local_csv_whole_response(LocalCsvWholeResponse, Int64?) -> Result[Unit, LocalCsvWholeResponseIssue]
+
 pub fn find_relation_target_from_catalog_key(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow?, RowSourceIssue]
 
 pub fn find_relation_target_with_key(RelationOrderedTargetDocument, RowDeclaration, RelationTargetKey) -> Result[RelationTargetRow?, RowSourceIssue]
@@ -228,9 +238,27 @@ pub fn keyed_row_read_usage(RowSourceRead) -> (Int, Int64, Int64)
 
 pub fn local_csv_page_issue_code(LocalCsvPageIssue) -> String
 
+pub fn local_csv_table_construction_inventory(@decode_core.Cursor) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn local_csv_table_is_selected(@decode_core.Cursor) -> Bool
+
 pub fn local_csv_table_issue_code(LocalCsvTableIssue) -> String
 
-pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
+pub fn local_csv_table_metadata_geometry(@decode_core.Cursor) -> LocalCsvTableMetadataGeometry?
+
+pub fn local_file_declaration_export(RowDeclaration) -> Result[String, RowHostIssue]
+
+pub fn local_file_declaration_export_capacity(RowDeclaration) -> Result[@execution_relation.ExecutionCapacity, RowHostIssue]
+
+pub fn local_file_max_csv_views() -> Int
+
+pub fn local_file_source_specification_construction_capacity(String, String, LocalFileSourceDeclarationLimits, Int) -> Result[Int64, RowHostIssue]
+
+pub fn local_file_store_declaration_wires(RowDeclaration) -> (String, String, String)?
+
+pub fn local_file_store_target_identity(RowDeclaration) -> LocalFileStoreTargetIdentity?
+
+pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String, before_document? : @ref.Ref[@encode_core.EncodedDocument?]?) -> Result[RelationTargetRow, RowSourceIssue]
 
 pub fn observe_relation_target_from_catalog_key(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
 
@@ -244,11 +272,19 @@ pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, Str
 
 pub fn prepare_declared_row_source(@query_planning.QueryRequirement, String, RowDeclaredView) -> Result[RowSourcePreparation, RowSourceIssue]
 
+pub fn[E] prepare_funded_project_mock_source_declarations(String, String, (@execution_relation.PreparationRepresentationUnits) -> Result[Unit, E], (@execution_relation.ExecutionCapacity, () -> Result[RowMapping, RowMappingIssue]) -> Result[RowMapping, E], (RowHostIssue) -> E) -> Result[(RowDeclaration, Array[ProjectMockWriteDeclaration], Array[ProjectMockRowSelection]), E]
+
 pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, RowDeclaration, RowKeyedLimits, input_available? : (() -> Bool)?) -> Result[RowKeyedAcquisition, RowHostIssue]
 
 pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]
 
 pub fn prepare_local_csv_table(String, @decode_core.Cursor, Int, Int) -> Result[LocalCsvTable?, LocalCsvTableIssue]
+
+pub fn prepare_local_csv_whole_response(RowRunResponseBorrow, RowDeclaration, LocalCsvTable, LocalCsvPageTransport, Int) -> Result[LocalCsvWholeResponse, LocalCsvWholeResponseIssue]
+
+pub fn prepare_local_file_source_declaration(String, String, Bool, LocalFileSourceDeclarationLimits, Array[RowRelationViewSpec], csv_classification? : (Int, @check_environment.DataClassification)?) -> Result[PreparedLocalFileSourceDeclaration, RowHostIssue]
+
+pub fn prepare_project_mock_write_declarations(Json, RowDeclaration) -> Result[Array[ProjectMockWriteDeclaration], RowMappingIssue]
 
 pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]
 
@@ -286,6 +322,10 @@ pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappi
 
 pub fn project_local_csv_relation_view(String, Array[String], Array[Bool], Array[String]) -> Result[RowRelationViewSpec, RowHostIssue]
 
+pub fn project_mock_row_page_limits() -> RowPageLimits
+
+pub fn project_mock_row_selection(Json, RowDeclaredView) -> Result[ProjectMockRowSelection, RowHostIssue]
+
 pub fn project_relation_declaration_input(Json, Int, Int, Int) -> Result[String, RowHostIssue]
 
 pub fn project_relation_declaration_wire_input(String) -> Result[String, RowHostIssue]
@@ -314,6 +354,8 @@ pub fn relation_document_mapping_construction_inventory(RowPageLimits) -> @execu
 
 pub fn relation_document_prepared_contract(RelationDocumentPreparedContract) -> @value_contract.Contract
 
+pub fn relation_document_prepared_contract_retained_inventory(RelationDocumentPreparedContract) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn relation_document_projection_construction_inventory(RelationDocumentProjectionConstruction, RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]
@@ -321,6 +363,8 @@ pub fn relation_document_projection_contract(RowDeclaration, String, String, Row
 pub fn relation_document_projection_retained_inventory(RelationDocumentProjectionConstruction, RowPageLimits, Int64) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn relation_document_text_contract_nodes(@value_contract.Contract) -> Int?
 
 pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?
 
@@ -348,6 +392,10 @@ pub fn relation_target_text_bytes(RelationTargetRow, String) -> Bytes?
 
 pub fn relation_target_version(RelationTargetRow) -> String?
 
+pub fn relation_target_write_wire_construction(@value_contract.Contract, RowPageLimits, Int, Int, deleting~ : Bool) -> RelationTargetWriteWireConstruction?
+
+pub fn restore_project_mock_relation_declaration(String, Json, Int, Int, Int) -> Result[RowDeclaration, RowHostIssue]
+
 pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
@@ -369,6 +417,8 @@ pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.Capture
 pub fn retain_row_captured_input_originals(Array[RowCapturedInput], @physical_resources.Ledger, Int) -> RowCapturedInputs?
 
 pub fn retain_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?
+
+pub fn retire_local_csv_whole_response(LocalCsvWholeResponse, Int64?) -> Result[Unit, LocalCsvWholeResponseIssue]
 
 pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]
 
@@ -616,6 +666,12 @@ pub(all) enum LocalCsvPageIssue {
   LocalFilesPageBytesLimit
 } derive(Eq, @debug.Debug)
 
+pub(all) struct LocalCsvPageTransport {
+  transfer_bytes : Int64
+  execution_bytes : Int64
+  max_rows : Int64
+}
+
 pub(all) struct LocalCsvTable {
   path : String
   column_names : Array[String]
@@ -623,6 +679,8 @@ pub(all) struct LocalCsvTable {
   keys : Array[String]
   view : RowRelationViewSpec
 }
+pub fn LocalCsvTable::observed_extent_transport(Self, LocalCsvPageTransport, Int, Int64) -> (LocalCsvPageTransport, Int)?
+pub fn LocalCsvTable::page_transport(Self, Int64, Int64, Int64, Int64) -> LocalCsvPageTransport?
 
 pub(all) enum LocalCsvTableIssue {
   InvalidLocalCsvResource
@@ -630,6 +688,63 @@ pub(all) enum LocalCsvTableIssue {
   InvalidLocalCsvColumns
   InvalidLocalCsvKey
 } derive(Eq, @debug.Debug)
+
+pub(all) struct LocalCsvTableMetadataGeometry {
+  width : Int
+  key_count : Int
+  field_text_units : Int64
+  key_text_units : Int64
+  schema_bytes : Int
+  facts_bytes : Int
+}
+
+pub struct LocalCsvWholeResponse {
+  // private fields
+}
+
+pub(all) enum LocalCsvWholeResponseIssue {
+  Csv(LocalCsvPageIssue)
+  Row(RowHostIssue)
+}
+
+pub(all) struct LocalFileSourceDeclarationLimits {
+  max_files : Int
+  max_entries : Int
+  max_pages : Int
+  max_attempts : Int
+  max_listing_bytes : Int
+  max_duration_ms : Int
+  max_path_bytes : Int
+  max_page_bytes : Int
+}
+
+pub struct LocalFileStoreTargetIdentity {
+  root : String
+  target_ref : String
+  resource_identity_cid : String
+  mapping_cid : String
+  command_cid : String
+}
+
+pub struct PreparedLocalFileSourceDeclaration {
+  // private fields
+}
+pub fn PreparedLocalFileSourceDeclaration::construction_capacity(Self) -> Result[Int64, RowHostIssue]
+pub fn PreparedLocalFileSourceDeclaration::issue(Self) -> Result[(RowDeclaration, String, String), RowHostIssue]
+
+pub struct ProjectMockRowSelection {
+  view : RowDeclaredView
+  items_path : Array[String]
+  key_path : Array[String]
+  primary_identity : String
+}
+
+pub struct ProjectMockWriteDeclaration {
+  mapping : RowMapping
+  writable_fields : Array[String]
+  aliases : Array[String]
+  observe_permission : String
+}
 
 pub struct RelationDocument {
   // private fields
@@ -668,6 +783,14 @@ type RelationTargetKey
 
 pub struct RelationTargetRow {
   // private fields
+}
+
+pub struct RelationTargetWriteWireConstruction {
+  change_limits : (Int, Int, Int)
+  encoded_change_bytes : Int64
+  replacement_bytes : Int64
+  value_writer_cost : Int64
+  placement : @execution_relation.PreparationRepresentationUnits
 }
 
 type RowAcquisition

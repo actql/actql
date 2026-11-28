@@ -89,6 +89,7 @@ test "prepared typed refusal remains the same original instead of negative count
       outcome: None,
       source: None,
       source_issue: None,
+      project_request: None,
     }
     value.preparations[2] = original
     assert_eq(prepared_outcome(5181L, 2), 0)

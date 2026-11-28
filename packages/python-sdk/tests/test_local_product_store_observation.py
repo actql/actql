@@ -76,7 +76,7 @@ class ProductStoreObservationTests(unittest.TestCase):
                     self.assertEqual(args[1], held.record.handle)
                     self.assertEqual(args[3:], (0, 0))
                     return 0
-            if family == 'publication' and name in ('prepare_lookup', 'prepare_observation',
+            if family == 'publication' and name in ('prepare_lookup', 'prepare_observation', 'observation_exact_index',
                     'advance_observation', 'observation_progress', 'finish_observation', 'retire_observation', 'retire_lookup'):
                 calls.append((family, name, args))
                 if name in faults: return faults[name]

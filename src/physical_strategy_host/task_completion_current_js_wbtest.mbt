@@ -657,6 +657,63 @@ test "paused dependency rejects the different raw Input of its computed producer
     context,
   ).unwrap()
   let resume_tuple = { ..pause, operation: "resume", }
+  // The three authored imports yield three data and three control edges.
+  // Four task slots and the selected coordinate complete this Work quote.
+  assert_eq(graph_data_count(graph), 3)
+  assert_eq(graph_control_count(graph), 3)
+  let breakpoint_work = 1 + 4 + 3 + 3
+  let short_original = task_completion_fixture_original(load, graph, 262144L, () => {
+    ()
+  })
+  let short_admission = @resources.prepare_node_managed_run_admission(
+    short_original, graph,
+  ).unwrap()
+  let short_ledger = @resources.start_node_managed_run_admission(
+    short_admission,
+  ).unwrap()
+  let short_run = open_source_free_dag(graph, short_ledger).unwrap()
+  let short_hooks = prepare_captured_task_boundary_hooks(
+    short_run,
+    graph,
+    captured_dag_strategy_revision(short_run),
+  ).unwrap()
+  prepare_captured_task_control(
+    short_run,
+    short_hooks,
+    permit(pause),
+    account,
+    pause,
+    subject,
+    context,
+  ).unwrap()
+  let headroom = @resources.ledger_limits(short_ledger).planning_work -
+    @resources.ledger_usage(short_ledger).planning_work
+  @resources.charge_planning(short_ledger, headroom - breakpoint_work + 1).unwrap()
+  let before_short = @resources.ledger_usage(short_ledger)
+  assert_eq(
+    command_captured_task_control(
+      short_run,
+      short_hooks,
+      0,
+      ResumeBefore(2, 0),
+      permit(resume_tuple),
+      account,
+      resume_tuple,
+      subject,
+      context,
+      acknowledge_breakpoint=() => true,
+    ),
+    Err(Resource(@resources.PlanningLimit)),
+  )
+  assert_eq(
+    captured_task_control_state(short_run, short_hooks),
+    Ok((0, Paused)),
+  )
+  assert_eq(next_captured_task(short_run), None)
+  assert_eq(@resources.ledger_usage(short_ledger), before_short)
+  stop_captured_dag(short_run)
+  assert_eq(@resources.ledger_usage(short_ledger).live_reservations, 0)
+
   let step = revision => {
     command_captured_task_control(
       run,
@@ -692,12 +749,129 @@ test "paused dependency rejects the different raw Input of its computed producer
   step(0)
   let first = task_completion_fixture_output(load, graph)
   commit(0, first)
-  step(2)
+  // The fixture has four Units, four Tasks and three edges of each
+  // kind. The read visits only future independently stoppable coordinates.
+  let read_work = 1 + 4 + 3 * 4 + 3 + 3
+  let generation = captured_dag_generation(run)
+  let targets : Array[(Int, Int)] = []
+  let visit = (next, target) => {
+    targets.push((next, target))
+    true
+  }
+  let before_read = @resources.ledger_usage(ledger)
+  assert_eq(
+    visit_captured_task_breakpoint_targets(
+      run,
+      hooks,
+      2,
+      generation,
+      read_work - 1,
+      visit,
+    ),
+    Err(Resource(@resources.PlanningLimit)),
+  )
+  assert_eq(
+    visit_captured_task_breakpoint_targets(
+      run,
+      hooks,
+      2,
+      generation - 1,
+      read_work,
+      visit,
+    ),
+    Err(StaleRevision),
+  )
+  assert_true(targets.is_empty())
+  visit_captured_task_breakpoint_targets(
+    run, hooks, 2, generation, read_work, visit,
+  ).unwrap()
+  assert_eq(targets, [(1, 2), (1, 3)])
+  let visits_before_refusal = Ref(0)
+  assert_eq(
+    visit_captured_task_breakpoint_targets(
+      run,
+      hooks,
+      2,
+      generation,
+      read_work,
+      (_, _) => {
+        visits_before_refusal.val += 1
+        false
+      },
+    ),
+    Err(StaleRevision),
+  )
+  assert_eq(visits_before_refusal.val, 1)
+  assert_eq(@resources.ledger_usage(ledger), before_read)
+  assert_eq(captured_task_control_state(run, hooks), Ok((2, Paused)))
+  let resume_before = (revision, stage, operation, acknowledge) => {
+    command_captured_task_control(
+      run,
+      hooks,
+      revision,
+      ResumeBefore(stage, operation),
+      permit(resume_tuple),
+      account,
+      resume_tuple,
+      subject,
+      context,
+      acknowledge_breakpoint=acknowledge,
+    )
+  }
+  let before_refusal = @resources.ledger_usage(ledger)
+  assert_eq(resume_before(2, 7, 0, () => true), Err(BoundaryUnavailable(-1)))
+  assert_eq(resume_before(1, 2, 0, () => true), Err(StaleRevision))
+  assert_eq(resume_before(2, 1, 0, () => true), Err(BoundaryUnavailable(1)))
+  assert_eq(
+    command_captured_task_control(
+      run,
+      hooks,
+      2,
+      ResumeBefore(2, 0),
+      permit(resume_tuple),
+      account,
+      resume_tuple,
+      subject,
+      context,
+    ),
+    Err(InvalidTransition),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before_refusal)
+  assert_eq(resume_before(2, 2, 0, () => false), Err(InvalidTransition))
+  assert_eq(captured_task_control_state(run, hooks), Ok((2, Paused)))
+  assert_eq(next_captured_task(run), None)
+  let before_breakpoint = @resources.ledger_usage(ledger)
+  assert_eq(before_breakpoint.attempts, before_refusal.attempts)
+  assert_eq(
+    before_breakpoint.planning_work - before_refusal.planning_work,
+    breakpoint_work,
+  )
+  resume_before(2, 2, 0, () => true).unwrap()
+  let armed = @resources.ledger_usage(ledger)
+  assert_eq(
+    armed.planning_work - before_breakpoint.planning_work,
+    breakpoint_work,
+  )
+  assert_eq(armed.attempts, before_breakpoint.attempts)
+  assert_eq(
+    captured_task_control_state(run, hooks),
+    Ok((3, RunningToBreakpoint(2))),
+  )
+  assert_eq(next_captured_task(run), Some(1))
   let second = task_completion_fixture_sequence(load, graph, 1, [], [
     @pipeline.Step(0),
   ])
-  commit(1, @execution.completed_output(second, @pipeline.Step(0)).unwrap())
+  let second_output = @execution.completed_output(second, @pipeline.Step(0)).unwrap()
+  commit(1, second_output)
   assert_eq(captured_task_control_state(run, hooks), Ok((4, Paused)))
+  assert_eq(@resources.ledger_usage(ledger).attempts, armed.attempts + 1)
+  assert_false(captured_task_completed(run, 2))
+  assert_eq(next_captured_task(run), None)
+  assert_true(
+    authorize_captured_task_activation(run, 2, task_activation_covered())
+    is Err(NotReady),
+  )
+  assert_false(captured_task_activation_granted(run, 2))
   let source = read_captured_task_boundary(run, hooks, Settled)
     .unwrap()
     .unwrap()
@@ -757,6 +931,61 @@ test "paused dependency rejects the different raw Input of its computed producer
   assert_true(
     captured_paused_next_sample_input(run, hooks, 4, generation, 0, 1)
     is Err(InputWorkLimit),
+  )
+  let observed : Array[(Int, Int, Int, Int, Int, Int)] = []
+  let before_batch = @resources.ledger_usage(ledger)
+  let funded = Ref(true)
+  let collect_input = (ordinal, edge : @graph.DataEdge, start, made, attempt) => {
+    funded.val = funded.val &&
+      @resources.ledger_usage(ledger).reserved_execution_bytes >
+      before_batch.reserved_execution_bytes
+    observed.push((ordinal, edge.consumer, edge.producer, start, made, attempt))
+  }
+  assert_true(
+    visit_captured_paused_next_sample_inputs(
+      run,
+      hooks,
+      4,
+      generation - 1,
+      256,
+      collect_input,
+    )
+    is Err(Boundary(StaleBoundary)),
+  )
+  assert_true(
+    visit_captured_paused_next_sample_inputs(
+      run, hooks, 4, generation, 1, collect_input,
+    )
+    is Err(InputWorkLimit),
+  )
+  assert_true(observed.is_empty())
+  assert_eq(
+    @resources.ledger_usage(ledger).planning_work,
+    before_batch.planning_work,
+  )
+  visit_captured_paused_next_sample_inputs(
+    run, hooks, 4, generation, 256, collect_input,
+  ).unwrap()
+  assert_true(funded.val)
+  assert_eq(observed, [
+    (0, 2, 0, 3, generation - 1, 2),
+    (1, 2, 1, 3, generation, 3),
+  ])
+  let after_batch = @resources.ledger_usage(ledger)
+  assert_eq(
+    after_batch.reserved_execution_bytes,
+    before_batch.reserved_execution_bytes,
+  )
+  assert_eq(
+    after_batch.reserved_retention_bytes,
+    before_batch.reserved_retention_bytes,
+  )
+  let edges = graph_data_count(graph)
+  assert_eq(
+    after_batch.planning_work - before_batch.planning_work,
+    graph_task_count(graph) * (edges + graph_control_count(graph) + 2) +
+    4 * edges +
+    6 * 2,
   )
   assert_true(
     captured_paused_next_sample_dependency(run, hooks, 4, generation, 2)
@@ -821,6 +1050,281 @@ test "paused dependency rejects the different raw Input of its computed producer
   close_captured_task_output(run, 1)
   close_captured_task_output(run, 0)
   let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.live_reservations, 0)
+  assert_eq(usage.held_bytes, 0L)
+
+  // The retained cut corresponds to the actual two commits and settled
+  // original accounting. A new receiving Run must not debit either again.
+  let saved_ledger = @resources.capture_quiescent_ledger_state(ledger).unwrap()
+  let reopened = task_completion_fixture_original(load, graph, 262144L, () => ())
+  let admission = @resources.prepare_node_managed_run_admission(reopened, graph).unwrap()
+  let receiving = @resources.restore_node_managed_run_admission(
+    admission, graph, saved_ledger,
+  ).unwrap()
+  let continued = open_source_free_dag(graph, receiving).unwrap()
+  let restored_hooks = prepare_captured_task_boundary_hooks(
+    continued,
+    graph,
+    captured_dag_strategy_revision(continued),
+  ).unwrap()
+  prepare_captured_task_control(
+    continued,
+    restored_hooks,
+    permit(pause),
+    account,
+    pause,
+    subject,
+    context,
+  ).unwrap()
+  let release_ready = Ref(false)
+  let returned = Ref(0)
+  let release = () => {
+    if !release_ready.val {
+      return false
+    }
+    returned.val += 1
+    true
+  }
+  let completed : ReadOnlyArray[RestoredTaskOccurrence] = [
+    {
+      task: 0,
+      generation: 1,
+      attempt: 2,
+      output: Some(first),
+      retire: Some(release),
+    },
+    {
+      task: 1,
+      generation: 2,
+      attempt: 3,
+      output: Some(second_output),
+      retire: Some(release),
+    },
+  ]
+  let cut : RestoredTaskCut = {
+    start_revision: 3,
+    control_revision: 4,
+    generation: 2,
+    completed_task: 1,
+    next_task: 2,
+    completed,
+  }
+  let bytes = restored_task_cut_backing(graph_task_count(graph))
+  let short = @resources.reserve_capacity(receiving, bytes - 1L, bytes).unwrap()
+  assert_eq(
+    restore_captured_task_cut(continued, restored_hooks, cut, short, () => true),
+    Err(OutputCapacity),
+  )
+  @resources.settle_capacity(receiving, short).unwrap()
+  let backing = @resources.reserve_capacity(receiving, bytes, bytes).unwrap()
+  assert_eq(
+    restore_captured_task_cut(
+      continued,
+      restored_hooks,
+      { ..cut, next_task: 3, },
+      backing,
+      () => true,
+    ),
+    Err(InvalidCut),
+  )
+  let misbound : ReadOnlyArray[RestoredTaskOccurrence] = [
+    { ..completed[0], output: Some(second_output), },
+    completed[1],
+  ]
+  assert_eq(
+    restore_captured_task_cut(
+      continued,
+      restored_hooks,
+      { ..cut, completed: misbound, },
+      backing,
+      () => true,
+    ),
+    Err(MissingOutput(0)),
+  )
+  let repeated_attempt : ReadOnlyArray[RestoredTaskOccurrence] = [
+    completed[0],
+    { ..completed[1], attempt: 2, },
+  ]
+  assert_eq(
+    restore_captured_task_cut(
+      continued,
+      restored_hooks,
+      { ..cut, completed: repeated_attempt, },
+      backing,
+      () => true,
+    ),
+    Err(InvalidCut),
+  )
+  let missing : ReadOnlyArray[RestoredTaskOccurrence] = [
+    { ..completed[0], output: None, },
+    completed[1],
+  ]
+  assert_eq(
+    restore_captured_task_cut(
+      continued,
+      restored_hooks,
+      { ..cut, completed: missing, },
+      backing,
+      () => true,
+    ),
+    Err(MissingOutput(0)),
+  )
+  let calls = Ref(0)
+  assert_eq(
+    restore_captured_task_cut(continued, restored_hooks, cut, backing, () => {
+      calls.val += 1
+      calls.val == 1
+    }),
+    Err(StalePause),
+  )
+  assert_eq(calls.val, 2)
+  assert_eq(captured_dag_generation(continued), 0)
+  assert_false(captured_task_completed(continued, 0))
+  assert_false(captured_task_completed(continued, 1))
+  restore_captured_task_cut(continued, restored_hooks, cut, backing, () => true).unwrap()
+  assert_eq(@resources.ledger_usage(receiving).attempts, 3)
+  assert_eq(
+    captured_task_control_paused_task(continued, restored_hooks),
+    Ok((4, 1, Some(2), 2)),
+  )
+  assert_eq(captured_relation_sample_commit(continued, 0), Some((1, 2, 3)))
+  assert_eq(captured_relation_sample_commit(continued, 1), Some((2, 3, 3)))
+  assert_eq(next_captured_task(continued), None)
+  assert_eq(
+    restore_captured_task_cut(continued, restored_hooks, cut, backing, () => {
+      true
+    }),
+    Err(StalePause),
+  )
+  let reading = read_captured_task_continuation(
+    continued, restored_hooks, 4, 2, 128,
+  ).unwrap()
+  let limits : CapturedContinuationRelationLimits = {
+    rows: 1,
+    values: {
+      max_nodes: 128,
+      max_text_bytes: 4096,
+      max_work: 512,
+      max_depth: 12,
+    },
+    wire: {
+      max_columns: 8,
+      max_order_work: 128,
+      max_bytes: 4096,
+      max_nodes: 128,
+      max_depth: 12,
+    },
+    schema: { max_fields: 8, max_bytes: 4096, max_nodes: 128, max_depth: 12, },
+    work: 2048,
+    workspace_slots: 2048,
+    workspace_bytes: 131072L,
+  }
+  let saved_attempts : Array[(Int, Int, Int)] = []
+  let bodies : Array[String] = []
+  let escaped : Ref[(() -> Bool)?] = Ref(None)
+  let before_read = @resources.ledger_usage(receiving)
+  for task in 0..<2 {
+    with_captured_task_continuation_materialized_relation(
+      continued,
+      reading,
+      task,
+      () => true,
+      limits,
+      (relation, current) => {
+        if !current() ||
+          relation.rows != 1 ||
+          relation.start_revision != 3 ||
+          relation.pause_revision != 4 {
+          return false
+        }
+        saved_attempts.push(
+          (relation.task, relation.committed_generation, relation.attempt),
+        )
+        bodies.push(relation.relation_cid)
+        escaped.val = Some(current)
+        true
+      },
+    ).unwrap()
+    assert_false(escaped.val.unwrap()())
+  }
+  assert_eq(saved_attempts, [(0, 1, 2), (1, 2, 3)])
+  assert_eq(bodies[0], bodies[1])
+  assert_eq(
+    with_captured_task_continuation_materialized_relation(
+      continued,
+      reading,
+      0,
+      () => false,
+      limits,
+      (_, _) => false,
+    ),
+    Err(StalePause),
+  )
+  let after_read = @resources.ledger_usage(receiving)
+  assert_eq(after_read.attempts, before_read.attempts)
+  assert_eq(after_read.live_reservations, before_read.live_reservations)
+  assert_eq(
+    after_read.reserved_retention_bytes,
+    before_read.reserved_retention_bytes,
+  )
+  assert_eq(
+    after_read.reserved_execution_bytes,
+    before_read.reserved_execution_bytes,
+  )
+  return_captured_task_continuation(reading).unwrap()
+  command_captured_task_control(
+    continued,
+    restored_hooks,
+    4,
+    ResumeStep,
+    permit(resume_tuple),
+    account,
+    resume_tuple,
+    subject,
+    context,
+  ).unwrap()
+  assert_eq(next_captured_task(continued), Some(2))
+  let left = captured_task_input(continued, 2, 16, 4096).unwrap()
+  let right = captured_task_input(continued, 2, 16, 4096, input_index=1).unwrap()
+  let joined = task_completion_fixture_sequence(load, graph, 2, [left, right], [
+    @pipeline.Step(0),
+  ])
+  let output = @execution.completed_output(joined, @pipeline.Step(0)).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(2.0)))
+  let reservation = @resources.reserve_attempt(receiving, 0L, 64L, 32L).unwrap()
+  let holding = @resources.retain_allocation(receiving, reservation, 64L).unwrap()
+  @resources.consume_reserved_attempt(receiving, reservation).unwrap()
+  commit_materialized_task_output(
+    continued,
+    2,
+    output,
+    holding,
+    ForeignCandidate,
+    reservation,
+    64L,
+    0L,
+  ).unwrap()
+  assert_eq(
+    captured_task_control_paused_task(continued, restored_hooks),
+    Ok((6, 2, Some(3), 3)),
+  )
+  assert_eq(captured_relation_sample_commit(continued, 2), Some((3, 4, 3)))
+  assert_eq(@resources.ledger_usage(receiving).attempts, 4)
+  let pin = pin_captured_task_output(continued, 0, @pipeline.Step(0), 1).unwrap()
+  assert_eq(returned.val, 0)
+  assert_false(retire_captured_task_outputs(continued))
+  assert_eq(returned.val, 0)
+  release_ready.val = true
+  assert_false(retire_captured_task_outputs(continued))
+  assert_eq(returned.val, 1)
+  assert_true(release_captured_output_pin(pin))
+  assert_true(retire_captured_task_outputs(continued))
+  assert_eq(returned.val, 2)
+  assert_true(retire_captured_task_outputs(continued))
+  assert_eq(returned.val, 2)
+  @resources.settle_capacity(receiving, backing).unwrap()
+  let usage = @resources.ledger_usage(receiving)
   assert_eq(usage.live_reservations, 0)
   assert_eq(usage.held_bytes, 0L)
 }

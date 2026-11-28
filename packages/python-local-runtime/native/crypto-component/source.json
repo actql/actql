@@ -25,8 +25,8 @@
   },
   "local": {
     "component.c": {
-      "bytes": 20393,
-      "sha256": "6819040a6df1de20d067c142c9a32838862956d23a7cd11dda4d987cd7a53b0c"
+      "bytes": 15261,
+      "sha256": "749adce3a52c6b465b39820b07cc35da2a04fb73d0550eb11e20a6147f1fdd22"
     },
     "component.h": {
       "bytes": 2938,
@@ -47,6 +47,10 @@
     "fixtures/allocator_conformance.c": {
       "bytes": 19652,
       "sha256": "9858b10fe8b47e1e3c2bfaac6e34023b9ca17c389867a5465980c3174c6e9342"
+    },
+    "component_arena.inc": {
+      "bytes": 5254,
+      "sha256": "bac152cde38087daa2c693502aaa4d4c6c1ffc758ba0a6b370417953148aaee5"
     }
   },
   "isolation": [
@@ -122,5 +126,105 @@
       "installed_supplier": false,
       "normal_profile": null
     }
+  },
+  "portable": {
+    "arena_bytes": 524288,
+    "maximum_plaintext_bytes": 1048576,
+    "local": {
+      "portable_component.c": {
+        "bytes": 14351,
+        "sha256": "ec9367dbf39296950f148ef619686bff02cc99d914a4dcfab51c78af316044fa"
+      },
+      "portable_component.h": {
+        "bytes": 3242,
+        "sha256": "d820f80c53269793d607036a5b68165451aac9d34097dbf63c66e3e8d6d780f3"
+      },
+      "fixtures/portable_component.py": {
+        "bytes": 5177,
+        "sha256": "e495ce1fab2aa9d4be379542ee0310ec9d96057a1ae813d7522e91ed61b1fc62"
+      }
+    },
+    "darwin-arm64": {
+      "library": "libactql_portable_crypto.dylib",
+      "minimum_macos": "11.0",
+      "configure": [
+        "darwin64-arm64-cc",
+        "no-shared",
+        "no-pinshared",
+        "no-module",
+        "no-dso",
+        "no-autoload-config",
+        "no-engine",
+        "no-legacy",
+        "no-tests"
+      ]
+    },
+    "linux-x64": {
+      "library": "libactql_portable_crypto.so",
+      "glibc_ceiling": "2.28",
+      "build_image": "quay.io/pypa/manylinux_2_28_x86_64@sha256:53390351aeb4688114b02c36a23b3e6ce1166ee9b7afc5df1a4f776354fc764c",
+      "perl_inputs": {
+        "perl-ExtUtils-MM-Utils-7.34-1.el8.noarch.rpm": {
+          "bytes": 16740,
+          "sha256": "c42fa5970ccc7f90fd09affd22553e1c74398fb4898ce6490313694b91d3d399"
+        },
+        "perl-IPC-Cmd-1.02-1.el8.noarch.rpm": {
+          "bytes": 44244,
+          "sha256": "fcb9a72453cc625c0bb63ee407f8405fe91e18ccc6867f62115266b347e02e66"
+        },
+        "perl-Locale-Maketext-1.28-396.el8.noarch.rpm": {
+          "bytes": 100968,
+          "sha256": "6a1dc8cce060b47edb5848bae65faabeb66786c31e1447eb7ca32b2eb2edee8f"
+        },
+        "perl-Locale-Maketext-Simple-0.21-423.el8_10.1.noarch.rpm": {
+          "bytes": 80380,
+          "sha256": "69ad917d5863d134dcd7de8f5952d8b06a7e996919eeb902d7643f2a22802fa1"
+        },
+        "perl-Module-CoreList-5.20181130-1.el8.noarch.rpm": {
+          "bytes": 88652,
+          "sha256": "3544008ee6452aebaf0d7efafbf34cb189893a3707992426f6dbb80afa483d58"
+        },
+        "perl-Module-Load-0.32-395.el8.noarch.rpm": {
+          "bytes": 18848,
+          "sha256": "114174c90e21cf23ef054c33f4fb9da4dd9380d891651dd826499b098017fc55"
+        },
+        "perl-Module-Load-Conditional-0.68-395.el8.noarch.rpm": {
+          "bytes": 24784,
+          "sha256": "b569b76a4f147a6a1f376ac3b6e17d8f5b165fcf8108505a3596a4ac02eb4066"
+        },
+        "perl-Module-Metadata-1.000033-395.el8.noarch.rpm": {
+          "bytes": 45336,
+          "sha256": "d4e295ddaee9c101517ecd595615fc9f87922f7c4ecf2d6bce24770690f6b52b"
+        },
+        "perl-Params-Check-0.38-395.el8.noarch.rpm": {
+          "bytes": 23952,
+          "sha256": "8bf636ca3250f4d038a343dcd1e6dda4829dccd83a19bce764ff2b1ef47a274a"
+        },
+        "perl-Time-HiRes-1.9758-2.el8.x86_64.rpm": {
+          "bytes": 61228,
+          "sha256": "230012f3f5b2403976f29ef2f390a43758d206eb84b26ff5d4d5209794ab9392"
+        },
+        "perl-Time-Piece-1.31-423.el8_10.1.x86_64.rpm": {
+          "bytes": 99808,
+          "sha256": "46f3c614783576789e414f86c57d14c88ecf8006e571c68c5c56a11a62e94a7f"
+        },
+        "perl-version-0.99.24-1.el8.x86_64.rpm": {
+          "bytes": 68776,
+          "sha256": "f68552dc974257d74a85592a30f288dde1cb46b867517a8e96319d4228f1177f"
+        }
+      },
+      "configure": [
+        "linux-x86_64",
+        "no-shared",
+        "no-pinshared",
+        "no-module",
+        "no-dso",
+        "no-autoload-config",
+        "no-engine",
+        "no-legacy",
+        "no-tests"
+      ]
+    },
+    "approval_arena_bytes": 786432
   }
 }

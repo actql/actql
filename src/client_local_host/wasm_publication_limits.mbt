@@ -48,10 +48,51 @@ pub fn ClientLocalRequirements::wasm_publication_limits(
   self : ClientLocalRequirements,
   prepared : @publication_host.PreparedClientProgram,
 ) -> @publication_host.PublicationOutputExportLimits? {
-  guard physical_equal(self.prepared, prepared) &&
-    self.capacity_plan.graph is Some(graph) &&
-    physical_equal(graph, @publication_host.prepared_client_graph(prepared)) &&
-    self.capacity_plan.publication is Some(publication) else {
+  guard physical_equal(self.prepared, prepared) else { return None }
+  client_wasm_checked_publication_limits(prepared, self.capacity_plan)
+}
+
+///|
+/// Use the same Wasm limits projection on the already planned Model module.
+pub fn installed_model_wasm_publication_limits(
+  adopted : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> @publication_host.PublicationOutputExportLimits? {
+  guard !adopted.effect_operation_closing &&
+    installed_managed_run_compilation_original(adopted, prepared)
+    is Some(@publication_host.Tasks(compilation)) &&
+    !compilation.infers.is_empty() else {
+    return None
+  }
+  match (adopted.source_free_preparation, adopted.captured_preparation) {
+    (Some(original), None) =>
+      client_wasm_checked_publication_limits(prepared, original.capacity_plan)
+    (None, Some(original)) if !original.whole_sources.is_empty() =>
+      client_wasm_checked_publication_limits(
+        prepared,
+        original.capacity_plan,
+        whole_inputs=true,
+      )
+    _ => None
+  }
+}
+
+///|
+fn client_wasm_checked_publication_limits(
+  prepared : @publication_host.PreparedClientProgram,
+  capacity_plan : ClientLocalCapacityPlan,
+  whole_inputs? : Bool = false,
+) -> @publication_host.PublicationOutputExportLimits? {
+  let original = @publication_host.prepared_client_graph(prepared)
+  guard capacity_plan.graph is Some(graph) &&
+    (
+      physical_equal(graph, original) ||
+      (
+        whole_inputs &&
+        @strategy.source_inputs_dag_matches_original(graph, original)
+      )
+    ) &&
+    capacity_plan.publication is Some(publication) else {
     return None
   }
   let profile = client_wasm_result_export_profile()

@@ -20,19 +20,75 @@ pub fn[Plan, E] capture_client_task_materials_original(
   policy : () -> Result[String, E],
   encoding_failure : (ClientJournalEncodingIssue) -> E,
 ) -> Result[ClientTaskMaterialsOriginal[Plan], E] {
-  let cid = match client_task_material_original_cid(wire) {
-    Ok(value) => value
-    Err(issue) => return Err(encoding_failure(issue))
-  }
-  let chunks = match client_task_material_original_chunks(key, wire) {
-    Ok(value) => value
-    Err(issue) => return Err(encoding_failure(issue))
+  let (cid, chunks) = {
+    let bytes = @utf8.encode(wire)
+    let cid = match task_material_original_cid_bytes(bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(encoding_failure(issue))
+    }
+    let chunks = match task_material_original_chunk_bytes(key, bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(encoding_failure(issue))
+    }
+    (cid, chunks)
   }
   let publication_policy_originals = match policy() {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   Ok({ plan, wire, cid, chunks, publication_policy_originals, })
+}
+
+///|
+// The File caller retains its original Task wire and charges the second set
+// of owned text and chunk keys here. The policy constructor has its own quote.
+fn client_task_material_original_construction_capacity(
+  wire : String,
+) -> (Int64, Int64)? {
+  guard @scalar.admit_utf8_length(wire, @remote.REMOTE_RUN_MATERIALS_MAX_BYTES)
+    is Ok(bytes) &&
+    bytes > 0 &&
+    @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) else {
+    return None
+  }
+  // Moving a split backward by at most three UTF-8 continuation bytes can
+  // leave a third chunk only in the last three bytes of the two-row range.
+  let count = if bytes <= 131072 {
+    1L
+  } else if bytes <= 262141 {
+    2L
+  } else {
+    3L
+  }
+  guard @shape.reference_array_retained_extent(1L, 8L) is Some(pairs) else {
+    return None
+  }
+  let bytes = bytes.to_int64()
+  // One material CID and one key per chunk. A valid scope key has 71 code units, and the
+  // ordinal and separator are each a single ASCII unit. The array's first
+  // backing capacity of eight covers all three possible chunk pairs.
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: pairs.record_headers + 4L + 3L * count,
+    reference_slots: pairs.reference_slots + 7L + 2L * count,
+    scalar_words: pairs.scalar_words + 4L,
+    owned_utf16_units: bytes + 71L + 73L * count,
+    owned_wire_bytes: 0L,
+  }
+  let execution : @execution.PreparationRepresentationUnits = {
+    // Shared fixed SHA core and digest/hex inventory. One encoded buffer
+    // serves the hash and splitter, with transient UTF-8 encode/decode
+    // backing and at most three views/canonical ordinal strings.
+    record_headers: hash.record_headers + 18L + 6L * count,
+    reference_slots: hash.reference_slots + 20L + 4L * count,
+    scalar_words: hash.scalar_words + 22L + 4L * count,
+    owned_utf16_units: hash.owned_utf16_units + 3L * bytes + 74L * count,
+    owned_wire_bytes: hash.owned_wire_bytes + 4L * bytes,
+  }
+  guard @execution.preparation_representation_cost(retained) is Some(held) &&
+    @execution.preparation_representation_cost(execution) is Some(scratch) else {
+    return None
+  }
+  Some((held, scratch))
 }
 
 ///|
@@ -198,8 +254,67 @@ fn[Plan, E] read_task_material_original_details_with_original(
   custody_lost : E,
   original : ClientTaskMaterialsOriginal[Plan]?,
   digest? : (Bytes) -> String = @sha.hex,
-  saved_wire? : String? = None,
+  fund_workspace? : ((Int64) -> Result[Unit, E])? = None,
 ) -> Result[(String, Array[(String, String)]), E] {
+  read_task_material_original_slots(
+    key,
+    cid,
+    (_, chunk_key) => read("client_task_run_materials", chunk_key),
+    custody_lost,
+    original,
+    digest~,
+    fund_workspace~,
+  )
+}
+
+///|
+fn client_task_material_original_read_workspace(
+  total : Int,
+  count : Int,
+) -> Int64? {
+  guard total >= 0 &&
+    total <= @remote.REMOTE_RUN_MATERIALS_MAX_BYTES &&
+    count >= 0 &&
+    count <= 3 &&
+    @shape.reference_array_retained_extent(1L, 8L) is Some(entries) else {
+    return None
+  }
+  let chunks = count.to_int64()
+  @execution.preparation_representation_cost({
+    // Four locator probes share one working frame; the bounded observed
+    // array grows once. The caller owns the physical Bytes it lends here.
+    record_headers: entries.record_headers + 24L + 3L * chunks,
+    reference_slots: entries.reference_slots + 23L + 2L * chunks,
+    scalar_words: entries.scalar_words + 24L + 2L * chunks,
+    // Decoded chunk text stays in observed. The old/new joined String and
+    // strict decoder backing can coexist, and the active key is 73 units.
+    owned_utf16_units: 4L * total.to_int64() + 2L * 73L + 8L,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+// One decoder checks the exact key, revision and body in ordinal order. The
+// physical supplier can only take the current slot before the next check.
+fn[Plan, E] read_task_material_original_slots(
+  key : String,
+  cid : String,
+  read_slot : (Int, String) -> Result[ClientJournalPhysicalRow?, E],
+  custody_lost : E,
+  original : ClientTaskMaterialsOriginal[Plan]?,
+  digest? : (Bytes) -> String = @sha.hex,
+  saved_wire? : String? = None,
+  fund_workspace? : ((Int64) -> Result[Unit, E])? = None,
+) -> Result[(String, Array[(String, String)]), E] {
+  if fund_workspace is Some(fund) {
+    guard client_task_material_original_read_workspace(0, 0) is Some(bytes) else {
+      return Err(custody_lost)
+    }
+    match fund(bytes) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let mut wire = ""
   let mut total = 0
   let mut ended = false
@@ -208,7 +323,7 @@ fn[Plan, E] read_task_material_original_details_with_original(
   let observed : Array[String] = []
   for index in 0..<4 {
     let chunk_key = key + ":" + index.to_string()
-    match read("client_task_run_materials", chunk_key) {
+    match read_slot(index, chunk_key) {
       Err(issue) => return Err(issue)
       Ok(None) => ended = true
       Ok(Some(row)) => {
@@ -223,6 +338,16 @@ fn[Plan, E] read_task_material_original_details_with_original(
         total += row.body.length()
         if total > @remote.REMOTE_RUN_MATERIALS_MAX_BYTES {
           return Err(custody_lost)
+        }
+        if fund_workspace is Some(fund) {
+          guard client_task_material_original_read_workspace(total, index + 1)
+            is Some(bytes) else {
+            return Err(custody_lost)
+          }
+          match fund(bytes) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
         }
         let body = @utf8.decode(row.body) catch {
           _ => return Err(custody_lost)
@@ -265,6 +390,24 @@ fn[Plan, E] read_task_material_original_details_with_original(
     }
     return Ok((original_wire, exact))
   }
+  if fund_workspace is Some(fund) && !observed.is_empty() {
+    // The full comparison owns another split while observed and the joined
+    // text remain live. The exact-original hit above needs no such backing.
+    guard client_task_material_original_read_workspace(total, observed.length())
+      is Some(read) &&
+      client_task_material_original_construction_capacity(wire)
+      is Some((retained, scratch)) &&
+      @execution.checked_preparation_add_product(read, retained, 1L)
+      is Some(base) &&
+      @execution.checked_preparation_add_product(base, scratch, 1L)
+      is Some(peak) else {
+      return Err(custody_lost)
+    }
+    match fund(peak) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let bytes = @utf8.encode(wire)
   guard task_material_original_cid_bytes(bytes, digest~) is Ok(actual) &&
     actual == cid else {
@@ -295,15 +438,15 @@ fn[E] read_saved_task_material_original(
   key : String,
   cid : String,
   original_wire : String?,
-  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  read_slot : (Int, String) -> Result[ClientJournalPhysicalRow?, E],
   custody_lost : E,
   digest? : (Bytes) -> String = @sha.hex,
 ) -> Result[String, E] {
   let original : ClientTaskMaterialsOriginal[Unit]? = None
-  read_task_material_original_details_with_original(
+  read_task_material_original_slots(
     key,
     cid,
-    read,
+    read_slot,
     custody_lost,
     original,
     digest~,
