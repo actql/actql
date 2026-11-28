@@ -616,7 +616,12 @@ fn NativeClientMockModelWork::verify_completed_dependency_store(
     Err(issue) => return Err(issue)
   }
   let bundle = match
-    read_native_saved_model_capture_bundle(reads, wire, success.bundle_cid, limits) {
+    read_native_saved_model_capture_bundle(
+      reads,
+      wire,
+      success.bundle_cid,
+      limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

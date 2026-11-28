@@ -201,7 +201,12 @@ fn NativeLocalJournalCapture::verify_saved_dependent_model_success(
   }
   let limits = @model.model_call_settlement_export_limits(maximum, maximum)
   let bundle = match
-    read_native_saved_model_capture_bundle(reads, wire, success.bundle_cid, limits) {
+    read_native_saved_model_capture_bundle(
+      reads,
+      wire,
+      success.bundle_cid,
+      limits,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

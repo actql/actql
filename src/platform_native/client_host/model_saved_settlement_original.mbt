@@ -221,10 +221,7 @@ fn read_native_saved_model_capture_bundle(
   wire : String,
   expected_cid : String,
   limits : @model.ModelCaptureExportLimits,
-) -> Result[
-  @publication.ModelCaptureBundleRead,
-  NativeClientRunJournalIssue,
-] {
+) -> Result[@publication.ModelCaptureBundleRead, NativeClientRunJournalIssue] {
   let nodes = Int::min(limits.max_nodes, wire.length())
   fund_native_saved_model_leaf(
     reads,
@@ -235,7 +232,11 @@ fn read_native_saved_model_capture_bundle(
     capture_bundle=true,
   ).bind(_ => {
     @publication.read_model_capture_bundle(
-      wire, expected_cid, limits.max_bytes, nodes, limits.max_depth,
+      wire,
+      expected_cid,
+      limits.max_bytes,
+      nodes,
+      limits.max_depth,
     ).map_err(_ => CustodyLost)
   })
 }
