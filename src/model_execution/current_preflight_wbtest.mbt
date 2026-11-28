@@ -106,11 +106,15 @@ test "factory current loss reaches original Model custody before refusal and ret
   assert_eq(sends.val, 0)
   assert_false(cleanup_model_execution(active).unwrap())
   assert_eq(cleanups.val, 1)
+  assert_true(
+    physical_equal(active.state.physical_preflight.unwrap(), preflight),
+  )
   assert_true(@resources.capacity_reservation_open(grant.capacity))
   assert_false(@relation.cleanup_prepared_infer_rows(rows))
   released.val = true
   assert_true(cleanup_model_execution(active).unwrap())
   assert_eq(cleanups.val, 2)
+  assert_true(active.state.physical_preflight is None)
   assert_false(@resources.capacity_reservation_open(grant.capacity))
   assert_true(@relation.cleanup_prepared_infer_rows(rows))
   assert_eq(sends.val, 0)

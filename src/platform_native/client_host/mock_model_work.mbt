@@ -1069,8 +1069,10 @@ pub fn NativeClientMockModelWork::save_http_raw_in_original_read(
 ///|
 fn NativeClientModelHttpWork::retire_output_dependencies(self : Self) -> Unit {
   if self.dependencies is Some(staged) {
-    // The admission's current check retains staged. Retire that edge after
-    // the original Model has closed so it cannot retain the Work and Store.
+    // Both the admission callback and the retained entered-call handle can
+    // lead back to the original Work. Its durable locator is already owned
+    // by the Journal when the original Model acknowledges close.
+    staged.entered = None
     staged.egress = None
   }
   self.dependencies = None
