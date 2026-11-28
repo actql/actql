@@ -1514,7 +1514,7 @@ test('pipeline evidence aggregates dependency failures but stops on workflow can
   }
 });
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
-  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-model-packed']],
+  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-query-native', 'client-packed-composition', 'client-salesforce', 'client-model-packed']],
     ['pipeline-evidence', [...Object.values(partJobs), 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
@@ -1535,7 +1535,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-direct-model', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
-    'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-query-native', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
   for (const name of heavy) {
@@ -1543,9 +1543,15 @@ test('every heavy primitive is selected as one complete job and lint/spec always
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', targets: '["js"]', macos: 'false'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
     assert.equal(scheduled(name, {'select-targets': {result: 'success', outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}},
-      lint: {result: 'success'}, 'core-js': {result: 'success'}, 'native-cli-linux-local': {result: 'success'}}), true);
+      lint: {result: 'success'}, 'core-js': {result: 'success'}, 'native-cli-linux-local': {result: 'success'},
+      'native-cli-installed': {result: 'success'}}), true);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', targets: '[]', macos: 'true'}},
       lint: {result: 'success'}, 'core-js': {result: 'skipped'}}), false);
+  }
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    assert.equal(scheduled('client-packed-query-native', {
+      'select-targets': {outputs: {profile: 'full'}}, 'native-cli-installed': {result},
+    }), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
   for (const name of ['lint', 'spec']) assert.deepEqual(jobs[name].needs, ['select-targets']);
@@ -1889,7 +1895,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
   const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-direct-model', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
-    'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
+    'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-query-native', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
     'workers', 'connector-addition', 'duckdb-node'];

@@ -7,6 +7,8 @@ import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readmeQuickstart} from './readme-quickstart.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
+import {admitInstalledNativeArtifact} from './native-cli-artifact-reader.mjs';
+import {verifyNativeCliRelease} from './native-cli-release.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
@@ -798,24 +800,39 @@ try {
 } finally { await rename(asset + '.omitted', asset); }
 }
 async function exerciseNativeGraphSource(sourceOnly = false) {
-  const compiler = environment.ACTQL_TEST_NATIVE_QUERY_COMPILER;
-  if (compiler !== undefined && (compiler !== 'clang-19' || process.platform !== 'linux')) {
-    throw new Error('PackedQueryNativeCompilerSelectionInvalid');
+  let nativeClient: string;
+  let installedBinary: string | undefined;
+  if (ciPart === 'native') {
+    const releaseDirectory = environment.ACTQL_PACKED_NATIVE_GRAPH_RELEASE;
+    assert(releaseDirectory, 'Packed Native Graph requires its same-attempt Native release');
+    assert(process.platform === 'linux' && process.arch === 'x64', 'Packed Native Graph requires Linux x64');
+    const source = revision.stdout.trim();
+    const release = await verifyNativeCliRelease(releaseDirectory);
+    assert.equal(release.sourceSha, source, 'Packed Native Graph release differs from the checked source');
+    const platform = 'linux-x64-gnu';
+    const expected = release.artifacts.find(item => item.platform === platform);
+    assert(expected && expected.localRuntime === undefined,
+      'Packed Native Graph requires the ordinary Native Remote release');
+    assert.deepEqual(release.packages.map(item => item.name).sort(), [`@actql/cli-${platform}`, 'actql']);
+    const archives = release.packages.map(item => join(releaseDirectory, item.file));
+    for (const archive of archives) recordTarball(archive);
+    const prefix = join(root, 'native-graph-install');
+    await mkdir(prefix, {mode: 0o700});
+    run('npm', ['install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund',
+      '--prefix', prefix, ...archives], root, environment, 60_000);
+    const installed = join(prefix, 'node_modules', '@actql', `cli-${platform}`);
+    assert.deepEqual(await admitInstalledNativeArtifact(installed, source), expected);
+    installedBinary = join(installed, 'bin/actql-native-client');
+    nativeClient = join(prefix, 'node_modules/.bin/actql');
+  } else {
+    run('moon', ['build', '--target', 'native', '--release', 'src/cmd/native_client'],
+      repository, environment, 900_000);
+    nativeClient = join(repository, '_build/native/release/build/cmd/native_client/native_client.exe');
   }
-  if (compiler !== undefined && !/\bclang version 19(?:\.|\s)/u.test(
-    run('cc', ['--version'], repository, environment, 10_000))) {
-    throw new Error('PackedQueryNativeCompilerMismatch');
-  }
-  // Selected Linux CI uses the normal Linux producer's compiler and 1800s
-  // serial compilation budget. Unselected developer builds retain their route.
-  run('moon', ['build', '--target', 'native', '--release',
-    ...(compiler === undefined ? [] : ['-j', '1']), 'src/cmd/native_client'],
-  repository, environment, compiler === undefined ? 900_000 : 1_800_000);
-  const nativeClient = join(repository, '_build/native/release/build/cmd',
-    'native_client/native_client.exe');
   console.log(run(process.execPath,
     [join(repository, 'scripts/test-native-sga-public-source.mjs'),
-      root, nativeClient, directory, ...(sourceOnly ? ['--authored-source-only'] : [])],
+      root, nativeClient, directory, ...(sourceOnly ? ['--authored-source-only'] : []),
+      ...(installedBinary === undefined ? [] : [`--installed-binary=${installedBinary}`])],
     root, runtimeEnvironment).trimEnd());
 }
 async function installDuckDB() {
