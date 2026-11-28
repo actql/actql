@@ -61,3 +61,33 @@ test "public Checkpoint flags select only original inspection before resolution 
   }
   assert_true(refused)
 }
+
+///|
+test "configured Checkpoint decisions reach the selected Project operator root" {
+  for operation in ["approve", "reject"] {
+    let configured = [
+      "--mode", "local", "--config-root", "relative-operator", "--config-file", "operator.json",
+    ]
+    for
+      (selection, expected) in [
+        ([], "LocalOperationUnavailable"),
+        (["--config", "actql.config.json"], "LocalConfigurationRootUntrusted"),
+        (
+          ["--config", "actql.config.json", "--state-dir", "/other/host"],
+          "ConflictingLocalInstallationSelection",
+        ),
+      ] {
+      let args = configured.copy()
+      args.append(selection)
+      args.append([operation, "checkpoint-original"])
+      let selected = command().parse(argv=args)
+      let issue = try {
+        ignore(execute_native_local(selected))
+        ""
+      } catch {
+        ClientStop(message) => message
+      }
+      assert_eq(issue, expected)
+    }
+  }
+}
