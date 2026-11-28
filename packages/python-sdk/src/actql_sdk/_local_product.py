@@ -5237,7 +5237,15 @@ class InstalledLocalHost:
             if preflight is None or publisher is None:
                 raise ValueError('Original Portable Model publication is unavailable')
         else:
-            preflight, publisher = self._prepare_original_publication(compute)
+            try:
+                preflight, publisher = self._prepare_original_publication(compute)
+            except _OriginalCancellationStop as stop:
+                if type(compute) is _SourceFreeCompute and stop.original is execution:
+                    # Seal the same DAG before the task owner can take over.
+                    # Its retained invocation still owns the Compute loan.
+                    if self._core.close_native_compute(compute.core):
+                        raise ValueError('Original Compute observation custody disappeared before task activation') from stop
+                raise
             results = self._execute_original_tasks(compute, preflight, publisher, retained_tasks=owned)
         try:
             publication = self._capture_original_results(compute, preflight, results)
