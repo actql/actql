@@ -173,14 +173,21 @@ fn fund_native_saved_model_leaf(
   maximum : Int,
   nodes : Int,
   depth : Int,
+  capture_bundle? : Bool = false,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard @scalar.admit_utf8_length(wire, maximum) is Ok(bytes) else {
     return Err(CustodyLost)
   }
-  guard @publication.run_evidence_admission_construction_inventory(
+  let inventory = if capture_bundle {
+    @publication.model_capture_bundle_read_construction_inventory(
       bytes, nodes, depth,
     )
-    is Some(quote) &&
+  } else {
+    @publication.run_evidence_admission_construction_inventory(
+      bytes, nodes, depth,
+    )
+  }
+  guard inventory is Some(quote) &&
     @execution.preparation_representation_cost({
       record_headers: quote.retained.record_headers,
       reference_slots: quote.retained.reference_slots,
@@ -203,6 +210,34 @@ fn fund_native_saved_model_leaf(
   }
   let block = @sqlite.publication_construction_block_bound(nodes, nodes, bytes)
   fund_native_saved_model_construction(reads, retained, execution, block)
+}
+
+///|
+// Quote and admit the very same authenticated CaptureBundle limits on both
+// dependent Model readers. The caller still owns the selected raw/record
+// references and retires its one admitted Bundle at the end of the Read.
+fn read_native_saved_model_capture_bundle(
+  reads : NativeClientJournalReadAccess,
+  wire : String,
+  expected_cid : String,
+  limits : @model.ModelCaptureExportLimits,
+) -> Result[
+  @publication.ModelCaptureBundleRead,
+  NativeClientRunJournalIssue,
+] {
+  let nodes = Int::min(limits.max_nodes, wire.length())
+  fund_native_saved_model_leaf(
+    reads,
+    wire,
+    limits.max_bytes,
+    nodes,
+    limits.max_depth,
+    capture_bundle=true,
+  ).bind(_ => {
+    @publication.read_model_capture_bundle(
+      wire, expected_cid, limits.max_bytes, nodes, limits.max_depth,
+    ).map_err(_ => CustodyLost)
+  })
 }
 
 ///|

@@ -200,21 +200,10 @@ fn NativeLocalJournalCapture::verify_saved_dependent_model_success(
     Err(issue) => return Err(issue)
   }
   let limits = @model.model_call_settlement_export_limits(maximum, maximum)
-  let nodes = Int::min(limits.max_nodes, wire.length())
-  match
-    fund_native_saved_model_leaf(reads, wire, maximum, nodes, limits.max_depth) {
-    Ok(_) => ()
+  let bundle = match
+    read_native_saved_model_capture_bundle(reads, wire, success.bundle_cid, limits) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
-  }
-  guard @publication.read_model_capture_bundle(
-      wire,
-      success.bundle_cid,
-      maximum,
-      nodes,
-      limits.max_depth,
-    )
-    is Ok(bundle) else {
-    return Err(CustodyLost)
   }
   defer @publication.release_model_capture_bundle_read(bundle) |> ignore
   guard @publication.model_capture_bundle_count(bundle) == 1 &&

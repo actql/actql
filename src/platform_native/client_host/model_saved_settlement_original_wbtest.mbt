@@ -313,6 +313,55 @@ test "dependent Model success Journal points select the exact originating slot a
   assert_eq(selected.raw_cid, first.1)
   assert_eq(selected.success.unwrap().observation_cid, observation_cid)
   assert_eq(selected.success.unwrap().bundle_cid, "sha256:" + "c".repeat(64))
+  let limits = @model.model_call_settlement_export_limits(1048576, 100000)
+  // Only sizing runs here. The existing Bundle decoder checks its content
+  // after the original finite allowance has been accepted.
+  let bundle_wire = "x".repeat(1911)
+  let bundle_nodes = bundle_wire.length()
+  let quote : Ref[(Int64, Int64, Int64)?] = Ref(None)
+  let execution_limit = Ref(9223372036854775807L)
+  let funded = {
+    ..reads,
+    before_metadata_construction: Some((retained, execution, block) => {
+      quote.val = Some((retained, execution, block))
+      if execution > execution_limit.val {
+        Err(CapacityExceeded)
+      } else {
+        Ok(())
+      }
+    }),
+  }
+  let fund_bundle = maximum => {
+    fund_native_saved_model_leaf(
+      funded,
+      bundle_wire,
+      maximum,
+      bundle_nodes,
+      limits.max_depth,
+      capture_bundle=true,
+    )
+  }
+  assert_true(
+    fund_native_saved_model_leaf(
+      funded,
+      bundle_wire,
+      limits.max_bytes,
+      bundle_nodes,
+      limits.max_depth,
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(quote.val is None)
+  assert_true(fund_bundle(bundle_wire.length() - 1) is Err(CustodyLost))
+  assert_true(quote.val is None)
+  fund_bundle(limits.max_bytes).unwrap()
+  let (retained, execution, block) = quote.val.unwrap()
+  assert_true(retained > 0L && execution > retained && block > 0L)
+  execution_limit.val = execution - 1L
+  assert_true(fund_bundle(limits.max_bytes) is Err(CapacityExceeded))
+  execution_limit.val = execution
+  fund_bundle(limits.max_bytes).unwrap()
+  assert_eq(quote.val, Some((retained, execution, block)))
   assert_eq(calls, [
     "fenced",
     "begin",

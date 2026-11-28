@@ -32,10 +32,62 @@ pub fn run_evidence_admission_construction_inventory(
     depth > 64 {
     return None
   }
-  guard @source.json_source_grammar_construction_extent(bytes, nodes, depth)
-    is Some(parser) &&
+  run_evidence_admission_construction_for_bounds(bytes, nodes, depth)
+}
+
+///|
+/// Same constructor geometry for the saved Model CaptureBundle role, whose
+/// existing settlement reader admits up to 1 MiB, 100,000 nodes and depth 100.
+/// Its preserving byte parser and canonical conversion keep exact data keys.
+pub fn model_capture_bundle_read_construction_inventory(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> RunEvidenceAdmissionConstruction? {
+  if bytes < 1 ||
+    bytes > 1048576 ||
+    nodes < 1 ||
+    nodes > 100000 ||
+    depth < 1 ||
+    depth > 100 {
+    return None
+  }
+  run_evidence_admission_construction_for_bounds(
+    bytes,
+    nodes,
+    depth,
+    data_keys=true,
+  ).map(quote => {
+    // Storage, reader and retained optional bundle/records: 4H/5R/4W.
+    // Selecting the array and returning the reader add two transient carriers.
+    ..quote,
+    retained: {
+      record_headers: quote.retained.record_headers + 4L,
+      reference_slots: quote.retained.reference_slots + 5L,
+      scalar_words: quote.retained.scalar_words + 4L,
+    },
+    record_headers: quote.record_headers + 6L,
+    reference_slots: quote.reference_slots + 7L,
+    scalar_words: quote.scalar_words + 6L,
+  })
+}
+
+///|
+fn run_evidence_admission_construction_for_bounds(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  data_keys? : Bool = false,
+) -> RunEvidenceAdmissionConstruction? {
+  let parser = if data_keys {
+    @decode.preserving_json_parser_construction_inventory(bytes, nodes, depth)
+  } else {
+    @source.json_source_grammar_construction_extent(bytes, nodes, depth)
+  }
+  let conversion_text = if data_keys { 0 } else { bytes }
+  guard parser is Some(parser) &&
     @json.source_conversion_construction_extent(
-      nodes, nodes, nodes, nodes, depth, bytes,
+      nodes, nodes, nodes, nodes, depth, conversion_text,
     )
     is Some(conversion) &&
     @shape.add_collection_construction_extents(
@@ -81,8 +133,11 @@ pub fn run_evidence_admission_construction_inventory(
       reference_slots: conversion.retained.reference_slots + 7L,
       scalar_words: conversion.retained.scalar_words + 5L,
     },
+    // Exact data keys borrow decoded input Strings, whose lifetime also
+    // reaches the returned canonical value. Normalized keys are charged by
+    // the conversion's own text inventory.
     retained_utf16_units: conversion.retained_utf16_units +
-    bytes.to_int64() +
+    (if data_keys { 2L } else { 1L }) * bytes.to_int64() +
     71L +
     Int::max("prepared_invocation".length(), "run_authorization".length()).to_int64(),
     record_headers: parser.record_headers +

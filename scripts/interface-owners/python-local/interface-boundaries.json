@@ -103652,9 +103652,13 @@
     },
     {
       "module": "src/run_publication/run_evidence_admission_construction.mbt",
-      "sha256": "4b5f2e5ec261666ff78be4d774f01a3d6423d538edf05deaae4263740a792f7a",
+      "sha256": "aea9983e136f5becbaaacd1c189b4a80feb451a9698ecb2f6b04d77013d722e8",
       "exports": [],
       "operations": [
+        {
+          "name": "model_capture_bundle_read_construction_inventory",
+          "declaration": "model_capture_bundle_read_construction_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > RunEvidenceAdmissionConstruction ?"
+        },
         {
           "name": "run_evidence_admission_construction_inventory",
           "declaration": "run_evidence_admission_construction_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > RunEvidenceAdmissionConstruction ?"
@@ -103741,6 +103745,102 @@
               {
                 "path": ".github/workflows/ci.yml",
                 "anchor": "journal_decode_originals_wbtest.mbt"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "model_capture_bundle_read_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "Same constructor geometry for the saved Model CaptureBundle role"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "pub fn model_capture_bundle_read_construction_inventory("
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original.mbt",
+                "anchor": "fn read_native_saved_model_capture_bundle("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/run_publication/model_capture_bundle.mbt",
+                "anchor": "if bundle.identity != expected_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/run_publication/model_capture_bundle.mbt",
+                "anchor": "pub fn release_model_capture_bundle_read("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_read.mbt",
+                "anchor": "pub fn NativeClientMockModelWork::read_completed_model_dependency_in_original_read("
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_dependent_unknown.mbt",
+                "anchor": "fn NativeLocalJournalCapture::restore_saved_dependent_model_unknown_locked("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "bytes > 1048576"
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original.mbt",
+                "anchor": ").map_err(_ => CustodyLost)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_read.mbt",
+                "anchor": "!run.cancellation_requested()"
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_dependent_unknown.mbt",
+                "anchor": "require_saved_model_read_current(authority, run, store)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original.mbt",
+                "anchor": "fund_native_saved_model_leaf("
+              },
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "Storage, reader and retained optional bundle/records"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/run_evidence_admission_construction.mbt",
+                "anchor": "data_keys=true"
+              },
+              {
+                "path": "src/run_publication/model_capture_bundle.mbt",
+                "anchor": "pub fn read_model_capture_bundle("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_infer_host/saved_structured_output_wbtest.mbt",
+                "anchor": "test \"structured answer adoption requires the original saved raw receipt\""
+              },
+              {
+                "path": "src/platform_native/client_host/model_saved_settlement_original_wbtest.mbt",
+                "anchor": "test \"dependent Model success Journal points select the exact originating slot and full success inventory\""
               }
             ]
           }
