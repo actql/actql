@@ -912,7 +912,7 @@ test('Release Health comparison and offline replay use the selected policy from 
   assert.equal(incomplete.comparison.status, 'error');
   assert.match(incomplete.comparison.reasons.join('\n'), /base-cohort.*cohort\.json/u);
 });
-test('source/config and gated workflow declare exact Quick 10/5 and fail closed', async () => {
+test('source/config and gated workflow declare exact Quick 10/5 and fail closed', async t => {
   assert.deepEqual(policy.quick, {warmSamples: 10, coldSamples: 5});
   assert.deepEqual(policy.release, {warmSamples: 100, coldSamples: 30});
   const workflow = await readFile(new URL('../.github/workflows/health-monitor.yml', import.meta.url), 'utf8');
@@ -933,6 +933,37 @@ test('source/config and gated workflow declare exact Quick 10/5 and fail closed'
         github: {event: {repository: {visibility, private: privateFlag}}}, toJSON: JSON.stringify}), expected);
     }
   }
+  const {steps} = parse(workflow).jobs.quick;
+  const provenance = steps.find(step => step.run?.includes('inspect-producer'));
+  const download = steps.find(step => step.uses?.startsWith('actions/download-artifact@'));
+  const supply = steps.find(step => step.run?.includes('scripts/prepare-packed-client-install-cache.mts'));
+  const quick = steps.find(step => step.run?.includes('npm run health:quick'));
+  assert(steps.indexOf(provenance) < steps.indexOf(download) && steps.indexOf(download) < steps.indexOf(supply)
+    && steps.indexOf(supply) < steps.indexOf(quick));
+  assert.equal(quick.if, '${{ always() }}');
+  const admission = supply.if.slice(3, -2).replaceAll('inputs.package-result', "inputs['package-result']");
+  for (const [event_name, result, expected] of [
+    ['schedule', 'success', true], ['schedule', 'skipped', true], ['schedule', 'failure', false],
+    ['schedule', 'cancelled', false], ['workflow_dispatch', '', true],
+  ]) {
+    assert.equal(runInNewContext(admission, {inputs: {'package-result': result}, github: {event_name}}), expected);
+  }
+  const scratch = await mkdtemp(join(tmpdir(), 'actql-health-quick-cache-'));
+  t.after(() => rm(scratch, {recursive: true, force: true}));
+  const envFile = join(scratch, 'github-env'), child = join(scratch, 'node');
+  await writeFile(child, '#!/bin/sh\nprintf "%s\\n" "$@"\nexit "$CONTROL_EXIT"\n', {mode: 0o700});
+  await writeFile(envFile, '');
+  const run = status => spawnSync('bash', ['-e'], {input: supply.run, encoding: 'utf8',
+    env: {...process.env, PATH: scratch + ':' + process.env.PATH,
+      RUNNER_TEMP: scratch, GITHUB_ENV: envFile, CONTROL_EXIT: String(status)}});
+  assert.equal(run(17).status, 17);
+  assert.equal(await readFile(envFile, 'utf8'), '');
+  const selected = run(0);
+  assert.equal(selected.status, 0, selected.stderr);
+  const cache = join(scratch, 'health-npm-cache');
+  assert.deepEqual(selected.stdout.trimEnd().split('\n'),
+    ['--experimental-strip-types', 'scripts/prepare-packed-client-install-cache.mts', cache]);
+  assert.equal(await readFile(envFile, 'utf8'), `ACTQL_TEST_NPM_CACHE=${cache}\n`);
 });
 test('invalid flags and missing Release fixtures are explicit rather than a successful stub', () => {
   assert.throws(() => parseArguments(['compare', '--base', 'x']));

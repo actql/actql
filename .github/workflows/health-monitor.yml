@@ -57,6 +57,12 @@ jobs:
           artifact-ids: ${{ inputs.package-artifact-id }}
           path: ${{ runner.temp }}/health-packages
           merge-multiple: true
+      - name: Prefetch the locked Local transport for Quick's offline installation
+        if: ${{ inputs.package-result == 'success' || inputs.package-result == 'skipped' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          cache="$RUNNER_TEMP/health-npm-cache"
+          node --experimental-strip-types scripts/prepare-packed-client-install-cache.mts "$cache"
+          printf 'ACTQL_TEST_NPM_CACHE=%s\n' "$cache" >> "$GITHUB_ENV"
       - name: Same Quick command; failed or missing producer never becomes a pass
         if: ${{ always() }}
         env:
