@@ -335,6 +335,43 @@ test('current configuration entries bind exact authored Git inputs and literal d
   }
 });
 
+test('current Node foreign library moves only the five reviewed carrier imports into its bound supplier', () => {
+  const path = 'src/connectors_builtin_node/moon.pkg';
+  const previousRevision = '6f27dfdf10aa232977277ec8580557463e44e81f';
+  const previous = gitTree(root, previousRevision).read(path).toString();
+  const entry = currentPackageConfigurations[path];
+  const reviewed = gitTree(root, entry.revision).read(path).toString();
+  assert.equal(hash(previous), 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d');
+  const formerImports = [
+    '  "actql/actql/local_sga_provider",',
+    '  "actql/actql/managed_graph_storage" @graph_storage,',
+    '  "actql/actql/local_tea_provider",',
+    '  "actql/actql/local_veca_provider",',
+    '  "actql/actql/managed_record_storage" @record_storage,',
+  ].join('\n');
+  const supplierImport = '  "actql/actql/client_local_host/installed_families",';
+  assert.equal(previous.split(formerImports).length, 2);
+  assert.equal(reviewed, previous.replace(formerImports, supplierImport));
+  assert.equal(currentTree.read(path).toString(), reviewed);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(previous))), null);
+
+  const supplier = 'src/client_local_host/installed_families';
+  const supplierDescriptor = currentTree.read(`${supplier}/moon.pkg`).toString();
+  const supplierImports = packageImports(supplierDescriptor);
+  assert.equal(supplierImports.unknown, null);
+  assert.deepEqual(supplierImports.imports, [
+    'connectors/local', 'execution_relation', 'local_sga_provider',
+    'local_tea_provider', 'local_veca_provider', 'managed_graph_storage', 'managed_record_storage',
+  ].map(name => `actql/actql/${name}`));
+  const selected = packageSourceInputs({tree: currentTree, packages: [path.slice(0, -9)], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  for (const member of [`${supplier}/moon.pkg`, `${supplier}/selection.mbt`,
+    ...supplierImports.imports.map(name => `src/${name.slice('actql/actql/'.length)}/moon.pkg`)]) {
+    assert(selected.paths.includes(member), member);
+    assert.equal(currentTree.entries.get(member)?.mode, '100644', member);
+  }
+});
+
 test('current Local JS review binds task authorization, retained Request imports and existing fixture selectors', () => {
   const review = JSON.parse(readFileSync(new URL(
     '../../docs/reviews/2026-11-21-session-local-namespace-quote-selector-review.json', import.meta.url)));

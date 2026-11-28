@@ -47786,6 +47786,282 @@
       ]
     },
     {
+      "module": "src/client_local_host/installed_families/selection.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Local installed carrier recipe and its selected provider construction",
+      "referenceQualification": "The portable original owns the compiled family inventory, constructor order and pre-construction count. Existing execution owners retain resource funding and physical admission.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "construct_graph_family",
+            "construct_installed_client_family",
+            "graph_providers",
+            "has_graph",
+            "providers",
+            "selected_graph_delta_policy",
+            "selected_graph_limits",
+            "selected_graph_mean_policy",
+            "selected_graph_snapshot_policy",
+            "selected_graph_union_policy",
+            "selected_record_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "src/query_integration/graph_membership_custody_wbtest.mbt",
+                "anchor": "test \"explicit traversal text budget charges repeated complete identities before projection\""
+              },
+              {
+                "path": "scripts/packed-graph-host-dependencies.test.mjs",
+                "anchor": "test('any-direction Graph controls are staged and exercised in normal and focused acceptance'"
+              },
+              {
+                "path": "scripts/public-query-profiles.test.mjs",
+                "anchor": "test('full corpus pins every authored occurrence independently of worker selection'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "provider_count"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_request_parent_js_wbtest.mbt",
+                "anchor": "test \"request parent reserves controls then grows"
+              },
+              {
+                "path": "src/client_local_host/preparation_publication_custody_wbtest.mbt",
+                "anchor": "test \"publication continues on the transferred body"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Private scan, compiler-layout and fixed module-construction quotes whose only"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "7325a98c001f03bc576866fa13f963b7393ebd856ea7e672506894c5b637a3d1",
+      "exports": [],
+      "operations": [
+        {
+          "name": "construct_graph_family",
+          "declaration": "construct_graph_family ( capacity : @ execution . ExecutionCapacity , ) - > @ local . ManagedProvider"
+        },
+        {
+          "name": "construct_installed_client_family",
+          "declaration": "construct_installed_client_family ( family : InstalledClientFamily , records : @ record_storage . Limits , capacity : @ execution . ExecutionCapacity , ) - > @ local . ManagedProvider"
+        },
+        {
+          "name": "graph_providers",
+          "declaration": "graph_providers ( generated : Array [ @ execution . GeneratedSequence ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Array [ @ local . ManagedProvider ] ?"
+        },
+        {
+          "name": "has_graph",
+          "declaration": "has_graph ( ) - > Bool"
+        },
+        {
+          "name": "provider_count",
+          "declaration": "provider_count ( ) - > Int"
+        },
+        {
+          "name": "providers",
+          "declaration": "providers ( capacity : @ execution . ExecutionCapacity , ) - > Array [ @ local . ManagedProvider ]"
+        },
+        {
+          "name": "selected_graph_delta_policy",
+          "declaration": "selected_graph_delta_policy ( ) - > @ local_sga_provider . DeltaPolicy"
+        },
+        {
+          "name": "selected_graph_limits",
+          "declaration": "selected_graph_limits ( ) - > @ graph_storage . Limits"
+        },
+        {
+          "name": "selected_graph_mean_policy",
+          "declaration": "selected_graph_mean_policy ( ) - > @ local_sga_provider . MeanPolicy"
+        },
+        {
+          "name": "selected_graph_snapshot_policy",
+          "declaration": "selected_graph_snapshot_policy ( ) - > @ local_sga_provider . SnapshotPolicy"
+        },
+        {
+          "name": "selected_graph_union_policy",
+          "declaration": "selected_graph_union_policy ( ) - > @ local_sga_provider . UnionPolicy"
+        },
+        {
+          "name": "selected_record_limits",
+          "declaration": "selected_record_limits ( ) - > @ record_storage . Limits"
+        }
+      ]
+    },
+    {
       "module": "src/client_local_host/installed_managed_run.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
@@ -78893,22 +79169,15 @@
       "module": "src/connectors_builtin_node/client_program_selection.mbt",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "Existing Local shared construction/publication semantics; no input bootstrap",
-      "referenceQualification": "Original retained code is mechanically unchanged; source references and selected consumers do not establish physical funding or ordinary acceptance",
+      "owner": "Full Node installed family selection for the shared Client bridge",
+      "referenceQualification": "Separate Full and RelA packaging selects the concrete Common recipe. This reference does not establish ordinary runtime or physical capacity acceptance.",
       "contracts": [
         {
           "operations": [
             "<module>",
-            "construct_installed_client_family",
             "installed_client_family_providers",
             "selected_client_sga_providers",
-            "selected_graph_delta_policy",
-            "selected_graph_limits",
-            "selected_graph_mean_policy",
-            "selected_graph_snapshot_policy",
             "selected_graph_supported",
-            "selected_graph_union_policy",
-            "selected_record_limits",
             "selected_sga_supported"
           ],
           "exports": [],
@@ -79112,13 +79381,9 @@
           }
         }
       ],
-      "sha256": "88e72c5b5de976f805d2d635fa85df40b7758a21e0e92e2ac73d71a92d92e81e",
+      "sha256": "7d1d8abd58d55f855f5e09deb45fefd1785124d013760acfb88e604b1313f52a",
       "exports": [],
       "operations": [
-        {
-          "name": "construct_installed_client_family",
-          "declaration": "construct_installed_client_family ( family : InstalledClientFamily , records : @ record_storage . Limits , capacity : @ execution . ExecutionCapacity , ) - > @ local . ManagedProvider"
-        },
         {
           "name": "installed_client_family_provider_count",
           "declaration": "installed_client_family_provider_count ( ) - > Int"
@@ -79132,32 +79397,8 @@
           "declaration": "selected_client_sga_providers ( generated : Array [ @ execution . GeneratedSequence ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Array [ @ local . ManagedProvider ] ?"
         },
         {
-          "name": "selected_graph_delta_policy",
-          "declaration": "selected_graph_delta_policy ( ) - > @ local_sga_provider . DeltaPolicy"
-        },
-        {
-          "name": "selected_graph_limits",
-          "declaration": "selected_graph_limits ( ) - > @ graph_storage . Limits"
-        },
-        {
-          "name": "selected_graph_mean_policy",
-          "declaration": "selected_graph_mean_policy ( ) - > @ local_sga_provider . MeanPolicy"
-        },
-        {
-          "name": "selected_graph_snapshot_policy",
-          "declaration": "selected_graph_snapshot_policy ( ) - > @ local_sga_provider . SnapshotPolicy"
-        },
-        {
           "name": "selected_graph_supported",
           "declaration": "selected_graph_supported ( ) - > Bool"
-        },
-        {
-          "name": "selected_graph_union_policy",
-          "declaration": "selected_graph_union_policy ( ) - > @ local_sga_provider . UnionPolicy"
-        },
-        {
-          "name": "selected_record_limits",
-          "declaration": "selected_record_limits ( ) - > @ record_storage . Limits"
         },
         {
           "name": "selected_sga_supported",
