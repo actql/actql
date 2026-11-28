@@ -385,8 +385,7 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
   const connections = {tcp: 0, tls: 0};
   const sockets = new Set();
   let serverFailure;
-  let inspectBeforeReceiverReply;
-  let custodyBeforeReceiverReply;
+  let receiverReplyCut;
   const tlsOptions = {cert: await readFile(certPath), key: await readFile(join(tls, 'key.pem')),
     requestTimeout: 5000};
   const providers = [...new Set(selections.map(({provider}) => provider))];
@@ -435,11 +434,12 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       if (dependent) {
         assert.equal(selectedIndex, n - 1, 'The dependent Model started outside the checked Task order');
         if (dependent === 'lost-reply' && selected.receivesModelOutput) {
-          // The real receiver accepted the complete checked request. Observe
-          // A's committed evidence and B's original Entry before dropping B.
-          assert(inspectBeforeReceiverReply);
-          assert.equal(custodyBeforeReceiverReply, undefined);
-          custodyBeforeReceiverReply = await dropNativeDependentModelReply(request, response, inspectBeforeReceiverReply);
+          assert.equal(receiverReplyCut, undefined);
+          // The installed Journal is exclusive while the original command
+          // runs. Observe the live reply here and verify custody after close.
+          receiverReplyCut = await dropNativeDependentModelReply(request, response, () => ({
+            ordinal: n, producer: calls[0].model, receiver: call.model,
+          }));
           return;
         }
       }
@@ -777,10 +777,6 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
         expectedPolicyWire: canonicalText(joined.finalResultPolicy),
         expectedResponseViews: joined.modelRawResponseViews,
       };
-      inspectBeforeReceiverReply = () => inspectNativeModelCustody({
-        ...dependencyCustody, dependent: {loss: true, beforeReply: true,
-          submissionReferenceWire: canonicalText(selected.submission)},
-      });
       const started = await cli('run-1', ['run', file, '--format', 'json', ...selected.options, '--json'], {
         expectedFailure: /^actql-native-client: LocalOriginalSourceWorkUnavailable:compute-driver-[a-z-]+$/u,
       });
@@ -792,6 +788,14 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
         byAttempt.get(identity).push(tag);
       }
       assert.deepEqual([...byAttempt.values()], [[0, 1, 2], [0, 1]]);
+      const [producerAttempt, receiverAttempt] = byAttempt.keys();
+      // BeforeInvoke follows the original Entry ACK. The first Model must
+      // have returned before the admitted receiver can cross that boundary.
+      assert.deepEqual(started.events.map(({identity, tag}) => [identity, tag]), [
+        [producerAttempt, 0], [producerAttempt, 1], [producerAttempt, 2],
+        [receiverAttempt, 0], [receiverAttempt, 1],
+      ]);
+      assert.deepEqual(receiverReplyCut, {ordinal: 2, producer: selections[0].model, receiver: selections[1].model});
       requireSends(2);
       await unlink(join(project, file));
       await unlink(join(project, 'source-data.json'));
@@ -801,16 +805,11 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
         dependent: {loss: true, submissionId: lookup.requestId},
       });
       const custody = await observeCustody();
-      const {terminalRun, ...confirmedModelCustody} = custody;
-      assert(custodyBeforeReceiverReply, 'Missing original A evidence observed at B before the reply');
-      const {submissionBeforeReply, ...modelBeforeReply} = custodyBeforeReceiverReply;
-      assert.equal(submissionBeforeReply.id, lookup.requestId);
-      assert.deepEqual(modelBeforeReply, confirmedModelCustody,
-        'B reply loss changed the already committed A evidence or original B Entry');
+      const {terminalRun} = custody;
       assert.equal(custody.definition, lookup.runDefinitionCid);
       assert.equal(terminalRun.controlRevision, lookup.controlRevision);
-      assert.equal(custody.observed[0].attempt, [...byAttempt.keys()][0]);
-      assert.equal(custody.receiver.attempt, [...byAttempt.keys()][1]);
+      assert.equal(custody.observed[0].attempt, producerAttempt);
+      assert.equal(custody.receiver.attempt, receiverAttempt);
       const [{task, profile}] = originals;
       const accounting = requireNativeModelAccounting(started.accounting, custody, new Map([[task, joinedUsage[0]]]));
       const raw = requireNativeRawReceipts(started.raw, custody, new Map([[task, {
@@ -853,7 +852,7 @@ export async function observeInstalledNativeModel({root, binary, modelImage, pre
       requireSends(2);
       assert.equal(new Set(phases.map(phase => phase.pid)).size, phases.length);
       return {image: modelImage, fixture: 'controlled-loopback-tls-dependent-lost-reply',
-        phases, calls, connections, peers: observePeers(), custodyBeforeReceiverReply, custody, raw, accounting,
+        phases, calls, connections, peers: observePeers(), receiverReplyCut, custody, raw, accounting,
         coldReferences: {opened, foreignOpened}, fixtureOmissionControls: {absentEnteredRaw, missingSettled}};
     }
     const programs = joined ? [{file: 'joined.json', program: joined.program, rows: joined.expectedRows,
