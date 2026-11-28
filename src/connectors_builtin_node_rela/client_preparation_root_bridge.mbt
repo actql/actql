@@ -3379,7 +3379,8 @@ pub fn client_program_issue_relation_sample_profile(
   @client_local_host.issue_installed_relation_sample_profile_journal_reference(
     owner, request, definition, observation, original_reference_wire, installed_profile_wire,
     max_bytes, max_nodes, max_depth,
-  ).map(profile => {
+  ).map(issued => {
+    let (profile, _, _, _, _) = issued
     let (admission, resolved, prepared, compiled, map) = @client_local_host.installed_relation_sample_profile_start_original(
       profile,
     )

@@ -268,6 +268,7 @@ class LocalWaitRefusalTests(unittest.IsolatedAsyncioTestCase):
         from actql_sdk._values import wire_bytes
         host = object.__new__(InstalledLocalHost)
         host._physical_work = []
+        host._public_run_references = []
         host._core = SimpleNamespace(_lock=RLock(), _host_operation=nullcontext)
         select = Mock(side_effect=AssertionError('No original Run lookup is permitted'))
         with patch.object(host, '_active'), patch.object(host, '_select_original_run', select):

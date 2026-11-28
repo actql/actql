@@ -173,9 +173,17 @@ pub fn client_effectful_static_plan_view(
   max_depth : Int,
   max_members? : Int = 64,
   max_work? : Int = 10000,
+  debug_entry? : Bool = false,
 ) -> Result[String, ClientEffectfulStaticPlanIssue] {
   issue_client_effectful_static_plan_view(
-    prepared, compiled, max_bytes, max_nodes, max_depth, max_members, max_work,
+    prepared,
+    compiled,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_members,
+    max_work,
+    debug_entry~,
   ).map_err(issue => {
     match issue {
       Plan(original) => original
@@ -194,8 +202,9 @@ fn issue_client_effectful_static_plan_view(
   max_members : Int,
   max_work : Int,
   retained_explanation? : Ref[
-    (@canonical.CanonicalValue, ClientEffectStaticDeclarationSet, String)?,
+    (@publication.RunEvidenceValue, ClientEffectStaticDeclarationSet, String)?,
   ]? = None,
+  debug_entry? : Bool = false,
 ) -> Result[String, ClientStaticExplanationSourceIssue] {
   if !physical_equal(compiled.owner, prepared) {
     return Err(Plan(ForeignCompilation))
@@ -208,6 +217,11 @@ fn issue_client_effectful_static_plan_view(
     Ok(value) => value
     Err(issue) => return Err(Plan(Declarations(issue)))
   }
+  let retained_map = if retained_explanation is Some(_) {
+    Some(Ref(None))
+  } else {
+    None
+  }
   let component = match
     issue_client_static_plan_view(
       compiled.compiled.owner,
@@ -216,7 +230,9 @@ fn issue_client_effectful_static_plan_view(
       max_nodes,
       max_depth,
       false,
+      retained_original=retained_map,
       bounded_capture=retained_explanation is Some(_),
+      debug_entry~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Plan(Computation(issue)))
@@ -244,7 +260,10 @@ fn issue_client_effectful_static_plan_view(
     ) {
     Ok(_) => {
       if retained_explanation is Some(retained) {
-        retained.val = Some((computation, declarations, component))
+        guard retained_map is Some(selected) && selected.val is Some(map) else {
+          return Err(ForeignOriginal)
+        }
+        retained.val = Some((map, declarations, component))
       }
       Ok(wire)
     }

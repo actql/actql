@@ -124,3 +124,38 @@ test "Effect capture shares typed bodies while pricing original member sorting" 
     is None,
   )
 }
+
+///|
+test "stepped Effect capture does not overlap Shape uniqueness with text output" {
+  let conservative = publication_capture_constructor_layout(
+    100000,
+    2700,
+    14,
+    2,
+    5,
+    3,
+    0,
+    effect_members=3,
+  ).unwrap()
+  let stepped = publication_capture_constructor_layout(
+    100000,
+    2700,
+    14,
+    2,
+    5,
+    3,
+    0,
+    effect_members=3,
+    sequential_construction=true,
+  ).unwrap()
+  assert_eq(
+    @execution.preparation_representation_cost(stepped.retained),
+    @execution.preparation_representation_cost(conservative.retained),
+  )
+  assert_true(
+    @execution.preparation_representation_cost(conservative.temporary).unwrap() -
+    @execution.preparation_representation_cost(stepped.temporary).unwrap() >=
+    200000L,
+  )
+  assert_true(stepped.temporary.owned_utf16_units >= 400000L)
+}

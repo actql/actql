@@ -85,8 +85,7 @@ function checkEntry(entry: EntryInput) {
 const connectorTables = new WeakMap<object, {source: ConnectorTable; effect: ConnectorTable}>();
 const connectorTableEntries = new WeakSet<object>();
 
-function snapshotRole(section: RoleInput | null | undefined, role: string) {
-  if (section === undefined) return undefined;
+function snapshotRole(section: RoleInput | null, role: string) {
   if (!section || typeof section !== 'object' || Array.isArray(section)) {
     fail('InvalidInstalledConnectorEntry');
   }

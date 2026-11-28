@@ -15,6 +15,39 @@ struct OriginalModelStartup {
 }
 
 ///|
+/// Initial backing for the fresh original startup and Model execution. At
+/// this boundary the seven maps and all vectors are empty. Every eligible
+/// slot reserves separately before it can construct a request or response.
+pub fn original_fresh_model_start_construction_capacity() -> @relation.ExecutionCapacity? {
+  guard @shape.collection_construction_extent({
+      // Original seal/purpose, row use, Model state/progress, common
+      // control/reader/session/token and the result/option carriers.
+      records: 24L,
+      record_references: 96L,
+      record_words: 48L,
+      // Six reference vectors and seven empty Map constructor inputs.
+      reference_arrays: 13L,
+      reference_items: 0L,
+      scalar_arrays: 1L,
+      scalar_items: 0L,
+      maps: 7L,
+      map_entries: 0L,
+    })
+    is Some(units) &&
+    @relation.preparation_representation_cost({
+      record_headers: units.record_headers,
+      reference_slots: units.reference_slots,
+      scalar_words: units.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  @relation.execution_capacity(bytes, bytes)
+}
+
+///|
 // The consuming owner obtains scope/rows from the current bind_run execution
 // after its Identity scan. This issuer retains no generic-origin shortcut
 // and accepts no independently reissued Ledger or quantity aggregate.

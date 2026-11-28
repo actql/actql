@@ -5,7 +5,7 @@ import {readFile, writeFile, mkdir, lstat, access} from 'node:fs/promises';
 import {execFile, spawn} from 'node:child_process';
 import {promisify} from 'node:util';
 import {createHash} from 'node:crypto';
-import {join, resolve} from 'node:path';
+import {join, relative, resolve} from 'node:path';
 import {userInfo} from 'node:os';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createInstalledFamilyScenario} from './external-rest/fixture-source/adapters/host-node/fixtures/installed-family-scenario.fixture.mjs';
@@ -18,6 +18,7 @@ import {inventory, nodePackages, verifyPackageRelease} from '../package-release.
 import {normalNpmPackJsonArgs, parseNpmPackJson} from '../packed-client-packages.mjs';
 import {fileURLToPath} from 'node:url';
 import {checkoutState, CLIENT_PACKAGES, packedClientPackage} from '../packed-client-packages.mjs';
+import {verifyLockedClientTransportArchive} from '../prepare-packed-client-install-cache.mjs';
 import {verifyNativeCliRelease} from '../native-cli-release.mjs';
 import {admitInstalledNativeRemoteHttp, verifyNativeStandaloneInstallation} from '../release-native-install.mjs';
 import {installedLocalRuntimeEnvironment} from '../../packages/native-cli/lib/local-runtime.mjs';
@@ -41,7 +42,8 @@ type OwnerCrash = {
 };
 type Save = (name: string, value: unknown) => Promise<void>;
 type PackedConnector = {name: string; filename: string; integrity: string};
-type CaseInputs = {outputRoot: string; nativeDirectory: string; sdkDirectory?: string; scenario: string};
+type CaseInputs = {outputRoot: string; nativeDirectory: string; sdkDirectory?: string; scenario: string;
+ transportArchive?: string};
 type InstalledInventory = Awaited<ReturnType<typeof inventory>>;
 type InstalledComparison = {
  native: {name: string; files: InstalledInventory}[];
@@ -143,9 +145,12 @@ export async function originalNodeInputs(revision: string, output: string, sdkDi
  return {manifestPath, packages, nodeTarballs};
 }
 
-export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory, sdkDirectory, scenario}: Partial<CaseInputs> = {}) {
+export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory, sdkDirectory, scenario,
+ transportArchive}: Partial<CaseInputs> = {}) {
  const scenarios=sdkDirectory===undefined?sharedHostSourceScenarios:fixedSharedHostSourceScenarios;
  assert(scenarios.includes(scenario!), 'Unsupported shared Source acceptance scenario');
+ if (sdkDirectory===undefined) assert(transportArchive, 'Normal Client packages require the locked Local transport archive');
+ const transport=transportArchive===undefined?undefined:await verifyLockedClientTransportArchive(transportArchive);
  const fixed=checkoutState(source);assert.equal(fixed.clean,true);
  const native=await verifyNativeCliRelease(nativeDirectory!);assert.equal(native.sourceSha,fixed.revision);
  const output=outputRoot!;await mkdir(output);
@@ -154,7 +159,7 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
  const nodeInstallLabel=sdkDirectory===undefined?'normal-five':'fixed-node-release';
  const normalComparison={packages};
  const normalManifestSha256=hash(await readFile(normalManifestPath));
- await save('original-software-inputs.json',{source:fixed.revision,normalManifestPath,normalManifestSha256,nativeDirectory});
+ await save('original-software-inputs.json',{source:fixed.revision,normalManifestPath,normalManifestSha256,nativeDirectory,transport});
  const consumer=join(output,'consumer');await assert.rejects(lstat(consumer),{code:'ENOENT'});
  const originalProvider=externalRestProvider({mode:'paged'}),cleanupRelease=Promise.withResolvers<void>();
  const markerPaths={first:join(output,'page-first-entered.json'),second:join(output,'page-second-entered.json')};
@@ -195,9 +200,22 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   await save('fixture-paths.json',{paths:family.paths,origin:family.resourceHttps.origin});
   // Author validation resolves the same installed public package from its
   // consumer ancestor. Establish and verify it before invoking the author CLI.
+  // This fresh offline cache cannot resolve the parent's loopback metadata.
+  // Install the verified Local transport tar alongside the normal tarballs.
   await mkdir(consumer);await writeFile(join(consumer,'package.json'),'{"private":true,"type":"module"}\n');
-  await run(`install-${nodeInstallLabel}`,'npm',['install','--offline','--no-audit','--no-fund',
-   ...nodeTarballs],consumer);
+  const offlineInstall=['install','--offline','--ignore-scripts','--no-audit','--no-fund'];
+  const verifyInstalledTransport=async()=>{
+   if (transport===undefined || transportArchive===undefined) return;
+   const lock=await read<{packages:Record<string,{version:string;resolved:string;integrity:string}>}>(join(consumer,'package-lock.json'));
+   const installed=lock.packages['node_modules/undici'];
+   assert(installed, 'Installed Node lock is missing the Local transport');
+   assert.equal(installed.version,transport.version);
+   assert.equal(installed.integrity,transport.integrity);
+   assert.equal(installed.resolved,`file:${relative(consumer,transportArchive)}`);
+  };
+  await run(`install-${nodeInstallLabel}`,'npm',[...offlineInstall,...nodeTarballs,
+   ...(transportArchive===undefined?[]:[transportArchive])],consumer);
+  await verifyInstalledTransport();
   const authorFramework=await verifyNodeBenchmarkPackages(normalComparison,normalManifestPath,consumer);
   await save(`author-installed-${nodeInstallLabel}.json`,authorFramework);
   const author=join(consumer,'author'),packageRoot=join(output,'connector-package');
@@ -216,10 +234,11 @@ export async function runSharedHostSourceAcceptance({outputRoot, nativeDirectory
   const launcher=native.packages.find(value=>value.name==='actql');
   assert(artifact&&nativePackage&&launcher);
   const selectedNative=[launcher,nativePackage];
-  await run('install-native-connector','npm',['install','--offline','--no-audit','--no-fund',
+  await run('install-native-connector','npm',[...offlineInstall,
    ...selectedNative.map(p=>join(nativeDirectory!,p.file)),connectorTar],consumer);
   const installed=async()=>{
    assert.equal(hash(await readFile(normalManifestPath)),normalManifestSha256);
+   await verifyInstalledTransport();
    const n=[];for(const p of selectedNative){const files=await inventory(join(consumer,'node_modules',p.name));assert.deepEqual(files,p.files);n.push({name:p.name,files});}
    const framework=await verifyNodeBenchmarkPackages(normalComparison,normalManifestPath,consumer);
    assert.deepEqual(framework,authorFramework);

@@ -2,10 +2,16 @@
 // One original saved observation: envelope + BOTH full child constructors +
 // bounded extent measurement. This is an optional same-Root reservation, not
 // another profile, policy allowance or Native/physical allocation statement.
-fn journal_observation_construction_capacity() -> (Int64, Int64)? {
-  let bytes = 131072
+fn journal_observation_construction_capacity(wire : String) -> (Int64, Int64)? {
+  // Each child is a JSON string value in this physical envelope. Unescaping
+  // cannot increase its UTF-8 length, and each resulting node needs a byte.
+  // Keep the original decoder limits and fund this envelope's maximum shape.
+  guard @scalar.admit_utf8_length(wire, 131072) is Ok(bytes) && bytes > 0 else {
+    return None
+  }
+  let nodes = Int::min(bytes, 8192)
   guard @publication.run_evidence_admission_construction_inventory(
-      bytes, 8192, 64,
+      bytes, nodes, 64,
     )
     is Some(child) &&
     @decode.preserving_json_admission_construction_inventory(bytes, 8, 2)

@@ -127,8 +127,23 @@ fn sdk_publication_material_wire(
       )
     }
   }
-  let wire = try {
-    let writer = @encode.writer(1048576, 6, 1)
+  let wire = sdk_publication_step_wire(kind, key, revision, body, 1048576)
+  if wire is Ok(_) {
+    material.sdk_publication = Some(held)
+  }
+  wire
+}
+
+///|
+fn sdk_publication_step_wire(
+  kind : String,
+  key : String,
+  revision : Int64,
+  body : Bytes,
+  limit : Int,
+) -> Result[String, Int] {
+  try {
+    let writer = @encode.writer(limit, 6, 1)
     @encode.begin_object(writer)
     for
       (key, text) in [
@@ -141,18 +156,20 @@ fn sdk_publication_material_wire(
       @encode.string_value(writer, text)
     }
     @encode.end_object(writer)
-    @encode.finish(writer)
+    Ok(@encode.finish(writer))
   } catch {
-    _ => return Err(-34)
+    _ => Err(-34)
   }
-  material.sdk_publication = Some(held)
-  Ok(wire)
 }
 
 ///|
 /// Reobserve original saved rows in the actual Host transaction. Candidate
 /// validation cannot complete a write or authorize dispatch by itself.
 pub fn validate_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some({ file_publication: Some(binding), .. }) {
+    return observe_sdk_file_publication(value, handle, binding, false)
+  }
   guard selected(nonce) is Some(value) &&
     !value.closing &&
     !value.runtime_closing &&
@@ -195,6 +212,10 @@ pub fn validate_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
 /// Adopt only an actual same-Store successor through the Common Owner. A
 /// saved candidate, physical response or generation alone is insufficient.
 pub fn confirm_sdk_publication_material(nonce : Int64, handle : Int) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some({ file_publication: Some(binding), .. }) {
+    return observe_sdk_file_publication(value, handle, binding, true)
+  }
   guard selected(nonce) is Some(value) &&
     !value.closing &&
     !value.runtime_closing &&

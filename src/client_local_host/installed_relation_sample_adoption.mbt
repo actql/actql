@@ -24,40 +24,60 @@ pub struct InstalledRelationSampleAdoptionInput {
 }
 
 ///|
+fn installed_sample_seal_construction(bytes : Int, nodes : Int) -> Int64? {
+  guard @publication.run_evidence_admission_construction_inventory(
+      bytes, nodes, 4,
+    )
+    is Some(evidence) &&
+    @encode.text_writer_construction_inventory(bytes, nodes, 4) is Some(body) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: evidence.record_headers + body.record_headers,
+    reference_slots: evidence.reference_slots + body.reference_slots,
+    scalar_words: evidence.scalar_words + body.scalar_words,
+    owned_utf16_units: evidence.owned_utf16_units + body.owned_utf16_units,
+    owned_wire_bytes: evidence.owned_wire_bytes,
+  })
+}
+
+///|
 fn installed_sample_adoption_construction(
-  record_bytes : Int,
+  generation_bytes : Int,
+  reference_bytes : Int,
   prefix_nodes : Int,
   prefix_depth : Int,
 ) -> Int64? {
-  guard @publication.run_evidence_admission_construction_inventory(
-      record_bytes, 32, 4,
+  guard installed_sample_seal_construction(
+      generation_bytes, installed_sample_generation_nodes,
     )
-    is Some(evidence) &&
-    @encode.text_writer_construction_inventory(record_bytes, 32, 4)
-    is Some(body) &&
+    is Some(generation) &&
+    installed_sample_seal_construction(
+      installed_sample_capture_bytes, installed_sample_capture_nodes,
+    )
+    is Some(capture) &&
+    installed_sample_seal_construction(
+      installed_sample_emission_bytes, installed_sample_emission_nodes,
+    )
+    is Some(emission) &&
+    installed_sample_seal_construction(
+      reference_bytes, installed_sample_reference_nodes,
+    )
+    is Some(reference) &&
     @encode.hash_writer_construction_inventory(prefix_nodes, prefix_depth)
     is Some(hash) else {
     return None
   }
-  @execution.preparation_representation_cost({
-    // Co-held typed bodies, four sealers (including their retained canonical
-    // trees), the verbatim prefix hash, and the synchronous admission
-    // frame, return latch, decimal strings and constructor results.
-    record_headers: 4L * (evidence.record_headers + body.record_headers) +
-    hash.record_headers +
-    80L,
-    reference_slots: 4L * (evidence.reference_slots + body.reference_slots) +
-    hash.reference_slots +
-    120L,
-    scalar_words: 4L * (evidence.scalar_words + body.scalar_words) +
-    hash.scalar_words +
-    96L,
-    owned_utf16_units: 4L *
-    (evidence.owned_utf16_units + body.owned_utf16_units) +
-    hash.owned_utf16_units +
-    1024L,
-    owned_wire_bytes: 4L * evidence.owned_wire_bytes + hash.owned_wire_bytes,
+  // Reserve every co-held sealed tree and its writer, together with
+  // the borrowed prefix hash and the synchronous Journal argument frame.
+  let frame = @execution.preparation_representation_cost({
+    record_headers: hash.record_headers + 80L,
+    reference_slots: hash.reference_slots + 120L,
+    scalar_words: hash.scalar_words + 96L,
+    owned_utf16_units: hash.owned_utf16_units + 1024L,
+    owned_wire_bytes: hash.owned_wire_bytes,
   })
+  frame.map(bytes => bytes + generation + capture + emission + reference)
 }
 
 ///|
@@ -105,6 +125,38 @@ let installed_sample_emission_nodes = 16
 let installed_sample_reference_nodes = 10
 
 ///|
+fn installed_sample_evidence_work(bytes : Int, nodes : Int) -> Int {
+  2 * bytes + 64 * nodes
+}
+
+///|
+fn installed_sample_adoption_work(
+  prefix_bytes : Int,
+  generation_bytes : Int,
+  reference_bytes : Int,
+  required : Bool,
+) -> Int64 {
+  let evidence = (bytes : Int, nodes : Int) => {
+    let preparation = installed_sample_evidence_work(bytes, nodes).to_int64()
+    if required {
+      return preparation
+    }
+    // Each canonical writer visits value and key text at most twice before
+    // emission. Its output contributes at most one additional pass: SHA
+    // updates for the identity or the final text copy for the complete wire.
+    // Five structural steps and one bounded number conversion per node
+    // suffice per writer. The two finalizers add 128 (SHA) and 1 (text).
+    preparation + 6L * bytes.to_int64() + 60L * nodes.to_int64() + 129L
+  }
+  257L +
+  2L * prefix_bytes.to_int64() +
+  evidence(generation_bytes, installed_sample_generation_nodes) +
+  evidence(installed_sample_capture_bytes, installed_sample_capture_nodes) +
+  evidence(installed_sample_emission_bytes, installed_sample_emission_nodes) +
+  evidence(reference_bytes, installed_sample_reference_nodes)
+}
+
+///|
 fn seal_installed_sample_evidence(
   name : String,
   body : Json,
@@ -115,7 +167,11 @@ fn seal_installed_sample_evidence(
   // The DATA keys are static ASCII. The byte bound pays two UTF-16 visits
   // for canonical admission, including key hashing. The fixed node charge
   // covers construction, ordered field insertion and both checked shapes.
-  match @resources.charge_planning(ledger, 2 * bytes + 64 * nodes) {
+  match
+    @resources.charge_planning(
+      ledger,
+      installed_sample_evidence_work(bytes, nodes),
+    ) {
     Err(issue) => return Err(SampleAdoptionWork(issue))
     Ok(_) => ()
   }
@@ -199,12 +255,16 @@ pub fn with_installed_relation_sample_adoption(
   // Count the full namespace_id independently of whether it needs escaping.
   let record_bound = installed_sample_generation_bytes.to_int64() +
     6L * namespace_id.length().to_int64()
+  let reference_bound = installed_sample_reference_bytes.to_int64() +
+    6L * namespace_id.length().to_int64()
   let (prefix_bytes, prefix_nodes, prefix_depth) = @encode.document_usage(
     document,
   )
   guard record_bound <= 131072L &&
+    reference_bound <= 131072L &&
     installed_sample_adoption_construction(
       record_bound.to_int(),
+      reference_bound.to_int(),
       prefix_nodes,
       prefix_depth,
     )
@@ -212,6 +272,21 @@ pub fn with_installed_relation_sample_adoption(
     return Err(SampleAdoptionLimits)
   }
   let ledger = @strategy.captured_dag_ledger(profile.captured)
+  let reference_bytes = reference_bound.to_int()
+  let work = installed_sample_adoption_work(
+    prefix_bytes,
+    record_bound.to_int(),
+    reference_bytes,
+    original.retention.limits.required,
+  )
+  let available = @resources.ledger_admission_limits(ledger).planning_work -
+    @resources.ledger_usage(ledger).planning_work
+  // Optional Sample evidence must fit as a whole before it consumes Run work.
+  // Its actual debits still occur at the existing preparation and writer
+  // boundaries. Required Sample retains its exact metered execution.
+  if work > available.to_int64() {
+    return Err(SampleAdoptionWork(PlanningLimit))
+  }
   match @resources.reserve_capacity(ledger, charge, charge) {
     Err(issue) => return Err(SampleAdoptionCapacity(issue))
     Ok(reservation) => prefix.adoption_reservation = Some(reservation)

@@ -61,7 +61,7 @@ pub fn configure_source_free_compute_current(
     return -2
   }
   return configure_source_free_compute(
-    value, record, run, start, current_configuration,
+    value, handle, record, run, start, current_configuration,
   )
 }
 
@@ -70,13 +70,14 @@ pub fn configure_source_free_compute_current(
 /// current Account is checked again; task/publication preflight is still required.
 fn configure_source_free_compute(
   value : Instance,
+  handle : Int,
   record : StoredNativeCompute,
   run : Int,
   start : Int,
   current_configuration : Int,
 ) -> Int {
   let start_handle = start
-  guard value.runs.get(run) is Some({ outcome: Some(Ok(plan)), .. }) &&
+  guard value.runs.get(run) is Some({ outcome: Some(Ok(plan)), .. } as original) &&
     value.physical_starts.get(start)
     is Some({ run: original_run, outcome: Some(Ok(start)), .. }) &&
     original_run == run &&
@@ -153,7 +154,15 @@ fn configure_source_free_compute(
     }
   }
   record.pending = true
-  let host = match
+  let configured = if current.sdk is Some({ portable_model: Some(_), .. }) {
+    if physical.sdk_step is None {
+      Err(@local_run.LocalComputeIssue::StartNotPermitted)
+    } else {
+      configure_portable_model_compute(
+        value, run, original, current, plan, start, handle, record, physical,
+      )
+    }
+  } else {
     @local_run.configure_source_free_local_compute_on_ledger(
       plan,
       value.root,
@@ -161,8 +170,14 @@ fn configure_source_free_compute(
       values,
       fragment,
       ordered,
-    ) {
-    Ok(host) => host
+    ).map(host => Some(host))
+  }
+  let host = match configured {
+    Ok(Some(host)) => host
+    Ok(None) => {
+      record.pending = false
+      return 1
+    }
     Err(issue) => {
       record.outcome = Some(Err(issue))
       record.pending = false

@@ -107,6 +107,45 @@ class SavedPayloadDescriptorTests(unittest.TestCase):
             self.assertTrue(root.close_area(area))
             self.assertTrue(root.close())
 
+    def test_small_payload_borrows_same_bytes_and_refuses_changed_original(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory)
+            identity, expected, body = self.fixture(path)
+            root = LocalFileRoot(path, max_files=3, max_chunk_bytes=len(body))
+            area = root.restore_area('saved-area', identity)
+            child = area.directory
+            reader = child.open_saved_payload('saved-payload', expected)
+            with patch('actql_sdk._local_files.os.pread', wraps=os.pread) as read:
+                child.verify_small_saved_payload(reader)
+                first = child.verified_saved_payload(reader)
+                self.assertIs(child.verified_saved_payload(reader), first)
+                self.assertEqual(first.data, body)
+                read.assert_called_once_with(reader.descriptor, len(body), 0)
+                (path / 'saved-area' / 'saved-payload').write_bytes(b'[{"n":2}]')
+                with self.assertRaises(LocalFileError):
+                    child.verified_saved_payload(reader)
+                self.assertEqual(read.call_count, 1)
+            self.assertTrue(child.close_original(reader))
+            self.assertIsNone(reader.verified_payload)
+            self.assertTrue(root.close_area(area))
+            self.assertTrue(root.close())
+
+    def test_small_payload_with_wrong_digest_never_becomes_available(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory)
+            identity, expected, body = self.fixture(path)
+            root = LocalFileRoot(path, max_files=3, max_chunk_bytes=len(body))
+            area = root.restore_area('saved-area', identity)
+            child = area.directory
+            wrong = PhysicalFileSnapshot(expected.observation, 'sha256:' + '0' * 64)
+            reader = child.open_saved_payload('saved-payload', wrong)
+            with self.assertRaises(LocalFileError):
+                child.verify_small_saved_payload(reader)
+            self.assertIsNone(child.verified_saved_payload(reader))
+            self.assertTrue(child.close_original(reader))
+            self.assertTrue(root.close_area(area))
+            self.assertTrue(root.close())
+
     def test_mutation_and_uncertain_close_keep_same_descriptor_and_parent_busy(self):
         with TemporaryDirectory() as directory:
             path = Path(directory)

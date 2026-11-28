@@ -213,7 +213,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       retainSizes: Retain = false as Retain): Reader<Retain extends true ? RowOutput : unknown> => {
       const attemptId = crypto.randomUUID();
       const context = freezeInput({ref, resultName: name, attemptId,
-        redactErrors: redactErrors,
+        ...(redactErrors === undefined ? {} : {redactErrors}),
         lookupContext: {...lookupContext}});
       const maxWireBytes = tighter(options.maxWireBytes,
         limits.maxReadWireBytes);

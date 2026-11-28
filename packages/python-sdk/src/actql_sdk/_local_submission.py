@@ -49,6 +49,12 @@ def _hex(value: object) -> bool:
     return type(value) is str and len(value) == 64 and all(c in '0123456789abcdef' for c in value)
 
 
+_EFFECT_KEY_DOMAIN = b'actql-python-local-host-attestation/0.1\0'
+_EFFECT_KEY_TABLE = 'client_local_installation_custody'
+_EFFECT_KEY_ROW = 'host'
+_EFFECT_KEY_MAXIMUM = 512
+
+
 class LocalSubmissionAuthority:
     """Authenticate existing Owner epochs using durable physical key/clock bytes.
 
@@ -59,7 +65,8 @@ class LocalSubmissionAuthority:
 
     def __init__(self, store: LocalByteStore, project: Callable[[int, bytes], bytes], *,
                  now: Callable[[], int], ttl_ms: int = _MAX_TTL,
-                 _initial_rows: tuple[ByteWrite, ...] = ()) -> None:
+                 _initial_rows: tuple[ByteWrite, ...] = (),
+                 _initial_effect_key: bytes | None = None) -> None:
         if (type(store) is not LocalByteStore or not callable(project) or not callable(now)
                 or type(ttl_ms) is not int or not 1 <= ttl_ms <= _MAX_TTL):
             raise ValueError('Invalid Local Submission epoch interval')
@@ -77,11 +84,22 @@ class LocalSubmissionAuthority:
                 or write.expected_generation is not None or write.key == _KEY for write in _initial_rows)
                 or _initial_rows and (row is not None or not fresh)):
             raise LocalSubmissionIdentityError('Original Local initial custody cannot be replaced')
+        if _initial_effect_key is not None and (
+                not _initial_rows or not fresh or type(_initial_effect_key) is not bytes
+                or not 0 < len(_initial_effect_key) <= _EFFECT_KEY_MAXIMUM
+                or any(write.key == store.namespaced_key(_EFFECT_KEY_TABLE, _EFFECT_KEY_ROW)
+                       for write in _initial_rows)):
+            raise LocalSubmissionIdentityError('Invalid original first Host attestation')
         if row is None:
             if not fresh:
                 raise LocalSubmissionIdentityError('Local Submission authentication custody is missing')
-            payload = json.dumps({'authentication_key': secrets.token_hex(32),
+            key = secrets.token_bytes(32)
+            payload = json.dumps({'authentication_key': key.hex(),
                                   'observed_at': 0}, separators=(',', ':')).encode()
+            if _initial_effect_key is not None:
+                authenticated = hmac.digest(key, _EFFECT_KEY_DOMAIN + _initial_effect_key, 'sha256')
+                _initial_rows += (ByteWrite(store.namespaced_key(_EFFECT_KEY_TABLE, _EFFECT_KEY_ROW),
+                                            None, _initial_effect_key + authenticated),)
             try:
                 if _initial_rows:
                     writes = (ByteWrite(_KEY, None, payload), *_initial_rows)
@@ -156,6 +174,36 @@ class LocalSubmissionAuthority:
             assert self._custody_fence is not None
             return self._custody_fence
 
+    def _model_evidence_key(self, fence: ByteFence, preimage: bytes) -> bytes:
+        """Derive a domain-separated key only for the original snapshot."""
+        with self._store._lock:
+            if (self._original is not self or self._custody_fence is not fence
+                    or self._retained_key is None or len(self._retained_key) != 32):
+                raise LocalSubmissionIdentityError('Original Local Model key snapshot is unavailable')
+            return hmac.digest(self._retained_key, preimage, 'sha256')
+
+    def _authenticate_name(self, fence: ByteFence, preimage: bytes) -> bytes:
+        """Sign the exact Common name coordinates using this observed epoch."""
+        with self._store._lock:
+            if (self._original is not self or self._custody_fence is not fence
+                    or self._retained_key is None or len(self._retained_key) != 32
+                    or type(preimage) is not bytes or not 0 < len(preimage) <= 4096
+                    or not preimage.startswith(b'["scoped-submission-name",')):
+                raise LocalSubmissionIdentityError('Original Local name authentication is unavailable')
+            return hmac.digest(self._retained_key, preimage, 'sha256')
+
+    def _authenticate_effect_host_key(self, fence: ByteFence, sealed: bytes) -> bytes:
+        with self._store._lock:
+            if (self._original is not self or self._custody_fence is not fence
+                    or self._retained_key is None or len(self._retained_key) != 32
+                    or type(sealed) is not bytes or not 32 < len(sealed) <= _EFFECT_KEY_MAXIMUM + 32):
+                raise LocalSubmissionIdentityError('Original Local Host attestation snapshot is unavailable')
+            body, tag = sealed[:-32], sealed[-32:]
+            if not hmac.compare_digest(
+                    hmac.digest(self._retained_key, _EFFECT_KEY_DOMAIN + body, 'sha256'), tag):
+                raise LocalSubmissionIdentityError('Original Local Host attestation custody changed')
+            return body
+
     def _projection(self, kind: int, body: dict[str, Any]) -> dict[str, Any]:
         result = _json(self._project(kind, json.dumps(body, ensure_ascii=False,
                                                     separators=(',', ':')).encode('utf-8')))
@@ -210,13 +258,3 @@ class LocalSubmissionAuthority:
         # The admission Owner separately decides whether a fresh intent is allowed.
         return LocalSubmissionIdentity(projection['request_id'], projection['epoch_cid'],
                                        projection['validity'])
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(LocalSubmissionAuthority, (
-        '_clock', '_clock_locked', 'custody_fence',
-        'observe_custody',
-    )),
-)

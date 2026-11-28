@@ -73,6 +73,7 @@ pub fn acknowledge_captured_relation_sample_start(
     return Err(ForeignOwner)
   }
   guard hooks.control is Some(control) &&
+    control.sample_commits is Some(_) &&
     control.binding is Some(binding) &&
     hooks.original is Some(original) else {
     return Err(NotPrepared)
@@ -86,16 +87,10 @@ pub fn acknowledge_captured_relation_sample_start(
   if revision <= 0 {
     return Err(StaleRevision)
   }
-  if control.sample_start_revision != 0 ||
-    control.revision != 0 ||
-    control.phase != Paused ||
-    hooks.activation_grant is Some(_) ||
-    hooks.before is Some(_) ||
-    run.running is Some(_) ||
-    run.generation != original.generation {
+  if !captured_task_start_available(run, hooks, control, original.generation) {
     return Err(AlreadyStarted)
   }
-  control.sample_start_revision = revision
+  control.physical_start_revision = revision
   Ok(())
 }
 
@@ -240,7 +235,7 @@ fn fork_captured_relation_sample_read(
   guard original.hooks.control is Some(control) && control.binding is Some(_) else {
     return Err(NotSelected)
   }
-  if control.sample_start_revision <= 0 {
+  if control.physical_start_revision <= 0 {
     return Err(StartUnavailable)
   }
   guard captured_relation_sample_commit(run, source.task)
@@ -274,14 +269,14 @@ fn captured_relation_sample_commit(
     captured_control_owner_matches(run, hooks) &&
     hooks.control is Some(control) &&
     control.binding is Some(_) &&
-    control.sample_start_revision > 0 &&
+    control.physical_start_revision > 0 &&
     control.sample_commits is Some(commits) else {
     return None
   }
   let generation = commits[2 * task]
   let attempt = commits[2 * task + 1]
   if generation > 0 && attempt > 0 {
-    Some((generation, attempt, control.sample_start_revision))
+    Some((generation, attempt, control.physical_start_revision))
   } else {
     None
   }
@@ -309,10 +304,11 @@ fn captured_relation_sample_start_revision(run : CapturedDAG) -> Int {
     run.activation is Observed(hooks) &&
     !hooks.closing &&
     hooks.control is Some(control) &&
+    control.sample_commits is Some(_) &&
     control.binding is Some(_) else {
     return 0
   }
-  control.sample_start_revision
+  control.physical_start_revision
 }
 
 ///|

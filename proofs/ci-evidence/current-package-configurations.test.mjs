@@ -384,32 +384,63 @@ test('current Local JS review binds task authorization, retained Request imports
   assert.equal(retainedRequest, historical.replace(utf8 + debug, debug).replace(json, utf8 + json + string),
     'The retained Request stage changes only the two ordinary imports');
   const local = taskAuthorityReview.configurations.find(config => config.path === path);
+  const authority = gitTree(root, taskAuthorityReview.head).read(path).toString();
+  assert.equal(hash(authority), local.sha256);
   assert.equal(local.addedImport, '  "actql/actql/execution_authorization" @authorization,\n');
-  assert.equal(body.split(local.addedImport).length, 2);
-  assert.equal(body.replace(local.addedImport, ''), retainedRequest,
+  assert.equal(authority.split(local.addedImport).length, 2);
+  assert.equal(authority.replace(local.addedImport, ''), retainedRequest,
     'Task authority adds one import and preserves every option and target selector');
+  const terminalRevision = '76ac22a416ed852573c1c66e68961637260d9e89';
+  for (const revision of [terminalRevision, entry.revision]) {
+    execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  }
+  const terminalReview = gitTree(root, terminalRevision);
+  const terminalBody = terminalReview.read(path).toString();
+  const terminalFixture = 'terminal_serialization_sql_parity_js_wbtest.mbt';
+  const terminalSelector = `    "${terminalFixture}": [ "js" ],\n`;
+  assert.equal(hash(terminalBody), '43a788157ae5991ded07465fbc503aa17108d3bf18f19f574ed4457bc26fdef0');
+  assert.equal(Buffer.byteLength(terminalBody), 13272);
+  assert.equal(terminalBody.split(terminalSelector).length, 2);
+  assert.equal(terminalBody.replace(terminalSelector, ''), authority,
+    'Terminal SQL parity adds only its JS selector');
+  const successor = gitTree(root, entry.revision);
+  const binding = '  "actql/actql/effect_program_binding" @effect_binding,\n';
+  assert.equal(body, successor.read(path).toString());
+  assert.equal(Buffer.byteLength(body), 13328);
+  assert.equal(body.split(binding).length, 2);
+  assert.equal(body.replace(binding, ''), terminalBody);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(terminalBody))), null);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, local.sha256)), null);
   assert.equal(hash(retainedRequest), local.previous.sha256);
   assert.equal(currentPackageConfigurationReviewFor(request(path, local.previous.sha256)), null);
   assert.deepEqual(packageImports(body).imports,
-    [...packageImports(retainedRequest).imports, 'actql/actql/execution_authorization'].sort());
+    [...packageImports(terminalBody).imports, 'actql/actql/effect_program_binding'].sort());
   assert.equal(currentPackageConfigurationReviewFor(request(path, review.sha256)), null);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
-  assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
+  assert.deepEqual(selected.unresolved, []);
   assert(selected.packageConfigurations.some(value => value.path === path && value.digest === entry.digest));
   assert(selected.paths.includes('src/execution_authorization/moon.pkg'));
+  const bindingManifest = 'src/effect_program_binding/moon.pkg';
+  assert(selected.paths.includes(bindingManifest));
+  assert.equal(currentTree.entries.get(bindingManifest)?.mode, '100644');
+  assert.deepEqual(currentTree.read(bindingManifest), successor.read(bindingManifest));
   const intake = 'src/client_local_host/preparation_request_retained_intent.mbt';
   assert(selected.paths.includes(intake));
   assert.equal(currentTree.entries.get(intake)?.mode, '100644');
-  assert.deepEqual(currentTree.read(intake), intakeTree.read(intake));
-  for (const selector of review.addedSelectors) {
-    const source = 'src/client_local_host/' + selector.file;
+  assert.deepEqual(terminalReview.read(intake), intakeTree.read(intake));
+  assert.deepEqual(currentTree.read(intake), successor.read(intake));
+  const terminalPath = 'src/client_local_host/' + terminalFixture;
+  assert.deepEqual(currentTree.read(terminalPath), terminalReview.read(terminalPath));
+  const fixtures = [...review.addedSelectors.map(selector => selector.file), terminalFixture];
+  for (const fixture of fixtures) {
+    const source = 'src/client_local_host/' + fixture;
     assert(selected.paths.includes(source));
     assert.equal(currentTree.entries.get(source)?.kind, 'blob');
     assert.equal(currentTree.entries.get(source)?.mode, '100644');
   }
   for (const changed of [
-    ...review.addedSelectors.flatMap(selector => {
-      const original = `    "${selector.file}": [ "js" ],\n`;
+    ...fixtures.flatMap(fixture => {
+      const original = `    "${fixture}": [ "js" ],\n`;
       return [body.replace(original, ''), body.replace(original, original.replace('"js"', '"native"'))];
     }),
     body + '\noptions(pre_build: "unreviewed-hook")\n',
@@ -418,6 +449,8 @@ test('current Local JS review binds task authorization, retained Request imports
     body.replace(utf8 + json, json).replace(debug, utf8 + debug),
     body.replace(local.addedImport, ''),
     body.replace(local.addedImport, local.addedImport.replace('@authorization', '@foreign')),
+    body.replace(binding, ''),
+    body.replace(binding, binding.replace('@effect_binding', '@foreign')),
   ]) {
     assert.notEqual(changed, body);
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
@@ -442,9 +475,12 @@ test('task authority preserves reviewed old manifests and admits only the exact 
   const original = gitTree(root, review.previousRevision);
   assert.deepEqual(review.configurations.map(config => config.path), taskAuthorityPaths);
   for (const config of review.configurations) {
-    assert.equal(currentPackageConfigurations[config.path].revision, review.head);
+    const selected = config.fixture ? currentTree : gitTree(root, review.head);
+    if (config.fixture) {
+      assert.equal(currentPackageConfigurations[config.path].revision, review.head);
+    }
     for (const [snapshot, expected, path] of [[original, config.previous, config.path],
-      [currentTree, config, config.path]]) {
+      [selected, config, config.path]]) {
       assert.equal(snapshot.entries.get(path)?.mode, expected.mode);
       assert.equal(snapshot.read(path).length, expected.bytes);
       assert.equal(hash(snapshot.read(path)), expected.sha256);
@@ -463,9 +499,13 @@ test('task authority preserves reviewed old manifests and admits only the exact 
     '\nimport {\n  "moonbitlang/core/debug",\n} for "wbtest"\n\noptions(\n  targets: { "task_completion_current_js_wbtest.mbt": [ "js" ] },\n)\n');
   assert.equal(body, prior + strategy.addedBlock);
   assert.deepEqual(packageImports(body).imports, [...packageImports(prior).imports, 'moonbitlang/core/debug'].sort());
+  const originalFixture = gitTree(root, review.head);
+  assert.equal(originalFixture.entries.get(fixture.path)?.mode, fixture.mode);
+  assert.equal(originalFixture.read(fixture.path).length, fixture.bytes);
+  assert.equal(hash(originalFixture.read(fixture.path)), fixture.sha256);
+  const currentFixture = gitTree(root, currentPackageConfigurations[taskAuthorityPaths[0]].revision);
   assert.equal(currentTree.entries.get(fixture.path)?.mode, fixture.mode);
-  assert.equal(currentTree.read(fixture.path).length, fixture.bytes);
-  assert.equal(hash(currentTree.read(fixture.path)), fixture.sha256);
+  assert.deepEqual(currentTree.read(fixture.path), currentFixture.read(fixture.path));
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/physical_strategy_host'], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert(selected.paths.includes(fixture.path));
@@ -601,9 +641,24 @@ test('current regex imports bind both literal aliases and complete pattern and r
   assert.equal(packageImports(loweringManifest).unknown, null);
   assert.equal(currentPackageConfigurations[lowering + '/moon.pkg'], undefined);
 
+  const superseded = gitTree(root, 'bbd440aaa040412885d3b3974c9eec09597af733').read(path);
+  const oldResources = '  "actql/actql/physical_resources" @resources,\n';
+  assert.equal(hash(superseded), '5f1b7d591ed14fb1bf8c887f856c79d10dbc266ae484f6f4aa396db6537283b2');
+  assert.equal(superseded.toString().split(oldResources).length, 2);
+  assert.equal(superseded.toString().replace(oldResources, ''), successor);
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(superseded))), null);
   const selected = packageSourceInputs({tree: currentTree, packages: [relation, lowering], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert(selected.directories.some(row => row.path === 'src/sha256/*'));
+  assert(!packageImports(successor).imports.includes('actql/actql/physical_resources'));
+  const oldTree = {...currentTree, read(member) {
+    return member === path ? Buffer.from(superseded) : currentTree.read(member);
+  }};
+  const refused = packageSourceInputs({tree: oldTree, packages: [relation, lowering], target: 'js'});
+  assert(refused.unresolved.includes('Unreviewed package configuration: ' + path));
+  const refusedMutation = mutationSourceInputs(oldTree);
+  assert(refusedMutation.unresolved.includes('Unreviewed package configuration: ' + path));
+  assert(refusedMutation.directories.some(row => row.path === 'src/**'));
   const mutation = mutationSourceInputs(currentTree);
   assert.deepEqual(mutation.unresolved, []);
   assert(!mutation.directories.some(row => row.path === 'src/**'));

@@ -549,6 +549,73 @@ test "generic relation target validates all rows identity writable set types and
 }
 
 ///|
+fn mock_document_declaration_limits() -> RowDeclarationLimits {
+  {
+    max_bytes: 65536,
+    max_nodes: 8192,
+    max_depth: 64,
+    max_views: 4,
+    max_fields: 16,
+  }
+}
+
+///|
+fn mock_document_account() -> RowDeclaration {
+  generate_relation_row_declaration(
+    "salesforce",
+    "mock_salesforce",
+    "mock_salesforce/0.1",
+    [
+      {
+        resource: "Account",
+        resource_kind: "record",
+        schema_wire: "{\"Churn_Risk__c\":{\"nullable\":false,\"type\":\"string\"},\"Risk_Reason__c\":{\"nullable\":true,\"type\":\"string\"},\"description\":{\"nullable\":false,\"type\":\"string\"},\"id\":{\"nullable\":false,\"type\":\"string\"},\"name\":{\"nullable\":false,\"type\":\"string\"}}",
+        schema_cid: "sha256:2bb86ad0dae4e6ab1cde7bb339f74cd3959dc572f6ad54f6da5487765709307d",
+        request_schema_wire: None,
+        facts_wire: Some("{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"),
+        acquisition_wire: None,
+      },
+    ],
+    mock_document_declaration_limits(),
+  ).unwrap()
+}
+
+///|
+fn mock_document_warehouse() -> RowDeclaration {
+  generate_relation_row_declaration(
+    "snowflake",
+    "mock_snowflake",
+    "mock_snowflake/0.1",
+    [
+      {
+        resource: "usage_30d",
+        resource_kind: "table",
+        schema_wire: "{\"account_id\":{\"nullable\":false,\"type\":\"string\"},\"active_users\":{\"nullable\":false,\"type\":\"int64\"},\"trend\":{\"nullable\":false,\"type\":\"string\"}}",
+        schema_cid: "sha256:fd038c1aa8fe013d4838819a6011e18aee81a04a179f1994a548ff292dfae424",
+        request_schema_wire: None,
+        facts_wire: Some(
+          "{\"relation_keys\":{\"candidate_keys\":[[\"account_id\"]]}}",
+        ),
+        acquisition_wire: None,
+      },
+    ],
+    mock_document_declaration_limits(),
+  ).unwrap()
+}
+
+///|
+fn mock_document_text(count? : String = "4") -> String {
+  "{\"salesforce\":{\"Account\":{\"key\":[\"id\"],\"rows\":[" +
+  "{\"id\":\"001Acme\",\"name\":\"Acme Corp\",\"description\":\"Evaluating a competitor; usage down since June.\",\"Churn_Risk__c\":\"low\",\"Risk_Reason__c\":null}," +
+  "{\"id\":\"001Globex\",\"name\":\"Globex Inc\",\"description\":\"Several support tickets about the new pricing.\",\"Churn_Risk__c\":\"medium\",\"Risk_Reason__c\":null}]}}," +
+  "\"snowflake\":{\"usage_30d\":{\"key\":[\"account_id\"],\"rows\":[" +
+  "{\"account_id\":\"001Acme\",\"active_users\":" +
+  count +
+  ",\"trend\":\"down\"}," +
+  "{\"account_id\":\"001Globex\",\"active_users\":12,\"trend\":\"flat\"}]}}}"
+}
+
+///|
 test "generic relation document physical int64 codec preserves exact tokens under original schema" {
   let declaration = mock_document_warehouse()
   for
@@ -868,7 +935,7 @@ test "relation projections share one admitted original and retain exact external
   assert_eq(before.projection_attempts, 0)
   assert_eq(before.projected_cells, 0L)
   assert_false(physical_equal(original.bytes, bytes))
-  let salesforce = mock_update_declaration()
+  let salesforce = mock_document_account()
   let warehouse = mock_document_warehouse()
   let accounts = relation_document_test_project_account(original, salesforce).unwrap()
   let usage = relation_document_test_project_warehouse(original, warehouse).unwrap()
@@ -941,7 +1008,7 @@ test "relation projections share cumulative work across successful and failed at
   assert_eq(after_first.projections, 1)
   assert_true(after_first.remaining_work < 50000)
   assert_true(
-    relation_document_test_project_account(original, mock_update_declaration())
+    relation_document_test_project_account(original, mock_document_account())
     is Err(_),
   )
   let after_failure = relation_document_usage(original).unwrap()
@@ -988,7 +1055,7 @@ test "shared relation original preserves key and typed failures without acceptin
       relation_document_test_limits(),
       10000000,
     ).unwrap()
-    relation_document_test_project_account(original, mock_update_declaration()).unwrap()
+    relation_document_test_project_account(original, mock_document_account()).unwrap()
     |> ignore
     let before = relation_document_usage(original).unwrap()
     assert_true(

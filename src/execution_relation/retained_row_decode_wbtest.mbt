@@ -40,6 +40,74 @@ test "retained wire admits provisional output without completion authority" {
 }
 
 ///|
+test "retained logical Relation admits original typed rows without execution" {
+  let owner = capture_fixture()
+  let body = "{\"sort\":\"relation\",\"value\":[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]}"
+  let cursor = input_cursor(body)
+  let limits = retained_row_test_limits()
+  let values = stream_value_limits()
+  let original = read_retained_logical_relation(
+    owner,
+    Step(1),
+    cursor,
+    2,
+    limits,
+    values,
+    () => true,
+  ).unwrap()
+  assert_true(physical_equal(admitted_output_owner(original), owner))
+  assert_eq(admitted_output_target(original), Step(1))
+  assert_eq(admitted_output_row_count(original), 2)
+  assert_true(admitted_output_cell(original, 0, 0) is Some(Number(1)))
+  assert_true(admitted_output_cell(original, 1, 1) is Some(Text("😀")))
+  assert_true(
+    read_retained_logical_relation(owner, Step(1), cursor, 1, limits, values, () => {
+      true
+    })
+    is Err(Wire(InvalidShape)),
+  )
+  assert_true(
+    read_retained_logical_relation(
+      owner,
+      Step(1),
+      cursor,
+      2,
+      { ..limits, max_nodes: 1, },
+      values,
+      () => true,
+    )
+    is Err(Wire(ShapeLimit)),
+  )
+  assert_true(
+    read_retained_logical_relation(
+      owner,
+      Step(1),
+      cursor,
+      2,
+      limits,
+      { ..values, max_work: 0, },
+      () => true,
+    )
+    is Err(Admission(CaptureLimit)),
+  )
+  let probes = Ref(0)
+  assert_true(
+    read_retained_logical_relation(owner, Step(1), cursor, 2, limits, values, () => {
+      probes.val += 1
+      probes.val < 3
+    })
+    is Err(Admission(ClosedCapture)),
+  )
+  let bad = input_cursor("{\"sort\":\"relation\",\"value\":[{\"n\":1}]}")
+  assert_true(
+    read_retained_logical_relation(owner, Step(1), bad, 1, limits, values, () => {
+      true
+    })
+    is Err(Wire(InvalidShape)),
+  )
+}
+
+///|
 test "retained wire rows convert with exact owner and canonical identity" {
   let owner = capture_fixture()
   let (source, _) = retained_fixture(owner, Ref(true))

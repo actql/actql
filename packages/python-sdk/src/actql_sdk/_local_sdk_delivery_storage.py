@@ -4,13 +4,17 @@ import json
 from typing import Any, Literal, TypeVar
 
 from ._local_core import _Input, _Output, _Workspace, LocalCoreError
-from ._local_storage import ByteWrite, LocalByteStore, LocalStorageError, _NamespaceReader
+from ._local_storage import (
+    ByteWrite, LocalByteStore, LocalStorageError, _NamespaceReader,
+    _TERMINAL_ORIGINAL_POINT_WORKSPACE,
+)
 from ._local_store_reconciliation import OriginalStoreReconciliation
 from ._local_reader_facts import OriginalReaderFacts
 
 _PLAN_BYTES = 1048576
 _PLAN_WORKSPACE = 16 * _PLAN_BYTES + 8192
-_TABLES = ('publication_contract', 'publication_contract', 'publication_contract',
+_TABLES = ('client_local_read_evidence',
+           'publication_contract', 'publication_contract', 'publication_contract',
            'delivery_attempt', 'result_read_grant_usage', 'delivery_record_head')
 _T = TypeVar('_T')
 
@@ -18,11 +22,14 @@ _T = TypeVar('_T')
 def _physical_plan(raw: bytes) -> tuple[ByteWrite, ...]:
     """Unwrap the closed Core packet, selecting no scope/comparison/Allow."""
     return _physical_cas_plan(raw, _TABLES,
-        ('absent', 'absent', 'absent', 'absent', 'usage', 'absent'))
+        ('absent', 'absent', 'absent', 'absent', 'absent', 'usage', 'absent'))
 
 
-def _physical_terminal_plan(raw: bytes) -> tuple[ByteWrite, ...]:
-    """Transport Core's receipt/record/head proposal, never terminal evidence."""
+def _physical_terminal_plan(raw: bytes, *, cancelled: bool = False) -> tuple[ByteWrite, ...]:
+    """Transport Core's exact terminal proposal, never terminal evidence."""
+    if cancelled:
+        return _physical_cas_plan(raw, ('publication_contract', 'delivery_record_head'),
+                                  ('absent', 'successor'))
     return _physical_cas_plan(raw,
         ('publication_contract', 'publication_contract', 'delivery_record_head'),
         ('absent', 'absent', 'successor'))
@@ -81,7 +88,7 @@ class OriginalSDKDeliveryStore:
     """Keep original Store/current/reader/input/output loans during one CAS.
 
     Core prepares all first-installation writes before any ordinal is applied.
-    Its output stays borrowed through all six writes and the final current
+    Its output stays borrowed through the seven rows and the final current
     check. Partial or unknown COMMIT is not replayed, acknowledged or converted
     into payload delivery. Inventory quota and durable usage adoption are
     separate original Owner obligations. This does not close the parent Run.
@@ -117,7 +124,8 @@ class OriginalSDKDeliveryStore:
             original._projection._ready()
             self._uncertain_ticket = self._core._next_ticket
             try:
-                self._workspace = self._core.reserve_workspace(_PLAN_WORKSPACE,
+                terminal_points = _TERMINAL_ORIGINAL_POINT_WORKSPACE if original._projection._saved else 0
+                self._workspace = self._core.reserve_workspace(_PLAN_WORKSPACE + terminal_points,
                     stopped=lambda: not self._active, cleanup=cleanup)
             except BaseException as failure:
                 if (self._uncertain_ticket not in self._core._inputs
@@ -207,6 +215,24 @@ class OriginalSDKDeliveryStore:
             if self._closing:
                 raise RuntimeError('Original SDK delivery storage is closing')
             return self._selected_original_payload(first, configuration)
+        return self._payload_observation(request, clock, prepare)
+
+    def prepare_live_payload(self, request: _Input, clock: _Input) -> tuple[OriginalReaderFacts, bytes]:
+        if self._observation._projection._saved:
+            raise ValueError('Original live return control requires a live publication')
+
+        def prepare(first: _Output, configuration: int) -> tuple[OriginalReaderFacts, bytes]:
+            self._core.prepare_publication_sdk_payload_codecs(first, clock, configuration)
+            if self._closing:
+                raise RuntimeError('Original SDK delivery storage is closing')
+            fact = self._selected_original_payload(first, configuration)
+            output = self._reserve_payload_output(request, maximum=107)
+            self._core.produce_publication_sdk_live_return_control(output, first, configuration)
+            control = self._core.read_publication_commit_material(output)
+            if not self._close_payload_output(request.ticket):
+                raise SDKDeliveryStorageCleanupPending(self)
+            return fact, control
+
         return self._payload_observation(request, clock, prepare)
 
     def _payload_observation(self, request: _Input, clock: _Input,
@@ -342,7 +368,7 @@ class OriginalSDKDeliveryStore:
             self._core.prepare_publication_sdk_payload_input(first, clock, configuration),
             original=self._payload_binding_originals.get(request.ticket))
 
-    def _reserve_payload_output(self, request: _Input) -> _Output:
+    def _reserve_payload_output(self, request: _Input, *, maximum: int = _PLAN_BYTES) -> _Output:
         if request.ticket in self._payload_outputs or request.ticket in self._uncertain_payload:
             raise RuntimeError('Original SDK payload cleanup is pending')
         ticket = self._core._next_ticket
@@ -351,7 +377,7 @@ class OriginalSDKDeliveryStore:
             projection = self._observation._projection
             reserve = (self._core.reserve_saved_result_export if projection._saved
                        else self._core.reserve_publication_commit_export)
-            output = reserve(projection._publication, cleanup=self._workspace_cleanup)
+            output = reserve(projection._publication, cleanup=self._workspace_cleanup, maximum=maximum)
         except BaseException:
             if ticket not in self._core._inputs and ticket not in self._core._released:
                 del self._uncertain_payload[request.ticket]
@@ -404,13 +430,13 @@ class OriginalSDKDeliveryStore:
             self._core.observe_publication_sdk_terminal(first, configuration),
             original=self._payload_binding_originals.get(request.ticket))
 
-    def persist_original_terminal(self, request: _Input, clock: _Input) -> None:
-        """Apply Core's original three-row successor CAS exactly once.
+    def persist_original_terminal(self, request: _Input, clock: _Input, *,
+                                  cancelled: bool = False) -> None:
+        """Apply Core's original terminal successor CAS exactly once.
 
-        Core rechecks the actual rows before COMMIT and in a separate read
-        transaction after COMMIT. A lost reply remains Unknown; its caller can
-        only observe the same original attempt. Cleanup keeps the child output
-        and its original first-preparation loan until explicitly released.
+        Core validates the actual rows before COMMIT. A confirmed COMMIT
+        completes that exact proposal. An Unknown uses explicit lookup of
+        the same attempt. Cleanup keeps both original output loans.
         """
         with self._core._lock:
             self._nominal()
@@ -427,17 +453,19 @@ class OriginalSDKDeliveryStore:
             original = self._payload_binding_originals.get(request.ticket)
             fact = self._bound_payload_fact(request, first, original)
             self._terminal_attempted.add(request.ticket)
+            expected_generations = (0, 1) if cancelled else (0, 0, 1)
+            count = len(expected_generations)
             self._active = True
             writes: tuple[ByteWrite, ...] = ()
             output: _Output | None = None
             try:
                 with observation._serialized_facts(), binding.fenced() as fences:
                     def project(ordinal: int, consume: Callable[[ByteWrite], None]) -> None:
-                        if len(writes) != 3 or not 0 <= ordinal < 3:
+                        if len(writes) != count or not 0 <= ordinal < count:
                             raise ValueError('Incomplete original SDK terminal material')
-                        observation._validate_facts()
+                        # Fixed rows from one funded Core output. Physical CAS
+                        # validates each generation; facts bracket the group.
                         consume(writes[ordinal])
-                        observation._validate_facts()
                     def before_commit() -> None:
                         if output is None:
                             raise ValueError('Lost original SDK terminal output loan')
@@ -446,7 +474,8 @@ class OriginalSDKDeliveryStore:
                         else:
                             self._observe_bound_material(request, first, fact, original)
                         self._core.produce_publication_sdk_terminal_storage(
-                            output, first, clock, observation._projection._configuration)
+                            output, first, clock, observation._projection._configuration,
+                            cancelled=cancelled)
                         observation._validate_facts()
                         self._core._owned_output(output, 'publication_commit_export')
                         self._core._owned_output(first, 'publication_commit_export')
@@ -459,10 +488,11 @@ class OriginalSDKDeliveryStore:
                             observation._before_lookup()
                             output = self._reserve_payload_output(request)
                             self._core.produce_publication_sdk_terminal_storage(
-                                output, first, clock, observation._projection._configuration)
+                                output, first, clock, observation._projection._configuration,
+                                cancelled=cancelled)
                             writes = _physical_terminal_plan(
-                                self._core.read_publication_commit_material(output))
-                            head_key = writes[2].key
+                                self._core.read_publication_commit_material(output), cancelled=cancelled)
+                            head_key = writes[-1].key
                             if head_key in self._terminal_keys_attempted:
                                 raise LocalStorageError('Original terminal key requires lookup; replay is unavailable')
                             self._terminal_keys_attempted.add(head_key)
@@ -472,12 +502,15 @@ class OriginalSDKDeliveryStore:
                             take()
                         binding.inspect_reader(reader, prepare)
                     generations = observation._store.compare_exchange_projected_inspected(
-                        3, project, observation._originals, fences, inspect=inspect,
+                        count, project, observation._originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
                         _sdk_delivery_prewrite=observation._projection._saved,
                         _sdk_terminal_precommit=observation._projection._saved)
                 if generations is None:
                     raise LocalStorageError('Original terminal CAS conflicted; lookup is required')
+                if output is None or generations != expected_generations:
+                    raise LocalStorageError('Original terminal commit confirmation changed')
+                self._core.confirm_publication_sdk_terminal_commit(output, first)
             except BaseException:
                 if fact is not None:
                     fact._original_material = None
@@ -485,9 +518,6 @@ class OriginalSDKDeliveryStore:
             finally:
                 writes = ()
                 self._active = False
-            # The precommit callback cannot acknowledge its own transaction.
-            # Only this independent same-Store read can expose saved evidence.
-            self.observe_original_terminal(request, clock)
 
     def _close_payload_output(self, ticket: int) -> bool:
         if ticket in self._uncertain_payload:
@@ -529,6 +559,7 @@ class OriginalSDKDeliveryStore:
             self._attempted.add(request.ticket)
             self._active = True
             writes: tuple[ByteWrite, ...] = ()
+            precommit_frame: Callable[[], None] | None = None
             try:
                 # The first preparation outlives transport retirement. Fund
                 # that independent lifetime before Core constructs it, using
@@ -548,19 +579,24 @@ class OriginalSDKDeliveryStore:
                 self._first_workspaces[request.ticket] = first_workspace
                 with observation._serialized_facts(), binding.fenced() as fences:
                     def project(ordinal: int, consume: Callable[[ByteWrite], None]) -> None:
-                        if len(writes) != 6 or not 0 <= ordinal < 6:
+                        if len(writes) != 7 or not 0 <= ordinal < 7:
                             raise ValueError('Incomplete original SDK delivery write material')
                         consume(writes[ordinal])
                     def before_commit() -> None:
+                        if precommit_frame is None:
+                            raise LocalStorageError('Original SDK delivery reader is unavailable')
+                        precommit_frame()
                         observation._before_lookup()
+                        precommit_frame()
                         outputs = observation._projection.pending_outputs
                         if len(outputs) != 1:
                             raise ValueError('Lost original SDK delivery output borrow')
-                        # A cached export rechecks current Account read, original
-                        # Run/stored-chain and independent publisher; no issuance.
-                        self._core.produce_publication_sdk_read_delivery_storage(
+                        # The prepared holder rechecks current Account read,
+                        # original Run/stored-chain and independent publisher.
+                        self._core.validate_publication_sdk_read_delivery_storage(
                             outputs[0], request, original_run, observation._projection._configuration)
                         observation._validate_facts()
+                        precommit_frame()
                         self._nominal()
                         if self._closing:
                             raise RuntimeError('Original SDK delivery storage is closing')
@@ -575,12 +611,27 @@ class OriginalSDKDeliveryStore:
                         if self._closing:
                             raise RuntimeError('Original SDK delivery storage is closing')
                     def inspect(reader: _NamespaceReader, take: Callable[[], None]) -> None:
-                        def prepare(_: object) -> None:
+                        def prepare(current: _Output) -> None:
+                            nonlocal precommit_frame
+                            callbacks = self._core._journal_callbacks(current.ticket)
+                            if callbacks is None:
+                                raise LocalStorageError('Original SDK delivery reader is unavailable')
+
+                            def require_frame() -> None:
+                                if callbacks.failure is not None:
+                                    raise callbacks.failure
+                                if (binding._current is not current or binding._observed_reader is not reader
+                                        or self._core._journal_callbacks(current.ticket) is not callbacks
+                                        or callbacks.reader is not reader):
+                                    raise LocalStorageError('Original SDK delivery reader changed')
+
+                            require_frame()
                             observation._before_lookup()
+
                             def transfer(raw: bytes) -> None:
                                 nonlocal writes
                                 writes = _physical_plan(raw)
-                                attempt_key = writes[3].key
+                                attempt_key = writes[4].key
                                 if attempt_key in self._keys_attempted:
                                     raise LocalStorageError('Original delivery key requires lookup; replay is unavailable')
                                 self._keys_attempted.add(attempt_key)
@@ -591,13 +642,19 @@ class OriginalSDKDeliveryStore:
                                 observation._validate_facts()
                                 take()
                                 observation._validate_facts()
-                            observation._projection.project_sdk_read_delivery_storage(
-                                request, original_run, transfer)
+
+                            precommit_frame = require_frame
+                            try:
+                                observation._projection.project_sdk_read_delivery_storage(
+                                    request, original_run, transfer, require_frame=require_frame)
+                            finally:
+                                precommit_frame = None
                         binding.inspect_reader(reader, prepare)
                     generations = observation._store.compare_exchange_projected_inspected(
-                        6, project, observation._originals, fences, inspect=inspect,
+                        7, project, observation._originals, fences, inspect=inspect,
                         current=binding._current_observer, before_commit=before_commit,
-                        _sdk_delivery_prewrite=observation._projection._saved)
+                        _sdk_delivery_prewrite=observation._projection._saved,
+                        _sdk_first_evidence=True)
                 if generations is None:
                     raise LocalStorageError('Original delivery physical CAS conflicted; lookup is required')
                 return generations

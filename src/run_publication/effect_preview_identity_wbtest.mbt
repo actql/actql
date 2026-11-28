@@ -884,6 +884,121 @@ test "Effect Preview 0.1 semantic and member CID exclude only derived bindings" 
   ).unwrap()
   assert_eq(effect_preview_semantic_identity(another_run), preview_cid)
   assert_true(
+    project_effect_preview_changes(
+      admitted,
+      another_run_wire,
+      (8192, 256, 12),
+      8192,
+      256,
+      12,
+      "original-unit",
+      expected_member,
+    )
+    is Err(Preview(RunBindingMismatch)),
+  )
+  fn write_display(
+    byte_limit : Int,
+    node_limit : Int,
+    depth_limit : Int,
+  ) -> Result[String, EffectReviewProjectionIssue] {
+    project_effect_preview_changes(
+      admitted,
+      valid,
+      (8192, 256, 12),
+      byte_limit,
+      node_limit,
+      depth_limit,
+      "original-unit",
+      expected_member,
+    )
+  }
+  let displayed_wire = write_display(8192, 256, 12).unwrap()
+  let displayed = parse_contract_wire(
+    displayed_wire,
+    8192,
+    256,
+    12,
+    data_keys=true,
+  ).unwrap()
+  assert_eq(@json.object_field_count(displayed), Some(4))
+  assert_eq(
+    contract_string_from_value(displayed, "effect_preview_cid"),
+    Some(preview_cid),
+  )
+  assert_true(@json.object_field(displayed, "approval_claims") is None)
+  fn displayed_field(name : String) -> String raise @encode.EncodeFailure {
+    @json.stringify_value(
+      @json.object_field(displayed, name).unwrap(),
+      8192,
+      256,
+      12,
+    )
+  }
+
+  let rows =
+    #|[{"after":{"state":"present","value":{"Name":"After"}},"before":{"state":"present","value":{"Name":"Before"}},"effect_id":"WriteOne","intended_changes":{"state":"present","value":{"Name":"After"}},"preview_strength":"full_diff","row_preview_cid":"sha256:4531682e916a81a555998f41de7fef4c505a841b83d794d09d95db899d6e55c8","target_guard":{"state":"version","version_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"target_row_identity":"001000000000001"}]
+  let scope = @json.object_field(displayed, "effect_set").unwrap()
+  assert_eq(contract_string_from_value(scope, "unit_id"), Some("original-unit"))
+  assert_eq(contract_string_from_value(scope, "kind"), Some("unordered"))
+  assert_eq(
+    contract_string_from_value(scope, "active_member_preview_cid"),
+    Some(expected_member),
+  )
+  guard @json.object_field(scope, "members") is Some(@json.Array(items)) else {
+    fail("missing original Effect members")
+  }
+  let members = @json.array_values(items)
+  assert_eq(members.length(), 1)
+  assert_eq(
+    contract_string_from_value(members[0], "effect_id"),
+    Some("WriteOne"),
+  )
+  assert_eq(
+    contract_string_from_value(members[0], "member_preview_cid"),
+    Some(expected_member),
+  )
+  assert_eq(contract_string_from_value(members[0], "target"), Some("Object"))
+  assert_eq(
+    @json.object_field(members[0], "input").bind(input => {
+      contract_string_from_value(input, "kind")
+    }),
+    Some("none"),
+  )
+  assert_eq(displayed_field("displayed_permissions"), "[\"write\"]")
+  assert_eq(displayed_field("displayed_rows"), rows)
+  // This fixture is ASCII, so its character length is its exact wire extent.
+  let node_cut = 37
+  let depth_cut = 5
+  assert_eq(
+    write_display(displayed_wire.length(), node_cut, depth_cut),
+    Ok(displayed_wire),
+  )
+  assert_true(
+    project_effect_preview_changes(
+      admitted,
+      valid,
+      (8192, 256, 12),
+      8192,
+      256,
+      12,
+      "original-unit",
+      preview_identity_test_cid("f"),
+    )
+    is Err(ForeignPreview),
+  )
+  assert_true(
+    write_display(displayed_wire.length() - 1, node_cut, depth_cut)
+    is Err(DisplayLimit),
+  )
+  assert_true(
+    write_display(displayed_wire.length(), node_cut - 1, depth_cut)
+    is Err(DisplayLimit),
+  )
+  assert_true(
+    write_display(displayed_wire.length(), node_cut, depth_cut - 1)
+    is Err(DisplayLimit),
+  )
+  assert_true(
     effect_preview_private_holding_cid(
       another_run,
       preview_identity_test_cid("c"),

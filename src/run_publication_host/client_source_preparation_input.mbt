@@ -307,6 +307,7 @@ pub fn observe_prepare_checked_client_source_effect_computation(
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
+  debug_graph_work? : Int? = None,
 ) -> Result[
   (Result[PreparedClientEffectComputation, ClientEffectComputationIssue], Int64),
   ClientSourcePreparationIssue,
@@ -344,6 +345,7 @@ pub fn observe_prepare_checked_client_source_effect_computation(
     command_targets,
     lowering_work_out=Some(work),
     source_intent=Some(input.intent),
+    debug_graph_work~,
   )
   Ok((result, work.val))
 }

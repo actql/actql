@@ -19,7 +19,7 @@ try:
     assert json.loads(payload) == {'e\u0301/~😀': 'e\u0301\r\n😀', 'nullable': None, 'n': 1}
     # Allocation writes also require their original confirmed Writing parent.
     assert left.exports['actql_payload_allocation_reserve'](
-        left.store, left.nonce, handle, 1, 65000, 131300) == -2
+        left.store, left.nonce, handle, 1, 65000, 65536, 131300) == -2
     assert left.exports['actql_payload_allocation_produce'](
         left.store, left.nonce, handle, handle, handle) == -2
     assert left.exports['actql_payload_allocation_validate'](
@@ -35,6 +35,8 @@ try:
     assert right.exports['actql_buffer_byte'](right.store, left.nonce, handle, 0) == -1
     assert right.reads == 0
     # Sealed binding custody cannot be acquired from an arbitrary input loan.
+    assert left.exports['actql_payload_binding_transport_limit'](
+        left.store, left.nonce, handle) == -2
     assert left.exports['actql_payload_binding_reserve'](
         left.store, left.nonce, handle, 3, 131300) == -2
     for name in ('produce', 'validate'):

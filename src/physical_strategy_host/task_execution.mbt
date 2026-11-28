@@ -22,6 +22,7 @@ struct TaskExecution {
   numeric_pending : Array[TaskNumericExecution]
   numeric_occurrence_counts : Array[Int?]
   mut numeric_sealed : Bool
+  mut output_workspace_attached : Bool
 }
 
 ///|
@@ -347,6 +348,7 @@ pub fn[I, T] start_captured_managed_execution(
         numeric_pending: [],
         numeric_occurrence_counts: Array::make(numeric.length(), None),
         numeric_sealed: false,
+        output_workspace_attached: false,
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -514,6 +516,7 @@ fn[T] start_task_execution(
         numeric_pending: [],
         numeric_occurrence_counts: Array::make(numeric.length(), None),
         numeric_sealed: numeric.is_empty(),
+        output_workspace_attached: false,
       }
       run.executions[task] = Some(execution)
       run.running = Some((task, execution))
@@ -531,6 +534,69 @@ pub fn task_execution_managed_attempt(
 ) -> @execution.ManagedExecutionAttempt? {
   if task_execution_matches(run, execution) {
     Some(execution.attempt)
+  } else {
+    None
+  }
+}
+
+///|
+/// The selected Host owns the actual paid workspace and its pure output
+/// attachment together. The Relation outcome can observe only its identity.
+struct TaskOutputWorkspace {
+  resource : @resources.StartedTaskWorkspace
+  original : @execution.OutputWorkspaceOriginal
+}
+
+///|
+/// Attach the checked sequence to the exact started Task before its provider
+/// enters. Binding always mints the origin here and refuses a previously
+/// attached sequence. The Host cannot re-pair another output's origin.
+pub fn bind_task_execution_output_workspace(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  sequence : @execution.GeneratedSequence,
+  limits : @execution.SequenceExecutionLimits,
+  reserve : (Int64) -> Result[Unit, @execution.WorkspaceGrowthIssue],
+  reserve_retained : ((Int64, Int64) -> Result[
+    Unit,
+    @execution.WorkspaceGrowthIssue,
+  ])?,
+) -> Result[
+  (@execution.GeneratedSequence, TaskOutputWorkspace),
+  @execution.SequenceRunIssue,
+] {
+  guard task_execution_matches(run, execution) &&
+    !run.stopped &&
+    !execution.disposed &&
+    !execution.execution_settled &&
+    !execution.output_workspace_attached &&
+    @resources.capture_started_task_workspace(run.ledger, execution.reservation)
+    is Some(resource) else {
+    return Err(@execution.InputOwnership)
+  }
+  @execution.bind_generated_workspace_growth(
+    sequence,
+    limits,
+    @resources.ledger_admission_limits(run.ledger).execution_bytes,
+    reserve,
+    meter_retained_outputs=true,
+    reserve_retained~,
+    track_output_origin=true,
+  ).map(sequence => {
+    let original = @execution.generated_output_workspace_original(sequence).unwrap()
+    execution.output_workspace_attached = true
+    (sequence, { resource, original, })
+  })
+}
+
+///|
+/// Match the same original attachment before borrowing its physical proof.
+pub fn task_output_workspace_resource(
+  workspace : TaskOutputWorkspace,
+  original : @execution.OutputWorkspaceOriginal,
+) -> @resources.StartedTaskWorkspace? {
+  if @execution.same_output_workspace_original(workspace.original, original) {
+    Some(workspace.resource)
   } else {
     None
   }

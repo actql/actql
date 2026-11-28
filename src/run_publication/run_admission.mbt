@@ -362,43 +362,35 @@ pub fn issue_run_definition(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  body_work? : ((Int) -> Bool)? = None,
 ) -> Result[PublicationContract, RunPublicationAdmissionIssue] {
   if created_at >= valid_until || valid_until > admission.expires_at {
     return Err(RunAdmissionInvalidLifetime)
   }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(RunAdmissionEncoding)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "authorization_context_cid")
-    @encode.string_value(writer, admission.authorization_context_cid)
-    @encode.key(writer, "compiled_plan_cid")
-    @encode.string_value(writer, admission.compiled_plan_cid)
-    @encode.key(writer, "created_at")
-    @encode.string_value(writer, created_at)
-    if publication_contract_effect_target_selections_cid(
-        admission.compiled_plan,
-      )
-      is Some(selection_cid) {
-      @encode.key(writer, "effect_target_selections_cid")
-      @encode.string_value(writer, selection_cid)
+  let writer = try {
+    match body_work {
+      Some(work) =>
+        @encode.work_writer(max_wire_bytes, max_nodes, max_depth, work)
+      None => @encode.writer(max_wire_bytes, max_nodes, max_depth)
     }
-    @encode.key(writer, "input_artifact_set_cid")
-    @encode.string_value(writer, input_artifact_set_cid)
-    @encode.key(writer, "invocation_template_cid")
-    @encode.string_value(writer, admission.template.identity)
-    @encode.key(writer, "run_id")
-    @encode.string_value(writer, run_id)
-    @encode.key(writer, "scope_id")
-    @encode.string_value(writer, scope_id)
-    @encode.key(writer, "valid_until")
-    @encode.string_value(writer, valid_until)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-run-definition/0.1")
-    @encode.end_object(writer)
   } catch {
     _ => return Err(RunAdmissionEncoding)
+  }
+  emit_run_definition_body(
+    admission.template,
+    admission.compiled_plan,
+    admission.authorization_context_cid,
+    scope_id,
+    run_id,
+    input_artifact_set_cid,
+    created_at,
+    valid_until,
+    writer,
+  ) catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      return Err(RunAdmissionEncoding)
+    }
   }
   let body = @encode.finish(writer) catch {
     _ => return Err(RunAdmissionEncoding)
@@ -409,6 +401,166 @@ pub fn issue_run_definition(
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(RunAdmissionContract(issue))
+  }
+}
+
+///|
+fn emit_run_definition_body(
+  template : RunEvidenceValue,
+  plan : PublicationContract,
+  authorization_context_cid : String,
+  scope_id : String,
+  run_id : String,
+  input_artifact_set_cid : String,
+  created_at : String,
+  valid_until : String,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "authorization_context_cid")
+  @encode.string_value(writer, authorization_context_cid)
+  @encode.key(writer, "compiled_plan_cid")
+  @encode.string_value(writer, plan.identity)
+  @encode.key(writer, "created_at")
+  @encode.string_value(writer, created_at)
+  if publication_contract_effect_target_selections_cid(plan)
+    is Some(selection_cid) {
+    @encode.key(writer, "effect_target_selections_cid")
+    @encode.string_value(writer, selection_cid)
+  }
+  @encode.key(writer, "input_artifact_set_cid")
+  @encode.string_value(writer, input_artifact_set_cid)
+  @encode.key(writer, "invocation_template_cid")
+  @encode.string_value(writer, template.identity)
+  @encode.key(writer, "run_id")
+  @encode.string_value(writer, run_id)
+  @encode.key(writer, "scope_id")
+  @encode.string_value(writer, scope_id)
+  @encode.key(writer, "valid_until")
+  @encode.string_value(writer, valid_until)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-run-definition/0.1")
+  @encode.end_object(writer)
+}
+
+///|
+/// Measure the exact initial Definition body from the same admitted inputs and
+/// emitter, without building its text or issuing a Definition. The body parser
+/// and sealed identity/text need their own construction backing.
+pub fn measure_run_definition_body(
+  admission : RunPublicationAdmission,
+  scope_id : String,
+  run_id : String,
+  input_artifact_set_cid : String,
+  created_at : String,
+  valid_until : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@encode.EncodingConstructionGeometry, RunPublicationAdmissionIssue] {
+  if created_at >= valid_until || valid_until > admission.expires_at {
+    return Err(RunAdmissionInvalidLifetime)
+  }
+  measure_run_definition_body_inputs(
+    admission.template,
+    admission.compiled_plan,
+    admission.authorization_context_cid,
+    scope_id,
+    run_id,
+    input_artifact_set_cid,
+    created_at,
+    valid_until,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Measure a fresh source-free Definition before the allow evidence exists.
+/// Requires the actual selected template, Plan and admitted Host context
+/// values. Measurement cannot grant authority or issue a Definition.
+pub fn measure_fresh_source_free_run_definition_body(
+  template : RunEvidenceValue,
+  plan : PublicationContract,
+  authorization_context_cid : String,
+  host_policy_cid : String,
+  scope_id : String,
+  run_id : String,
+  created_at : String,
+  valid_until : String,
+  body_work? : ((Int) -> Bool)? = None,
+) -> Result[@encode.EncodingConstructionGeometry, RunPublicationAdmissionIssue] {
+  if template.name != "bound_invocation_template" ||
+    plan.name != "compiled_plan" ||
+    publication_contract_effect_target_selections_cid(plan) is Some(_) ||
+    !valid_contract_cid(authorization_context_cid) ||
+    !valid_contract_cid(host_policy_cid) {
+    return Err(RunAdmissionWrongEvidence)
+  }
+  if !valid_timestamp(created_at) ||
+    !valid_timestamp(valid_until) ||
+    created_at >= valid_until {
+    return Err(RunAdmissionInvalidLifetime)
+  }
+  // The policy fixes the empty input-set CID. Borrow an admitted CID of the
+  // same ASCII width for geometry, without constructing the actual hash.
+  measure_run_definition_body_inputs(
+    template,
+    plan,
+    authorization_context_cid,
+    scope_id,
+    run_id,
+    plan.identity,
+    created_at,
+    valid_until,
+    100000,
+    10000,
+    100,
+    body_work~,
+  )
+}
+
+///|
+fn measure_run_definition_body_inputs(
+  template : RunEvidenceValue,
+  plan : PublicationContract,
+  authorization_context_cid : String,
+  scope_id : String,
+  run_id : String,
+  input_artifact_set_cid : String,
+  created_at : String,
+  valid_until : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  body_work? : ((Int) -> Bool)? = None,
+) -> Result[@encode.EncodingConstructionGeometry, RunPublicationAdmissionIssue] {
+  let writer = try {
+    match body_work {
+      Some(work) =>
+        @encode.work_construction_measuring_writer(
+          max_wire_bytes, max_nodes, max_depth, work,
+        )
+      None =>
+        @encode.construction_measuring_writer(
+          max_wire_bytes, max_nodes, max_depth,
+        )
+    }
+  } catch {
+    _ => return Err(RunAdmissionEncoding)
+  }
+  try {
+    emit_run_definition_body(
+      template, plan, authorization_context_cid, scope_id, run_id, input_artifact_set_cid,
+      created_at, valid_until, writer,
+    )
+    Ok(@encode.finish_construction_measurement(writer))
+  } catch {
+    _ => {
+      @encode.cancel_writer(writer)
+      Err(RunAdmissionEncoding)
+    }
   }
 }
 

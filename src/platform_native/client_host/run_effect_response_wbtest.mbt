@@ -106,10 +106,7 @@ test "Native saved response does not settle unknown or bypass cancellation and c
   guard journal.lookup(request, true) is Ok(Retained(before)) else {
     fail("Run missing")
   }
-  journal
-  .transaction(() => journal.save({ ..before, cancellation_requested: true, }))
-  .unwrap()
-  |> ignore
+  journal.accept_fixture_cancellation(before)
   let unknown = journal.record_effect_row_unknown(dispatch).unwrap()
   journal
   .record_effect_row_response(dispatch, response_test_value(), 4096)
@@ -140,7 +137,7 @@ test "Native saved response does not settle unknown or bypass cancellation and c
   guard journal.lookup(request, true) is Ok(Retained(after)) else {
     fail("Run missing")
   }
-  assert_true(after.cancellation_requested)
+  assert_true(after.cancellation_requested())
   assert_eq(after.checkpoint.unwrap().effect_ledger.length(), 3)
   assert_true(
     journal.effect_row_response(dispatch, () => true, 4096) is Ok(Some(_)),

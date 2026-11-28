@@ -1,4 +1,45 @@
 ///|
+priv enum ManagedInferRelationPrefix {
+  Prepaid(
+    @execution.GeneratedSequence,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits
+  )
+  Metered(
+    @execution.GeneratedSequence,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @execution.FixedInputGuardMeasureLimits,
+    @execution.ExecutionCapacity
+  )
+}
+
+///|
+priv enum ManagedProviderStartExtension {
+  Numeric(
+    (
+      @execution.GeneratedSequence,
+      Array[ManagedProviderInput],
+      Int,
+      Int,
+      @execution.SequenceExecutionLimits,
+      @execution.NumericAggregateExecution?,
+    ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]
+  )
+  TaskWorkspace(
+    (
+      @execution.GeneratedSequence,
+      Array[ManagedProviderInput],
+      Int,
+      Int,
+      @execution.SequenceExecutionLimits,
+      @strategy.TaskOutputWorkspace?,
+    ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]
+  )
+}
+
+///|
 /// One family execution selected before runtime data access. The common Local
 /// driver owns selection and lifecycle; the provider owns only typed bounded
 /// kernel progress for the exact prepared sequence.
@@ -20,24 +61,11 @@ struct ManagedProvider {
     Int,
     @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]
-  /// A provider that runs selected common numeric reductions receives the
-  /// task-owned reduction callbacks at start; others never see them.
-  start_numeric : ((
-    @execution.GeneratedSequence,
-    Array[ManagedProviderInput],
-    Int,
-    Int,
-    @execution.SequenceExecutionLimits,
-    @execution.NumericAggregateExecution?,
-  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?
+  // Borrow only the selected provider family's original Task controls.
+  start_extension : ManagedProviderStartExtension?
   // A trusted Model family can delegate its exact pre-boundary Relation
   // segment to the same bounded Local owner. This is not an acceptance Bool.
-  infer_relation_prefix : (
-    @execution.GeneratedSequence,
-    Int,
-    @execution.SequenceExecutionLimits,
-    @execution.FixedInputGuardMeasureLimits,
-  )?
+  infer_relation_prefix : ManagedInferRelationPrefix?
 }
 
 ///|
@@ -236,8 +264,36 @@ pub fn managed_provider_with_inputs(
     capacity,
     bounded_relation_capacity,
     start,
-    start_numeric: None,
+    start_extension: None,
     infer_relation_prefix: None,
+  }
+}
+
+///|
+/// This original Model provider receives the exact started output backing
+/// in addition to the same generated sequence. Other provider families do
+/// not accept a Task workspace.
+pub fn managed_provider_with_task_workspace(
+  accepts : (@execution.GeneratedSequence) -> Bool,
+  capacity : (@execution.GeneratedSequence) -> @execution.ExecutionCapacity?,
+  start : (
+    @execution.GeneratedSequence,
+    Array[ManagedProviderInput],
+    Int,
+    Int,
+    @execution.SequenceExecutionLimits,
+    @strategy.TaskOutputWorkspace?,
+  ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
+) -> ManagedProvider {
+  {
+    ..managed_provider_with_inputs(accepts, capacity, (
+      sequence,
+      inputs,
+      rows,
+      bytes,
+      limits,
+    ) => start(sequence, inputs, rows, bytes, limits, None)),
+    start_extension: Some(TaskWorkspace(start)),
   }
 }
 
@@ -264,7 +320,7 @@ pub fn managed_provider_with_numeric(
     start: (sequence, inputs, rows, bytes, execution) => {
       start(sequence, inputs, rows, bytes, execution, None)
     },
-    start_numeric: Some(start),
+    start_extension: Some(Numeric(start)),
     infer_relation_prefix: None,
   }
 }
@@ -280,10 +336,17 @@ pub fn managed_provider_with_infer_relation_prefix(
   boundary_step : Int,
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
+  metered_output_start? : @execution.ExecutionCapacity? = None,
 ) -> ManagedProvider {
   {
     ..provider,
-    infer_relation_prefix: Some((prefix, boundary_step, execution, measurement)),
+    infer_relation_prefix: Some(
+      match metered_output_start {
+        Some(start) =>
+          Metered(prefix, boundary_step, execution, measurement, start)
+        None => Prepaid(prefix, boundary_step, execution, measurement)
+      },
+    ),
   }
 }
 
@@ -413,19 +476,23 @@ pub fn start_managed_provider_with_inputs_and_execution(
   max_value_bytes : Int,
   execution : @execution.SequenceExecutionLimits,
   numeric? : @execution.NumericAggregateExecution? = None,
+  task_workspace? : @strategy.TaskOutputWorkspace? = None,
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
-  match provider.start_numeric {
-    Some(start) =>
+  match (provider.start_extension, task_workspace) {
+    (Some(TaskWorkspace(start)), workspace) =>
+      start(sequence, inputs, max_rows, max_value_bytes, execution, workspace)
+    (Some(Numeric(start)), None) =>
       start(sequence, inputs, max_rows, max_value_bytes, execution, numeric)
-    None =>
+    (None, None) =>
       (provider.start)(sequence, inputs, max_rows, max_value_bytes, execution)
+    _ => Err(@connector.ComputeUnsupported)
   }
 }
 
 ///|
 /// Whether the provider runs selected common numeric reductions itself.
 pub fn managed_provider_runs_numeric(provider : ManagedProvider) -> Bool {
-  provider.start_numeric is Some(_)
+  provider.start_extension is Some(Numeric(_))
 }
 
 ///|

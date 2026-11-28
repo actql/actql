@@ -123,7 +123,7 @@ test "actual appended Group identity still refuses the completion-free inventory
     )
     is Err(CompletionObserved),
   )
-  assert_true(original.local_normalization is None)
+  assert_true(original.local_normalization is NormalizationNotIssued)
 }
 
 ///|

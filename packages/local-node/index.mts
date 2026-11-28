@@ -1,11 +1,28 @@
 import {connectEmbeddedLocal, publishInstalledEffect,
   publishInstalledSource} from './adapters/host-node/embedded-local.mjs';
 import {ClientError} from '@actql/sdk';
+import {createRequire} from 'node:module';
 export {createInstalledConnectorTable} from './adapters/host-node/installed-connectors.mjs';
 
 type ConnectOptions = Parameters<typeof import('./index.d.ts').connect>[0];
 type PublishSourceOptions = Parameters<typeof import('./index.d.ts').publishSource>[0];
 type PublishEffectOptions = Parameters<typeof import('./index.d.ts').publishEffect>[0];
+type HttpChatFactory = typeof import('./adapters/host-node/model-http/normal-http-chat.mjs').createHttpChatProvider;
+const requireOriginal = createRequire(import.meta.url);
+
+// The protected Host calls this only after the original package image has
+// been acquired. Importing the public facade does not preload the adapter.
+export const createHttpChatProvider: HttpChatFactory = options => {
+  let configure: ReturnType<HttpChatFactory> | undefined;
+  return (moon, context) => {
+    if (configure === undefined) {
+      const original = requireOriginal('./adapters/host-node/model-http/normal-http-chat.mjs') as
+        Readonly<{createHttpChatProvider: HttpChatFactory}>;
+      configure = original.createHttpChatProvider(options);
+    }
+    return configure(moon, context);
+  };
+};
 
 // Publish the installed source's declaration (for example a Salesforce
 // source's targeted Catalog) before the embedded Host uses it.

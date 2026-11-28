@@ -129,7 +129,6 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
     !entry.arena.matches_business_scope(false) ||
     !managed_relation_file_originals_match(access.source, prepared, request) ||
     result_count <= 0 ||
-    (model_graphs is Some(_) && result_count != 1) ||
     @strategy.graph_program_has_effects(graph) {
     return refuse(Configuration)
   }
@@ -160,7 +159,7 @@ pub fn NativeLocalHostConnection::open_original_managed_relation_files_source_wo
       ) ==
       @publication.publication_contract_identity(definition) &&
       !record.physical_start_claimed &&
-      !record.cancellation_requested &&
+      !record.cancellation_requested() &&
       record.checkpoint is None => ()
     Ok(_) => return refuse(NeedsOriginalReconciliation)
     Err(issue) => return refuse(OriginalOperation(issue))

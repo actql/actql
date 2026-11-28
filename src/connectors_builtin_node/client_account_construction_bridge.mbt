@@ -243,6 +243,7 @@ pub fn client_program_relation_sample_debug_next_input(
       @client_local_host.NextInputForeignOriginal => "foreign"
       @client_local_host.NextInputStalePause => "stale"
       @client_local_host.NextInputWorkLimit => "capacity"
+      @client_local_host.NextInputCapacity(_) => "capacity"
     }
   })
 }

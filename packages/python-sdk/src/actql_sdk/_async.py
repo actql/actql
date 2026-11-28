@@ -109,7 +109,8 @@ class AsyncClient:
 
     @classmethod
     async def _open_installed_local(cls, *, state_dir=None, signer=None,
-                                    discover_project=False, profile=None):
+                                    discover_project=False, profile=None,
+                                    model_deployment=None):
         selected_signer = None if signer is None else capture_signer(signer)
         from ._local_worker_funding import LocalWorkerFundingUnavailable
         try:
@@ -123,6 +124,8 @@ class AsyncClient:
             if discover_project:
                 options['_discover_project'] = True
                 options['_project_profile'] = profile
+            if model_deployment is not None:
+                options['_model_deployment'] = model_deployment
             host = InstalledLocalHost.installed(**options)
         except LocalProductCleanupPending as failure:
             client = cls._from_local_host(failure.cleanup_host)
@@ -144,7 +147,7 @@ class AsyncClient:
 
     @classmethod
     async def connect(cls, endpoint=_MISSING, token=_NO_TOKEN, *, mode='remote',
-                      installation=_MISSING, **options):
+                      installation=_MISSING, model_deployment=_MISSING, **options):
         if mode == 'local':
             if endpoint is not _MISSING or token is not _NO_TOKEN:
                 raise ClientError('InvalidConnectionOptions')
@@ -154,9 +157,11 @@ class AsyncClient:
                     and (type(profile) is not str or len(profile) > 65536)):
                 raise ClientError('InvalidConnectionOptions')
             selected = {} if installation is _MISSING else {'state_dir': installation}
+            if model_deployment is not _MISSING:
+                selected['model_deployment'] = model_deployment
             return await cls._open_installed_local(signer=signer, profile=profile,
                                                    discover_project=True, **selected)
-        if mode != 'remote' or installation is not _MISSING:
+        if mode != 'remote' or installation is not _MISSING or model_deployment is not _MISSING:
             raise ClientError('InvalidConnectionOptions')
         if endpoint is _MISSING:
             raise ClientError('InvalidConnectionEndpoint')

@@ -1514,7 +1514,7 @@ test('pipeline evidence aggregates dependency failures but stops on workflow can
   }
 });
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
-  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-composition', 'client-salesforce']],
+  for (const [name, groups] of [['client', ['client-packages', 'client-supported-versions', 'client-distribution', 'client-distribution-callers', 'client-distribution-mutations', 'client-distribution-packed', 'native-cli-installed', 'client-packed', 'client-packed-composition', 'client-salesforce', 'client-model-packed']],
     ['pipeline-evidence', [...Object.values(partJobs), 'pipeline-validation']]]) {
     assert.deepEqual(jobs[name].needs, groups);
     assert.match(jobs[name].if, /always\(\)/u);
@@ -1534,7 +1534,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
 });
 
 test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-direct-model', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels',
     'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
@@ -1744,7 +1744,10 @@ test('large CI plans launch both original portable Core step command sequences',
         PATH: `${join(root, 'bin')}:/usr/bin:/bin`, CALLS: calls}});
     assert.equal(child.status, 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
-    assert.deepEqual(observed[0].args, ['test', '--target', target, '--deny-warn', '-j', '2']);
+    const {command, args} = observed[0];
+    assert.deepEqual([command, ...args], target === 'wasm'
+      ? ['node', 'scripts/ci-moon-tests.mjs', 'wasm', '--all']
+      : ['moon', 'test', '--target', 'js', '--deny-warn', '-j', '2']);
     if (target === 'js') assert(observed.every(entry => entry.command === 'moon'));
     // The Wasm branch below checks each actual required case/argument and
     // producer prerequisite; an old number of node calls is not its contract.
@@ -1885,7 +1888,7 @@ test('PR lifecycle uses current event Draft state; ready and later heads retain 
 });
 
 test('Unrelated Draft cannot start product, packed, proof or backend jobs; final gate still runs', () => {
-  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
+  const heavy = ['core', 'host', 'client-packages', 'client-readme-packed', 'client-direct-model', 'client-supported-versions', 'client-distribution', 'client-distribution-callers',
     'client-distribution-mutations', 'client-distribution-packed', 'client-packed', 'client-packed-composition', 'client-salesforce',
     'native-cli-installed', 'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock', 'native', 'session-evidence', 'session-controls', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity',
     'pipeline-capacity-mutants', 'pipeline-validation', 'native-macos', 'python-wheels', 'native-separated-network',
@@ -2114,9 +2117,9 @@ test('distribution isolates pinned provider tests with their required GC recipe'
     assert.equal(selected.length, 1);
     assert.equal(selected[0].if, steps.find(step => step.name === 'Test source-backed distribution contracts').if);
     assert.equal(selected[0]['continue-on-error'], undefined);
-    assert(steps.indexOf(steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts')) < steps.indexOf(selected[0]));
+    assert(steps.indexOf(steps.find(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps')) < steps.indexOf(selected[0]));
   }
-  assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts'));
+  assert(steps.some(step => step.run === 'npm ci --prefix packages/provider-ai-sdk --ignore-scripts --legacy-peer-deps'));
   for (const step of steps.filter(step => step.run?.startsWith('node --test '))) {
     assert(!step.run.includes('packages/provider-ai-sdk/*.test.mjs'));
     assert(!step.run.includes('--expose-gc'));
@@ -2319,15 +2322,50 @@ test('a wheel aggregate requires each selected same-source platform result and s
   }
 });
 
-test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
+test('normal Python wheels are mandatory for full profiles independently of optional native macOS', t => {
   const job = jobs['python-wheels'];
   assert.equal(job['runs-on'], '${{ matrix.runner }}');
   assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(scheduled('python-wheels', {'select-targets': {result: 'success', outputs: {profile: 'full', targets: '["js","wasm","native"]', python_wheels: 'true', macos: 'false'}},
     lint: {result: 'success'}, 'core-js': {result: 'success'}}), true);
-  assert(job.steps.some(step => step.run === 'python3 -B scripts/ci-python-wheels.py --destination "$RUNNER_TEMP/python-wheel-acceptance"'));
+  const platformAdmission = job.steps.find(step => step.env?.EXPECTED_SYSTEM);
+  const portable = job.steps.filter(step => step.run?.includes('scripts/prepare-python-model-crypto.py'));
+  const wheel = job.steps.find(step => step.id === 'python-normal-cohort');
+  assert(platformAdmission && portable.length === 1 && wheel);
+  assert(job.steps.indexOf(platformAdmission) < job.steps.indexOf(portable[0]));
+  assert(job.steps.indexOf(portable[0]) < job.steps.indexOf(wheel));
+  for (const step of [...portable, wheel]) {
+    assert.equal(step.if, undefined);
+    assert.equal(step['continue-on-error'], undefined);
+  }
+  const root = mkdtempSync(join(tmpdir(), 'python-wheel-normal-recipe-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const python = join(root, 'python3');
+  writeFileSync(python, '#!/bin/sh\nprintf "%s\\0" "$@"\n');
+  chmodSync(python, 0o755);
+  const wheelRoot = join(root, 'original wheel platform');
+  const cryptoRoot = join(wheelRoot, 'python-model-crypto');
+  const run = step => {
+    const result = spawnSync('/bin/bash', ['-eu', '-c', step.run], {
+      env: {...process.env, PATH: root + ':' + process.env.PATH, RUNNER_TEMP: wheelRoot, GITHUB_SHA: head},
+      encoding: 'utf8', timeout: 5000,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.split('\0').slice(0, -1);
+  };
+  assert.deepEqual(run(portable[0]), ['-B', 'scripts/prepare-python-model-crypto.py',
+    '--source', head, '--destination', cryptoRoot]);
+  assert.deepEqual(run(wheel), ['-B', 'scripts/ci-python-wheels.py', '--source', head,
+    '--destination', join(wheelRoot, 'python-wheel-acceptance'),
+    '--model-crypto-preparation', join(cryptoRoot, 'component')]);
   assert(jobs.lint.steps.some(step => step.run === 'python3 -B scripts/test_ci_python_wheels.py'));
   const selection = selectTargets(['README.md'], {event: 'workflow_dispatch', mainIntegration: true, nativeMacos: false});
+  assert.deepEqual(pythonWheelMatrix(selection).include.map(row => row.platform).sort(), ['darwin-arm64', 'linux-x64']);
+  for (const platform of ['darwin-arm64', 'linux-x64']) {
+    const needs = results(selection);
+    delete needs['python-wheels'].outputs[platform];
+    assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), new RegExp(platform));
+  }
   for (const result of ['failure', 'cancelled', 'skipped']) {
     const needs = results(selection); needs['python-wheels'].result = result;
     assert.throws(() => verifyGate(plan(selection), needs, {...context, event: 'workflow_dispatch'}), /python-wheels/);

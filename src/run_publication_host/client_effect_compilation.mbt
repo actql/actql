@@ -143,6 +143,68 @@ pub fn issue_prepared_client_effect_compilation(
 }
 
 ///|
+pub(all) enum ClientFirstLocalEffectCompilationIssue {
+  ProfileUnavailable
+  ConstructionRefused
+  NormalizationRefused(ClientEffectNormalizationIssue)
+  CompilationRefused(ClientEffectCompilationIssue)
+}
+
+///|
+/// The first installed Local compiler consumes the checked Effect original.
+/// The caller supplies the installed manifests and original Model graphs from
+/// the same funded Request. The resulting proof is the one the compiler used.
+pub fn issue_first_local_effect_compilation(
+  owner : PreparedClientEffectComputation,
+  manifests : ClientCompilationManifests,
+  infers : Array[ClientInferPlanGraph],
+  allow_file_mutation? : Bool = false,
+  before_compilation? : ((ClientEffectNormalization) -> Bool)? = None,
+) -> Result[
+  (ClientEffectCompilation, ClientEffectNormalization),
+  ClientFirstLocalEffectCompilationIssue,
+] {
+  let headers = @checked.effect_program_static_headers(owner.candidate)
+  guard @syntax.effect_header_at(headers, 0) is Some(header) else {
+    return Err(ProfileUnavailable)
+  }
+  let first_kind = @syntax.effect_header_kind(header)
+  let result = match first_kind {
+    "create" if @syntax.effect_header_count(headers) == 1 =>
+      issue_prepared_client_effect_normalization(owner)
+    "update" | "delete" if first_kind == "update" || allow_file_mutation =>
+      issue_prepared_client_effect_selected_normalization(
+        owner,
+        allow_source_completion=true,
+        allow_file_mutation~,
+      )
+    _ => return Err(ProfileUnavailable)
+  }
+  let normalization = match result {
+    Ok(value) => value
+    Err(issue) => return Err(NormalizationRefused(issue))
+  }
+  if before_compilation is Some(fund) && !fund(normalization) {
+    return Err(ConstructionRefused)
+  }
+  issue_prepared_client_effect_compilation(
+    owner,
+    manifests,
+    client_standard_values_sequence_limits(),
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+    normalization=Some(normalization),
+    infer=if infers.length() == 1 { Some(infers[0]) } else { None },
+    infers=if infers.length() == 1 { [] } else { infers },
+  )
+  .map(value => (value, normalization))
+  .map_err(issue => CompilationRefused(issue))
+}
+
+///|
 /// Restoration selects a candidate profile only provisionally. The saved
 /// invocation/authorization and expected original Run CID must then bind it.
 /// This verifies an inventory but never issues a new normalization journal.

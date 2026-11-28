@@ -548,3 +548,233 @@ test "same Request compiler retains original default Parameter binding and Unico
   clear_program_check_preparation(owner).unwrap()
   abort_request_preparation_after_cleanup(parent).unwrap()
 }
+
+///|
+test "Effect Debug refuses a one-short selected graph grow before compiling and retries the same quote" {
+  let (parent, owner, input, _) = request_effect_fixture()
+  finish_effect_program_check_preparation(owner).unwrap() |> ignore
+  let candidate = owner.effect_candidate.unwrap()
+  let checked = @checked.effect_computation_checked_program(candidate)
+  let limits = owner.effect_limits.unwrap().program
+  let observed = Ref(0L)
+  let (bytes, remaining) = @publication_host.measure_client_debug_graph_construction(
+    checked,
+    limits.max_tasks,
+    limits.max_graph_work,
+    observed,
+    effect=Some(candidate),
+  ).unwrap()
+  assert_true(bytes > 0L && observed.val > 0L)
+  let original = @resources.preparation_capacity_working_extents(
+    owner.capacity,
+    input,
+  ).unwrap()
+  let required = original.0 +
+    program_check_data_extent_cost(owner.check_data.unwrap()).unwrap() +
+    sequence_demand_scalar_delta_bytes +
+    280L +
+    @publication_host.client_debug_graph_quotation_control_bytes() +
+    bytes
+  let budget = @resources.ledger_limits(parent.ledger)
+  let blocker = @resources.reserve_capacity(
+    parent.ledger,
+    budget.retained_bytes - required + 1L,
+    0L,
+  ).unwrap()
+  assert_true(
+    compile_effect_program_check_preparation(owner, execution_profile=Debug)
+    is Err(Capacity(Resource(RetentionLimit))),
+  )
+  assert_true(owner.compiled_effect is None)
+  assert_eq(owner.compilation_known_work, observed.val)
+  guard owner.phase is DebugCompilationQuoted(quoted_work) else {
+    fail("the failed growth keeps the original measured phase")
+  }
+  assert_eq(quoted_work, remaining)
+  let quote = owner.compilation_quote.unwrap()
+  assert_eq(quote.0, required)
+  let original_work = owner.topology_work.unwrap()
+  assert_true(
+    @resources.remaining_preparation_phase_work_continuation64(original_work)
+    is Err(WrongPhase),
+  )
+  assert_true(
+    compile_effect_program_check_preparation(owner) is Err(ChangedInputs),
+  )
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  let compiled = match
+    compile_effect_program_check_preparation(owner, execution_profile=Debug) {
+    Ok(value) => value
+    Err(EffectCompilation(Graph(issue))) =>
+      fail("Funded same-request Debug graph: " + @debug.to_string(issue))
+    Err(_) => fail("Funded Debug request failed before graph construction")
+  }
+  assert_eq(owner.compilation_quote, Some(quote))
+  assert_true(owner.topology_work is None)
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(compiled),
+  )
+  assert_true(physical_equal(@strategy.graph_program(graph), checked))
+  assert_eq(@strategy.graph_task_count(graph), 2)
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+  assert_eq(@strategy.checked_task_control_operation_task(graph, 0, 0), Some(0))
+  assert_eq(@strategy.checked_task_control_operation_task(graph, 0, 1), Some(1))
+  clear_program_check_preparation(owner).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Effect Debug remaps the private write input and keeps the public Result on its original Step" {
+  let (parent, owner, _, _) = request_effect_fixture(
+    write_input_before_last_step=true,
+  )
+  finish_effect_program_check_preparation(owner).unwrap() |> ignore
+  let prepared = match
+    compile_effect_program_check_preparation(owner, execution_profile=Debug) {
+    Ok(value) => value
+    Err(EffectCompilation(Graph(issue))) =>
+      fail(
+        "Debug graph with distinct private Result: " + @debug.to_string(issue),
+      )
+    Err(_) =>
+      fail(
+        "Debug request with distinct private Result failed before graph construction",
+      )
+  }
+  let checked = @publication_host.prepared_client_effect_computation_graph(
+    prepared,
+  )
+  let graph = @strategy.checked_effect_computation_graph(checked)
+  assert_eq(@strategy.graph_task_count(graph), 2)
+  assert_eq(@strategy.graph_result_count(graph), 1)
+  assert_eq(@strategy.graph_result_name(graph, 0), Some("rows"))
+  assert_eq(@strategy.graph_result_task(graph, 0), Some(1))
+  let private_source = @strategy.checked_effect_source_at(checked, 0).unwrap()
+  assert_eq(@strategy.checked_effect_source_task(private_source), 0)
+  assert_eq(@strategy.graph_task_target(graph, 0), Some(@pipeline.Step(0)))
+  let private_occurrence = @strategy.checked_effect_source_occurrence(
+    private_source,
+  )
+  assert_eq(
+    @execution.managed_result_occurrence_name(private_occurrence),
+    "seed_rows",
+  )
+  let public_port = @execution.managed_result_occurrence_port(
+    @strategy.graph_result_occurrence(graph, 0).unwrap(),
+  )
+  let private_port = @execution.managed_result_occurrence_port(
+    private_occurrence,
+  )
+  assert_false(physical_equal(public_port, private_port))
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+  clear_program_check_preparation(owner).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "Normal Effect keeps its fused original when Debug has not been selected" {
+  let (parent, owner, _, _) = request_effect_fixture()
+  finish_effect_program_check_preparation(owner).unwrap() |> ignore
+  let prepared = compile_effect_program_check_preparation(owner).unwrap()
+  let checked = @publication_host.prepared_client_effect_computation_graph(
+    prepared,
+  )
+  let graph = @strategy.checked_effect_computation_graph(checked)
+  assert_eq(@strategy.graph_task_count(graph), 1)
+  assert_eq(@strategy.checked_task_control_operation_task(graph, 0, 0), None)
+  assert_eq(@strategy.checked_task_control_operation_task(graph, 0, 1), None)
+  assert_true(owner.topology_work is None)
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+  clear_program_check_preparation(owner).unwrap()
+  abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "static Effect Debug uses the same original lowered owner with bounded work and scratch" {
+  let (parent, input, prepared) = request_effect_compile_fixture()
+  let capacity = parent.effect_capacity.unwrap()
+  let original = @publication_host.prepared_client_effect_computation_graph(
+    prepared,
+  )
+  let graph = @strategy.checked_effect_computation_graph(original)
+  let base = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let work = 4096
+  let observed = Ref(0L)
+  let (bytes, remaining) = @publication_host.measure_client_static_effect_debug_graph_construction(
+    prepared,
+    8192,
+    work / 2,
+    observed,
+  ).unwrap()
+  assert_true(bytes > 0L && observed.val > 0L)
+  assert_true(
+    @publication_host.measure_client_static_effect_debug_graph_construction(
+      prepared,
+      8192,
+      observed.val.to_int() - 1,
+      Ref(0L),
+    )
+    is Err(Graph(WorkLimit)),
+  )
+  let split = match
+    @publication_host.prepare_client_static_effect_debug_graph(
+      prepared,
+      8192,
+      remaining - (7L * observed.val + 1L).to_int(),
+    ) {
+    Ok(graph) => graph
+    Err(issue) => fail("Original static split: " + @debug.to_string(issue))
+  }
+  assert_eq(@strategy.graph_task_count(split), 2)
+  assert_true(@strategy.graph_source_free_inputs_complete(split))
+  assert_true(@strategy.checked_source_free_effect_control_has_entry(split))
+  assert_eq(@strategy.checked_task_control_operation_task(split, 0, 0), Some(0))
+  assert_eq(@strategy.checked_task_control_operation_task(split, 0, 1), Some(1))
+  assert_true(
+    @publication_host.prepared_client_effect_requires_query_time(
+      prepared,
+      work / 2,
+      work / 2,
+    )
+    is Ok(false),
+  )
+  let limits = @resources.ledger_limits(parent.ledger)
+  let controls = @publication_host.client_debug_graph_quotation_control_bytes()
+  // One byte short of even the quoted graph before the extra entry frame.
+  let unavailable = @resources.reserve_capacity(
+    parent.ledger,
+    limits.retained_bytes - base.0 - controls - bytes + 1L,
+    0L,
+  ).unwrap()
+  assert_true(
+    static_effect_debug_entry_probe(capacity, input, prepared, 8192, work).unwrap().0 ==
+    false,
+  )
+  @resources.settle_capacity(parent.ledger, unavailable).unwrap()
+  assert_true(
+    static_effect_debug_entry_probe(capacity, input, prepared, 8192, 15).unwrap() ==
+    (false, 0),
+  )
+  assert_false(
+    static_effect_debug_entry_probe(capacity, input, prepared, 1, work).unwrap().0,
+  )
+  assert_true(
+    static_effect_debug_entry_probe(capacity, input, prepared, 8192, work).unwrap() ==
+    (true, work),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    base,
+  )
+  assert_eq(@strategy.graph_task_count(graph), 1)
+  assert_true(
+    physical_equal(
+      original,
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    ),
+  )
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

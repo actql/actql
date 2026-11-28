@@ -67,3 +67,20 @@ pub fn ClientProjectCatalog::count(self : Self) -> Int {
 pub fn ClientProjectCatalog::at(self : Self, index : Int) -> (String, String)? {
   self.entries.get(index)
 }
+
+///|
+/// Select one original catalogue body and its matched configured connector by
+/// exact logical connection name, in catalogue order.
+pub fn ClientProjectCatalog::mock_source_at(
+  self : Self,
+  connections : ClientProjectConnections,
+  index : Int,
+) -> (String, String, String)? {
+  guard self.entries.get(index) is Some((name, entry)) else { return None }
+  for candidate in connections.entries {
+    if candidate.0 == name {
+      return Some((name, candidate.1, entry))
+    }
+  }
+  None
+}

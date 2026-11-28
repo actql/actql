@@ -550,6 +550,10 @@ pub fn model_response_profile_identity(ModelResponseProfile) -> String
 
 pub fn model_response_profile_limits(ModelResponseProfile) -> ModelResponseProfileLimits
 
+pub fn model_response_profile_matches_installation(ModelResponseProfile, ModelResponseProfileInstallation) -> Bool
+
+pub fn model_response_profile_matches_normalized_chat(ModelResponseProfile, NormalizedPublicModelTask, String) -> Bool
+
 pub fn model_response_profile_observation_at(ModelResponseProfile, Int) -> String?
 
 pub fn model_response_profile_observation_count(ModelResponseProfile) -> Int
@@ -614,9 +618,13 @@ pub fn normalized_public_mock_model_task_matches_task(NormalizedPublicModelTask,
 
 pub fn normalized_public_mock_model_task_original_for(NormalizedPublicModelTask, PublicModelTaskDeclaration, ModelMockProfile) -> Bool
 
+pub fn normalized_public_model_task_connector(NormalizedPublicModelTask) -> String
+
 pub fn normalized_public_model_task_matches_response_profile(NormalizedPublicModelTask, ModelResponseProfile, String) -> Bool
 
 pub fn normalized_public_model_task_materials(NormalizedPublicModelTask) -> (String, String, String, String)
+
+pub fn normalized_public_model_task_model_selector(NormalizedPublicModelTask) -> String
 
 pub fn normalized_public_model_task_no_retry_materials(NormalizedPublicModelTask, Int64, Int64, Int64, Int64, Int64, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String), ModelTaskIssue]
 

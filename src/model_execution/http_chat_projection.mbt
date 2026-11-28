@@ -50,8 +50,7 @@ fn finish_openai_chat_http_projection(
   }
   defer retire_openai_chat_projection(cursor)
   match
-    emit_chat_request_profile(
-      InitialHttp,
+    emit_http_chat_request(
       request,
       value,
       model_id,
@@ -67,17 +66,7 @@ fn finish_openai_chat_http_projection(
 }
 
 ///|
-priv enum ChatRequestProfile {
-  InitialHttp
-  OpenAISdkV4
-}
-
-///|
-// One canonical writer and original checked Task schema for both physical
-// profiles. The profile changes only the pinned SDK's omission of n/stream;
-// it neither synthesizes generation defaults nor issues authority/capacity.
-fn emit_chat_request_profile(
-  profile : ChatRequestProfile,
+fn emit_http_chat_request(
   request : ModelRequest,
   value : (String, String, String, String, String, String, String),
   model_id : String,
@@ -101,26 +90,14 @@ fn emit_chat_request_profile(
     (seed < -9007199254740991L || seed > 9007199254740991L) {
     return Err(Unsupported)
   }
-  // JSON.stringify maps -0 to 0, whereas the previous SDK verification's
-  // original generation value used Object.is semantics. Preserve that SDK
-  // refusal rather than widening its physical subset through canonical zero.
-  if profile is OpenAISdkV4 &&
-    (
-      generation.temperature.reinterpret_as_uint64() == 0x8000000000000000UL ||
-      generation.top_p.reinterpret_as_uint64() == 0x8000000000000000UL
-    ) {
-    return Err(Unsupported)
-  }
   let mut remaining = max_remaining
   // Account complete string scans before the synchronous bounded convenience
   // writer. This is codec-local work, not a Ledger planning-token conversion.
-  // The initial HTTP profile has 43 fixed calls. SDK v4 omits the four
-  // n/stream key/value calls. Seed adds two calls to either profile. This
+  // The initial HTTP profile has 43 fixed calls. Seed adds two. This
   // structural work definition is independent of physical bytes and of the
   // checked schema emitter's own transition count below.
   let seed_work = if generation.seed_requested is Some(_) { 2 } else { 0 }
-  let structural_work = (if profile is InitialHttp { 43 } else { 39 }) +
-    seed_work
+  let structural_work = 43 + seed_work
   for
     cost in [
       model_id.length(),
@@ -151,10 +128,8 @@ fn emit_chat_request_profile(
     @encode.end_array(writer)
     @encode.key(writer, "model")
     @encode.string_value(writer, model_id)
-    if profile is InitialHttp {
-      @encode.key(writer, "n")
-      @encode.number_value(writer, 1)
-    }
+    @encode.key(writer, "n")
+    @encode.number_value(writer, 1)
     @encode.key(writer, "response_format")
     @encode.begin_object(writer)
     @encode.key(writer, "json_schema")
@@ -198,10 +173,8 @@ fn emit_chat_request_profile(
       @encode.key(writer, "seed")
       @encode.number_value(writer, seed.to_double())
     }
-    if profile is InitialHttp {
-      @encode.key(writer, "stream")
-      @encode.bool_value(writer, false)
-    }
+    @encode.key(writer, "stream")
+    @encode.bool_value(writer, false)
     @encode.key(writer, "temperature")
     @encode.number_value(writer, generation.temperature)
     @encode.key(writer, "top_p")

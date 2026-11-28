@@ -249,6 +249,82 @@ fn async_finish_quantum(
 }
 
 ///|
+test "strict physical failure waits for the same settlement and transport retirement" {
+  let calls = Ref(0)
+  let cancels = Ref(0)
+  let cleaned : Array[Bool] = []
+  let ready = Ref(false)
+  let release = Ref(false)
+  let (active, prefix) = async_response_fixture(
+    calls,
+    Ref(0),
+    cancels,
+    cleaned,
+    ready,
+    release,
+    @model.PhysicalRejected(@model.RateLimit, {
+      input_tokens: Some(0L),
+      output_tokens: None,
+    }),
+    start_original=Some(() => {
+      contract_capacity_start(calls, 2, 133072L, asynchronous=true, strict=true)
+    }),
+  )
+  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+    abort("first original Slot did not enter")
+  }
+  ready.val = true
+  guard fixture_finish(active, initial_work=work) is Settling(0, work=settled) else {
+    abort("strict failure must allow the original settlement to be saved")
+  }
+  let settlement = call_settlement(active).unwrap()
+  let model = active.model.unwrap()
+  let proof = @model.model_execution_attempt_evidence(model, 0).unwrap()
+  let outcome = @model.model_attempt_outcome(proof)
+  let outcome_cid = @publication.run_evidence_value_identity(outcome)
+  assert_true(
+    @publication.run_evidence_value_json(outcome).contains("rate_limit"),
+  )
+  // The capture export is only the structured response bundle. The independently
+  // issued Attempt outcome above is the failed-Call evidence to persist.
+  assert_true(async_settlement_wire(active).contains("\"captures\":[]"))
+  guard advance(active, 31).unwrap() is Settling(0, work=unchanged) else {
+    abort("the same failed Slot must remain selected")
+  }
+  assert_eq(unchanged, settled)
+  assert_eq(calls.val, 1)
+  assert_eq(cleaned.length(), 0)
+  assert_true(acquire_output(active) is None)
+  assert_true(@model.acknowledge_model_call_settlement(settlement))
+  assert_false(@model.acknowledge_model_call_settlement(settlement))
+  async_assert_wait(active, settled)
+  assert_eq(cleaned, [true])
+  release.val = true
+  guard advance(active, 31).unwrap()
+    is Failed(Model(@model.Provider(@model.RateLimit)), work=finished) else {
+    abort("the first typed failure must follow the same transport retirement")
+  }
+  assert_eq(finished, settled)
+  assert_eq(calls.val, 1)
+  assert_eq(cancels.val, 0)
+  assert_eq(cleaned, [true, true])
+  assert_true(call_settlement(active) is None)
+  assert_true(acquire_output(active) is None)
+  assert_eq(
+    @publication.run_evidence_value_identity(
+      @model.model_attempt_outcome(
+        @model.model_execution_attempt_evidence(model, 0).unwrap(),
+      ),
+    ),
+    outcome_cid,
+  )
+  // The two prefunded request cursors retire one per existing cleanup step.
+  assert_false(cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_eq(cleaned, [true, true])
+}
+
+///|
 test "original async call polls without work and retains nullable response until settlement cleanup" {
   for metadata_kind in ["null", "empty", "nonempty"] {
     let metadata = match metadata_kind {

@@ -10,60 +10,55 @@ pub fn validate_publication_commit_payload_binding(
   result : Int,
   binding_index : Int,
 ) -> Int {
-  // A no-loan capability query stays distinct from either real validation.
-  // An older guest refuses these zero handles with -2 before reading Store.
-  if result == -2147483648 &&
-    publication == 0 &&
-    payload_record == 0 &&
-    current_configuration == 0 &&
-    binding_index == 0 {
-    return if selected(nonce) is Some(_) { 1 } else { -2 }
-  }
-  // The private Saved selector encodes two checked 0..7 coordinates. Its
-  // last argument is now the same sealed physical-observation input.
-  if result >= -1073741887 && result <= -1073741824 {
-    guard selected(nonce) is Some(value) &&
-      value.payload_records.get(payload_record) is Some(payload) &&
-      payload.source is SavedResult(_, saved) else {
-      return -2
-    }
-    let coordinates = -1073741824 - result
-    let binding = validate_original_publication_payload_binding(
-      nonce,
-      publication,
-      payload_record,
-      current_configuration,
-      coordinates / 8,
-      coordinates % 8,
-    )
-    if binding != 0 {
-      return binding
-    }
-    let same_reader_census = if saved_result_export_parent(value, publication)
-      is Some((parent, original)) &&
-      physical_equal(saved, original) &&
-      parent.kind == INCREMENTAL_SAVED_RESULT_KIND {
-      match physical_journal_current_operation(0) {
-        1L => true
-        0L | -41L => false
-        _ => return -41
-      }
-    } else {
-      false
-    }
-    let snapshot = validate_original_payload_record_snapshot(
-      nonce,
-      payload_record,
-      binding_index,
-      current_configuration,
-      same_reader_census~,
-    )
-    // Keep the two original failure roles distinct without another export.
-    return if snapshot == 0 { 0 } else { snapshot - 1024 }
-  }
   validate_original_publication_payload_binding(
     nonce, publication, payload_record, current_configuration, result, binding_index,
   )
+}
+
+///|
+/// Validate binding and snapshot on the same selected Saved reader.
+/// The observation is a separate sealed input, not a binding coordinate.
+pub fn validate_saved_result_reader_facts(
+  nonce : Int64,
+  publication : Int,
+  payload_record : Int,
+  current_configuration : Int,
+  result : Int,
+  binding_index : Int,
+  observation : Int,
+) -> Int {
+  guard result >= 0 &&
+    result < 8 &&
+    binding_index >= 0 &&
+    binding_index < 8 &&
+    selected(nonce) is Some(value) &&
+    value.payload_records.get(payload_record) is Some(payload) &&
+    payload.source is SavedResult(_, saved) else {
+    return -2
+  }
+  let binding = validate_original_publication_payload_binding(
+    nonce, publication, payload_record, current_configuration, result, binding_index,
+  )
+  if binding != 0 {
+    return binding
+  }
+  let same_reader_census = saved_result_export_parent(value, publication)
+    is Some((parent, original)) &&
+    physical_equal(saved, original) &&
+    parent.kind == INCREMENTAL_SAVED_RESULT_KIND
+  let snapshot = validate_original_payload_record_snapshot(
+    nonce,
+    payload_record,
+    observation,
+    current_configuration,
+    same_reader_census~,
+  )
+  // Keep the binding, snapshot and first physical refusal distinguishable.
+  if snapshot == 0 || snapshot == -41 {
+    snapshot
+  } else {
+    snapshot - 1024
+  }
 }
 
 ///|
@@ -113,12 +108,22 @@ fn validate_original_publication_payload_binding(
   if payload.closing {
     return -5
   }
-  let (commit, view) = match
-    publication_commit_export_view(value, parent, current.account) {
+  let selected_view = match parent.file {
+    Some(file) =>
+      checked_publication_commit_view(value, parent, () => {
+        sdk_file_observed_payload_current(
+          value, publication, parent, file, current,
+        )
+      })
+    None => publication_commit_export_view(value, parent, current.account)
+  }
+  let (commit, view) = match selected_view {
     Ok(original) => original
     Err(code) => return code
   }
-  if result < 0 || result >= parent.publications.length() || binding_index < 0 {
+  if result < 0 ||
+    result >= publication_result_count(parent) ||
+    binding_index < 0 {
     return -3
   }
   guard payload.confirmed &&
@@ -138,28 +143,83 @@ fn validate_original_publication_payload_binding(
     ) &&
     original_parent == publication &&
     original_result == result &&
-    payload_record_current(value, payload, current_configuration) &&
     value.publication_preflights.get(parent.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) else {
+    is Some({ closing: false, .. } as preflight) else {
     return -32
+  }
+  match observed_live_payload_current(value, payload, current_configuration) {
+    Err(code) => return code
+    Ok(_) => ()
   }
   let binding = match commit.view_binding(view, binding_index) {
     Ok(binding) => binding
     Err(_) => return -32
   }
-  match
-    @local_run.validate_local_preflight_commit_binding(
-      preflight,
-      result,
-      parent.publications[result],
-      original,
-      current.account,
-      binding,
-      65536,
-      4096,
-      64,
-    ) {
-    Ok(_) => 0
-    Err(_) => -32
+  match preflight.origin {
+    ComputePublicationPreflight({ prepared: Some(prepared), .. }) =>
+      if @local_run.validate_local_preflight_commit_binding(
+          prepared,
+          result,
+          parent.publications[result],
+          original,
+          current.account,
+          binding,
+          65536,
+          4096,
+          64,
+        )
+        is Ok(_) {
+        0
+      } else {
+        -32
+      }
+    FilePublicationPreflight(file) => {
+      let recheck = () => {
+        observed_live_payload_current(value, payload, current_configuration).map_err(code => {
+            @local_run.LocalCapturedTaskPublicationPreflightIssue::Binding(
+              @local_run.LocalRunPublicationBindingIssue::Current(
+                @host.ClientLocalAdoptedCurrentIssue::Physical(code),
+              ),
+            )
+          },
+        )
+      }
+      let expected = with_sdk_file_payload_result_current(
+        parent,
+        file,
+        result,
+        recheck,
+        (prepared, row, recheck) => {
+          @local_run.issue_local_captured_task_sealed_result_binding(
+            prepared,
+            result,
+            row,
+            original,
+            {
+              max_results: value.workspace_slots,
+              max_wire_bytes: 65536,
+              max_nodes: 4096,
+              max_depth: 64,
+            },
+            recheck,
+          )
+        },
+      )
+      match expected {
+        Ok(value) => if same_sdk_file_binding(value, binding) { 0 } else { -35 }
+        Err(code) => code
+      }
+    }
+    SavedEffectPublicationPreflight({ prepared: Some(prepared), .. }) =>
+      match prepared.bind_sealed_payload(result, original) {
+        Ok(expected) if same_sdk_file_binding(expected, binding) =>
+          if payload_record_current(value, payload, current_configuration) {
+            0
+          } else {
+            -32
+          }
+        _ => -35
+      }
+    _ => -32
   }
 }

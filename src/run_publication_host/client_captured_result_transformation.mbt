@@ -4,6 +4,7 @@
 pub struct CapturedClientResultTransformation {
   preparation : ClientResultTransformationPreparation
   mut borrow : PublicationResultRetention?
+  mut finish_handoff : Ref[PublicationOutputExport?]?
 }
 
 ///|
@@ -64,6 +65,7 @@ pub fn start_captured_client_result_transformation(
 fn captured_result_publication_binding(
   run : @strategy.CapturedDAG,
   result : Int,
+  definition? : @publication.PublicationContract,
 ) -> Result[
   (Int, @execution.ManagedResultOccurrence, @publication.PublicationContract),
   CapturedClientResultTransformationIssue,
@@ -74,11 +76,14 @@ fn captured_result_publication_binding(
     @strategy.graph_result_name(graph, result) is Some(name) else {
     return Err(ForeignSelection)
   }
-  match
-    @publication.prepare_result_definition(
-      @strategy.graph_program_definition_cid(graph),
-      name,
-    ) {
+  let program = @strategy.graph_program_definition_cid(graph)
+  if definition is Some(original) {
+    if @publication.result_definition_contract_matches(original, program, name) {
+      return Ok((task, occurrence, original))
+    }
+    return Err(ForeignSelection)
+  }
+  match @publication.prepare_result_definition(program, name) {
     Ok(value) =>
       Ok((task, occurrence, @publication.result_definition_contract(value)))
     Err(_) => Err(ForeignSelection)
@@ -155,6 +160,7 @@ pub fn start_captured_result_publication_export(
         Ok({
           preparation: { occurrence, definition, preparation, limits, },
           borrow: Some(Any(borrow)),
+          finish_handoff: None,
         })
       Err(issue) => {
         @strategy.release_captured_any_result_borrow(borrow) |> ignore
@@ -186,7 +192,8 @@ pub fn start_captured_result_publication_export(
     }
     match
       start_result_publication_export(output, occurrence, definition, limits) {
-      Ok(preparation) => Ok({ preparation, borrow: Some(Cells(borrow)), })
+      Ok(preparation) =>
+        Ok({ preparation, borrow: Some(Cells(borrow)), finish_handoff: None, })
       Err(issue) => {
         @strategy.release_captured_result_borrow(borrow) |> ignore
         Err(Transform(issue))
@@ -236,12 +243,13 @@ pub fn[T] start_captured_managed_result_publication_export(
   output : @execution.CompletedOutput,
   limits : PublicationOutputExportLimits,
   max_pins? : Int = 0,
+  definition? : @publication.PublicationContract,
 ) -> Result[
   CapturedClientResultTransformation,
   CapturedClientResultTransformationIssue,
 ] {
   let (task, occurrence, definition) = match
-    captured_result_publication_binding(run, result) {
+    captured_result_publication_binding(run, result, definition?) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -292,18 +300,21 @@ pub fn[T] start_captured_managed_result_publication_export(
     @strategy.release_captured_any_result_borrow(borrow) |> ignore
     return Err(ForeignSelection)
   }
-  Ok({ preparation, borrow: Some(Any(borrow)), })
+  Ok({ preparation, borrow: Some(Any(borrow)), finish_handoff: None, })
 }
 
 ///|
 pub fn CapturedClientResultTransformation::advance(
   self : CapturedClientResultTransformation,
   quantum : Int,
+  before_metadata? : ((@execution.ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Bool, Int), CapturedClientResultTransformationIssue] {
   if self.borrow is None {
     return Err(InvalidState)
   }
-  self.preparation.advance(quantum).map_err(issue => Transform(issue))
+  self.preparation
+  .advance(quantum, before_metadata~)
+  .map_err(issue => Transform(issue))
 }
 
 ///|
@@ -348,10 +359,21 @@ pub fn captured_client_result_transformation_retained(
 ///|
 pub fn CapturedClientResultTransformation::finish(
   self : CapturedClientResultTransformation,
+  handoff? : Ref[PublicationOutputExport?]? = None,
 ) -> Result[PublicationOutputExport, CapturedClientResultTransformationIssue] {
-  guard self.borrow is Some(borrow) else { return Err(InvalidState) }
+  guard self.borrow is Some(borrow) && self.finish_handoff is None else {
+    return Err(InvalidState)
+  }
+  if handoff is Some(cell) && cell.val is Some(_) {
+    return Err(InvalidState)
+  }
+  self.finish_handoff = handoff
   match self.preparation.finish() {
     Ok(exported) => {
+      // The held cell becomes inspectable before the borrow moves.
+      if handoff is Some(cell) {
+        cell.val = Some(exported)
+      }
       exported.retained = Some(borrow)
       self.borrow = None
       Ok(exported)
@@ -364,6 +386,15 @@ pub fn CapturedClientResultTransformation::finish(
 pub fn CapturedClientResultTransformation::cancel(
   self : CapturedClientResultTransformation,
 ) -> Unit {
+  if self.finish_handoff is Some(cell) && cell.val is Some(output) {
+    // Interrupted after publishing the export into the cell but before
+    // clearing the original borrow: cancel it through the original owner.
+    if self.borrow is Some(_) {
+      output.retained = None
+    }
+    output.cancel()
+    cell.val = None
+  }
   if self.borrow is Some(borrow) {
     self.preparation.cancel() |> ignore
     match borrow {

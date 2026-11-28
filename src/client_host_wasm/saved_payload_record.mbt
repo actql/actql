@@ -4,6 +4,8 @@ fn saved_payload_record_context(
   record : StoredPayloadRecord,
   configuration : Int,
   same_reader_census? : Bool = false,
+  task_material_proof? : SavedTaskMaterialProof? = None,
+  read_only_saved_control? : Bool = false,
 ) -> Result[
   (StoredSubmissionProjection, StoredSavedResultRead, StoredRunConfiguration),
   Int,
@@ -21,7 +23,14 @@ fn saved_payload_record_context(
     return Err(-5)
   }
   match
-    validate_saved_result_read(value, parent, current, same_reader_census~) {
+    validate_saved_result_read(
+      value,
+      parent,
+      current,
+      same_reader_census~,
+      task_material_proof~,
+      read_only_saved_control~,
+    ) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }
@@ -37,6 +46,8 @@ fn observe_saved_payload_record(
   record : StoredPayloadRecord,
   configuration : Int,
   same_reader_census? : Bool = false,
+  task_material_proof? : SavedTaskMaterialProof? = None,
+  read_only_saved_control? : Bool = false,
 ) -> Result[@publication.PublicationContract?, Int] {
   let (_, saved, current) = match
     saved_payload_record_context(
@@ -44,6 +55,8 @@ fn observe_saved_payload_record(
       record,
       configuration,
       same_reader_census~,
+      task_material_proof~,
+      read_only_saved_control~,
     ) {
     Ok(value) => value
     Err(code) => return Err(code)
@@ -255,6 +268,8 @@ fn saved_payload_binding(
   record : StoredPayloadRecord,
   configuration : Int,
   same_reader_census? : Bool = false,
+  task_material_proof? : SavedTaskMaterialProof? = None,
+  read_only_saved_control? : Bool = false,
 ) -> Result[@publication.PublicationContract, Int] {
   if !record.confirmed || record.pending || record.closing {
     return Err(-32)
@@ -265,6 +280,8 @@ fn saved_payload_binding(
     record,
     configuration,
     same_reader_census~,
+    task_material_proof~,
+    read_only_saved_control~,
   )
   record.pending = false
   if record.closing {

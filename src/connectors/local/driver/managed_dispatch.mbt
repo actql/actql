@@ -1,4 +1,33 @@
 ///|
+fn[T] grow_local_finalization_workspace(
+  setup : LocalManagedDispatchConfiguration[T],
+  execution : @strategy.TaskExecution,
+  working : Int64,
+  transport : Int64,
+  imported : Int64,
+  metadata : Int64,
+) -> Result[Unit, LocalDispatchIssue] {
+  // These extents coexist. No allocation or workspace credit for the sum.
+  guard @execution.checked_preparation_add_product(
+      setup.capacity.scratch_bytes,
+      working,
+      1L,
+    )
+    is Some(base) &&
+    @execution.checked_preparation_add_product(base, transport, 1L)
+    is Some(with_transport) &&
+    @execution.checked_preparation_add_product(with_transport, imported, 1L)
+    is Some(with_imports) &&
+    @execution.checked_preparation_add_product(with_imports, metadata, 1L)
+    is Some(total) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  @strategy.grow_task_execution_workspace(setup.run, execution, total).map_err(issue => {
+    Execution(Physical(issue))
+  })
+}
+
+///|
 // A synchronous callback can reenter cancellation. Its stack roots still
 // belong to this execution until the callback returns.
 fn[A] with_managed_scratch_use(
@@ -51,6 +80,13 @@ fn[T] install_local_managed_input_read(
 }
 
 ///|
+priv enum ManagedOutputFunding {
+  Prepaid
+  MeteredRows(Int)
+  MeteredModel
+}
+
+///|
 /// Pure prepared Local managed task. Physical representation access starts
 /// only after common selection, reservation and task registration.
 struct LocalManagedDispatchConfiguration[T] {
@@ -69,7 +105,7 @@ struct LocalManagedDispatchConfiguration[T] {
   installation : LocalDispatchModule
   metadata : LocalManagedMetadataLimits
   capacity : @connector.ExecutionCapacity
-  metered_output_retention : Bool
+  output_funding : ManagedOutputFunding
   metered_retention : Bool
   join_output_ceilings : Array[(Int, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
@@ -247,6 +283,13 @@ pub struct LocalManagedDispatchOperations[T] {
   ]
   output_rows : () -> Int
   output_row : (Int) -> Result[String, LocalDispatchIssue]
+  visit_continuation_relation : ((
+    (
+      @execution.ManagedCompletedOutput[T],
+      @execution.CompletedOutput,
+      () -> Bool,
+    ) -> Unit,
+  ) -> Bool)?
   material : () -> @execution.ManagedRetainedOutput[T]?
   carrier_material : () -> @carrier_runtime.Material?
   prepare_carrier_snapshot : (() -> Bool) -> Result[
@@ -264,6 +307,23 @@ pub struct LocalManagedDispatchOperations[T] {
   cleanup_refresh : () -> Bool
   cleanup_progress : () -> Int64
   cleanup_local_continuation : () -> Int64
+}
+
+///|
+/// Borrow the actual retained completed Relation from this driver. The
+/// callback's lifetime predicate expires when this borrow returns.
+pub fn[T] with_local_managed_continuation_relation(
+  operations : LocalManagedDispatchOperations[T],
+  visit : (
+    @execution.ManagedCompletedOutput[T],
+    @execution.CompletedOutput,
+    () -> Bool,
+  ) -> Unit,
+) -> Bool {
+  match operations.visit_continuation_relation {
+    Some(read) => read(visit)
+    None => false
+  }
 }
 
 ///|
@@ -793,11 +853,30 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
   if provider is None {
     return Ok(None)
   }
-  let metered_start = @local.local_module_metered_output_start_capacity(
-    installed.implementation,
-    local_task_slot(installed, task),
-    sequence,
-  )
+  let slot = local_task_slot(installed, task)
+  let supplied = match relation_inputs {
+    [SuppliedRelationInput(read)] => Some(read)
+    _ => None
+  }
+  let (metered_start, output_funding) = match
+    @local.local_module_metered_model_start_capacity(
+      installed.implementation,
+      slot,
+      sequence,
+      supplied~,
+    ) {
+    Some(capacity) => (Some(capacity), MeteredModel)
+    None =>
+      match
+        @local.local_module_managed_start_capacity(
+          installed.implementation,
+          slot,
+          sequence,
+        ) {
+        Some((capacity, slots)) => (Some(capacity), MeteredRows(slots))
+        None => (None, Prepaid)
+      }
+  }
   let base = match metered_start {
     Some(value) => Some(value)
     None =>
@@ -953,7 +1032,7 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
       imports,
       installation: installed,
       metadata,
-      metered_output_retention: metered_start is Some(_),
+      output_funding,
       metered_retention: metered_start is Some(start) &&
       @local.local_module_capacity_for_sequence(
         installed.implementation,
@@ -2094,24 +2173,41 @@ pub fn[T] start_local_managed_dispatch(
             if !live.val || disposed.val {
               return Err(Configuration(InputUnavailable))
             }
-            let constrained = match
-              @execution.bind_generated_workspace_growth(
-                constrained,
-                setup.execution,
-                @resources.ledger_admission_limits(
-                  @strategy.captured_dag_ledger(setup.run),
-                ).execution_bytes,
-                reserve_working,
-                meter_retained_outputs=setup.metered_output_retention,
-                reserve_retained=if setup.metered_retention {
-                  Some(reserve_capacity)
-                } else {
-                  None
-                },
-              ) {
-              Ok(value) => {
+            let retained = if setup.metered_retention {
+              Some(reserve_capacity)
+            } else {
+              None
+            }
+            let attached = match setup.output_funding {
+              MeteredModel =>
+                @strategy.bind_task_execution_output_workspace(
+                  setup.run,
+                  execution,
+                  constrained,
+                  setup.execution,
+                  reserve_working,
+                  retained,
+                ).map(pair => (pair.0, Some(pair.1)))
+              Prepaid | MeteredRows(_) =>
+                @execution.bind_generated_workspace_growth(
+                  constrained,
+                  setup.execution,
+                  @resources.ledger_admission_limits(
+                    @strategy.captured_dag_ledger(setup.run),
+                  ).execution_bytes,
+                  reserve_working,
+                  meter_retained_outputs=!(setup.output_funding is Prepaid),
+                  prepaid_operation_slots=match setup.output_funding {
+                    MeteredRows(slots) => Some(slots)
+                    Prepaid | MeteredModel => None
+                  },
+                  reserve_retained=retained,
+                ).map(sequence => (sequence, None))
+            }
+            let (constrained, task_workspace) = match attached {
+              Ok((value, original)) => {
                 working_sequence.val = Some(value)
-                value
+                (value, original)
               }
               Err(issue) => return Err(Configuration(Execution(issue)))
             }
@@ -2135,6 +2231,7 @@ pub fn[T] start_local_managed_dispatch(
                 @connector.managed_fixed_compute_request_capacity(request).max_value_bytes,
                 setup.execution,
                 numeric~,
+                task_workspace~,
               ) {
               Ok(value) => value
               Err(issue) => {
@@ -2386,6 +2483,35 @@ pub fn[T] start_local_managed_dispatch(
         available() else {
         return Err(Configuration(InvalidLimits))
       }
+      // The exact terminal Model has already supplied its typed original.
+      // Its Local result measurement first needs workspace here. Input
+      // measurement and the Model's own validation have separate quotes.
+      if setup.output_funding is MeteredModel {
+        guard @execution.admitted_output_measurement_workspace(
+            setup.measurement,
+          )
+          is Some(measurement) else {
+          return Err(Configuration(InvalidLimits))
+        }
+        if measurement > metadata_extra.val {
+          match
+            grow_local_finalization_workspace(
+              setup,
+              execution,
+              working_extra.val,
+              transport_extra.val,
+              import_extra.val,
+              measurement,
+            ) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
+          metadata_extra.val = measurement
+          if !live.val || disposed.val || !available() {
+            return Err(Execution(Stopped))
+          }
+        }
+      }
 
       let values = match
         @execution.prepare_managed_output_values(
@@ -2455,7 +2581,8 @@ pub fn[T] start_local_managed_dispatch(
             values, output, row,
           ) {
           Ok(_) => ()
-          Err(@execution.Admission(@execution.InvalidCheckedRow)) =>
+          Err(@execution.Admission(@execution.InvalidCheckedRow)) if !(setup.output_funding
+            is MeteredModel) =>
             match
               @execution.append_completed_projection_managed_wire(
                 values,
@@ -3184,6 +3311,50 @@ pub fn[T] start_local_managed_dispatch(
         }
       }
       read(row, extent).map_err(_ => Configuration(InputUnavailable))
+    },
+    visit_continuation_relation: if @strategy.captured_relation_sample_start_selected(
+        setup.run,
+      ) {
+      Some(visit => {
+        if scratch_uses.val != 0 {
+          return false
+        }
+        with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+          guard live.val &&
+            !disposed.val &&
+            finalization_ready.val &&
+            retained.val is Some(_) &&
+            finalization_completed.val is Some(completed) &&
+            ordinary.val is Some(original) else {
+            return false
+          }
+          let active : Ref[(() -> Bool)?] = Ref(
+            Some(() => {
+              live.val &&
+              !disposed.val &&
+              retained.val is Some(_) &&
+              ordinary.val is Some(actual) &&
+              physical_equal(actual, original)
+            }),
+          )
+          let current = () => {
+            match active.val {
+              Some(check) => check()
+              None => false
+            }
+          }
+          visit(
+            completed,
+            @execution.restrict_completed_output(original, current),
+            current,
+          )
+          let available = current()
+          active.val = None
+          available
+        })
+      })
+    } else {
+      None
     },
     material: fn() { retained.val },
     carrier_material: fn() { carrier.val },

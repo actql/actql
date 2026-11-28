@@ -341,3 +341,18 @@ pub fn normalize_public_model_task(
     None,
   )
 }
+
+///|
+/// The selector chosen by the same defaults resolution and Task normalization.
+pub fn normalized_public_model_task_model_selector(
+  value : NormalizedPublicModelTask,
+) -> String {
+  value.resolved.model
+}
+
+///|
+pub fn normalized_public_model_task_connector(
+  value : NormalizedPublicModelTask,
+) -> String {
+  value.provider
+}

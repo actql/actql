@@ -135,6 +135,40 @@ test "Source request original Effect constructor retains intent before same body
   assert_true(
     source.preparation is Effect(actual) && physical_equal(actual, prepared),
   )
+  let scope = "sha256:" + "a".repeat(64)
+  let id = "same-effect-source-request"
+  let input_cid = client_submitted_intent_cid(input.intent)
+  let request = prepare_client_original_effect_request_identity(
+    prepared,
+    scope,
+    id,
+    submitted_input_cid=Some(input_cid),
+  ).unwrap()
+  assert_eq(client_request_input_cid(request), input_cid)
+  assert_eq(
+    request,
+    client_source_computation_request(source, scope, id).unwrap(),
+  )
+  assert_eq(
+    prepare_client_original_effect_request_identity(prepared, scope, id).unwrap(),
+    request,
+  )
+  let source_free_cid = source_free_caller_input_intent_cid()
+  let wrong_input = prepare_client_effect_request_identity(
+    prepared, scope, id, source_free_cid,
+  ).unwrap()
+  assert_true(
+    client_request_identity_relation(request, wrong_input) is ChangedIntent,
+  )
+  assert_true(
+    prepare_client_original_effect_request_identity(
+      prepared,
+      scope,
+      id,
+      submitted_input_cid=Some(source_free_cid),
+    )
+    is Err(IdentityMismatch),
+  )
   let (program, parameters, _) = client_effect_original_input_wires(prepared).unwrap()
   assert_eq(client_source_computation_material(source), (program, parameters))
   let equal_intent = prepare_client_submitted_intent(
@@ -152,6 +186,19 @@ test "Source request original Effect constructor retains intent before same body
     update_targets=lowered.update_targets,
   ).unwrap()
   assert_true(unbound.source_intent is None)
+  assert_eq(
+    prepare_client_original_effect_request_identity(unbound, scope, id).unwrap(),
+    wrong_input,
+  )
+  assert_true(
+    prepare_client_original_effect_request_identity(
+      unbound,
+      scope,
+      id,
+      submitted_input_cid=Some(input_cid),
+    )
+    is Err(IdentityMismatch),
+  )
   assert_true(
     retain_compiled_client_source_input(input, Effect(unbound)) is Err(Input),
   )

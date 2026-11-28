@@ -28,7 +28,7 @@ struct CapturedEffectInputs {
 struct CapturedEffectPreviewInputs {
   preview : @effect_binding.EffectProgramRunPreview
   inputs : CapturedEffectInputs
-  source_indexes : Array[Int?]
+  member_indexes : Array[Int]
 }
 
 ///|
@@ -58,6 +58,7 @@ fn pin_captured_effect_sources_with_ports(
   run : CapturedEffectRunDAG,
   max_pins : Int,
   local_ports : Array[CheckedLocalUnitResultPort],
+  admission? : CapturedEffectPinAdmission? = None,
 ) -> Result[CapturedEffectInputs, RunIssue] {
   let requests : Array[(Int, @execution.ManagedResultOccurrence)] = []
   let sources : Array[CheckedEffectSourcePort?] = []
@@ -91,7 +92,12 @@ fn pin_captured_effect_sources_with_ports(
     }
   }
   let pins = match
-    pin_captured_any_result_output_set(run.captured, requests, max_pins) {
+    pin_captured_any_result_output_set_in_admission(
+      run.captured,
+      requests,
+      max_pins,
+      admission,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -102,10 +108,17 @@ fn pin_captured_effect_sources_with_ports(
     }
   }
   let table_pins = match
-    pin_captured_table_input_output_set(run.captured, table_requests, max_pins) {
+    pin_captured_table_input_output_set_in_admission(
+      run.captured,
+      table_requests,
+      max_pins,
+      admission,
+    ) {
     Ok(value) => value
     Err(issue) => {
-      release_captured_any_result_output_set(pins) |> ignore
+      if admission is None {
+        release_captured_any_result_output_set(pins) |> ignore
+      }
       return Err(issue)
     }
   }
@@ -159,13 +172,14 @@ fn pin_captured_effect_sources_with_ports(
 }
 
 ///|
-/// Resolve Preview members to the checked source inventory without accepting
-/// a caller-supplied index or matching equal-CID but foreign Run owners.
-pub fn checked_effect_preview_source_indexes(
+/// Resolve every Preview member to its authored Effect occurrence in the
+/// checked Run. A member without an input still has an authored occurrence.
+/// Equal CIDs from another admitted Run cannot supply the occurrence inventory.
+pub fn checked_effect_preview_member_indexes(
   run : CheckedEffectRunDAG,
   preview : @effect_binding.EffectProgramRunPreview,
   max_work : Int,
-) -> Result[Array[Int?], RunIssue] {
+) -> Result[Array[Int], RunIssue] {
   if max_work < 0 {
     return Err(PreviewWorkLimit)
   }
@@ -192,7 +206,7 @@ pub fn checked_effect_preview_source_indexes(
       member_indexes[@syntax.effect_header_id(header)] = index
     }
   }
-  let indexes : Array[Int?] = []
+  let indexes : Array[Int] = []
   for preview_index in 0..<@publication.effect_preview_member_count(identity) {
     if remaining == 0 {
       return Err(PreviewWorkLimit)
@@ -210,7 +224,7 @@ pub fn checked_effect_preview_source_indexes(
       identity, preview_index,
     )
     match (source, table) {
-      (Some(source), None) => {
+      (Some(source), None) =>
         if expected !=
           Some(
             @publication.Result(
@@ -219,9 +233,7 @@ pub fn checked_effect_preview_source_indexes(
           ) {
           return Err(ForeignCandidate)
         }
-        indexes.push(Some(index))
-      }
-      (None, Some(table)) => {
+      (None, Some(table)) =>
         if expected !=
           Some(
             @publication.TableInput(
@@ -234,16 +246,10 @@ pub fn checked_effect_preview_source_indexes(
           ) {
           return Err(ForeignCandidate)
         }
-        indexes.push(Some(index))
-      }
-      (None, None) => {
-        if expected is Some(_) {
-          return Err(ForeignCandidate)
-        }
-        indexes.push(None)
-      }
+      (None, None) => if expected is Some(_) { return Err(ForeignCandidate) }
       _ => return Err(ForeignCandidate)
     }
+    indexes.push(index)
   }
   Ok(indexes)
 }
@@ -263,19 +269,19 @@ pub fn bind_captured_effect_preview_inputs(
   if !inputs.live {
     return Err(NotReady)
   }
-  let indexes = match
-    checked_effect_preview_source_indexes(inputs.run.checked, preview, max_work) {
+  let member_indexes = match
+    checked_effect_preview_member_indexes(inputs.run.checked, preview, max_work) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  for index in indexes {
-    if index is Some(index) {
-      if !captured_effect_source_available(inputs, index) {
-        return Err(NotReady)
-      }
+  let value = { preview, inputs, member_indexes, }
+  for index in 0..<member_indexes.length() {
+    if captured_effect_preview_expects_source(value, index) &&
+      !captured_effect_preview_source_available(value, index) {
+      return Err(NotReady)
     }
   }
-  Ok({ preview, inputs, source_indexes: indexes, })
+  Ok(value)
 }
 
 ///|
@@ -318,11 +324,9 @@ pub fn captured_effect_preview_input_at(
   if !value.inputs.live {
     return None
   }
-  let input = value.source_indexes
+  let input = value.member_indexes
     .get(preview_index)
-    .bind(index => {
-      index.bind(index => value.inputs.entries.get(index).bind(entry => entry))
-    })
+    .bind(index => value.inputs.entries.get(index).bind(entry => entry))
   input.bind(input => {
     if captured_any_result_borrow_available(input.borrow) {
       Some(input)
@@ -339,11 +343,21 @@ pub fn captured_effect_preview_table_input_at(
   value : CapturedEffectPreviewInputs,
   preview_index : Int,
 ) -> CapturedEffectTableInput? {
-  value.source_indexes
+  value.member_indexes
   .get(preview_index)
-  .bind(index => {
-    index.bind(index => captured_effect_table_input_at(value.inputs, index))
-  })
+  .bind(index => captured_effect_table_input_at(value.inputs, index))
+}
+
+///|
+fn captured_effect_preview_expects_source(
+  value : CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> Bool {
+  @publication.effect_preview_member_relation_source(
+    captured_effect_preview_ledger_identity(value),
+    preview_index,
+  )
+  is Some(_)
 }
 
 ///|
@@ -351,7 +365,7 @@ fn captured_effect_preview_source_available(
   value : CapturedEffectPreviewInputs,
   preview_index : Int,
 ) -> Bool {
-  value.source_indexes.get(preview_index).bind(index => index) is Some(index) &&
+  value.member_indexes.get(preview_index) is Some(index) &&
   captured_effect_source_available(value.inputs, index)
 }
 
@@ -379,10 +393,12 @@ pub fn captured_effect_preview_plan_terminal(
   if max_fields < 0 || max_work < 0 {
     return Err(Plan(@results.EffectPlanBindingIssue::InvalidLimits))
   }
-  guard value.source_indexes.get(preview_index) is Some(source_index) else {
+  guard value.member_indexes.get(preview_index) is Some(member_index) else {
     return Err(InvalidMember)
   }
-  guard source_index is Some(member_index) else { return Ok(None) }
+  if !captured_effect_preview_expects_source(value, preview_index) {
+    return Ok(None)
+  }
   let static_candidate = @effect_binding.effect_program_run_static_candidate(
     value.inputs.run.checked.run,
   )
@@ -461,8 +477,8 @@ pub fn check_captured_effect_preview_target_guards(
   if !value.inputs.live {
     return Err(NotReady)
   }
-  for index in 0..<value.source_indexes.length() {
-    if value.source_indexes[index] is Some(_) &&
+  for index in 0..<value.member_indexes.length() {
+    if captured_effect_preview_expects_source(value, index) &&
       !captured_effect_preview_source_available(value, index) {
       return Err(NotReady)
     }
@@ -497,8 +513,8 @@ pub fn captured_effect_preview_inputs_available(
   if !value.inputs.live {
     return false
   }
-  for index in 0..<value.source_indexes.length() {
-    if value.source_indexes[index] is Some(_) &&
+  for index in 0..<value.member_indexes.length() {
+    if captured_effect_preview_expects_source(value, index) &&
       !captured_effect_preview_source_available(value, index) {
       return false
     }
@@ -629,8 +645,8 @@ pub fn check_captured_effect_preview_capabilities(
   if !value.inputs.live {
     return Err(NotReady)
   }
-  for index in 0..<value.source_indexes.length() {
-    if value.source_indexes[index] is Some(_) &&
+  for index in 0..<value.member_indexes.length() {
+    if captured_effect_preview_expects_source(value, index) &&
       captured_effect_preview_input_at(value, index) is None {
       return Err(NotReady)
     }
@@ -671,8 +687,8 @@ pub fn check_captured_effect_risk_acceptance_body(
   if !value.inputs.live {
     return Err(NotReady)
   }
-  for index in 0..<value.source_indexes.length() {
-    if value.source_indexes[index] is Some(_) &&
+  for index in 0..<value.member_indexes.length() {
+    if captured_effect_preview_expects_source(value, index) &&
       captured_effect_preview_input_at(value, index) is None {
       return Err(NotReady)
     }
@@ -950,7 +966,7 @@ pub fn captured_effect_inputs_share_view(
 /// Revoke every consumer alias. Already returned input aliases share the
 /// underlying pins and become unavailable after this release.
 pub fn release_captured_effect_inputs(value : CapturedEffectInputs) -> Bool {
-  if !value.live {
+  if !value.live || value.run.captured.effect_pin_admission is Some(_) {
     return false
   }
   value.live = false
@@ -1111,9 +1127,40 @@ pub fn captured_effect_preview_member_count(
   if !value.inputs.live {
     return None
   }
-  Some(
-    @publication.effect_preview_member_count(
-      @effect_binding.effect_program_run_preview_identity(value.preview),
+  Some(value.member_indexes.length())
+}
+
+///|
+/// Read the authored occurrence and sealed member selected from this exact
+/// live captured Preview. This is evidence for a control boundary, while
+/// the Effect ledger and the current Site still own dispatch admission.
+pub fn captured_effect_preview_member_occurrence(
+  value : CapturedEffectPreviewInputs,
+  preview_index : Int,
+) -> Result[(Int, Int, String, String), RunIssue] {
+  if !value.inputs.live || value.inputs.run.captured.stopped {
+    return Err(NotReady)
+  }
+  let headers = @checked.effect_program_static_headers(
+    @effect_binding.effect_program_run_static_candidate(
+      value.inputs.run.checked.run,
+    ),
+  )
+  guard value.member_indexes.get(preview_index) is Some(authored_index) &&
+    @syntax.effect_header_at(headers, authored_index) is Some(header) &&
+    @publication.effect_preview_member_identity(
+      captured_effect_preview_ledger_identity(value),
+      preview_index,
+    )
+    is Some(member_preview_cid) else {
+    return Err(ForeignCandidate)
+  }
+  Ok(
+    (
+      @syntax.effect_header_stage(header),
+      authored_index,
+      @syntax.effect_header_id(header),
+      member_preview_cid,
     ),
   )
 }

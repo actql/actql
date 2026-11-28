@@ -42,6 +42,7 @@ fn publication_binding_saved_snapshot(
         request: encoding.request,
         definition: encoding.definition,
         checkpoint: None,
+        cancellation_head: encoding.cancellation_head,
         task_materials_cid: encoding.task_materials_cid,
       })
     },

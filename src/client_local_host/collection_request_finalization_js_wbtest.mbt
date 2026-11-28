@@ -9,6 +9,29 @@ test "Relation Sample captures the exact installed Request and committed output"
 }
 
 ///|
+test "one-short Sample adoption leaves the original Run work and prefix intact" {
+  collection_request_publication_case(
+    1,
+    false,
+    simple=true,
+    check_sample_start=true,
+    check_sample_adoption_short=true,
+  )
+}
+
+///|
+test "one-short optional Sample leaves the full seal Work for the original Run" {
+  collection_request_publication_case(
+    1,
+    false,
+    simple=true,
+    check_sample_start=true,
+    check_sample_adoption_short=true,
+    optional_sample=true,
+  )
+}
+
+///|
 test "acknowledged entry Step pauses before the next original Sample output" {
   collection_request_publication_case(
     1,
@@ -16,6 +39,41 @@ test "acknowledged entry Step pauses before the next original Sample output" {
     simple=true,
     check_sample_start=true,
     entry_step=true,
+  )
+}
+
+///|
+test "retained Sample evidence binds the original without repeating issuance" {
+  collection_request_publication_case(
+    1,
+    false,
+    simple=true,
+    check_sample_start=true,
+    entry_step=true,
+    readmit_sample=true,
+  )
+}
+
+///|
+test "a before-Run breakpoint profile stops at its exact original Step after the start acknowledgement" {
+  collection_request_publication_case(
+    1,
+    false,
+    simple=true,
+    check_sample_start=true,
+    check_profile_breakpoints=true,
+  )
+}
+
+///|
+test "paused Debug borrows the full original Relation from its completed Driver" {
+  collection_request_publication_case(
+    1,
+    false,
+    simple=true,
+    check_sample_start=true,
+    entry_step=true,
+    check_continuation_relation=true,
   )
 }
 
@@ -57,6 +115,585 @@ fn check_managed_pause_dependency_unavailable(
 }
 
 ///|
+fn check_collection_continuation_output(
+  run : @strategy.CapturedDAG,
+  cut : @strategy.CapturedTaskContinuation,
+  completed : @execution.ManagedCompletedOutput[Int],
+  original : @execution.CompletedOutput,
+) -> Unit raise {
+  let ledger = @strategy.captured_dag_ledger(run)
+  let visits = Ref(0)
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    @strategy.with_captured_task_continuation_output(
+      run,
+      cut,
+      1,
+      completed,
+      original,
+      () => true,
+      _ => visits.val += 1,
+    )
+    is Err(MissingOutput(1)),
+  )
+  assert_true(
+    @strategy.with_captured_task_continuation_output(
+      run,
+      cut,
+      0,
+      completed,
+      original,
+      () => false,
+      _ => visits.val += 1,
+    )
+    is Err(StalePause),
+  )
+  assert_eq(visits.val, 0)
+  let allowed = Ref(true)
+  let refused_current : Ref[(() -> Bool)?] = Ref(None)
+  assert_true(
+    @strategy.with_captured_task_continuation_output(
+      run,
+      cut,
+      0,
+      completed,
+      original,
+      () => allowed.val,
+      current => {
+        refused_current.val = Some(current)
+        allowed.val = false
+      },
+    )
+    is Err(StalePause),
+  )
+  allowed.val = true
+  assert_false(refused_current.val.unwrap()())
+  let revoked : Ref[(() -> Bool)?] = Ref(None)
+  let failure : Ref[Error?] = Ref(None)
+  @strategy.with_captured_task_continuation_output(
+    run,
+    cut,
+    0,
+    completed,
+    original,
+    () => true,
+    current => {
+      visits.val += 1
+      revoked.val = Some(current)
+      try {
+        assert_true(current())
+        let bounded = @execution.restrict_completed_output(original, current)
+        let output = @execution.prepare_completed_output_export(
+          bounded,
+          1,
+          { max_nodes: 32, max_text_bytes: 512, max_depth: 8, max_work: 512, },
+          {
+            max_columns: 1,
+            max_order_work: 128,
+            max_bytes: 512,
+            max_nodes: 32,
+            max_depth: 8,
+          },
+          512,
+        ).unwrap()
+        defer @execution.cancel_completed_output_export(output)
+        let (row, batch, _) = @execution.next_completed_output_export_canonical_row(
+            output, 32, 8, 512,
+          )
+          .unwrap()
+          .unwrap()
+        assert_eq(row, 0)
+        assert_eq(batch, "[{\"aql_source_free_unit\":true}")
+        assert_true(
+          @execution.next_completed_output_export_canonical_row(
+            output, 32, 8, 512,
+          ).unwrap()
+          is None,
+        )
+        let (_, tail) = @execution.finish_completed_output_export(output).unwrap()
+        assert_eq(tail, "]")
+        assert_true(current())
+      } catch {
+        issue => failure.val = Some(issue)
+      } noraise {
+        _ => ()
+      }
+    },
+  ).unwrap()
+  if failure.val is Some(issue) {
+    raise issue
+  }
+  assert_eq(visits.val, 1)
+  assert_false(revoked.val.unwrap()())
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+}
+
+///|
+fn check_collection_continuation_receiver(
+  owner : ClientInstalledManagedRun,
+  profile : ClientCheckedRelationSampleProfile,
+  run : @strategy.CapturedDAG,
+  relation : String,
+  relation_bytes : Int,
+  schema : String,
+  schema_bytes : Int,
+) -> Unit raise {
+  let (step, port, carrier) = profile.driver_outputs.get(0).unwrap()
+  let select = (task, selected_step, selected_port, selected_carrier) => {
+    installed_task_continuation_relation_receiver(
+      owner, profile, run, task, selected_step, selected_port, selected_carrier,
+    )
+  }
+  let (next_step, next_port, next_carrier) = profile.driver_outputs
+    .get(1)
+    .unwrap()
+  assert_true(select(1, step, port, carrier) is None)
+  assert_true(select(0, next_step, port, carrier) is None)
+  assert_true(select(0, step, next_port, carrier) is None)
+  let foreign_carrier = if next_carrier == carrier {
+    "sha256:" + "f".repeat(64)
+  } else {
+    next_carrier
+  }
+  assert_true(select(0, step, port, foreign_carrier) is None)
+  let (sequence, target) = select(0, step, port, carrier).unwrap()
+  let prepared = @execution.generated_completion_preparation(sequence)
+  let checked_owner = @execution.completion_preparation_owner(prepared)
+  let expected : @execution.RetainedLogicalRelationIdentity = {
+    relation_cid: "sha256:" + @sha.hex(@utf8.encode(relation)),
+    relation_bytes,
+    schema_cid: "sha256:" + @sha.hex(@utf8.encode(schema)),
+    schema_bytes,
+    rows: 1,
+  }
+  let limits : @strategy.CapturedContinuationRelationLimits = {
+    rows: 1,
+    values: {
+      max_nodes: 128,
+      max_text_bytes: 4096,
+      max_work: 512,
+      max_depth: 12,
+    },
+    wire: {
+      max_columns: 8,
+      max_order_work: 128,
+      max_bytes: 4096,
+      max_nodes: 128,
+      max_depth: 12,
+    },
+    schema: { max_fields: 8, max_bytes: 4096, max_nodes: 128, max_depth: 12, },
+    work: 8192,
+    workspace_slots: 2048,
+    workspace_bytes: 1048576L,
+  }
+  let ledger = @strategy.captured_dag_ledger(run)
+  let before = @resources.ledger_usage(ledger)
+  let (retained, execution, work) = installed_task_continuation_relation_backing(
+    expected, 1, limits,
+  ).unwrap()
+  let proof = begin_installed_task_continuation_read_work(
+    owner,
+    run,
+    limits.work.to_int64(),
+  ).unwrap()
+  let reserve = (limits, bytes) => {
+    reserve_installed_task_continuation_relation(
+      owner,
+      profile,
+      run,
+      0,
+      (step, port, carrier),
+      { start_revision: 2, control_revision: 2, generation: 1, attempt: 1, },
+      expected,
+      limits,
+      bytes,
+      () => true,
+    )
+  }
+  assert_true(reserve(limits, execution - 1L) is Err(Capacity))
+  assert_true(
+    reserve({ ..limits, work: work - 1, }, execution) is Err(InvalidExtent),
+  )
+  let stale = reserve(limits, execution).unwrap()
+  assert_true(
+    read_installed_task_continuation_relation(stale, proof, relation, () => {
+      false
+    })
+    is Err(ForeignOriginal),
+  )
+  return_installed_restored_task_relation(stale).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).planning_work, before.planning_work)
+  let restored = reserve(limits, execution).unwrap()
+  let funded = @resources.ledger_usage(ledger)
+  assert_eq(
+    funded.reserved_retention_bytes,
+    before.reserved_retention_bytes + retained,
+  )
+  assert_eq(
+    funded.reserved_execution_bytes,
+    before.reserved_execution_bytes + execution,
+  )
+  read_installed_task_continuation_relation(restored, proof, relation, () => {
+    true
+  }).unwrap()
+  assert_true(
+    read_installed_task_continuation_relation(restored, proof, relation, () => {
+      true
+    })
+    is Err(ForeignOriginal),
+  )
+  assert_true(installed_restored_task_relation_output(restored, run, 1) is None)
+  let output = installed_restored_task_relation_output(restored, run, 0).unwrap()
+  assert_true(
+    @execution.completed_output_matches_port(output, checked_owner, target),
+  )
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Boolean(true)))
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  let remaining = @resources.remaining_preparation_phase_work_continuation64(
+    proof,
+  ).unwrap()
+  assert_true(remaining <= (limits.work - work).to_int64())
+  assert_eq(@resources.ledger_usage(ledger).planning_work, before.planning_work)
+  @resources.spend_preparation_phase_work_continuation64(
+    proof,
+    remaining - work.to_int64() + 1L,
+  ).unwrap()
+  let short = reserve(limits, execution).unwrap()
+  assert_true(
+    read_installed_task_continuation_relation(short, proof, relation, () => true)
+    is Err(Work(PlanningLimit)),
+  )
+  assert_true(installed_restored_task_relation_output(short, run, 0) is None)
+  return_installed_restored_task_relation(short).unwrap()
+  @resources.finish_preparation_phase_work_continuation64(proof).unwrap()
+  |> ignore
+  return_installed_restored_task_relation(restored).unwrap()
+  assert_true(@execution.completed_cell(output, 0, 0) is None)
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+}
+
+///|
+fn check_collection_continuation_relation(
+  owner : ClientInstalledManagedRun,
+  profile : ClientCheckedRelationSampleProfile,
+  cut : @strategy.CapturedTaskContinuation,
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  revision : Int,
+  generation : Int,
+  attempt : Int,
+) -> Unit raise {
+  let run = profile.captured
+  let ledger = @strategy.captured_dag_ledger(run)
+  let before = @resources.ledger_usage(ledger)
+  let visits = Ref(0)
+  let escaped : Ref[(() -> Bool)?] = Ref(None)
+  let failure : Ref[Error?] = Ref(None)
+  let visit = fn(value : InstalledTaskContinuationOutput, current) {
+    visits.val += 1
+    escaped.val = Some(current)
+    try {
+      assert_true(current())
+      let (cid, manifest, relation, relation_bytes, schema, schema_bytes) = installed_task_continuation_output_parts(
+        value,
+      )
+      assert_eq(
+        relation, "{\"sort\":\"relation\",\"value\":[{\"aql_source_free_unit\":true}]}",
+      )
+      assert_eq(@utf8.encode(relation).length(), relation_bytes)
+      assert_eq(@utf8.encode(schema).length(), schema_bytes)
+      let compiled = @publication_host.client_compiled_run_plan(
+        profile.compiled,
+      )
+      let (step, port, carrier) = profile.driver_outputs.get(0).unwrap()
+      let expected : Json = {
+        "version": "actql-debug-continuation-output/0.1",
+        "run_ref": {
+          "namespaceId": "collection-publication",
+          "authorityScopeCid": @publication_host.client_request_authority_scope_cid(
+            profile.request,
+          ),
+          "runDefinitionCid": @publication.publication_contract_identity(
+            profile.definition,
+          ),
+        },
+        "compiled_plan_cid": @publication.publication_contract_identity(
+          compiled,
+        ),
+        "logical_map_cid": profile.logical_map_cid,
+        "step_id": step,
+        "output_port_id": port,
+        "carrier_contract_cid": carrier,
+        "start_revision": "2",
+        "control_revision": revision.to_string(),
+        "committed_generation": generation.to_string(),
+        "attempt_sequence": attempt.to_string(),
+        "relation_cid": "sha256:" + @sha.hex(@utf8.encode(relation)),
+        "relation_bytes": relation_bytes.to_string(),
+        "schema_cid": "sha256:" + @sha.hex(@utf8.encode(schema)),
+        "schema_bytes": schema_bytes.to_string(),
+        "rows": "1",
+      }
+      let canonical = @identity.from_json(
+        expected,
+        128,
+        12,
+        4096,
+        data_keys=true,
+      )
+      assert_eq(@identity.stringify_value(canonical, 4096, 128, 12), manifest)
+      assert_eq("sha256:" + @sha.hex(@utf8.encode(manifest)), cid)
+      check_collection_continuation_receiver(
+        owner, profile, run, relation, relation_bytes, schema, schema_bytes,
+      )
+    } catch {
+      issue => failure.val = Some(issue)
+    } noraise {
+      _ => ()
+    }
+    true
+  }
+  let limits : @strategy.CapturedContinuationRelationLimits = {
+    rows: 1,
+    values: {
+      max_nodes: 128,
+      max_text_bytes: 4096,
+      max_work: 512,
+      max_depth: 12,
+    },
+    wire: {
+      max_columns: 8,
+      max_order_work: 128,
+      max_bytes: 4096,
+      max_nodes: 128,
+      max_depth: 12,
+    },
+    schema: { max_fields: 8, max_bytes: 4096, max_nodes: 128, max_depth: 12, },
+    work: 2048,
+    workspace_slots: 2048,
+    workspace_bytes: 1048576L,
+  }
+  let start : Ref[@execution.ExecutionCapacity?] = Ref(None)
+  let driver_current : Ref[(() -> Bool)?] = Ref(None)
+  let escaped_output : Ref[@execution.CompletedOutput?] = Ref(None)
+  let nested_visits = Ref(0)
+  let held = @local_driver.with_local_managed_continuation_relation(
+    operations,
+    (_, original, current) => {
+      driver_current.val = Some(current)
+      escaped_output.val = Some(original)
+      start.val = @execution.completed_relation_identity_scan_start_construction_capacity(
+        original,
+        retain_body=true,
+      )
+      @local_driver.with_local_managed_continuation_relation(operations, (
+        _,
+        _,
+        _,
+      ) => nested_visits.val += 1)
+      |> ignore
+    },
+  )
+  assert_true(held)
+  assert_false(driver_current.val.unwrap()())
+  assert_true((operations.output_rows)() > 0)
+  assert_true((operations.output_row)(0) is Ok(_))
+  assert_true(
+    @execution.completed_output_row_wire(
+      escaped_output.val.unwrap(),
+      0,
+      4096,
+      128,
+      12,
+    )
+    is Err(_),
+  )
+  assert_eq(nested_visits.val, 0)
+  let first = start.val.unwrap()
+  let short = Int64::max(
+      @execution.execution_capacity_retained_bytes(first),
+      @execution.execution_capacity_execution_bytes(first),
+    ) -
+    1L
+  assert_true(
+    with_installed_task_continuation_driver_output(
+      owner,
+      profile,
+      cut,
+      0,
+      operations,
+      () => true,
+      { ..limits, workspace_bytes: short, },
+      visit,
+    )
+    is Err(Capture(OutputCapacity)),
+  )
+  assert_true(
+    with_installed_task_continuation_driver_output(
+      owner,
+      profile,
+      cut,
+      1,
+      operations,
+      () => true,
+      limits,
+      visit,
+    )
+    is Err(Capture(MissingOutput(1))),
+  )
+  assert_true(
+    with_installed_task_continuation_driver_output(
+      owner,
+      profile,
+      cut,
+      0,
+      operations,
+      () => false,
+      limits,
+      visit,
+    )
+    is Err(Capture(StalePause)),
+  )
+  assert_eq(visits.val, 0)
+  assert_eq(@resources.ledger_usage(ledger).planning_work, before.planning_work)
+  let (pause_revision, step, next, pause_generation) = installed_relation_sample_debug_task_pause(
+    profile, owner, run, 2,
+  ).unwrap()
+  assert_eq((pause_revision, pause_generation), (revision, generation))
+  assert_true(
+    reserve_installed_task_continuation_capacity(
+      owner,
+      profile,
+      run,
+      2,
+      revision + 1,
+      generation,
+      32L,
+      48L,
+    )
+    is Err(ForeignOriginal),
+  )
+  let staging = reserve_installed_task_continuation_capacity(
+    owner, profile, run, 2, revision, generation, 32L, 48L,
+  ).unwrap()
+  grow_installed_task_continuation_capacity(staging, 64L, 96L).unwrap()
+  let funded = @resources.ledger_usage(ledger)
+  assert_eq(funded.live_reservations, before.live_reservations + 1)
+  assert_eq(
+    funded.reserved_retention_bytes,
+    before.reserved_retention_bytes + 64L,
+  )
+  assert_eq(
+    funded.reserved_execution_bytes,
+    before.reserved_execution_bytes + 96L,
+  )
+  assert_true(
+    grow_installed_task_continuation_capacity(
+      staging, 64L, 9223372036854775807L,
+    )
+    is Err(Resource(ExecutionLimit)),
+  )
+  return_installed_task_continuation_capacity(staging).unwrap()
+  assert_true(
+    grow_installed_task_continuation_capacity(staging, 64L, 96L)
+    is Err(Resource(ClosedReservation)),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  let work = 4 +
+    4 * @strategy.graph_task_count(graph) +
+    @strategy.graph_data_count(graph) +
+    @strategy.graph_control_count(graph) +
+    @strategy.graph_result_count(graph)
+  let requested : Array[Int] = []
+  let driver = task => {
+    requested.push(task)
+    if task == 0 {
+      Some(operations)
+    } else {
+      None
+    }
+  }
+  let occurrence : Ref[(Int, Int, Int)?] = Ref(None)
+  let visit_occurrence = (task, committed, sequence, output, current) => {
+    occurrence.val = Some((task, committed, sequence))
+    guard output is Some(selected) else { return false }
+    visit(selected, current)
+  }
+  assert_true(
+    visit_installed_task_continuation_cut(
+      owner,
+      profile,
+      run,
+      2,
+      revision,
+      generation,
+      next,
+      step,
+      8192,
+      limits,
+      () => true,
+      driver,
+      visit_occurrence,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(requested.length(), 0)
+  assert_eq(occurrence.val, None)
+  assert_true(
+    visit_installed_task_continuation_cut(
+      owner,
+      profile,
+      run,
+      2,
+      revision,
+      generation,
+      step,
+      next,
+      work - 1,
+      limits,
+      () => true,
+      driver,
+      visit_occurrence,
+    )
+    is Err(Capture(WorkLimit)),
+  )
+  assert_eq(requested.length(), 0)
+  assert_eq(occurrence.val, None)
+  visit_installed_task_continuation_cut(
+    owner,
+    profile,
+    run,
+    2,
+    revision,
+    generation,
+    step,
+    next,
+    work,
+    limits,
+    () => true,
+    driver,
+    visit_occurrence,
+  ).unwrap()
+  assert_eq(requested, [0])
+  assert_eq(occurrence.val, Some((0, generation, attempt)))
+  if failure.val is Some(issue) {
+    raise issue
+  }
+  assert_eq(visits.val, 1)
+  assert_false(escaped.val.unwrap()())
+  let after = @resources.ledger_usage(ledger)
+  assert_true(after.planning_work > before.planning_work)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+}
+
+///|
 fn collection_sample_submission_reference(
   tag_digit : String,
 ) -> @publication_host.ClientSubmissionReferenceRecord {
@@ -75,6 +712,216 @@ fn collection_sample_submission_reference(
 }
 
 ///|
+fn check_original_breakpoint_profile(
+  run : ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  observation : ClientLogicalObservation,
+  reference_wire : String,
+  map : @publication.RunEvidenceValue,
+  ledger : @resources.Ledger,
+) -> (ClientCheckedRelationSampleProfile, String) raise {
+  let plan = @publication_host.client_compiled_run_plan(compiled)
+  let prepared = @publication_host.client_compiled_run_prepared(compiled)
+  let authorization = @publication_host.client_compiled_run_authorization(
+    compiled,
+  )
+  let original_map = @publication.run_evidence_value_identity(map)
+  let original_plan = @publication.publication_contract_identity(plan)
+  let steps = match
+    @identity.object_field(observation.original.unwrap().map, "steps") {
+    Some(@identity.Array(steps)) => steps
+    _ => fail("original checked Steps")
+  }
+  guard @identity.object_field(@identity.array_at(steps, 1).unwrap(), "step_id")
+    is Some(@identity.String(step_id)) else {
+    fail("second original Step ID")
+  }
+  let target = fn(id, position) {
+    "{\"kind\":\"logical_step\",\"position\":\"" +
+    position +
+    "\",\"select\":{\"by\":\"id\",\"step_id\":\"" +
+    id +
+    "\"}}"
+  }
+  let profile = fn(targets) {
+    let body =
+      #|{"version":"actql-control-profile/0.1","execution":{"stop_on_entry":true,"default_until":"breakpoint","guards":null,"breakpoints":[
+    let retain =
+      #|]},"retain":{"samples":{"strategy":"execution_prefix","capture_scope":"all_outputs","targets":[],"max_items":50,"max_bytes":"512","max_artifacts":1,"ttl_seconds":60,"required":true,"graph":{"max_nodes":0,"max_edges":0},"vectors":{"max_components_per_item":1}}}}
+    @publication.seal_run_evidence_value(
+      "control_profile",
+      body + targets + retain,
+      65536,
+      8192,
+      64,
+    ).unwrap()
+  }
+  guard @identity.object_field(@identity.array_at(steps, 0).unwrap(), "step_id")
+    is Some(@identity.String(entry_id)) else {
+    fail("initial original Step ID")
+  }
+  let marked = target(step_id, "before")
+  let selection = profile(marked + "," + target(entry_id, "before"))
+  let changed = "sha256:" + "0".repeat(64)
+  let template_body =
+    #|{"version":"actql-control-profile/0.1","execution":{"stop_on_entry":true,"default_until":"terminal","guards":null,"breakpoints":[]},"retain":{"samples":{"strategy":"execution_prefix","capture_scope":"all_outputs","targets":[],"max_items":50,"max_bytes":"512","max_artifacts":1,"ttl_seconds":60,"required":true,"graph":{"max_nodes":0,"max_edges":0},"vectors":{"max_components_per_item":1}}}}
+  let template = @publication.seal_run_evidence_value(
+    "control_profile", template_body, 65536, 8192, 64,
+  ).unwrap()
+  let template_wire = @publication.run_evidence_value_json(template)
+  let submitted = fn(map_cid, later, first) {
+    @publication_host.prepare_client_submitted_intent(
+      "{\"kind\":\"program\",\"input\":{},\"parameters\":null," +
+      "\"executionProfile\":\"debug\",\"breakpointSelection\":{\"logical_map_cid\":\"" +
+      map_cid +
+      "\",\"before_step_ids\":[\"" +
+      later +
+      "\",\"" +
+      first +
+      "\"]}}",
+      4096,
+      128,
+      16,
+    ).unwrap()
+  }
+  let marked_original = submitted(original_map, step_id, entry_id)
+  let issue_submitted = fn(intent) {
+    issue_installed_relation_sample_profile_journal_reference(
+      run,
+      request,
+      definition,
+      observation,
+      reference_wire,
+      template_wire,
+      65536,
+      8192,
+      64,
+      submitted_breakpoints=intent,
+    )
+  }
+  let work = @resources.ledger_usage(ledger).planning_work
+  assert_true(
+    issue_submitted(submitted(changed, step_id, entry_id))
+    is Err(
+      SampleProfileBinding(
+        RunEvidenceReferenceMismatch("control_admission.breakpoint_map")
+      )
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger).planning_work, work)
+  let issue = fn(selected, expected) {
+    @publication.issue_interactive_relation_sample_admission(
+      definition,
+      plan,
+      prepared,
+      authorization,
+      selected,
+      map,
+      reference_wire,
+      @publication_host.client_request_intent_cid(request),
+      @publication_host.client_request_authority_scope_cid(request),
+      65536,
+      8192,
+      64,
+      expected_breakpoint_map_cid?=expected,
+    )
+  }
+  assert_true(
+    issue(selection, None)
+    is Err(RunEvidenceReferenceMismatch("control_admission.breakpoint_map")),
+  )
+  for invalid in [target(changed, "before"), marked + "," + marked] {
+    assert_true(
+      issue(profile(invalid), Some(original_map))
+      is Err(RunEvidenceReferenceMismatch("control_admission.breakpoint")),
+    )
+  }
+  assert_true(
+    issue(profile(target(step_id, "after")), Some(original_map))
+    is Err(RunEvidenceReferenceMismatch("control_profile.installed_sample")),
+  )
+  let captured = run.source_free_captured.unwrap()
+  let namespace_id = @publication.run_definition_namespace(definition).unwrap()
+  let quote = installed_sample_issuance_capacity(
+    @identity.array_count(steps),
+    reference_wire.length(),
+    template_wire.length() + 2 * 160,
+    6 * namespace_id.length(),
+    breakpoint_slots=2,
+    constructing_profile=true,
+  ).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  let blocker = @resources.reserve_capacity(
+    ledger,
+    @resources.ledger_limits(ledger).retained_bytes -
+    usage.held_bytes -
+    usage.reserved_retention_bytes -
+    quote +
+    1L,
+    0L,
+  ).unwrap()
+  assert_true(
+    issue_submitted(marked_original)
+    is Err(SampleProfileCapacity(Resource(RetentionLimit))),
+  )
+  assert_eq(@resources.ledger_usage(ledger).planning_work, work)
+  @resources.settle_capacity(ledger, blocker).unwrap()
+  let generation = @strategy.captured_dag_generation(captured)
+  assert_false(@strategy.captured_relation_sample_start_selected(captured))
+  assert_true(
+    issue_submitted(submitted(original_map, changed, entry_id))
+    is Err(
+      SampleProfileBinding(
+        RunEvidenceReferenceMismatch("control_admission.breakpoint")
+      )
+    ),
+  )
+  let (selected, intent, resolved, admission, profile_wire) = issue_submitted(
+    marked_original,
+  ).unwrap()
+  let (expected_intent, expected_resolved, expected_admission) = issue(
+    selection,
+    Some(original_map),
+  ).unwrap()
+  assert_eq(profile_wire, @publication.run_evidence_value_json(selection))
+  assert_eq(intent, @publication.run_evidence_value_json(expected_intent))
+  assert_eq(resolved, @publication.run_evidence_value_json(expected_resolved))
+  assert_eq(admission, @publication.run_evidence_value_json(expected_admission))
+  assert_eq(selected.logical_map_cid, original_map)
+  assert_true(
+    intent.contains("\"expected_plan_cid\":\"" + original_plan + "\""),
+  )
+  assert_true(
+    resolved.contains(
+      "\"breakpoints\":[{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"" +
+      step_id +
+      "\"},{\"kind\":\"logical_step\",\"position\":\"before\",\"step_id\":\"" +
+      entry_id +
+      "\"}]",
+    ),
+  )
+  let matches = (map, ids) => {
+    installed_relation_sample_entry_breakpoint_matches(
+      run,
+      selected,
+      map,
+      ReadOnlyArray::from_array(ids),
+    )
+  }
+  assert_true(matches(original_map, [step_id, entry_id]))
+  assert_false(matches(original_map, [entry_id, step_id]))
+  assert_false(matches(changed, [step_id, entry_id]))
+  assert_false(matches(original_map, [step_id]))
+  assert_true(selected.start_mode is PausedBeforeBreakpoint(_, _, _, _))
+  assert_eq(@strategy.captured_dag_generation(captured), generation)
+  assert_false(@strategy.captured_relation_sample_start_selected(captured))
+  assert_false(observation.reading || run.source_free_opening)
+  (selected, step_id)
+}
+
+///|
 fn check_relation_sample_profile_on_collection(
   run : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientProgram,
@@ -84,6 +931,8 @@ fn check_relation_sample_profile_on_collection(
   ledger : @resources.Ledger,
   original_reference : @publication_host.ClientSubmissionReferenceRecord,
   entry_step : Bool,
+  readmit_sample~ : Bool,
+  optional_sample~ : Bool,
 ) -> ClientCheckedRelationSampleProfile raise {
   let observation = prepare_installed_logical_observation(
     run, prepared, compiled, definition, 65536, 8192, 64,
@@ -101,9 +950,114 @@ fn check_relation_sample_profile_on_collection(
   let profile_body = "{\"version\":\"actql-control-profile/0.1\",\"execution\":{\"stop_on_entry\":" +
     entry_step.to_string() +
     (
-      #|,"default_until":"terminal","breakpoints":[],"guards":null},"retain":{"samples":{"strategy":"execution_prefix","capture_scope":"all_outputs","targets":[],"max_items":50,"max_bytes":"512","max_artifacts":1,"ttl_seconds":60,"required":true,"graph":{"max_nodes":0,"max_edges":0},"vectors":{"max_components_per_item":1}}}}
+      #|,"default_until":"terminal","breakpoints":[],"guards":null},"retain":{"samples":{"strategy":"execution_prefix","capture_scope":"all_outputs","targets":[],"max_items":50,"max_bytes":"512","max_artifacts":1,"ttl_seconds":60,"required":
+    ) +
+    (!optional_sample).to_string() +
+    (
+      #|,"graph":{"max_nodes":0,"max_edges":0},"vectors":{"max_components_per_item":1}}}}
     )
   let profile = seal("control_profile", profile_body)
+  if readmit_sample {
+    let reference_wire = @publication_host.client_submission_reference_record_wire(
+      original_reference,
+    )
+    let profile_wire = @publication.run_evidence_value_json(profile)
+    let (issued, intent_wire, resolved_wire, admission_wire, issued_profile) = issue_installed_relation_sample_profile_journal_reference(
+      run, request, definition, observation, reference_wire, profile_wire, 65536,
+      8192, 64,
+    ).unwrap()
+    assert_eq(issued_profile, profile_wire)
+    // The recovery read keeps the original wires and admits their canonical
+    // forms before the captured Run pays for binding its own Map.
+    let wire_bytes = 4096
+    let max_nodes = 512
+    let depth = 16
+    let read_quote = retained_relation_sample_profile_read_bytes(
+      wire_bytes, max_nodes, depth, 0,
+    ).unwrap()
+    let stored = 4096L
+    assert_eq(
+      retained_relation_sample_profile_read_bytes(
+        wire_bytes,
+        max_nodes,
+        depth,
+        stored.to_int(),
+      ).unwrap(),
+      read_quote +
+      result_read_data_cost(stored, 6L * stored, 2L * stored).unwrap(),
+    )
+    let read = @resources.reserve_capacity(ledger, read_quote, read_quote).unwrap()
+    let readmit = fn(reference, resolved_cid) {
+      readmit_installed_relation_sample_profile_wires(
+        run,
+        request,
+        definition,
+        observation,
+        @publication_host.client_submission_reference_record_wire(reference),
+        intent_wire,
+        profile_wire,
+        resolved_wire,
+        admission_wire,
+        resolved_cid,
+        issued.control_admission_cid,
+        wire_bytes,
+        65536,
+        max_nodes,
+        depth,
+      )
+    }
+    let before = @resources.ledger_usage(ledger).planning_work
+    assert_true(
+      readmit(original_reference, "sha256:" + "f".repeat(64))
+      is Err(ForeignSampleProfile),
+    )
+    assert_eq(@resources.ledger_usage(ledger).planning_work, before)
+    assert_true(
+      readmit(
+        collection_sample_submission_reference("3"),
+        issued.resolved_profile_cid,
+      )
+      is Err(ForeignSampleProfile),
+    )
+    let before = @resources.ledger_usage(ledger).planning_work
+    let rebound = readmit(original_reference, issued.resolved_profile_cid).unwrap()
+    let work = @resources.ledger_usage(ledger).planning_work - before
+    let (_, map_nodes, _) = @publication.run_evidence_value_wire_usage(map).unwrap()
+    let retained_resolved = @publication.admit_run_evidence_value(
+      "resolved_control_profile", resolved_wire, wire_bytes, max_nodes, depth,
+    ).unwrap()
+    let (_, resolved_nodes, _) = @publication.run_evidence_value_wire_usage(
+      retained_resolved,
+    ).unwrap()
+    let binding = @publication.interactive_logical_map_binding_construction(
+      map,
+      @publication_host.client_compiled_run_plan(compiled),
+      65536,
+      8192,
+      64,
+    ).unwrap()
+    let (_, reference_nodes, _) = @publication.interactive_submission_reference_limits()
+    assert_eq(
+      work,
+      reference_nodes +
+      2 * map_nodes +
+      4 * binding.steps +
+      2 * binding.ports +
+      resolved_nodes,
+    )
+    // The recorded stopped execution had spent 96,717 of its 100,000
+    // planning units before attempting to load the original profile.
+    assert_true(work < 100000 - 96717)
+    assert_false(physical_equal(rebound, issued))
+    assert_eq(rebound.control_admission_cid, issued.control_admission_cid)
+    assert_eq(rebound.resolved_profile_cid, issued.resolved_profile_cid)
+    assert_eq(rebound.logical_map_cid, issued.logical_map_cid)
+    assert_true(observation.attached is None)
+    return_installed_logical_observation(observation).unwrap() |> ignore
+    @resources.settle_capacity(ledger, read).unwrap()
+    println("retained Sample profile work: " + work.to_string())
+    return rebound
+  }
   let plan_cid = @publication.publication_contract_identity(
     @publication_host.client_compiled_run_plan(compiled),
   )
@@ -314,13 +1268,52 @@ fn check_relation_sample_profile_on_collection(
         )
         is Err(ForeignSampleProfile),
       )
-      let (bytes, nodes, _) = @publication.interactive_submission_reference_limits()
-      // This fixture's epoch/ref wire is ASCII; leading space adds one byte.
-      let codec_work = bytes + 12 * reference_wire.length() + 16 * nodes
+      let (_, nodes, _) = @publication.interactive_submission_reference_limits()
+      // The original wire is ASCII. The leading space costs one measuring
+      // unit and twelve parsing, encoding and comparison units.
+      let codec_work = 13 * reference_wire.length() + 16 * nodes
       assert_eq(
         @resources.ledger_usage(ledger).planning_work - before_wire,
-        codec_work + 12,
+        codec_work + 13,
       )
+      let proof_bytes = [intent, resolved, admission, profile].fold(init=0L, (
+        n,
+        value,
+        // These sealed fixture wires are ASCII.
+      ) => n + @publication.run_evidence_value_json(value).length().to_int64())
+      let used = @resources.ledger_usage(ledger)
+      let blocker = @resources.reserve_capacity(
+        ledger,
+        limits.retained_bytes -
+        used.held_bytes -
+        used.reserved_retention_bytes -
+        4L * proof_bytes +
+        1L,
+        0L,
+      ).unwrap()
+      let blocked_usage = @resources.ledger_usage(ledger)
+      assert_true(
+        reserve_installed_sample_start_proof_copies(
+          observation.cleanup.holder,
+          prepared,
+          intent,
+          resolved,
+          admission,
+          profile,
+        )
+        is Err(SampleProfileCapacity(Resource(RetentionLimit))),
+      )
+      let refused_usage = @resources.ledger_usage(ledger)
+      assert_eq(
+        refused_usage.reserved_retention_bytes,
+        blocked_usage.reserved_retention_bytes,
+      )
+      assert_eq(
+        refused_usage.reserved_execution_bytes,
+        blocked_usage.reserved_execution_bytes,
+      )
+      assert_eq(refused_usage.planning_work, blocked_usage.planning_work)
+      @resources.settle_capacity(ledger, blocker).unwrap()
       let selected_wire = @publication.run_evidence_value_json(profile)
       let namespace_id = @publication.run_definition_namespace(definition).unwrap()
       let issuance_quote = installed_sample_issuance_capacity(
@@ -354,7 +1347,31 @@ fn check_relation_sample_profile_on_collection(
         100000, 64,
       )
       match valid_wire {
-        Ok(checked) => {
+        Ok(
+          (checked, intent_wire, resolved_wire, admission_wire, issued_profile)
+        ) => {
+          assert_eq(issued_profile, selected_wire)
+          // These are the original sealed inputs, ready for the start
+          // Journal to retain without reconstructing any evidence.
+          assert_eq(
+            resolved_wire,
+            @publication.run_evidence_value_json(resolved),
+          )
+          let issued_intent = @publication.admit_run_evidence_value(
+            "control_request_intent", intent_wire, 65536, max_nodes, 64,
+          ).unwrap()
+          let issued_admission = @publication.admit_run_evidence_value(
+            "control_admission", admission_wire, 65536, max_nodes, 64,
+          ).unwrap()
+          assert_eq(
+            @publication.run_evidence_value_identity(issued_admission),
+            checked.control_admission_cid,
+          )
+          assert_true(
+            @publication.check_interactive_admission_request_identity(
+              issued_intent, issued_admission, fingerprint, authority, reference_wire,
+            ),
+          )
           assert_eq(checked.resolved_profile_cid, resolved_cid)
           let (_, _, _, _, original_map_cid) = installed_relation_sample_profile_start_original(
             checked,
@@ -384,7 +1401,7 @@ fn check_relation_sample_profile_on_collection(
       }
       assert_true(
         @resources.ledger_usage(ledger).planning_work - before_wire >
-        2 * codec_work + 12 + expected,
+        2 * codec_work + 13 + expected,
       )
       println(
         "sample-ledger issuance and binding " +
@@ -413,7 +1430,7 @@ fn check_relation_sample_profile_on_collection(
   assert_eq(retention.limits.max_bytes, 512L)
   assert_eq(retention.limits.max_artifacts, 1L)
   assert_eq(retention.limits.ttl_seconds, 60L)
-  assert_true(retention.limits.required)
+  assert_eq(retention.limits.required, !optional_sample)
   assert_true(
     installed_relation_sample_retention_for_output(
       run,
@@ -435,6 +1452,8 @@ fn check_collection_committed_relation_sample(
   expected_task : Int,
   expected_attempt : Int,
   adopt_after_refusals : Bool,
+  check_adoption? : Bool = true,
+  check_work_short? : Bool = false,
 ) -> String raise {
   let original = supplied.unwrap()
   let captured = profile.captured
@@ -634,6 +1653,23 @@ fn check_collection_committed_relation_sample(
       Err(NextInputStalePause),
     )
     assert_eq(select(next_id, 1, work, pause_revision), Ok(None))
+    let bindings : Array[(Int, String, String, String, Int, Int)] = []
+    let batch = (selected, consume) => {
+      visit_installed_relation_sample_debug_next_inputs(
+        profile, owner, captured, revision, pause_revision, actual_generation, selected,
+        256, consume,
+      )
+    }
+    let receive = (ordinal, producer, output, carrier, generation, attempt) => {
+      bindings.push((ordinal, producer, output, carrier, generation, attempt))
+      true
+    }
+    assert_eq(batch(step_id, receive), Err(NextInputStalePause))
+    assert_true(bindings.is_empty())
+    assert_eq(batch(next_id, receive), Ok(()))
+    assert_eq(bindings, [
+      (0, step_id, port_id, contract, actual_generation, expected_attempt),
+    ])
   }
   let expected = @publication.seal_run_evidence_value(
     "logical_port_key",
@@ -658,6 +1694,98 @@ fn check_collection_committed_relation_sample(
         "\"rows\":[[{\"presence\":\"present\",\"value\":0,",
       ),
     )
+  }
+  if !check_adoption {
+    return_installed_relation_sample_prefix(sample).unwrap()
+    return port_id
+  }
+  if check_work_short {
+    let (bytes, prefix_nodes, prefix_depth) = @encode.document_usage(document)
+    let namespace_id = @publication.run_definition_namespace(profile.definition).unwrap()
+    let ns = 6 * namespace_id.length()
+    let hash = @encode.hash_writer_construction_inventory(
+      prefix_nodes, prefix_depth,
+    ).unwrap()
+    let mut headers = hash.record_headers + 80L
+    let mut references = hash.reference_slots + 120L
+    let mut words = hash.scalar_words + 96L
+    let mut utf16 = hash.owned_utf16_units + 1024L
+    let mut wire = hash.owned_wire_bytes
+    // The four separate schema bounds all remain co-held at adoption.
+    for
+      (extent, nodes) in [(992 + ns, 18), (600, 12), (791, 16), (629 + ns, 10)] {
+      let evidence = @publication.run_evidence_admission_construction_inventory(
+        extent, nodes, 4,
+      ).unwrap()
+      let body = @encode.text_writer_construction_inventory(extent, nodes, 4).unwrap()
+      headers += evidence.record_headers + body.record_headers
+      references += evidence.reference_slots + body.reference_slots
+      words += evidence.scalar_words + body.scalar_words
+      utf16 += evidence.owned_utf16_units + body.owned_utf16_units
+      wire += evidence.owned_wire_bytes
+    }
+    let quote = @execution.preparation_representation_cost({
+      record_headers: headers,
+      reference_slots: references,
+      scalar_words: words,
+      owned_utf16_units: utf16,
+      owned_wire_bytes: wire,
+    }).unwrap()
+    let free = @resources.ledger_limits(ledger).execution_bytes -
+      @resources.ledger_usage(ledger).reserved_execution_bytes
+    assert_true(free >= quote)
+    let held = @resources.reserve_capacity(ledger, 0L, free - quote + 1L).unwrap()
+    let blocked = @resources.ledger_usage(ledger)
+    let copied = Ref(false)
+    assert_true(
+      with_installed_relation_sample_adoption(owner, sample, () => true, (_, _) => {
+        copied.val = true
+        Ok(())
+      })
+      is Err(SampleAdoptionCapacity(ExecutionLimit)),
+    )
+    assert_false(copied.val)
+    assert_eq(@resources.ledger_usage(ledger), blocked)
+    @resources.settle_capacity(ledger, held).unwrap()
+    // Sum the closed record extents independently. The optional case pays
+    // for both full encoded passes before entering any materialization.
+    let extent = 992 + 600 + 791 + 629 + 12 * namespace_id.length()
+    let nodes = 18 + 12 + 16 + 10
+    let preparation = 257 + 2 * bytes + 2 * extent + 64 * nodes
+    let retention = installed_relation_sample_retention_for_output(
+        owner, profile, port_id,
+      )
+      .unwrap()
+      .unwrap()
+    let work = if retention.limits.required {
+      preparation
+    } else {
+      preparation + (3 * extent + 30 * nodes) * 2 + (128 + 1) * 4
+    }
+    let available = @resources.ledger_admission_limits(ledger).planning_work -
+      @resources.ledger_usage(ledger).planning_work
+    assert_true(available >= work)
+    @resources.charge_planning(ledger, available - work + 1).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let visits = Ref(0)
+    assert_true(
+      with_installed_relation_sample_adoption(owner, sample, () => true, (_, _) => {
+        visits.val += 1
+        Ok(())
+      })
+      is Err(SampleAdoptionWork(PlanningLimit)),
+    )
+    let after = @resources.ledger_usage(ledger)
+    assert_eq(visits.val, 0)
+    assert_eq(after.planning_work, before.planning_work)
+    assert_eq(after.live_reservations, before.live_reservations)
+    assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+    assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+    assert_true(
+      installed_relation_sample_prefix_original(owner, sample) is Some(_),
+    )
+    return_installed_relation_sample_prefix(sample).unwrap()
+    return port_id
   }
   let visits = Ref(0)
   let reserved = @resources.ledger_usage(ledger)
@@ -997,7 +2125,12 @@ fn collection_request_publication_case(
   giant_elements? : Int? = None,
   diagnostic_failure? : Ref[LocalValuesExecutionIssue?]? = None,
   check_sample_start? : Bool = false,
+  check_sample_adoption_short? : Bool = false,
+  optional_sample? : Bool = false,
   entry_step? : Bool = false,
+  readmit_sample? : Bool = false,
+  check_profile_breakpoints? : Bool = false,
+  check_continuation_relation? : Bool = false,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
@@ -1243,7 +2376,196 @@ fn collection_request_publication_case(
     )
     .unwrap()
     .unwrap()
-  let continue_entry : Ref[(() -> Unit raise)?] = Ref(None)
+  if check_profile_breakpoints {
+    let observation = prepare_installed_logical_observation(
+      run, prepared, compiled, definition, 65536, 8192, 64,
+    ).unwrap()
+    let reference_wire = @publication_host.client_submission_reference_record_wire(
+      original_reference.unwrap(),
+    )
+    let map = observation.original.unwrap().sealed_map
+    let attempts = @resources.ledger_usage(parent.ledger).attempts
+    let (profile, marked_step) = check_original_breakpoint_profile(
+      run,
+      request,
+      compiled,
+      definition,
+      observation,
+      reference_wire,
+      map,
+      parent.ledger,
+    )
+    return_installed_logical_observation(observation).unwrap() |> ignore
+    let captured = run.source_free_captured.unwrap()
+    let account = @authorization.admit_account_configuration({
+      account_id: "before-run-breakpoint",
+      entries: [
+        {
+          entry_id: "sample-test-control",
+          outcome: Allow,
+          scope: {
+            principal: All,
+            connection: All,
+            resource: All,
+            operation: AnyOf(["pause", "resume"]),
+          },
+          exclusions: [],
+        },
+      ],
+      bootstrap: None,
+    }).unwrap()
+    let start_receipt : Ref[(String, String)?] = Ref(None)
+    let observed_ack = Ref(0)
+    let command = fn(selected) {
+      advance_installed_relation_sample_debug_entry(
+        profile,
+        run,
+        captured,
+        account,
+        "sample-fixture",
+        "node",
+        selected,
+        acknowledge_breakpoint?=match selected {
+          ResumeEntryBreakpoint(_) =>
+            Some((admission, resolved, step_id) => {
+              observed_ack.val += 1
+              step_id == marked_step &&
+              start_receipt.val == Some((admission, resolved))
+            })
+          _ => None
+        },
+      )
+    }
+    reserve_installed_relation_sample_start(
+      run,
+      prepared,
+      request,
+      compiled,
+      definition,
+      captured,
+      journal_bytes=0,
+      debug_entry=true,
+    ).unwrap()
+    command(PrepareEntry).unwrap()
+    assert_true(
+      command(ResumeEntryBreakpoint(4)) is Err(SampleStartRequiresControl),
+    )
+    assert_eq(@strategy.next_captured_task(captured), None)
+    assert_eq(@resources.ledger_usage(parent.ledger).attempts, attempts)
+    acknowledge_installed_relation_sample_start(
+      run, prepared, request, compiled, definition, captured, 4,
+    ).unwrap()
+    assert_true(
+      command(ResumeEntryBreakpoint(3)) is Err(SampleStartRequiresControl),
+    )
+    assert_true(
+      command(ResumeEntryTerminal(4)) is Err(SampleStartRequiresControl),
+    )
+    assert_eq(@strategy.next_captured_task(captured), None)
+    assert_eq(observed_ack.val, 0)
+    assert_true(
+      advance_installed_relation_sample_debug_entry(
+        profile,
+        run,
+        captured,
+        account,
+        "sample-fixture",
+        "node",
+        ResumeEntryBreakpoint(4),
+      )
+      is Err(SampleStartRequiresControl),
+    )
+    let (admission, resolved, _, _, _) = installed_relation_sample_profile_start_original(
+      profile,
+    )
+    start_receipt.val = Some((admission, "sha256:" + "c".repeat(64)))
+    assert_true(
+      command(ResumeEntryBreakpoint(4))
+      is Err(SampleStartControl(@strategy.InvalidTransition)),
+    )
+    assert_eq(@strategy.next_captured_task(captured), None)
+    start_receipt.val = Some((admission, resolved))
+    command(ResumeEntryBreakpoint(4)).unwrap()
+    assert_true(
+      command(ResumeEntryBreakpoint(4))
+      is Err(SampleStartControl(@strategy.StaleRevision)),
+    )
+    assert_eq(observed_ack.val, 2)
+    let failure : Ref[Error?] = Ref(None)
+    let observed_pause = Ref(false)
+    let completed_tasks : Array[Int] = []
+    let result = collection_node_callback_order(
+      setup,
+      32,
+      100000,
+      () => true,
+      require_live=None,
+      first=0,
+      component_compute_quantum=256,
+      component_after_commit=Some((_, task) => {
+        completed_tasks.push(task)
+        if task == 0 {
+          try {
+            let (revision, step, next, generation) = installed_relation_sample_debug_task_pause(
+              profile, run, captured, 4,
+            ).unwrap()
+            assert_eq(revision, 2)
+            assert_eq(next, marked_step)
+            assert_eq(@strategy.next_captured_task(captured), None)
+            assert_eq(
+              @resources.ledger_usage(parent.ledger).attempts,
+              attempts + 1,
+            )
+            observed_pause.val = true
+            resume_installed_relation_sample_debug_task(
+              profile, run, captured, account, "sample-fixture", "node", 4, revision,
+              step, next, generation, false,
+            ).unwrap()
+          } catch {
+            issue => failure.val = Some(issue)
+          } noraise {
+            _ => ()
+          }
+        }
+      }),
+    )
+    if failure.val is Some(issue) {
+      raise issue
+    }
+    let output = match result {
+      Ok(value) => value
+      Err(issue) => {
+        let original = local_values_execution_failure_issue(issue)
+        assert_true(retry_local_values_execution_failure_cleanup(issue))
+        let reason = match original {
+          UnsupportedGraph => "unexpected runnable Task"
+          Fenced => "lost original"
+          MissingLocalModule => "missing Local module"
+          Driver(Execution(Physical(cause))) => @debug.to_string(cause)
+          Driver(ControlWorkLimit(work)) => "control work " + work.to_string()
+          Driver(ExecutionCapacityRefusal(cause, _, _, _)) =>
+            @debug.to_string(cause)
+          _ => "original Task execution failed"
+        }
+        fail(reason)
+      }
+    }
+    assert_true(observed_pause.val)
+    assert_eq(output.rows().unwrap(), ["{\"n\":0}"])
+    assert_true(output.close())
+    @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+    retire_installed_managed_run(run).unwrap()
+    let retired = @resources.ledger_usage(parent.ledger)
+    // The checked SELECT compiles a final output task after the two
+    // original marked compute positions. Each physical task commits once.
+    assert_eq(completed_tasks, [0, 1, 2])
+    assert_eq(retired.attempts, attempts + completed_tasks.length())
+    assert_eq(retired.live_reservations, 0)
+    return
+  }
+  let continue_entry : Ref[
+    ((@local_driver.LocalManagedDispatchOperations[Int]) -> Unit raise)?,
+  ] = Ref(None)
   let sample_profile = if check_sample_start {
     let captured = run.source_free_captured.unwrap()
     let foreign_definition = @publication.admit_publication_contract(
@@ -1284,13 +2606,16 @@ fn collection_request_publication_case(
     @strategy.stop_captured_dag(foreign_run)
     // The original H/R/W tariff plus the installed Account/tuple frame's
     // independent 24 headers, 56 references and 22 words on both dimensions.
-    // The admitted Map handoff borrows six references.
+    // The admitted Map handoff borrows six references. The selected Journal
+    // proof adds its fixed records, reference slots and extent counters.
     let continuation_bytes = 7L * 16L + 18L * 8L + 10L * 8L
+    let profile_proof_bytes = 2L * 16L + 12L * 8L + 4L * 8L
     let initial_start_bytes = 7456L +
       24L * 16L +
       (56L + 6L) * 8L +
       22L * 8L +
-      continuation_bytes
+      continuation_bytes +
+      profile_proof_bytes
     let journal_bytes = 1024
     let journal_charge = installed_relation_sample_journal_bytes(journal_bytes).unwrap()
     assert_true(journal_charge > journal_bytes.to_int64())
@@ -1424,6 +2749,8 @@ fn collection_request_publication_case(
       ledger,
       original_reference.unwrap(),
       entry_step,
+      readmit_sample~,
+      optional_sample~,
     )
     assert_eq(
       installed_relation_sample_debug_next_input(
@@ -1572,7 +2899,7 @@ fn collection_request_publication_case(
         is Err(SampleStartControl(@strategy.StaleRevision)),
       )
       let expected_generation = @strategy.captured_dag_generation(captured) + 1
-      continue_entry.val = Some(() => {
+      continue_entry.val = Some(operations => {
         assert_true(
           installed_relation_sample_debug_entry_runnable(
             profile, run, captured, 2,
@@ -1593,6 +2920,87 @@ fn collection_request_publication_case(
         assert_eq(next_step_id, profile.driver_outputs.get(1).unwrap().0)
         assert_true(step_id != next_step_id)
         check_managed_pause_dependency_unavailable(captured, hooks, revision)
+        let graph = @strategy.captured_dag_graph(captured)
+        let tasks = @strategy.graph_task_count(graph)
+        let ledger = @strategy.captured_dag_ledger(captured)
+        let work = 4 +
+          3 * tasks +
+          @strategy.graph_data_count(graph) +
+          @strategy.graph_control_count(graph) +
+          @strategy.graph_result_count(graph)
+        let before_cut = @resources.ledger_usage(ledger)
+        assert_true(
+          @strategy.read_captured_task_continuation(
+            captured,
+            hooks,
+            revision - 1,
+            generation,
+            work,
+          )
+          is Err(StalePause),
+        )
+        assert_true(
+          @strategy.read_captured_task_continuation(
+            captured,
+            hooks,
+            revision,
+            generation,
+            work - 1,
+          )
+          is Err(WorkLimit),
+        )
+        assert_eq(@resources.ledger_usage(ledger), before_cut)
+        let cut = @strategy.read_captured_task_continuation(
+          captured, hooks, revision, generation, work,
+        ).unwrap()
+        assert_eq(
+          @strategy.captured_task_continuation_position(captured, cut),
+          Some((2, revision, generation, 1, tasks)),
+        )
+        assert_eq(
+          @strategy.captured_task_continuation_completion(captured, cut, 0),
+          Some((generation, before_cut.attempts, true)),
+        )
+        assert_eq(
+          @strategy.captured_task_continuation_completion(captured, cut, 1),
+          None,
+        )
+        assert_eq(
+          @resources.ledger_usage(ledger).planning_work,
+          before_cut.planning_work + work,
+        )
+        let output_failure : Ref[Error?] = Ref(None)
+        assert_true(
+          @local_driver.with_local_managed_continuation_relation(operations, (
+            completed,
+            original,
+            _,
+          ) => {
+            try
+              check_collection_continuation_output(
+                captured, cut, completed, original,
+              )
+            catch {
+              issue => output_failure.val = Some(issue)
+            } noraise {
+              _ => ()
+            }
+          }),
+        )
+        if output_failure.val is Some(issue) {
+          raise issue
+        }
+        if check_continuation_relation {
+          check_collection_continuation_relation(
+            run,
+            profile,
+            cut,
+            operations,
+            revision,
+            generation,
+            before_cut.attempts,
+          )
+        }
         let resume_task = fn(expected, selected, next, committed) {
           resume_installed_relation_sample_debug_task(
             profile, run, captured, account, "sample-fixture", "node", 2, expected,
@@ -1626,6 +3034,15 @@ fn collection_request_publication_case(
         )
         assert_true(@strategy.next_captured_task(captured) is None)
         resume_task(revision, step_id, next_step_id, generation).unwrap()
+        assert_eq(
+          @strategy.captured_task_continuation_position(captured, cut),
+          None,
+        )
+        @strategy.return_captured_task_continuation(cut).unwrap()
+        assert_eq(
+          @resources.ledger_usage(ledger).live_reservations,
+          before_cut.live_reservations,
+        )
         assert_true(
           resume_task(revision, step_id, next_step_id, generation)
           is Err(SampleStartControl(@strategy.InvalidTransition)),
@@ -1671,14 +3088,15 @@ fn collection_request_publication_case(
           expected_task,
           expected_attempt,
           expected_task == sample_tasks[1],
+          check_adoption=if check_sample_adoption_short {
+            expected_task == sample_tasks[1]
+          } else {
+            !check_continuation_relation || expected_task != 0
+          },
+          check_work_short=check_sample_adoption_short,
         )
         assert_false(sample_ports.contains(port))
         sample_ports.push(port)
-        if continue_entry.val is Some(advance) {
-          assert_eq(expected_task, 0)
-          continue_entry.val = None
-          advance()
-        }
       } catch {
         issue => sample_failure.val = Some(issue)
       } noraise {
@@ -1696,6 +3114,31 @@ fn collection_request_publication_case(
     component_compute_quantum=256,
     on_relation_commit~,
     sample_tasks~,
+    component_after_commit=Some((operations, task) => {
+      if sample_profile is None {
+        let visits = Ref(0)
+        let held = @local_driver.with_local_managed_continuation_relation(
+          operations,
+          (_, _, _) => visits.val += 1,
+        )
+        if held || visits.val != 0 {
+          sample_failure.val = Some(
+            Failure("Normal exposed a continuation Relation"),
+          )
+        }
+      }
+      if sample_failure.val is None && continue_entry.val is Some(advance) {
+        continue_entry.val = None
+        try {
+          assert_eq(task, 0)
+          advance(operations)
+        } catch {
+          issue => sample_failure.val = Some(issue)
+        } noraise {
+          _ => ()
+        }
+      }
+    }),
     component_after_compute=Some((operations, task) => {
       if sample_tasks.contains(task) && sample_profile is Some(profile) {
         sample_compute.val = Some(
@@ -1707,16 +3150,26 @@ fn collection_request_publication_case(
           ),
         )
       }
+      if check_continuation_relation {
+        let visits = Ref(0)
+        let held = @local_driver.with_local_managed_continuation_relation(
+          operations,
+          (_, _, _) => visits.val += 1,
+        )
+        if held || visits.val != 0 {
+          return Err(Configuration(InputUnavailable))
+        }
+      }
       collection_node_snapshot(operations, task, ledger)
     }),
   )
   let output = match result {
     Ok(value) => {
       assert_false(expect_work_refusal)
+      if sample_failure.val is Some(issue) {
+        raise issue
+      }
       if sample_profile is Some(_) {
-        if sample_failure.val is Some(issue) {
-          raise issue
-        }
         assert_eq(sample_ports.length(), 2)
         assert_true(continue_entry.val is None)
       }
@@ -2049,6 +3502,14 @@ fn collection_request_publication_case(
   @execution.close_managed_publication_bridge(bridge)
   assert_true(output.close())
   if sample_profile is Some(profile) {
+    let retired_visits = Ref(0)
+    assert_false(
+      @local_driver.with_local_managed_continuation_relation(
+        output.operations,
+        (_, _, _) => retired_visits.val += 1,
+      ),
+    )
+    assert_eq(retired_visits.val, 0)
     assert_false(
       @strategy.captured_task_boundary_cleanup_pending(profile.captured),
     )
@@ -2308,6 +3769,10 @@ fn collection_node_callback_order(
     @local_driver.LocalManagedDispatchOperations[Int],
     Int,
   ) -> Result[Unit, @local_driver.LocalDispatchIssue])? = None,
+  component_after_commit? : ((
+    @local_driver.LocalManagedDispatchOperations[Int],
+    Int,
+  ) -> Unit)? = None,
   on_relation_commit? : ((
     @execution.ManagedCompletedOutput[Int],
     @execution.CompletedOutput?,
@@ -2619,6 +4084,9 @@ fn collection_node_callback_order(
       (operations.complete)(index, operations.storage_bytes, live) {
       Ok(value) => Some(value)
       Err(issue) => return reject(Driver(issue))
+    }
+    if component_after_commit is Some(after_commit) {
+      after_commit(operations, index)
     }
     if !current() {
       return reject(Fenced)

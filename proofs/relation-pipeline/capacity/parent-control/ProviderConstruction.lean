@@ -35,8 +35,8 @@ theorem retained_core_union (count : Nat) (registry : RelationCapacity.Registry)
   have unionBound := RelationCapacity.charge_union registry.ids registry.size coreLive selectionLive
   omega
 
--- Current source has six pointer-sized fields; optional bounded quote and Infer recipes are
--- None in all eleven candidates. The separate Model-bound tuple is excluded.
+-- The earlier six-field census covered direct numeric callbacks. Its record,
+-- callback and container component is also a premise of the tagged census.
 -- These conditional arithmetic laws are not compiler or observation evidence.
 theorem current_candidate_component (s : Footprint)
     (records : s.records ≤ 11 * 56) (callbacks : s.callbacks ≤ 44 * 40)
@@ -55,6 +55,31 @@ theorem current_retained_core_union (count : Nat) (registry : RelationCapacity.R
     RelationCapacity.charge registry.ids registry.size
       (fun id => coreLive id || selectionLive id) ≤
         NativeParentCore.envelope count + 2520 := by
+  have unionBound := RelationCapacity.charge_union registry.ids registry.size coreLive selectionLive
+  omega
+
+-- Current candidate records keep the same six pointer-sized fields.
+-- The two Numeric variants add at most two header-plus-reference records.
+-- The separately installed Model provider and its Task workspace are excluded.
+theorem tagged_candidate_component (s : Footprint) (startTags : Nat)
+    (records : s.records ≤ 11 * 56) (callbacks : s.callbacks ≤ 44 * 40)
+    (candidates : s.candidates ≤ 120) (family : s.defaultFamily ≤ 24)
+    (tags : startTags ≤ 2 * 16) :
+    s.bytes + startTags ≤ 2552 := by
+  have direct := current_candidate_component s records callbacks candidates family
+  omega
+
+theorem tagged_retained_core_union (count : Nat) (registry : RelationCapacity.Registry)
+    (coreLive selectionLive : Nat → Bool)
+    (core : NativeParentCore.Footprint) (selection : Footprint) (startTags : Nat)
+    (coreBound : core.bytes ≤ NativeParentCore.envelope count)
+    (selectionBound : selection.bytes + startTags ≤ 2552)
+    (coreCoverage : RelationCapacity.charge registry.ids registry.size coreLive ≤ core.bytes)
+    (selectionCoverage : RelationCapacity.charge registry.ids registry.size selectionLive ≤
+      selection.bytes + startTags) :
+    RelationCapacity.charge registry.ids registry.size
+      (fun id => coreLive id || selectionLive id) ≤
+        NativeParentCore.envelope count + 2552 := by
   have unionBound := RelationCapacity.charge_union registry.ids registry.size coreLive selectionLive
   omega
 

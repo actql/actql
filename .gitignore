@@ -200,6 +200,8 @@ target/
 /packages/sdk/result-schema.d.mts
 /scripts/typescript-packaging.test.mjs
 /scripts/typescript-packaging.test.d.mts
+/scripts/prepare-explorer-xyflow-types.mjs
+/scripts/prepare-explorer-xyflow-types.d.mts
 /scripts/typescript-bootstrap.test.mjs
 /scripts/typescript-bootstrap.test.d.mts
 /packages/sdk/check-presentation.mjs
@@ -335,9 +337,11 @@ target/
 /scripts/js-compiler-binding-generation.test.mjs
 /scripts/js-compiler-binding-generation.test.d.mts
 
-# Generated original optional-provider transport and private declaration.
-/packages/provider-ai-sdk/_internal/original-undici-transport.mjs
-/packages/provider-ai-sdk/_internal/original-undici-transport.d.mts
+# Generated Local transport and the optional SDK's installed Local import.
+/adapters/host-node/original-model-http-transport.mjs
+/adapters/host-node/original-model-http-transport.d.mts
+/packages/provider-ai-sdk/_internal/local-model-http-transport.mjs
+/packages/provider-ai-sdk/_internal/local-model-http-transport.d.mts
 
 # Generated private suspended SDK request preparation and transport.
 /packages/provider-ai-sdk/_internal/intercepted-request.mjs
@@ -366,8 +370,6 @@ target/
 /packages/provider-ai-sdk/_internal/native-decision-preflight.d.mts
 
 # Generated original admitted Chat projection consumer.
-/packages/provider-ai-sdk/_internal/original-openai-chat.mjs
-/packages/provider-ai-sdk/_internal/original-openai-chat.d.mts
 
 # Generated original-material generator/check and shared strict interface emitter.
 /scripts/generate-model-original-materials.mjs
@@ -419,6 +421,8 @@ target/
 # Generated installed HTTP registration.
 /packages/provider-http/_internal/installed-http-chat.mjs
 /packages/provider-http/_internal/installed-http-chat.d.mts
+/packages/provider-http/_internal/normal-http-chat.mjs
+/packages/provider-http/_internal/normal-http-chat.d.mts
 
 # Existing HTTP public JS entry is emitted; exports keep canonical index.d.ts.
 /packages/provider-http/index.mjs
@@ -846,6 +850,8 @@ target/
 
 /scripts/packed-client-packages.mjs
 /scripts/packed-client-packages.d.mts
+/scripts/prepare-packed-client-install-cache.mjs
+/scripts/prepare-packed-client-install-cache.d.mts
 
 /scripts/package-release.mjs
 /scripts/package-release.d.mts
@@ -2664,6 +2670,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /packages/provider-http/model-port.test.d.mts
 /packages/provider-http/installed-http-chat.test.mjs
 /packages/provider-http/installed-http-chat.test.d.mts
+/packages/provider-http/normal-http-chat.test.mjs
+/packages/provider-http/normal-http-chat.test.d.mts
 /packages/run-host-core/checkpoint-resolution.test.mjs
 /packages/run-host-core/checkpoint-resolution.test.d.mts
 /packages/run-host-core/result-access-public.mjs
@@ -3024,6 +3032,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/test-native-cli-release-install.d.mts
 /scripts/release-install-child.mjs
 /scripts/release-install-child.d.mts
+/scripts/ordinary-python-ordered-parity.mjs
+/scripts/ordinary-python-ordered-parity.d.mts
 /scripts/test-native-approval-performance.mjs
 /scripts/test-native-approval-performance.d.mts
 /adapters/connectors/calendar/host/installed-calendar-source.mjs
@@ -3172,6 +3182,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/initial-control-package-custody.d.cts
 /adapters/host-node/initial-control-package-custody.test.mjs
 /adapters/host-node/initial-control-package-custody.test.d.mts
+/adapters/host-node/fixtures/ordinary-undici-custody.fixture.mjs
+/adapters/host-node/fixtures/ordinary-undici-custody.fixture.d.mts
 /adapters/host-node/infer-trusted-node-preload.cjs
 /adapters/host-node/infer-trusted-node-preload.d.cts
 /adapters/host-node/infer-trusted-node-startup.test.mjs
@@ -4179,3 +4191,12 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/record-approval-ordered-https.test.d.mts
 /scripts/record-approval-published-mapping.test.mjs
 /scripts/record-approval-published-mapping.test.d.mts
+
+/scripts/templates/structural-wire-validator.mjs
+/scripts/templates/structural-wire-validator.d.mts
+/scripts/wire-template-compiler.mjs
+/scripts/wire-template-compiler.d.mts
+/scripts/generate-client-host-wire.test.mjs
+/scripts/generate-client-host-wire.test.d.mts
+/scripts/fixtures/client-wire-contract-corpus.mjs
+/scripts/fixtures/client-wire-contract-corpus.d.mts

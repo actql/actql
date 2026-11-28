@@ -82,6 +82,7 @@ priv struct ClientEffectOperationControls {
   mut dependency_capture_slots : Int?
   mut dependency_capture : @publication.CapturedRunIssuancePreparation?
   mut dependency_started : Bool
+  mut dependency_pin_admission : @strategy.CapturedEffectPinAdmission?
   mut dependency_inputs : @strategy.CapturedEffectInputs?
   mut dependency_capacity : @execution.ExecutionCapacity?
 }

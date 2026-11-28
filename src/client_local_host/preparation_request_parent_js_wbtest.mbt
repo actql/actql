@@ -273,6 +273,8 @@ test "fixed Request control envelope preserves original upper bound through the 
     8L * 11L +
     8L * 16L +
     // The adopted Run retains one paid Sample Journal extent word.
+    8L +
+    // The Request retains its read-only Debug Plan selector.
     8L
   assert_eq(
     @execution.preparation_representation_cost(

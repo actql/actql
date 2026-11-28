@@ -151,6 +151,103 @@ fn close_submission_decode_prefix(
   record : StoredSubmissionProjection,
 ) -> Int {
   match record.append_plan {
+    EffectFilePublished(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectFileCompletion(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectFileTerminal(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectFileResponse(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectFileReplacement(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectFileDispatch(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectApplication(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectResumeClaim(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectDecision(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectAttestationUse(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    EffectProof(original) =>
+      match @resources.settle_capacity(value.root, original.capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
+    NamedSubmissionObservation(capacity)
+    | NamedSubmissionAppend({ capacity, .. }) =>
+      match @resources.settle_capacity(value.root, capacity) {
+        Ok(_) => {
+          record.append_plan = Idle
+          0
+        }
+        Err(_) => -4
+      }
     Decoding(capacity, previous) | DecodedRows(capacity, previous, _) =>
       match @resources.settle_capacity(value.root, capacity) {
         Err(_) => -4

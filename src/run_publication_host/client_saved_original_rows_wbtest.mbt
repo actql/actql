@@ -40,7 +40,10 @@ test "same saved original reobserves both physical triples without rebuilding Ma
     client_saved_submission_record(actual).run_state_original,
     Some(client_saved_manifest_envelope),
   )
-  let state = client_saved_submission_state_original(actual).unwrap()
+  let state = client_saved_submission_retained_state_original(actual)
+    .unwrap()
+    .resolve()
+    .unwrap()
   assert_eq(state.wire(), client_saved_manifest_envelope)
   assert_eq(state.state_wire(), client_saved_manifest_state)
   assert_eq(
@@ -141,7 +144,7 @@ test "preparing and historical originals do not create missing state or a new va
     ) => inventory_read(saved_snapshot_rows(body), table, key))
     .unwrap()
     .unwrap()
-  assert_true(client_saved_submission_state_original(actual) is None)
+  assert_true(client_saved_submission_retained_state_original(actual) is None)
   assert_true(
     client_saved_submission_record(actual).run_state_observation is None,
   )

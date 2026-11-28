@@ -688,6 +688,121 @@ fn bounded_relation_chain_capacity(
 }
 
 ///|
+/// Quote a source-free chain of literal Values and checked assertions that
+/// forward all of those same cells. Only this closed chain can use the literal
+/// DATA bound for its assertions: a standalone selected step may be supplied
+/// a different original input. Keep each child's existing operation, input
+/// recheck and Fragment scratch, plus the chain's own controls.
+pub fn literal_unique_relation_chain_capacity(
+  sequence : @execution.GeneratedSequence,
+  limits : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> @execution.ExecutionCapacity? {
+  let count = @execution.generated_sequence_step_count(sequence)
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  guard count > 1 &&
+    @execution.generated_sequence_step_at(sequence, 0)
+    is Some(@lower.ValuesStep(_)) &&
+    @execution.generated_sequence_step_index_at(sequence, 0) is Some(seed) &&
+    @lower.node_at(prepared, seed) is Some(values) &&
+    @lower.node_input_count(values) == 0 &&
+    @lower.node_values_row_count(values) is Some(rows) &&
+    @lower.node_values_literal_text_bytes(values) is Some(text) &&
+    rows >= 0 &&
+    text >= 0 &&
+    @lower.preparation_schema_at(prepared, @pipeline.Step(seed)) is Some(schema) &&
+    @schema.all_fields_required(schema) &&
+    @execution.checked_preparation_add_product(
+      0L,
+      rows.to_int64(),
+      @schema.field_count(schema).to_int64() + 1L,
+    )
+    is Some(nodes) else {
+    return None
+  }
+  for index in 0..<@schema.field_count(schema) {
+    match
+      @schema.field_contract(@schema.field_at(schema, index).unwrap()).shape {
+      @contract.Number | @contract.Boolean | @contract.Text(_) => ()
+      _ => return None
+    }
+  }
+  let child_limits = {
+    ..limits,
+    rows: {
+      ..limits.rows,
+      output_values: {
+        ..limits.rows.output_values,
+        max_nodes: Int64::min(
+          nodes,
+          limits.rows.output_values.max_nodes.to_int64(),
+        ).to_int(),
+        max_text_bytes: Int::min(text, limits.rows.output_values.max_text_bytes),
+      },
+    },
+  }
+  // The chain retains exact-count child handles and completion refs, and
+  // one input-selection and one common read cursor. A successor starts
+  // only after this checked chain's prior child acknowledges scratch cleanup.
+  // Keep every earlier completion beside the active child's whole quote.
+  let handles = 512L +
+    local_provider_selection_recipe_field_bytes +
+    count.to_int64() * 256L
+  let mut retained = handles
+  let mut execution = handles
+  let mut previous = seed
+  for index in 0..<count {
+    guard @execution.generated_sequence_step_index_at(sequence, index)
+      is Some(step) &&
+      @execution.select_generated_sequence_step(sequence, step)
+      is Some(selected) else {
+      return None
+    }
+    if index > 0 {
+      guard @execution.generated_sequence_step_at(sequence, index)
+        is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_body(kernel) is @lower.AssertUnique(_) &&
+        @lower.node_at(prepared, step) is Some(node) &&
+        @lower.node_input_count(node) == 1 &&
+        @lower.node_input_target(node, 0) == Some(@pipeline.Step(previous)) &&
+        @lower.node_accepts_managed_relation_view(node, 0) else {
+        return None
+      }
+    }
+    guard @execution.generated_bounded_sequence_capacity(
+        selected,
+        if index == 0 {
+          limits
+        } else {
+          child_limits
+        },
+        measurement,
+      )
+      is Some(child) &&
+      @execution.checked_preparation_add_product(
+        retained,
+        child.retained_bytes,
+        1L,
+      )
+      is Some(next_retained) &&
+      @execution.checked_preparation_add_product(
+        retained,
+        child.execution_bytes,
+        1L,
+      )
+      is Some(next_execution) else {
+      return None
+    }
+    retained = next_retained
+    execution = Int64::max(execution, next_execution)
+    previous = step
+  }
+  @execution.execution_capacity(retained, Int64::max(retained, execution))
+}
+
+///|
 /// Execute a checked Relation chain inside its original task. Every
 /// intermediate result remains private and supplies its exact later checked edges.
 fn bounded_relation_chain_execution(

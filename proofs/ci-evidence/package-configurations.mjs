@@ -138,7 +138,9 @@ export const currentPackageConfigurations = Object.freeze({
   // code. Its production imports leave all existing target selectors intact.
   // The current task authority adds one Local import and a JS-only strategy whitebox fixture.
   // See docs/reviews/2026-11-25-session-explorer-task-authority-review.json.
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '89060694cfab16f512d11e282958f1bd663dcd152ab20c7b519de0739c16b2b3', rule: 'literal-target-selectors-with-bound-source-membership', revision: '207548ec659716c0e8bb181a63e014fd024a0153'}),
+  // The terminal Content SQL parity fixture adds only a literal JS selector.
+  // Portable Model retains the exact existing package rules and adds one in-tree dependency.
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '51810036d1e9e55f09f581066463cb8a11ce7041e35b851141ce9e47985f3c99', rule: 'literal-target-selectors-with-bound-source-membership', revision: 'bbd440aaa040412885d3b3974c9eec09597af733'}),
   'src/physical_strategy_host/moon.pkg': Object.freeze({digest: 'ae3a826d73c8fe1b62f16bd442324dc88719309bd469e9a92b80d6e87051ab2c', rule: 'literal-target-selectors-with-bound-source-membership', revision: '207548ec659716c0e8bb181a63e014fd024a0153'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: 'd515c9868140c30ef68b5778b71863813cad0d53cc7300e4ba8fcc3e00405d9d', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '6f27dfdf10aa232977277ec8580557463e44e81f'}),
   // One literal timestamp-pattern dependency; existing JS/non-JS selectors unchanged.

@@ -154,6 +154,7 @@ pub fn[I] prepare_native_client_submitted_request_input(
           {
             intent_cid: @host.client_submitted_intent_cid(intent),
             preparation: Computation(original),
+            lowered_effect_query: false,
           },
           Program(borrow),
         ),
@@ -165,11 +166,21 @@ pub fn[I] prepare_native_client_submitted_request_input(
         Ok(value) => value
       }
       let original = @resources.preparation_body_borrow_value(borrow).unwrap()
+      let lowered_effect_query = @local.prepared_request_query_lowering(
+          owner, input,
+        )
+        is Ok((lowered, _, _)) &&
+        lowered.program is Some(program) &&
+        physical_equal(
+          program,
+          @host.prepared_client_effect_computation_source(original),
+        )
       Ok(
         (
           {
             intent_cid: @host.client_submitted_intent_cid(intent),
             preparation: EffectComputation(original),
+            lowered_effect_query,
           },
           Effect(borrow),
         ),

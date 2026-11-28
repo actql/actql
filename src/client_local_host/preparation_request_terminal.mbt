@@ -112,17 +112,18 @@ pub fn[I] finish_request_computation_preparation(
   }
   let child = owner.program_check.unwrap()
   let limits = owner.computation_limits.unwrap()
-  let execution_profile = match owner.submitted_intent {
-    Some(original) =>
-      @publication_host.client_submitted_intent_execution_profile(original)
-    None => @publication_host.Normal
+  let execution_profile = if owner.debug_plan_read {
+    @publication_host.Debug
+  } else {
+    match owner.submitted_intent {
+      Some(original) =>
+        @publication_host.client_submitted_intent_execution_profile(original)
+      None => @publication_host.Normal
+    }
   }
   if child.effect_limits is Some(_) {
-    if execution_profile == Debug {
-      return Err(
-        Preparation(ProgramCheck(Compilation(DebugProfileUnsupported))),
-      )
-    }
+    // Compilation retains the original Effect plan. The installed Host admits
+    // its execution profile before starting the Run.
     if child.phase != CompilationComplete {
       match
         compile_effect_program_check_preparation(
@@ -131,6 +132,7 @@ pub fn[I] finish_request_computation_preparation(
           store_targets~,
           command_targets~,
           source_input=request_source_input_original(owner),
+          execution_profile~,
         ) {
         Err(issue) => return Err(Preparation(ProgramCheck(issue)))
         Ok(_) => ()

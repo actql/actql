@@ -5,6 +5,10 @@ fn physical_journal_current(ticket : Int) -> Int = "actql_host" "journal_current
 fn physical_journal_current_operation(ticket : Int) -> Int64 = "actql_host" "journal_current_operation"
 
 ///|
+// Observe uninterrupted readership on the original positive current ticket.
+fn physical_journal_saved_reader(ticket : Int) -> Int64 = "actql_host" "journal_saved_reader"
+
+///|
 // Check the one current catalog on the original Reader. 1 acknowledges
 // the check; it carries no authority or supported-format selection.
 fn physical_journal_schema(ticket : Int) -> Int = "actql_host" "journal_schema"
@@ -24,6 +28,33 @@ fn physical_journal_query_header(
   key_bytes : Int,
   header_buffer : FixedArray[Byte],
 ) -> Int = "actql_host" "journal_query_header"
+
+///|
+// Use the original Reader and the same 16-byte row header. The first ordinal
+// selects the exact Run's four slots, and later ordinals borrow that read.
+#unsafe_skip_stub_check
+#borrow(run_key_buffer, header_buffer)
+fn physical_journal_task_material_header(
+  ticket : Int,
+  ordinal : Int,
+  run_key_buffer : Bytes,
+  run_key_bytes : Int,
+  header_buffer : FixedArray[Byte],
+) -> Int = "actql_host" "journal_task_material_header"
+
+///|
+// The ordered pair locates the two exact rows of one admitted Saved snapshot.
+#unsafe_skip_stub_check
+#borrow(keys_buffer, header_buffer)
+fn physical_journal_saved_identity_header(
+  ticket : Int,
+  ordinal : Int,
+  keys_buffer : Bytes,
+  keys_bytes : Int,
+  submission_bytes : Int,
+  run_bytes : Int,
+  header_buffer : FixedArray[Byte],
+) -> Int = "actql_host" "journal_saved_identity_header"
 
 ///|
 #unsafe_skip_stub_check
@@ -155,6 +186,9 @@ fn physical_journal_row(
   mode : Int,
   table_name : String,
   key : String,
+  expected_body_length? : Int? = None,
+  maximum_body_length? : Int? = None,
+  expected_successor_lengths? : (Int64, Int, Int)? = None,
 ) -> Result[@host.ClientJournalPhysicalRow?, Int] {
   match current() {
     Ok(_) => ()
@@ -180,6 +214,110 @@ fn physical_journal_row(
     key_bytes.length(),
     header,
   )
+  finish_physical_journal_row(
+    physical,
+    current,
+    code,
+    header,
+    expected_body_length~,
+    maximum_body_length~,
+    expected_successor_lengths~,
+  )
+}
+
+///|
+// The caller supplies the original checked Run key and next slot in its
+// synchronous Reader frame. Use the same physical row transfer and fences.
+fn physical_journal_task_material_row(
+  physical : Int,
+  current : () -> Result[Unit, Int],
+  run_key : String,
+  ordinal : Int,
+) -> Result[@host.ClientJournalPhysicalRow?, Int] {
+  match current() {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  if ordinal < 0 || ordinal >= 4 || run_key.length() != 71 {
+    return Err(-41)
+  }
+  let bytes = @utf8.encode(run_key)
+  if bytes.length() != 71 {
+    return Err(-41)
+  }
+  let header : FixedArray[Byte] = FixedArray::make(16, 0)
+  let code = physical_journal_task_material_header(
+    physical,
+    ordinal,
+    bytes,
+    bytes.length(),
+    header,
+  )
+  finish_physical_journal_row(physical, current, code, header)
+}
+
+///|
+fn physical_journal_saved_identity_row(
+  physical : Int,
+  current : () -> Result[Unit, Int],
+  keys : Bytes,
+  ordinal : Int,
+  submission_bytes : Int,
+  run_bytes : Int,
+) -> Result[@host.ClientJournalPhysicalRow?, Int] {
+  match current() {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  if keys.length() != 142 ||
+    ordinal < 0 ||
+    ordinal > 1 ||
+    submission_bytes <= 0 ||
+    submission_bytes > 262144 ||
+    run_bytes <= 0 ||
+    run_bytes > 262144 {
+    return Err(-41)
+  }
+  let header : FixedArray[Byte] = FixedArray::make(16, 0)
+  let code = physical_journal_saved_identity_header(
+    physical,
+    ordinal,
+    keys,
+    keys.length(),
+    submission_bytes,
+    run_bytes,
+    header,
+  )
+  if code == 2 {
+    // The physical Reader checked a valid, changed extent without copying
+    // its body. Preserve the same original-custody refusal as point reading.
+    return current().bind(_ => Err(-32))
+  }
+  finish_physical_journal_row(
+    physical,
+    current,
+    code,
+    header,
+    expected_body_length=Some(
+      if ordinal == 0 {
+        submission_bytes
+      } else {
+        run_bytes
+      },
+    ),
+  )
+}
+
+///|
+fn finish_physical_journal_row(
+  physical : Int,
+  current : () -> Result[Unit, Int],
+  code : Int,
+  header : FixedArray[Byte],
+  expected_body_length? : Int? = None,
+  maximum_body_length? : Int? = None,
+  expected_successor_lengths? : (Int64, Int, Int)? = None,
+) -> Result[@host.ClientJournalPhysicalRow?, Int] {
   if code == 1 {
     return current().map(_ => None)
   }
@@ -190,6 +328,15 @@ fn physical_journal_row(
     journal_row_header(header.unsafe_reinterpret_as_bytes()) {
     Ok(fields) => fields
     Err(code) => return Err(code)
+  }
+  if (expected_body_length is Some(expected) && expected != body_length) ||
+    (maximum_body_length is Some(maximum) && body_length > maximum) {
+    return Err(-41)
+  }
+  if expected_successor_lengths is Some((before, original, successor)) &&
+    !((revision == before && body_length == original) ||
+    (revision == before + 1L && body_length == successor)) {
+    return Err(-41)
   }
   let actual_key : FixedArray[Byte] = FixedArray::make(key_length, 0)
   let body : FixedArray[Byte] = FixedArray::make(body_length, 0)
@@ -223,7 +370,12 @@ pub fn reserve_journal_observation(
   guard selected(nonce) is Some(value) &&
     value.materials.get(material) is Some(parent) &&
     parent.produced &&
-    parent.submission is Some({ rows: Some(_), .. }) &&
+    (
+      parent.submission is Some({ rows: Some(_), .. }) ||
+      parent.submission is Some({ journal_candidate: Some(Retained(_, _)), .. }) ||
+      parent.submission
+      is Some({ journal_candidate: Some(RetainedFile(_, _, _)), .. })
+    ) &&
     value.run_configurations.contains(configuration) else {
     return -2
   }
@@ -273,14 +425,32 @@ pub fn reserve_journal_observation(
 /// Core chooses each query and validates the same original saved snapshot.
 /// Completion here is inspection only; physical COMMIT/Store ACK is separate.
 pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) &&
+    value.materials.get(child.material)
+    is Some(
+      {
+        submission: Some({ journal_candidate: Some(RetainedFile(_, _, _)), .. }),
+        ..
+      }
+    ) {
+    return inspect_sdk_whole_file_journal_observation(value, handle, child)
+  }
+  if selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) &&
+    value.materials.get(child.material)
+    is Some({ submission: Some({ effect: true, .. }), .. }) {
+    return inspect_mock_effect_journal_observation(value, handle, child)
+  }
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
     value.materials.get(child.material) is Some(material) &&
-    material.submission is Some({ rows: Some(rows), .. }) &&
+    material.submission is Some(submission) &&
+    submission.rows is Some(rows) &&
     value.runs.get(material.run) is Some(record) &&
     record.outcome is Some(Ok(plan)) &&
     value.preparations.get(record.preparation)
-    is Some({ submitted: Some(original), .. }) else {
+    is Some({ kind: preparation_kind, submitted: Some(original), .. }) else {
     return -2
   }
   if child.invoked {
@@ -309,17 +479,47 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
       Some(frame) => journal_decode_run_inspection(value, child, frame, row)
     }
   }
-  let outcome = @local_run.inspect_local_saved_submission(
-    rows,
-    plan,
-    original,
-    1024,
-    scan,
-    read,
-    inspect_run,
-    () => submission_cancellation_inventory(scan, read),
-    -31,
-  ).map_err(issue => {
+  let cancellation = () => submission_cancellation_inventory(scan, read)
+  let selected_sdk = value.run_configurations.get(child.configuration)
+    is Some({ sdk: Some(_), .. }) &&
+    record.configuration == child.configuration
+  let first = selected_sdk &&
+    material.output_closed &&
+    submission.sdk_wire is Some(_) &&
+    submission.current_configuration == child.configuration &&
+    !submission.first_journal_observed &&
+    preparation_kind == 3 &&
+    !submission.portable_model &&
+    record.restoration is None &&
+    record.sdk_submission is Some(_) &&
+    !record.physical_start_reserved &&
+    !record.source_free_compute_reserved
+  let outcome = if selected_sdk {
+    if physical_journal_schema(child.physical) != 1 {
+      Err(@local_run.Inspection(-41))
+    } else if first {
+      @local_run.read_local_first_saved_submission(
+        rows, plan, original, read, inspect_run, -31,
+      )
+    } else {
+      @local_run.read_local_current_saved_submission(
+        rows,
+        plan,
+        original,
+        read,
+        inspect_run,
+        -31,
+        require_claimed=record.restoration is None &&
+          record.source_free_compute_reserved &&
+          record.sdk_submission is Some(_),
+      )
+    }
+  } else {
+    @local_run.inspect_local_saved_submission(
+      rows, plan, original, 1024, scan, read, inspect_run, cancellation, -31,
+    )
+  }
+  let outcome = outcome.map_err(issue => {
     match issue {
       Inspection(code) => code
       UnresolvedHistory => -43
@@ -379,6 +579,9 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
       }
     }
   }
+  if first && outcome is Ok(_) {
+    submission.first_journal_observed = true
+  }
   child.outcome = Some(Observed(outcome, retained_frame))
   match outcome {
     Ok(_) => 0
@@ -422,6 +625,61 @@ pub fn journal_observation_revision(
 /// Produce the saved Owner admission under the original current/snapshot
 /// frame. Cached output still requires current validation on every read.
 pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
+  if selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) &&
+    value.materials.get(child.material)
+    is Some(
+      {
+        submission: Some({ journal_candidate: Some(RetainedFile(_, _, _)), .. }),
+        ..
+      }
+    ) {
+    if child.closing {
+      return -5
+    }
+    guard child.admission_produced else { return -33 }
+    let original = match
+      sdk_whole_file_journal_observation_original(value, child) {
+      Err(code) => return code
+      Ok(selected) => selected
+    }
+    match
+      sdk_whole_file_journal_observation_current(value, handle, child, original) {
+      Err(code) => return code
+      Ok(_) =>
+        return @buffers.buffer_length(value.pool, child.slot).unwrap_or(-33)
+    }
+  }
+  if selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) &&
+    value.materials.get(child.material)
+    is Some({ submission: Some({ effect: true, .. }), .. }) {
+    if child.closing {
+      return -5
+    }
+    guard child.admission_produced else { return -33 }
+    match
+      mock_effect_journal_observation_original(
+        value,
+        child.material,
+        child.configuration,
+      ) {
+      Err(code) => return code
+      Ok(original) => {
+        let code = mock_effect_journal_observation_current(
+          value,
+          child.material,
+          child.configuration,
+          child.physical,
+          original,
+        )
+        if code != 0 {
+          return code
+        }
+        return @buffers.buffer_length(value.pool, child.slot).unwrap_or(-33)
+      }
+    }
+  }
   guard selected(nonce) is Some(value) &&
     value.journal_observations.get(handle) is Some(child) &&
     !child.closing &&

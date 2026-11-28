@@ -523,6 +523,43 @@ pub fn advance_completed_output_export(
 }
 
 ///|
+/// Advance the same stepped row writer with the original live traversal and
+/// measured emission funded before their first allocation. This consumer
+/// retains the canonical export and does not decode the emitted row again.
+pub fn advance_completed_output_export_measured(
+  stream : CompletedOutputExport,
+  quantum : Int,
+  max_workspace_slots : Int,
+  fund : (ExecutionCapacity) -> Bool,
+) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
+  guard completed_export_row_traversal_capacity(stream, max_workspace_slots)
+    is Some(traversal) else {
+    return Err(Admission(CaptureLimit))
+  }
+  let fund_writer = bytes => {
+    guard completed_export_row_writer_capacity(stream, bytes).bind(writers => {
+        add_execution_capacity(writers, traversal)
+      })
+      is Some(capacity) else {
+      return Err(CompletedExportIssue::Admission(CaptureLimit))
+    }
+    Ok(fund(capacity))
+  }
+  advance_completed_output_export_with_row_start(
+    stream,
+    quantum,
+    max_workspace_slots,
+    false,
+    Some(fund_writer),
+    Some(() => {
+      fund_writer(
+        @encode.observed_writer_usage(stream.writer).0 - stream.drained_bytes,
+      )
+    }),
+  )
+}
+
+///|
 fn advance_completed_output_export_with_row_start(
   stream : CompletedOutputExport,
   quantum : Int,

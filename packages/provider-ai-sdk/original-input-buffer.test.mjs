@@ -7,7 +7,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 // Same actual Undici parser; deterministic native-callback fixture only.
 // Real TCP/pinned SDK paths are separate existing transport tests. This does
 // not execute TLS or issue original Ledger/Entry/Store funding or authority.
-const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici');
 const originalBuilder = undici.buildConnector;
 let nextSocket, selected;
@@ -20,7 +20,7 @@ undici.buildConnector = options => {
   };
 };
 let physical;
-try { physical = await import('./_internal/original-undici-transport.mjs'); }
+try { physical = await import('@actql/local-node/_internal/model-http-transport'); }
 finally { undici.buildConnector = originalBuilder; }
 const endpoint = 'http://fixture.invalid/chat/completions';
 const wire = 'HTTP/1.1 200 OK\r\nContent-Length: 1\r\nConnection: close\r\n\r\nA';

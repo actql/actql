@@ -497,10 +497,7 @@ test "Native cancellation fences sending without erasing resume observation resp
   guard journal.lookup(request, true) is Ok(Retained(record)) else {
     fail("Run missing")
   }
-  journal
-  .transaction(() => journal.save({ ..record, cancellation_requested: true, }))
-  .unwrap()
-  |> ignore
+  journal.accept_fixture_cancellation(record)
   assert_true(
     journal.effect_resume_fence(first, () => true, () => 1001L)
     is Ok(SettlementOnly),
@@ -529,7 +526,7 @@ test "Native cancellation fences sending without erasing resume observation resp
     fail("Run missing")
   }
   assert_eq(after.checkpoint.unwrap().state.status, @publication.Resuming)
-  assert_true(after.cancellation_requested)
+  assert_true(after.cancellation_requested())
   database.close_checked().unwrap()
 }
 
@@ -546,14 +543,7 @@ test "Native resume admission cannot overwrite an intervening cancellation revis
       100L,
       resume_test_binding(),
       () => true,
-      before_commit=() => {
-        journal
-        .transaction(() => {
-          journal.save({ ..approved, cancellation_requested: true, })
-        })
-        .unwrap()
-        |> ignore
-      },
+      before_commit=() => journal.accept_fixture_cancellation(approved),
     )
     is Err(Checkpoint(StaleRevision)),
   )
@@ -561,7 +551,7 @@ test "Native resume admission cannot overwrite an intervening cancellation revis
     fail("Run missing")
   }
   assert_eq(after.revision, approved.revision + 1L)
-  assert_true(after.cancellation_requested)
+  assert_true(after.cancellation_requested())
   assert_eq(
     after.checkpoint.unwrap().resume_intent.unwrap().state,
     @checkpoint.ResumePending,

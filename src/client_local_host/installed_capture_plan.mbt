@@ -903,3 +903,53 @@ pub fn installed_managed_capture_publication_geometry_original(
   }
   Some((plan.graph, plan.capacity_plan.imports.row, entries, evidence_entries))
 }
+
+///|
+/// Stop the original Pure captured DAG after the entered host call unwound.
+/// The Source Read and parent keeper still owe their separate acknowledgments.
+pub fn stop_installed_pure_capture_host_after_unwind(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+) -> Bool {
+  guard owner.original is Some(original) &&
+    physical_equal(owner, original) &&
+    owner.publication is None &&
+    owner.preparation is Some(PureManaged(_, actual)) &&
+    physical_equal(actual, prepared) &&
+    owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    physical_equal(owner.request, request) &&
+    !plan.whole_sources.is_empty() &&
+    owner.ledger is Some(ledger) else {
+    return false
+  }
+  if owner.source_free_captured is Some(run) &&
+    (
+      !physical_equal(plan.graph, @strategy.captured_dag_graph(run)) ||
+      !physical_equal(ledger, @strategy.captured_dag_ledger(run))
+    ) {
+    return false
+  }
+  owner.effect_operation_closing = true
+  match owner.source_free_captured {
+    None => {
+      owner.source_free_opening = false
+      owner.publication_definition = None
+      owner.publication_invocation = None
+      true
+    }
+    Some(run) => {
+      if !close_local_values_tasks(run, []) ||
+        @strategy.captured_task_retirement_pending(run) ||
+        @strategy.captured_task_boundary_cleanup_pending(run) {
+        return false
+      }
+      owner.source_free_opening = false
+      owner.publication_definition = None
+      owner.publication_invocation = None
+      true
+    }
+  }
+}

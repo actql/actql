@@ -19,14 +19,16 @@ import wasmtime
 from wasmtime import _ffi
 
 
-def fuel_trap_code(trap):
-    # The pinned binding's high-level TrapCode omits newer C API entries.
-    # Its generated C enum declaration preserves zero-based C member order;
+def expected_fuel_trap_code():
+    # The generated C enum declaration preserves zero-based C member order.
     # Python Enum.auto() values themselves are not the C numeric values.
     members = list(_ffi.wasmtime_trap_code_enum)
-    expected = members.index(_ffi.wasmtime_trap_code_enum.WASMTIME_TRAP_CODE_OUT_OF_FUEL)
+    return members.index(_ffi.wasmtime_trap_code_enum.WASMTIME_TRAP_CODE_OUT_OF_FUEL)
+
+
+def fuel_trap_code(trap):
     code = _ffi.wasmtime_trap_code_t()
-    assert _ffi.wasmtime_trap_code(trap.ptr(), byref(code)) and code.value == expected
+    assert _ffi.wasmtime_trap_code(trap.ptr(), byref(code)) and code.value == expected_fuel_trap_code()
     return code.value
 
 

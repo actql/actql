@@ -27,8 +27,16 @@ fn bind_managed_producer_handle(
   compute : Int,
   task : Int,
 ) -> Int {
-  guard value.computes.get(compute) is Some(original) && task >= 0 else {
-    return -1
+  guard value.computes.get(compute) is Some(original) else { return -2 }
+  if task < 0 {
+    // Only the graph's explicit supplied Source marker can remain -1.
+    return if task == -1 &&
+      original.host is Some(host) &&
+      @local_run.local_compute_uses_whole_model_source(host) {
+      -1
+    } else {
+      -2
+    }
   }
   // Captured task zero is the Source prefix. Source-free task zero has its
   // own registered handle, just like any other completed predecessor.
@@ -40,7 +48,7 @@ fn bind_managed_producer_handle(
       return handle
     }
   }
-  -1
+  -2
 }
 
 ///|
@@ -88,11 +96,21 @@ fn managed_task_run_current(
   }
   // Only a live same-instance start has the retained nominal row/material
   // originals. Cold/executable restoration keeps its full existing route.
-  if original.restoration is None {
+  let code = if original.restoration is None {
     validate_live_sdk_started_run_current(value, step, plan)
   } else {
     validate_sdk_start_claim(value, step, plan)
   }
+  if code != 0 {
+    return code
+  }
+  portable_compute_task_current(
+    value,
+    compute,
+    original,
+    current,
+    record.current_configuration,
+  )
 }
 
 ///|
@@ -171,14 +189,17 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   if code != 0 {
     return code
   }
-  // Fix original publication scope before the activation Owner is invoked.
-  // Current Run/Source access is separate from the task dispatch permit.
-  guard compute_publication_preflight(value, record.compute)
-    is Some((_, preflight)) else {
-    return -36
-  }
-  if !stored_preflight_current(value, preflight, current.account) {
-    return -32
+  // Values and captured Source still require the existing publication scope
+  // before activation. A configured Model has already checked its distinct
+  // execution original above; its Result invocation needs the real capture.
+  if @local_run.local_compute_model_run(host) is None {
+    guard compute_publication_preflight(value, record.compute)
+      is Some((_, preflight)) else {
+      return -36
+    }
+    if !stored_preflight_current(value, preflight, current.account) {
+      return -32
+    }
   }
   if record.operations is Some(_) || record.issue is Some(_) {
     return 0
@@ -190,6 +211,9 @@ pub fn start_managed_task(nonce : Int64, handle : Int) -> Int {
   let completed : Array[@execution.ManagedCompletedOutput[Int]] = []
   for producer in record.producer_handles {
     if producer == 0 && compute.origin is Captured(_) {
+      continue
+    }
+    if producer == -1 && @local_run.local_compute_uses_whole_model_source(host) {
       continue
     }
     guard bound_managed_producer(value, record.compute, producer)
@@ -289,7 +313,15 @@ pub fn advance_managed_task(nonce : Int64, handle : Int, quantum : Int) -> Int {
   }
   record.pending = true
   match (operations.advance)(quantum) {
-    Ok(progress) => record.progress = Some(progress)
+    Ok(progress) => {
+      record.progress = Some(progress)
+      if progress.waiting {
+        match bind_waiting_portable_model_scope(value, record) {
+          Ok(_) => ()
+          Err(issue) => record.issue = Some(issue)
+        }
+      }
+    }
     Err(issue) => record.issue = Some(@local_run.Managed(issue))
   }
   record.pending = false
@@ -315,7 +347,7 @@ pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 
       return 0L
     }
     for result in value.result_exports.values() {
-      if result.task == handle {
+      if result.origin is TaskResult(task) && task == handle {
         return 1L
       }
     }
@@ -365,6 +397,7 @@ pub fn managed_task_progress(nonce : Int64, handle : Int, field : Int) -> Int64 
     1 => if progress.waiting { 1L } else { 0L }
     2 => progress.progress
     3 => progress.work
+    8 => if progress.await_io { 1L } else { 0L }
     _ => -3L
   }
 }
@@ -378,7 +411,15 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
   // Seal new task/export admission immediately, but preserve the original
   // output's liveness and reservation until its existing pins are returned.
   record.closing = true
-  if value.result_exports.values().any(result => result.task == handle) {
+  if value.result_exports
+    .values()
+    .any(result => result.origin is TaskResult(task) && task == handle) ||
+    value.run_invocations
+    .values()
+    .any(invocation => {
+      invocation.compute == record.compute &&
+      invocation.model_issuance is Some(_)
+    }) {
     return -9
   }
   if value.tasks
@@ -393,6 +434,17 @@ pub fn close_managed_task(nonce : Int64, handle : Int) -> Int {
     return -33
   }
   if record.operations is Some(operations) {
+    match portable_model_task_retained(value, record) {
+      Err(_) => return -9
+      Ok(Some((_, selected_task, _))) =>
+        if selected_task.publication_output is Some(output) {
+          if !@infer.release_output(output) {
+            return -9
+          }
+          selected_task.publication_output = None
+        }
+      Ok(None) => ()
+    }
     (operations.close)()
     if value.computes.get(record.compute) is Some({ host: Some(host), .. }) {
       @strategy.close_captured_task_output(
@@ -700,10 +752,12 @@ pub fn advance_managed_task_lifecycle(
   // An unchanged pause remains with its original physical continuation. Never
   // poll it as runnable work or discard the original settlement observation.
   if record.progress is Some(progress) &&
-    (progress.waiting || progress.settlement is Some(_)) {
+    (progress.await_io || progress.waiting || progress.settlement is Some(_)) {
     let code = managed_task_run_current(value, record)
     return if code != 0 {
       code
+    } else if progress.await_io {
+      4
     } else if record.finalization_invoked {
       3
     } else {
@@ -727,9 +781,13 @@ pub fn advance_managed_task_lifecycle(
   if record.completed is Some(_) {
     return 1
   }
-  if record.progress is Some(progress) &&
-    (progress.waiting || progress.settlement is Some(_)) {
-    return if record.finalization_invoked { 3 } else { 2 }
+  if record.progress is Some(progress) {
+    if progress.await_io {
+      return 4
+    }
+    if progress.waiting || progress.settlement is Some(_) {
+      return if record.finalization_invoked { 3 } else { 2 }
+    }
   }
   0
 }
@@ -873,12 +931,21 @@ pub fn reserve_next_sdk_task(
       { closing: false, origin: SourceFree(_, start), host: Some(host), .. } as record
     ) &&
     stored_compute_original_run(value, record)
-    is Some({ configuration, outcome: Some(Ok(plan)), restoration, .. }) &&
+    is Some(
+      { configuration, outcome: Some(Ok(plan)), restoration, .. } as original
+    ) &&
     value.run_configurations.get(configuration) is Some({ sdk: Some(_), .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) &&
-    value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) &&
-    compute_publication_preflight(value, compute) is Some((_, preflight)) else {
+    value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) else {
     return -2
+  }
+  let preflight = if @local_run.local_compute_model_run(host) is None {
+    guard compute_publication_preflight(value, compute) is Some((_, preflight)) else {
+      return -2
+    }
+    Some(preflight)
+  } else {
+    None
   }
   match run_configuration_current(value, current) {
     Ok(_) => ()
@@ -892,8 +959,19 @@ pub fn reserve_next_sdk_task(
   if code != 0 {
     return code
   }
-  if !stored_preflight_current(value, preflight, current.account) {
-    return -32
+  match preflight {
+    Some(preflight) =>
+      if !stored_preflight_current(value, preflight, current.account) {
+        return -32
+      }
+    None => {
+      let code = portable_compute_task_current(
+        value, record, original, current, current_configuration,
+      )
+      if code != 0 {
+        return code
+      }
+    }
   }
   let run = @local_run.local_compute_run(host)
   let graph = @strategy.captured_dag_graph(run)

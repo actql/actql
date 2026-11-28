@@ -12,6 +12,8 @@ fn request_model_module_container_bytes(
   input_segments? : Int = 0,
   model_components? : Int = 0,
   whole_inputs? : Bool = false,
+  portable_invocation? : Bool = false,
+  portable_single_plan? : Bool = false,
 ) -> Int64? {
   // A captured Stage can also own the serialized Model continuation. Its
   // Compute tail is then empty, but the module's fixed containers still exist.
@@ -72,6 +74,44 @@ fn request_model_module_container_bytes(
         reference_slots: (if captures == 0 { 0L } else { 2L }) +
         input_segments.to_int64(),
         scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      // The issued metadata remains live while its new phase takes the same
+      // reference. No additional Run, Definition or module field is allocated.
+      {
+        record_headers: if portable_invocation {
+          1L
+        } else {
+          0L
+        },
+        reference_slots: if portable_invocation {
+          1L
+        } else {
+          0L
+        },
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      // The single Portable Plan's Some carrier is retained before the
+      // ticket grows. The grouped Plan funds its carrier in its own quote.
+      {
+        record_headers: if portable_single_plan {
+          1L
+        } else {
+          0L
+        },
+        reference_slots: if portable_single_plan {
+          1L
+        } else {
+          0L
+        },
+        scalar_words: if portable_single_plan {
+          1L
+        } else {
+          0L
+        },
         owned_utf16_units: 0L,
         owned_wire_bytes: 0L,
       },
@@ -139,7 +179,18 @@ fn[I] begin_request_model_module(
     return Err(Preparation(ForeignOriginal))
   }
   let graph = retained_graphs[0]
-  guard owner.phase == ModelPlanReserved &&
+  let module_ready = match owner.phase {
+    ModelPlanReserved => true
+    PortableModelMetadataIssued(original) =>
+      (captures == 0 || (captures == 1 && whole_inputs)) &&
+      query_time is None &&
+      original.materials is Some(_) &&
+      physical_equal(original.request, request) &&
+      physical_equal(original.compiled, compiled) &&
+      physical_equal(original.definition, definition)
+    _ => false
+  }
+  guard module_ready &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
     owner.compiled_program is Some(prepared) &&
@@ -216,9 +267,15 @@ fn[I] begin_request_model_module(
   if input_segments > 2147483647L {
     return Err(Preparation(Policy))
   }
-  // A Query prefix counts captured tasks. Whole inputs count Source ports
-  // instead, and retain the full task table on the later physical graph.
-  guard (whole_inputs || @strategy.graph_captured_prefix(dag) == captures) &&
+  let portable_invocation = owner.phase is PortableModelMetadataIssued(_)
+  let captured_tasks = @strategy.graph_captured_prefix(dag)
+  // Whole inputs can supply distinct original ports of the same checked
+  // task. Query captures still occupy one task each.
+  guard (if whole_inputs {
+      captured_tasks > 0 && captured_tasks <= captures
+    } else {
+      captured_tasks == captures
+    }) &&
     (captures == 0 || captures == 1 || captures == 2) &&
     owner.program_plan_quote is Some((quoted_r, quoted_e)) &&
     request_model_module_container_bytes(
@@ -233,6 +290,8 @@ fn[I] begin_request_model_module(
       } else {
         0
       },
+      portable_invocation~,
+      portable_single_plan=portable_invocation && retained_graphs.length() == 1,
     )
     is Some(bytes) else {
     return Err(Installed(Unsupported))
@@ -508,6 +567,7 @@ pub fn[I] prepare_request_model_source_free_module(
   } else {
     installed_providers
   }
+  let selected_phase = owner.phase
   preparation_module_call(
     () => {
       let prepared = match
@@ -601,7 +661,11 @@ pub fn[I] prepare_request_model_source_free_module(
         return Err(Preparation(ForeignOriginal))
       }
       owner.program_domain_quote = None
-      owner.phase = ModelPlanReserved
+      owner.phase = match selected_phase {
+        PortableModelMetadataIssued(original) =>
+          PortableModelModuleReady(original)
+        _ => ModelPlanReserved
+      }
       Ok(original)
     },
     () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
@@ -709,6 +773,10 @@ pub fn[I] prepare_request_model_capture_module(
     total
   } else {
     installed_providers
+  }
+  let portable = match owner.phase {
+    PortableModelMetadataIssued(original) => Some(original)
+    _ => None
   }
   preparation_module_call(
     () => {
@@ -916,23 +984,34 @@ pub fn[I] prepare_request_model_capture_module(
         guard @publication_host.client_direct_acquisition_occurrence_at(
             direct, index,
           )
-          is Some((stage, source_input, task)) &&
-          (whole || task == index) else {
+          is Some((stage, source_input, task)) else {
           return Err(Installed(ForeignOriginal))
         }
         if whole {
-          // Complete inputs are ordered by the checked Source occurrences.
-          // Several of them can feed the same task through different ports.
           let source = whole_sources[index]
-          if !@publication_host.client_source_acquisition_matches_program(
+          // The ordered occurrence owns the authored input and its receiving
+          // task. The installed capture constructor binds the exact port and
+          // checks it against the other supplied ports and data edges.
+          guard @publication_host.client_source_acquisition_matches_program(
               prepared,
               stage,
               source_input,
               source.original,
-            ) {
+            ) &&
+            @sourceviews.source_acquisition_input(source.original)
+            is @pipeline.Input(_) &&
+            @strategy.graph_stage_operation_task(
+              @publication_host.prepared_client_graph(prepared),
+              stage,
+              0,
+            ) ==
+            Some(task) else {
             return Err(Installed(ForeignOriginal))
           }
           continue
+        }
+        if task != index {
+          return Err(Installed(ForeignOriginal))
         }
         let requirement = match
           (match query_time {
@@ -1076,7 +1155,10 @@ pub fn[I] prepare_request_model_capture_module(
         return Err(Preparation(ForeignOriginal))
       }
       owner.program_domain_quote = None
-      owner.phase = ModelPlanReserved
+      owner.phase = match portable {
+        Some(issued) => PortableModelModuleReady(issued)
+        None => ModelPlanReserved
+      }
       Ok(original)
     },
     () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },

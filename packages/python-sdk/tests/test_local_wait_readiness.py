@@ -44,6 +44,7 @@ class LocalWaitReadinessTests(unittest.IsolatedAsyncioTestCase):
         host._run_state_custody = {}
         host._physical_work = []
         host._run_publications = []
+        host._public_run_references = []
         host._commit_projections = []
         host._projections = []
         host._append_sources = {}

@@ -125,6 +125,18 @@ pub fn checked_environment(CheckedProgram) -> @check_environment.WireEnvironment
 
 pub fn checked_host_capacity_policy(CheckedProgram) -> @capacity_policy.Policy
 
+pub fn checked_infer_model_input_at(CheckedInferModelInputs, Int) -> (Int, Int)?
+
+pub fn checked_infer_model_input_source_classification(CheckedInferModelInputs) -> @check_environment.DataClassification?
+
+pub fn checked_infer_model_inputs_count(CheckedInferModelInputs) -> Int
+
+pub fn checked_infer_model_inputs_match(CheckedInferModelInputs, CheckedProgram, Int, Int) -> Bool
+
+pub fn checked_infer_model_result_dependency_count(CheckedInferModelInputs) -> Int
+
+pub fn checked_infer_model_result_dependency_matches(CheckedInferModelInputs, BuiltResultInterface, Int, Int) -> Bool
+
 pub fn checked_local_catalog_dependency_body(CheckedProgram, Int, String, String, Int, Int, Int, before_body? : ((Int, Int, Int) -> Bool)?) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
 pub fn checked_local_catalog_selection_geometry(CheckedLocalCatalogSelection) -> (Int, Int, Int)?
@@ -1328,7 +1340,10 @@ pub(all) enum CheckScope {
 pub(all) enum CheckedInferInputPolicy {
   ClosedLocal
   CheckedSources(@check_environment.DataClassification)
+  PendingModelOutputs(CheckedInferModelInputs)
 }
+
+type CheckedInferModelInputs
 
 type CheckedLocalCatalogSelection
 

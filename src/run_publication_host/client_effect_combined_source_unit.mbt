@@ -1146,3 +1146,134 @@ fn measure_client_effect_unit_result_artifact(
     ("result_artifact", shapes[2]),
   ])
 }
+
+///|
+/// Build the computation Receipt with the exact ordered observations retained
+/// by the original Direct Source invocation. Keep those vectors private.
+pub fn issue_client_effect_direct_sources_computation_receipt(
+  value : ClientEffectDirectSourcesPublication,
+  materials : ClientEffectRunMaterials,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  funding : ((Int64) -> Bool, (Int, Int, Int) -> Bool),
+) -> Result[
+  @publication.PublicationContract,
+  @publication.RunReceiptIssuanceIssue,
+] {
+  if !physical_equal(value.owner, materials.prepared) ||
+    value.run_definition_cid !=
+    @publication.publication_contract_identity(materials.run_definition) {
+    return Err(ReceiptIssuanceReferenceMismatch("run_definition"))
+  }
+  guard restore_client_effect_run_normalization(materials) is Ok(journal) else {
+    return Err(ReceiptIssuanceReferenceMismatch("normalization_journal"))
+  }
+  if client_effect_run_receipt_bindings(
+      materials, max_bytes, max_nodes, max_depth,
+    )
+    is Err(_) {
+    return Err(ReceiptIssuanceReferenceMismatch("invocation_bindings"))
+  }
+  @publication.issue_effect_free_run_receipt(
+    client_effect_allowed_run_admission(materials.allowed),
+    materials.run_definition,
+    value.source.invocation,
+    value.source.observation,
+    definitions,
+    artifacts,
+    manifest,
+    journal,
+    [],
+    [],
+    value.source.original.sources,
+    [],
+    [],
+    max_bytes,
+    max_nodes,
+    max_depth,
+    funding=Some(funding),
+  )
+}
+
+///|
+/// Price the returned Source evidence on the original publication. The
+/// compiled occurrences, acquired rows, identities and acquisition contracts
+/// stay with their existing owners. Count these references and all five
+/// retained array backings along with the newly admitted evidence and Invoke.
+pub fn client_effect_direct_sources_publication_retained_bytes(
+  value : ClientEffectDirectSourcesPublication,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Int64? {
+  let source = value.source
+  let original = source.original
+  let count = original.captures.length().to_int64()
+  let slots = original.captures.capacity().to_int64() +
+    original.identities.capacity().to_int64() +
+    original.originals.capacity().to_int64() +
+    original.sources.capacity().to_int64() +
+    original.inputs.capacity().to_int64()
+  guard @execution.preparation_representation_cost({
+      // Publication, Observation, Source inputs, the owning evidence slot
+      // and its option; five arrays (wrapper/backing) and Original variants.
+      record_headers: 24L + count,
+      reference_slots: 45L + slots + count,
+      scalar_words: 18L + count,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(vectors) &&
+    local_effect_contract_retained_bytes(
+      source.invocation,
+      max_nodes,
+      max_depth,
+    )
+    is Some(invocation) &&
+    @execution.checked_preparation_add_product(vectors, 1L, invocation)
+    is Some(total) else {
+    return None
+  }
+  let mut bytes = total
+  for evidence in [original.sources, original.inputs, [source.observation]] {
+    for item in evidence {
+      guard @publication.run_evidence_value_representation_extent(
+          item, max_nodes, max_depth, 2147483647,
+        )
+        is Ok(extent) &&
+        publication_protocol_extent_cost(extent) is Some(retained) &&
+        @execution.checked_preparation_add_product(bytes, 1L, retained)
+        is Some(next) else {
+        return None
+      }
+      bytes = next
+    }
+  }
+  Some(bytes)
+}
+
+///|
+/// Borrow the original Source identity's immutable preimages. The checked
+/// contribution supplies the occurrence, and the live captured Source must
+/// still own this identity. This never goes back to the provider.
+pub fn client_effect_combined_source_unit_relation_dependencies(
+  value : ClientEffectCombinedSourceUnit,
+  index : Int,
+) -> ((String, String), (String, String))? {
+  guard value.contributions.get(index) is Some(part) &&
+    value.original.source.captures.get(part.slot) is Some(source) &&
+    value.original.source.identities.get(part.slot) is Some(identity) &&
+    @query.captured_source_relation_dependency_bodies(identity, source)
+    is Some((relation, schema)) else {
+    return None
+  }
+  Some(
+    (
+      (@query.captured_source_relation_logical_cid(identity), relation),
+      (@query.captured_source_relation_schema_cid(identity), schema),
+    ),
+  )
+}

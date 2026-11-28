@@ -102,21 +102,72 @@ pub fn local_standard_account_configuration_prepared(
 }
 
 ///|
+/// Construct the installed SDK read-only form of the standard Local Account.
+/// Sources are exact declared connection/resource tuples collected by the
+/// original Catalog caller before entering this already funded constructor.
+/// The control namespace uses the existing bounded disjoint-name selector.
+pub fn local_standard_file_account_configuration_prepared(
+  sources : Array[(String, String)],
+  prepare : (AccountConfigurationConstruction) -> Bool,
+) -> Result[(String, String), LocalStandardProfileIssue]? {
+  guard !sources.is_empty() else { return Some(Err(InvalidSubjects)) }
+  let control = match
+    local_mock_control_connection_prepared(
+      "local",
+      None,
+      None,
+      sources,
+      [],
+      prepare,
+    ) {
+    Some(Ok(value)) => value
+    Some(Err(_)) => return Some(Err(InvalidSubjects))
+    None => return None
+  }
+  let subjects : LocalStandardAccountSubjects = {
+    account_id: "local-cli",
+    principal: "local-cli",
+    control_connection: control,
+    configured_connections: [],
+    model_tasks: [],
+    request_target: None,
+    signing_key_resource: None,
+  }
+  guard local_standard_account_construction(subjects, file_sources=sources)
+    is Some(quote) &&
+    prepare(quote) else {
+    return None
+  }
+  Some(
+    local_standard_account_configuration_original(
+      subjects,
+      file_sources=Some(sources),
+    ).map(wire => (control, wire)),
+  )
+}
+
+///|
 fn local_standard_account_configuration_original(
   subjects : LocalStandardAccountSubjects,
+  file_sources? : Array[(String, String)]? = None,
 ) -> Result[String, LocalStandardProfileIssue] {
   if !valid_name(subjects.account_id) ||
     !valid_name(subjects.principal) ||
     !valid_name(subjects.control_connection) {
     return Err(InvalidSubjects)
   }
-  // run, Result and Effect, plus the exact optional request/sign entries.
+  let declared = file_sources.unwrap_or([])
+  guard declared.length() <=
+    2147483647 - subjects.configured_connections.length() else {
+    return Err(Configuration(CanonicalDocumentTooLarge))
+  }
+  // Run, Result and Effect, plus the exact optional request/sign entries.
   let fixed = 3 +
     (if subjects.request_target is Some(_) { 1 } else { 0 }) +
     (if subjects.signing_key_resource is Some(_) { 1 } else { 0 })
   match
     local_profile_entry_inventory(
-      subjects.configured_connections.length(),
+      subjects.configured_connections.length() + declared.length(),
       subjects.model_tasks.length(),
       fixed,
     ) {
@@ -151,6 +202,37 @@ fn local_standard_account_configuration_original(
       Delegate,
     ),
   ]
+  if file_sources is Some(_) {
+    entries[1] = local_standard_entry(
+      local_original_result_read_entry_id,
+      subjects,
+      AnyOf([subjects.control_connection]),
+      AnyOf([local_original_result_read_resource]),
+      ["read"],
+      Allow,
+    )
+    let seen : Map[(String, String), Bool] = Map([])
+    for index, source in declared {
+      let (connection, resource) = source
+      guard connection != subjects.control_connection &&
+        valid_name(connection) &&
+        valid_name(resource) &&
+        !seen.contains(source) else {
+        return Err(InvalidSubjects)
+      }
+      seen[source] = true
+      entries.push(
+        local_standard_entry(
+          "local-read-" + index.to_string(),
+          subjects,
+          AnyOf([connection]),
+          AnyOf([resource]),
+          ["read"],
+          Allow,
+        ),
+      )
+    }
+  }
   let seen_connections : Map[String, Bool] = Map([])
   for index, connection in subjects.configured_connections {
     if !valid_name(connection) || seen_connections.contains(connection) {
@@ -262,9 +344,11 @@ fn local_standard_account_configuration_original(
 ///|
 fn local_standard_account_construction(
   subjects : LocalStandardAccountSubjects,
+  file_sources? : Array[(String, String)] = [],
 ) -> AccountConfigurationConstruction? {
   let entries = subjects.configured_connections.length().to_int64() +
     subjects.model_tasks.length().to_int64() +
+    file_sources.length().to_int64() +
     5L
   if entries > 2147483647L {
     return None
@@ -297,6 +381,21 @@ fn local_standard_account_construction(
     }
     text = next
     longest = Int::max(longest, value.length())
+  }
+  for (connection, resource) in file_sources {
+    guard @counts.checked_nonnegative_add_product(
+        text,
+        connection.length().to_int64() + resource.length().to_int64(),
+        1L,
+      )
+      is Some(next) else {
+      return None
+    }
+    text = next
+    longest = Int::max(
+      longest,
+      Int::max(connection.length(), resource.length()),
+    )
   }
   for task in subjects.model_tasks {
     guard @counts.checked_nonnegative_add_product(

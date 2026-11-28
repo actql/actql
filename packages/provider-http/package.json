@@ -7,6 +7,14 @@
   "scripts": {"prepack": "node ../../scripts/check-interface-owners.mjs --manifest packages/provider-http/package.json"},
   "engines": {"node": ">=22"},
   "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
-  "files": ["_internal/*.mjs", "_internal/*.d.mts", "index.mjs", "index.d.ts", "LICENSE", "README.md"],
+  "files": [
+    "_internal/bounded-response.mjs", "_internal/bounded-response.d.mts",
+    "_internal/compiler-binding.generated.mjs", "_internal/compiler-binding.generated.d.mts",
+    "_internal/installed-http-chat.mjs", "_internal/installed-http-chat.d.mts",
+    "_internal/model-port.mjs", "_internal/model-port.d.mts",
+    "_internal/original-chat-request.mjs", "_internal/original-chat-request.d.mts",
+    "_internal/original-materials.mjs", "_internal/original-materials.d.mts",
+    "index.mjs", "index.d.ts", "LICENSE", "README.md"
+  ],
   "dependencies": {}
 }

@@ -7,6 +7,21 @@ pub fn restore_local_submitted_input(
 ) -> Result[LocalSubmittedPreparation, LocalPreparationIssue] {
   let intent = @host.client_saved_task_materials_intent(original)
   let retained = @host.client_saved_task_materials_input(original)
+  project_local_submitted_preparation(
+    intent,
+    @host.client_task_run_materials_retained_program(retained),
+    @host.client_task_run_materials_retained_document(retained),
+  )
+}
+
+///|
+/// Project authored input for the checked original supplied by the calling
+/// Request or saved-input owner. This view does not check or compile it.
+pub fn project_local_submitted_preparation(
+  intent : @host.ClientSubmittedIntent,
+  prepared : @host.PreparedClientProgram,
+  document : String,
+) -> Result[LocalSubmittedPreparation, LocalPreparationIssue] {
   let limits = @host.client_standard_program_preparation_limits()
   let input_limits = limits.checking.input
   let (_, value, cursor) = match
@@ -62,10 +77,6 @@ pub fn restore_local_submitted_input(
     }
     Aql(text)
   }
-  let input : LocalPreparedInput = {
-    prepared: @host.client_task_run_materials_retained_program(retained),
-    original: authored,
-    document: @host.client_task_run_materials_retained_document(retained),
-  }
+  let input : LocalPreparedInput = { prepared, original: authored, document, }
   Ok({ intent, input, })
 }

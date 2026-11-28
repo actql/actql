@@ -25,6 +25,23 @@ pub fn borrow_captured_table_input_output(
   occurrence : @execution.ManagedTableInputOccurrence,
   max_pins : Int,
 ) -> Result[CapturedTableInputBorrow, RunIssue] {
+  borrow_captured_table_input_output_in_admission(
+    run,
+    task,
+    occurrence,
+    max_pins,
+    None,
+  )
+}
+
+///|
+fn borrow_captured_table_input_output_in_admission(
+  run : CapturedDAG,
+  task : Int,
+  occurrence : @execution.ManagedTableInputOccurrence,
+  max_pins : Int,
+  admission : CapturedEffectPinAdmission?,
+) -> Result[CapturedTableInputBorrow, RunIssue] {
   let owner = @execution.managed_table_input_occurrence_owner(occurrence)
   let target = @ports.table_input_target(
     @execution.managed_table_input_occurrence_definition(occurrence),
@@ -37,22 +54,30 @@ pub fn borrow_captured_table_input_output(
     Some(Materialized(_)) => {
       let pin = match
         pin_captured_task_completion_internal(
-          run, task, target, max_pins, false,
+          run,
+          task,
+          target,
+          max_pins,
+          false,
+          admission~,
         ) {
         Ok(pin) => pin
         Err(issue) => return Err(issue)
       }
       if !@execution.completed_output_matches_port(pin.output, owner, target) {
-        release_captured_output_pin(pin) |> ignore
+        if admission is None {
+          release_captured_output_pin(pin) |> ignore
+        }
         return Err(ForeignCandidate)
       }
       Ok({ occurrence, kind: Cells(pin), })
     }
     Some(Managed(_)) =>
-      acquire_captured_resident_generation_pin(run, task, max_pins).map(pin => {
-        occurrence,
-        kind: Resident(pin),
-      })
+      acquire_captured_resident_generation_pin(run, task, max_pins, admission~).map(pin => {
+          occurrence,
+          kind: Resident(pin),
+        },
+      )
     Some(CarrierManaged(_)) => Err(UnsupportedGraph)
     None => Err(NotReady)
   }
@@ -226,13 +251,33 @@ pub fn pin_captured_table_input_output_set(
   requests : Array[(Int, @execution.ManagedTableInputOccurrence)],
   max_pins : Int,
 ) -> Result[CapturedTableInputOutputSet, RunIssue] {
+  pin_captured_table_input_output_set_in_admission(
+    run,
+    requests,
+    max_pins,
+    None,
+  )
+}
+
+///|
+fn pin_captured_table_input_output_set_in_admission(
+  run : CapturedDAG,
+  requests : Array[(Int, @execution.ManagedTableInputOccurrence)],
+  max_pins : Int,
+  admission : CapturedEffectPinAdmission?,
+) -> Result[CapturedTableInputOutputSet, RunIssue] {
   let borrows = []
   for (task, occurrence) in requests {
-    match borrow_captured_table_input_output(run, task, occurrence, max_pins) {
+    match
+      borrow_captured_table_input_output_in_admission(
+        run, task, occurrence, max_pins, admission,
+      ) {
       Ok(borrow) => borrows.push(borrow)
       Err(issue) => {
-        for borrow in borrows {
-          release_captured_table_input_borrow(borrow) |> ignore
+        if admission is None {
+          for borrow in borrows {
+            release_captured_table_input_borrow(borrow) |> ignore
+          }
         }
         return Err(issue)
       }
@@ -259,6 +304,15 @@ pub fn release_captured_table_input_output_set(
 ) -> Bool {
   if !value.live {
     return false
+  }
+  if value.borrows.get(0) is Some(first) {
+    let run = match first.kind {
+      Cells(pin) => pin.run
+      Resident(pin) => pin.run
+    }
+    if run.effect_pin_admission is Some(_) {
+      return false
+    }
   }
   value.live = false
   for borrow in value.borrows {

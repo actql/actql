@@ -253,3 +253,13 @@ fn[P] prepared_run_operation_work_node_body(
 ) -> PreparationBodyBorrow[P]? {
   None
 }
+
+///|
+pub fn[P] stopped_node_managed_run_ledger_state(
+  value : NodeManagedRunAdmission[P],
+  _ledger : Ledger,
+) -> Result[LedgerContinuationState, LedgerContinuationIssue] {
+  match value {
+
+  }
+}

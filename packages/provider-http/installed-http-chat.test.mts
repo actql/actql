@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {setImmediate as turn} from 'node:timers/promises';
-import {createInstalledHttpChatRegistration} from './_internal/installed-http-chat.mjs';
+import {createInstalledHttpChatRegistration, createInstalledPreparedHttpChatRegistration} from './_internal/installed-http-chat.mjs';
 import {installModelProviders} from '../../adapters/host-node/installed-model.mjs';
 import {createInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
@@ -88,6 +88,7 @@ function runtime(config: Configuration) {
     clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
     clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
     clientProgramModelPhysicalSavedChat: response => ({kind: 'saved', response}),
+    clientProgramModelPhysicalIoObservation(_call, _retired, observed) { return observed; },
   };
   config.fetch = (url, init) => {
     counts.sends++; assert.equal(url, 'https://fixture.invalid/chat');
@@ -140,6 +141,75 @@ test('installed HTTP preflight keeps original endpoint headers selectors and raw
   assert.equal(plan.start(f.entry), undefined);
   assert.equal(f.counts.sends, 1);
   assert.equal(f.counts.projections, 1);
+});
+
+test('prepared Host installation uses the same original raw binder and refuses an extra Fetch', async t => {
+  const config=configuration(), f=runtime(config);
+  const {fetch, ...selected}=config;
+  void fetch;
+  let prepared=0, starts=0, closes=0;
+  const bindTransport: NonNullable<Inputs['prepareTransport']> = (endpoint,init,limits,controller) => {
+    prepared++;
+    assert.equal(endpoint,selected.endpoint);
+    assert.equal(init.signal,controller.signal);
+    assert.equal(init.method,'POST');
+    assert.deepEqual(init.headers,selected.headers);
+    assert.equal(limits.maxBytes,512);
+    return {
+      async invoke(){starts++;return new Response('{}',{headers:{'content-type':'application/json'}});},
+      async cleanup(){closes++;return true;},
+    };
+  };
+  assert.throws(()=>createInstalledPreparedHttpChatRegistration(config,bindTransport),
+    {message:'InvalidInstalledHTTPChatConfiguration'});
+  const register=createInstalledPreparedHttpChatRegistration(selected,bindTransport);
+  const installed=installModelProviders(f.moon,register as unknown as HostRegistration).get(config.providerId);
+  let bind!: Bind;
+  const preflight=installed!.physicalPreflight!(f.request,createInferIoNotification(),
+    (callback: Bind)=>{bind=callback;},f.provider) as FixturePreflight;
+  t.after(()=>until(()=>preflight.cleanup(),x=>x));
+  assert.deepEqual([prepared,starts,closes],[0,0,0]);
+  const plan=preflight.advance()._1;
+  assert.deepEqual([prepared,starts,closes],[1,0,0]);
+  let raw: Raw | undefined;
+  const persistence=async (call:unknown,value:Raw)=>{raw=value;return {response:{call,raw}};};
+  persistence.cleanup=()=>true;
+  bind({},persistence);
+  const call=plan.start(f.entry)!;
+  const saved=await until(()=>call.poll(),x=>x.kind==='saved');
+  assert.strictEqual((saved as Extract<Poll,{kind:'saved'}>).response.raw,raw);
+  assert.equal(raw!.transportComplete,true);
+  assert.equal(plan.start(f.entry),undefined);
+  await until(()=>preflight.cleanup(),x=>x);
+  assert.deepEqual([prepared,starts,closes,f.counts.sends],[1,1,1,0]);
+});
+
+test('configured HTTP retains the existing Graph-bound Read recipe and protected credential selector', () => {
+  const config = configuration(), f = runtime(config);
+  const {fetch, originalReadInstallation, ...selected} = config;
+  void fetch;
+  const {program_definition_cid, parameter_values_cid, barrier_cid, ...recipeLayout} =
+    originalReadInstallation.nodeInstallation.layout;
+  void [program_definition_cid, parameter_values_cid, barrier_cid];
+  const originalReadRecipe = Object.freeze({...originalReadInstallation,
+    nodeInstallation: Object.freeze({...originalReadInstallation.nodeInstallation,
+      layout: Object.freeze(recipeLayout)})});
+  const configured = {...selected, originalReadRecipe, needsCredential: true};
+  const prepare = () => { assert.fail('Installation may not prepare a physical Call'); };
+  const register = createInstalledPreparedHttpChatRegistration(configured, prepare);
+  const entry = register(f.moon)[0];
+  assert.strictEqual(entry.originalReadRecipe, originalReadRecipe);
+  assert.equal(Object.hasOwn(entry, 'originalReadInstallation'), false);
+  const installed = installModelProviders(f.moon, register as unknown as HostRegistration).get(config.providerId)!;
+  assert.equal(installed.originalReadInstallation, undefined);
+  assert.strictEqual(installed.originalReadRecipe!.nodeInstallation.layout.response_profile,
+    config.rawCaptureSelection.profile);
+  assert.equal(Object.hasOwn(installed.originalReadRecipe!.nodeInstallation.layout, 'program_definition_cid'), false);
+  assert.deepEqual(f.counts, {installs: 1, projections: 0, sends: 0});
+  assert.throws(() => createInstalledHttpChatRegistration({...configured, fetch}),
+    {message:'InvalidInstalledHTTPChatConfiguration'});
+  assert.throws(() => createInstalledPreparedHttpChatRegistration({...configured, originalReadInstallation}, prepare),
+    {message:'InvalidInstalledHTTPChatConfiguration'});
 });
 
 test('missing originals foreign profile or an external SDK refuse before provider installation', () => {

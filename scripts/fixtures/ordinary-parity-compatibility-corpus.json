@@ -1,0 +1,2718 @@
+{
+  "origin": {
+    "reportSha256": "bae93c3e3905aab22d5273269268410b23a63250c6db6cc812f1684383bcda1a",
+    "historicalSourceSha": "b6d8285fbdc8c1a58f18a727c1e72581d772f293",
+    "historicalTree": "f9e18ef9600681fad25fbe151da011b8aaafd0f5",
+    "platform": "linux-x64",
+    "producerRunId": "45968214759",
+    "artifacts": {
+      "node": "15184825267",
+      "python": "15184892852",
+      "native": "15184986888"
+    }
+  },
+  "cases": [
+    {
+      "id": "compat-01",
+      "originalId": 1,
+      "title": "Pipe 8 operators",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) FROM r |> WHERE v >= 10 |> EXTEND id + v AS x |> SET x = x + 1 |> RENAME x AS score |> DROP v |> AS a |> SELECT a.id, a.score |> ORDER BY id DESC |> LIMIT 2 OFFSET 1",
+        "sha256": "0554daa56e293355649c94c39c2c894b1dbedbcff5d862fa8d6b0274e39d867d"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id",
+          "score"
+        ],
+        "rows": [
+          {
+            "id": 2,
+            "score": 23
+          },
+          {
+            "id": 1,
+            "score": 12
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 914 ms",
+        "python": "一致 / 11427 ms",
+        "native": "一致 / 955 ms"
+      }
+    },
+    {
+      "id": "compat-02",
+      "originalId": 2,
+      "title": "CROSS JOIN + OFFSET",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT n, p FROM UNNEST([10,20,30]) AS n WITH OFFSET AS p ORDER BY p",
+        "sha256": "232457bc4ae481725eefc7786032cb497e8d060232b6289c9ba2b78d9355652d"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "n",
+          "p"
+        ],
+        "rows": [
+          {
+            "n": 10,
+            "p": 0
+          },
+          {
+            "n": 20,
+            "p": 1
+          },
+          {
+            "n": 30,
+            "p": 2
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 181 ms",
+        "python": "一致 / 9340 ms",
+        "native": "一致 / 610 ms"
+      }
+    },
+    {
+      "id": "compat-03",
+      "originalId": 3,
+      "title": "typed empty ARRAY",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT n FROM UNNEST(ARRAY<STRING>[]) AS n",
+        "sha256": "8d3b9496d7b2a455494fa1faffa8537ce726bc6e39fa28c8dd52bf77665d2c1b"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "n"
+        ],
+        "rows": [],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 141 ms",
+        "python": "一致 / 9442 ms",
+        "native": "一致 / 349 ms"
+      }
+    },
+    {
+      "id": "compat-04",
+      "originalId": 4,
+      "title": "NULL truth tables",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT NULL = 1 AS cmp, NULL AND FALSE AS a, NULL OR TRUE AS o, COALESCE(NULL, 'x') AS fallback, SAFE_DIVIDE(12,0) AS div",
+        "sha256": "75cd0e24b3c6be883c97edaa52972295397a3e72fb87317e8c7eb1c137f34069"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "cmp",
+          "a",
+          "o",
+          "fallback",
+          "div"
+        ],
+        "rows": [
+          {
+            "cmp": null,
+            "a": false,
+            "o": true,
+            "fallback": "x",
+            "div": null
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 187 ms",
+        "python": "一致 / 9432 ms",
+        "native": "一致 / 484 ms"
+      }
+    },
+    {
+      "id": "compat-05",
+      "originalId": 5,
+      "title": "Unicode/string",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT LENGTH('寿司😀') AS chars, BYTE_LENGTH('寿司😀') AS bytes, '寿司😀' LIKE '寿__' AS matched, TRIM('  x ' ) AS trimmed",
+        "sha256": "96fc6c69f4a3087777985f3bec7222798fcf4e92cb90a6f3c57ecafa92c63618"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "chars",
+          "bytes",
+          "matched",
+          "trimmed"
+        ],
+        "rows": [
+          {
+            "chars": 3,
+            "bytes": 10,
+            "matched": true,
+            "trimmed": "x"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 172 ms",
+        "python": "一致 / 9620 ms",
+        "native": "一致 / 438 ms"
+      }
+    },
+    {
+      "id": "compat-06",
+      "originalId": 6,
+      "title": "INT64 precision",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT CAST('9007199254740993' AS INT64) AS n, MOD(9007199254740993, 2) AS rem, DIV(9007199254740993, 2) AS half",
+        "sha256": "ac872a7906438d8e3a72dff30765cf773d7fd9527073f77bbf0660e20f07dba7"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "n",
+          "rem",
+          "half"
+        ],
+        "rows": [
+          {
+            "n": "9007199254740993",
+            "rem": "1",
+            "half": "4503599627370496"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 133 ms",
+        "python": "一致 / 9289 ms",
+        "native": "一致 / 344 ms"
+      }
+    },
+    {
+      "id": "compat-07",
+      "originalId": 7,
+      "title": "exact decimal",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT CAST('0.10' AS DECIMAL(8,2)) + CAST('0.20' AS DECIMAL(8,2)) AS sum",
+        "sha256": "bc0b11b57138a4e4138714b5050cd29a2aabcadd36fe27da1e041992051aed6c"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "sum"
+        ],
+        "rows": [
+          {
+            "sum": "0.30"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 147 ms",
+        "python": "一致 / 8119 ms",
+        "native": "一致 / 339 ms"
+      }
+    },
+    {
+      "id": "compat-08",
+      "originalId": 8,
+      "title": "timestamp sub-second/negative epoch",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT UNIX_SECONDS(CAST('1969-12-31T23:59:59.999999999Z' AS TIMESTAMP)) AS sec, TIMESTAMP_DIFF(TIMESTAMP '2026-01-01 00:00:00.000003+00', TIMESTAMP '2026-01-01 00:00:00.000001+00', MICROSECOND) AS micros",
+        "sha256": "82f130af53fddacaf447f6b9f22cdf2d96e06bdb20a692fb4b3dcf8c27c2ebeb"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "sec",
+          "micros"
+        ],
+        "rows": [
+          {
+            "sec": "-1",
+            "micros": "2"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 128 ms",
+        "python": "一致 / 8548 ms",
+        "native": "一致 / 326 ms"
+      }
+    },
+    {
+      "id": "compat-09",
+      "originalId": 9,
+      "title": "INNER JOIN USING",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT id, v, x FROM r JOIN (SELECT 2 AS id, 7 AS x) USING(id)",
+        "sha256": "4e0112f90157c883edd2a8514ab44dda1a8ad820eee763d17c743a4a0d636726"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "id",
+          "v",
+          "x"
+        ],
+        "rows": [
+          {
+            "id": 2,
+            "v": 20,
+            "x": 7
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 333 ms",
+        "python": "一致 / 10350 ms",
+        "native": "一致 / 632 ms"
+      }
+    },
+    {
+      "id": "compat-10",
+      "originalId": 10,
+      "title": "LEFT JOIN nulls",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT r.id, q.x FROM r LEFT JOIN (SELECT 2 AS id, 7 AS x) q ON r.id = q.id ORDER BY r.id",
+        "sha256": "3be0ebb466dcfbeed01df295fcb1dc89649f7d4639be85d851ca4f998adcc7c4"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id",
+          "x"
+        ],
+        "rows": [
+          {
+            "id": 1,
+            "x": null
+          },
+          {
+            "id": 2,
+            "x": 7
+          },
+          {
+            "id": 3,
+            "x": null
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 299 ms",
+        "python": "一致 / 10478 ms",
+        "native": "一致 / 745 ms"
+      }
+    },
+    {
+      "id": "compat-11",
+      "originalId": 11,
+      "title": "UNION ALL BY NAME",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT 1 AS n, 'a' AS s UNION ALL BY NAME SELECT 'b' AS s, 2 AS n ORDER BY n",
+        "sha256": "3f547d1ee54927d20df53050ebc0b79e4c452c828d5cc7e05e1e9359855ce1f1"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "n",
+          "s"
+        ],
+        "rows": [
+          {
+            "n": 1,
+            "s": "a"
+          },
+          {
+            "n": 2,
+            "s": "b"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 187 ms",
+        "python": "一致 / 8710 ms",
+        "native": "一致 / 485 ms"
+      }
+    },
+    {
+      "id": "compat-12",
+      "originalId": 12,
+      "title": "INTERSECT DISTINCT",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT n FROM UNNEST([1,2,2,3]) AS n INTERSECT DISTINCT SELECT n FROM UNNEST([2,3,4]) AS n ORDER BY n",
+        "sha256": "e616a7800df11e4cb5bee3f4dc29c8d8012fc9972cf03f4ac91dc628b821d6a6"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "n"
+        ],
+        "rows": [
+          {
+            "n": 2
+          },
+          {
+            "n": 3
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 184 ms",
+        "python": "一致 / 9706 ms",
+        "native": "一致 / 432 ms"
+      }
+    },
+    {
+      "id": "compat-13",
+      "originalId": 13,
+      "title": "EXCEPT DISTINCT",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT n FROM UNNEST([1,2,2,3]) AS n EXCEPT DISTINCT SELECT n FROM UNNEST([2,4]) AS n ORDER BY n",
+        "sha256": "c23091114b8ca4171421d5c41f2899bc8d2ca437fe83cc09cd06b619ed393dde"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "n"
+        ],
+        "rows": [
+          {
+            "n": 1
+          },
+          {
+            "n": 3
+          }
+        ],
+        "schemaStatus": "independent_contract",
+        "columns": [
+          {
+            "name": "n",
+            "contract": {
+              "type": "number",
+              "nullable": false
+            }
+          }
+        ],
+        "resultName": "answer",
+        "resultNameScope": "ordinary startSource, independently confirmed on development 9d729c1b; original report used the default result"
+      },
+      "historicalObservation": {
+        "node": "一致 / 162 ms",
+        "python": "一致 / 10107 ms",
+        "native": "一致 / 470 ms"
+      }
+    },
+    {
+      "id": "compat-14",
+      "originalId": 14,
+      "title": "Group / HAVING / COUNTIF",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT v, COUNT(*) AS n, SUM(id) AS s, COUNTIF(id > 1) AS c FROM r GROUP BY v HAVING COUNT(*) > 1",
+        "sha256": "20482f70593cf03f517624a524911613e641a2f3d04175b47061148d47a12990"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "v",
+          "n",
+          "s",
+          "c"
+        ],
+        "rows": [
+          {
+            "v": 20,
+            "n": 2,
+            "s": 5,
+            "c": 2
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 270 ms",
+        "python": "一致 / 10800 ms",
+        "native": "一致 / 680 ms"
+      }
+    },
+    {
+      "id": "compat-15",
+      "originalId": 15,
+      "title": "GROUP BY ROLLUP",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT v, COUNT(*) AS n FROM r GROUP BY ROLLUP(v) ORDER BY v NULLS LAST",
+        "sha256": "4a686b9a76ad4f883ac7afb20a52cdf3ed74719a3f2662bc50bc05e0751f2bf6"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "v",
+          "n"
+        ],
+        "rows": [
+          {
+            "v": 10,
+            "n": 1
+          },
+          {
+            "v": 20,
+            "n": 2
+          },
+          {
+            "v": null,
+            "n": 3
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 262 ms",
+        "python": "一致 / 10749 ms",
+        "native": "一致 / 622 ms"
+      }
+    },
+    {
+      "id": "compat-16",
+      "originalId": 16,
+      "title": "WINDOW & QUALIFY",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT id, v, ROW_NUMBER() OVER w AS rn FROM r QUALIFY rn = 1 WINDOW w AS (PARTITION BY v ORDER BY id) ORDER BY id",
+        "sha256": "1133386eba6e3374f04baee06715e0e98893a5ac2a8ad018fb44996f61a6034e"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id",
+          "v",
+          "rn"
+        ],
+        "rows": [
+          {
+            "id": 1,
+            "v": 10,
+            "rn": 1
+          },
+          {
+            "id": 2,
+            "v": 20,
+            "rn": 1
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 230 ms",
+        "python": "一致 / 10632 ms",
+        "native": "一致 / 537 ms"
+      }
+    },
+    {
+      "id": "compat-17",
+      "originalId": 17,
+      "title": "scalar subquery bound to WITH",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT (SELECT v FROM r WHERE id = 2) AS scalar",
+        "sha256": "bd34637b57139219b3bc660f3d8bc3f0149411acf6741bafbcf57f3b7e86e7f4"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "scalar"
+        ],
+        "rows": [
+          {
+            "scalar": 20
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 242 ms",
+        "python": "一致 / 10925 ms",
+        "native": "一致 / 787 ms"
+      }
+    },
+    {
+      "id": "compat-18",
+      "originalId": 18,
+      "title": "scalar subquery empty",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT (SELECT v FROM r WHERE id = 99) AS scalar",
+        "sha256": "73105c924e051b23c448f802d0684f0ad2fd1805b9d84034eac05dd270b88eaf"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "scalar"
+        ],
+        "rows": [
+          {
+            "scalar": null
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 269 ms",
+        "python": "一致 / 11351 ms",
+        "native": "一致 / 687 ms"
+      }
+    },
+    {
+      "id": "compat-19",
+      "originalId": 19,
+      "title": "IN subquery preserves multiplicity",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT id FROM r WHERE v IN (SELECT v FROM r WHERE v = 20) ORDER BY id",
+        "sha256": "8e02bc18fc695427d376e808212fea90ac647610c3098bd46a7d9cb36778e114"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id"
+        ],
+        "rows": [
+          {
+            "id": 2
+          },
+          {
+            "id": 3
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 294 ms",
+        "python": "一致 / 10469 ms",
+        "native": "一致 / 795 ms"
+      }
+    },
+    {
+      "id": "compat-20",
+      "originalId": 20,
+      "title": "EXISTS correlated",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT a.id FROM r a WHERE EXISTS (SELECT b.v FROM r b WHERE b.v = a.v) ORDER BY a.id",
+        "sha256": "4b724b3e620005b64481b4af2265d3f0bb4af125bbf383f09cc77e8b0361c830"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id"
+        ],
+        "rows": [
+          {
+            "id": 1
+          },
+          {
+            "id": 2
+          },
+          {
+            "id": 3
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 222 ms",
+        "python": "一致 / 10242 ms",
+        "native": "一致 / 699 ms"
+      }
+    },
+    {
+      "id": "compat-21",
+      "originalId": 21,
+      "title": "ARRAY_AGG proven order",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) FROM r |> ASSERT UNIQUE BY (id) |> AGGREGATE ARRAY_AGG(v ORDER BY id DESC) AS vals",
+        "sha256": "c787803df1d16ded632e672e93e02e2187713afc504e86974a6edbfd520ec3fb"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "vals"
+        ],
+        "rows": [
+          {
+            "vals": [
+              20,
+              20,
+              10
+            ]
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 284 ms",
+        "python": "一致 / 9749 ms",
+        "native": "一致 / 658 ms"
+      }
+    },
+    {
+      "id": "compat-22",
+      "originalId": 22,
+      "title": "PIVOT string axes",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 'east' AS side, 1 AS v UNION ALL SELECT 'west',2 UNION ALL SELECT 'west',3) FROM r |> PIVOT(SUM(v) FOR side IN ('east','west'))",
+        "sha256": "fe0e30947a6d262f29d8a52c53712b40ac187d50fc674ae82777dbd23d2abe68"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "east",
+          "west"
+        ],
+        "rows": [
+          {
+            "east": 1,
+            "west": 5
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 203 ms",
+        "python": "一致 / 10286 ms",
+        "native": "一致 / 486 ms"
+      }
+    },
+    {
+      "id": "compat-23",
+      "originalId": 23,
+      "title": "Vector dot/L2/cosine",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT VECTOR_INNER_PRODUCT([1.0,0.0],[0.0,2.0]) AS dot, VECTOR_L2_DISTANCE([1.0,0.0],[1.0,2.0]) AS dist, VECTOR_COSINE_SIMILARITY([1.0,0.0],[2.0,0.0]) AS cos",
+        "sha256": "d763ca3cb55a128d6e119705040b3a76d822662e88720fd38c63948f3625d016"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "dot",
+          "dist",
+          "cos"
+        ],
+        "rows": [
+          {
+            "dot": 0,
+            "dist": 2,
+            "cos": 1
+          }
+        ],
+        "schemaStatus": "needs_independent_contract",
+        "followup": "typed_vector_and_array_refusal"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 19 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1027 ms",
+        "native": "不成功 / ACTQL_E_PROGRAM_INVALID / 272 ms"
+      }
+    },
+    {
+      "id": "compat-24",
+      "originalId": 24,
+      "title": "Graph/MATCH",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH accounts AS (SELECT 'a' AS id,'Alice' AS name UNION ALL SELECT 'b','Bob'), refs AS (SELECT 'r1' AS id, 'a' AS from_id,'b' AS to_id), g AS (GRAPH (NODE TABLES (accounts AS Account KEY (id) LABEL Account PROPERTIES (name)) EDGE TABLES (refs AS Referred KEY (id) SOURCE KEY (from_id) REFERENCES Account DESTINATION KEY (to_id) REFERENCES Account LABEL Referred NO PROPERTIES))) FROM g |> MATCH (a:Account)-[:Referred]->(b:Account) |> SELECT a.name,b.name AS referred",
+        "sha256": "0d43035ac3cc7ca78dd6a76255a23179be22abe15009f9e118116151d02f89dd"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "name",
+          "referred"
+        ],
+        "rows": [
+          {
+            "name": "Alice",
+            "referred": "Bob"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 260 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1068 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 239 ms"
+      }
+    },
+    {
+      "id": "compat-25",
+      "originalId": 25,
+      "title": "Calendar Tokyo month crossing",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT CAST('2026-01-31T15:01:00.000Z' AS TIMESTAMP) AS time |> calendar_bucket(time: time, into: month, unit: 'month', timezone: 'Asia/Tokyo') |> SELECT month",
+        "sha256": "2a87b45801815342c058d6a1ed3edc66bbee908b98b6fe9000a05c816f6dcb16"
+      },
+      "oracle": {
+        "kind": "missing_in_original",
+        "followup": "admitted_tokyo_month_and_missing_calendar_profile"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramRejected. Inspect formatCheckOutcome(getSubmissionCheckO / 17 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1020 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_FAILED / 246 ms"
+      }
+    },
+    {
+      "id": "compat-26",
+      "originalId": 26,
+      "title": "Events sequence",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH records AS (SELECT 'a' AS id, 10 AS at, 1 AS kind UNION ALL SELECT 'b', 20, 2) FROM records AS e |> sequence(by: [], id: e.id, time: e.at, pattern: [{as: first, where: e.kind = 1}, {as: second, where: e.kind = 2}], within: 20, max_output_rows: 100) |> SELECT first_id, second_id",
+        "sha256": "f4195d9f7863f908c06fcb0580594b39b42e1446c00e1f0057471e9cda9cb29d"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "first_id",
+          "second_id"
+        ],
+        "rows": [
+          {
+            "first_id": "a",
+            "second_id": "b"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract",
+        "followup": "valid_events_clock_and_alias"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 9 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramInvalidInput / 993 ms",
+        "native": "不成功 / ACTQL_E_PROGRAM_INVALID / 240 ms"
+      }
+    },
+    {
+      "id": "compat-27",
+      "originalId": 27,
+      "title": "Reject duplicate unique key",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) FROM r |> ASSERT UNIQUE BY (v) |> SELECT v",
+        "sha256": "daaff98a886ae5ffe8b5fc558c9852390db99400456dc97cf60d56af5272d8c8"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "execution",
+        "conditionUnderTest": "unique_key_violation"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / ExecutionUnsuccessful / 150 ms",
+        "python": "異常系・結果なし / QueryObservationUnknown / 3327 ms",
+        "native": "異常系・結果なし / LocalOriginalValuesWorkUnavailable / 443 ms"
+      }
+    },
+    {
+      "id": "compat-28",
+      "originalId": 28,
+      "title": "Reject join overflow",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT a.n AS l, b.m AS r FROM UNNEST([1,2]) AS a(n) CROSS JOIN UNNEST([3,4]) AS b(m) MAX_OUTPUT_ROWS 2",
+        "sha256": "4820086889ed3f8b0159c4a80407972141cd41bc18ed8adbdbd9b6ffd96bc550"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "unknown",
+        "conditionUnderTest": "join_bound_or_unsupported_input_shape"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 10 ms",
+        "python": "異常系・結果なし / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramInvalidInput / 786 ms",
+        "native": "異常系・結果なし / ACTQL_E_PROGRAM_INVALID / 244 ms"
+      }
+    },
+    {
+      "id": "compat-29",
+      "originalId": 29,
+      "title": "Reject scalar cardinality >1",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT (SELECT v FROM r) AS scalar",
+        "sha256": "ecf8c49c59f96d60fe9a7a43fa43b4c26b68649ced6339ad16251bdddc5dcdd2"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "execution",
+        "conditionUnderTest": "scalar_subquery_cardinality"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / ExecutionUnsuccessful / 174 ms",
+        "python": "異常系・結果なし / QueryObservationUnknown / 3653 ms",
+        "native": "異常系・結果なし / LocalOriginalValuesWorkUnavailable / 529 ms"
+      }
+    },
+    {
+      "id": "compat-30",
+      "originalId": 30,
+      "title": "Reject array agg without ORDER BY",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT ARRAY_AGG(v) AS vals FROM r",
+        "sha256": "12655d80109f4018175a7f7514bf0b99ef29264e45e01d880689f7b2dbdccfb8"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "check_or_prepare",
+        "conditionUnderTest": "aggregate_order_required"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramAggregateOrderRequired. Inspect formatCheckOutcome(getSu / 10 ms",
+        "python": "異常系・結果なし / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramAggregateOrderRequired / 830 ms",
+        "native": "異常系・結果なし / ACTQL_E_PROGRAM_INVALID / 271 ms"
+      }
+    },
+    {
+      "id": "compat-31",
+      "originalId": 31,
+      "title": "Reject array agg without key",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT ARRAY_AGG(v ORDER BY id) AS vals FROM r",
+        "sha256": "f07a34339ad1793b3d5f2181696c6f08babd084a607973716e51a4e0ce5c72df"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "check_or_prepare",
+        "conditionUnderTest": "aggregate_order_unresolved"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramOrderUnresolved. Inspect formatCheckOutcome(getSubmissio / 16 ms",
+        "python": "異常系・結果なし / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramOrderUnresolved / 937 ms",
+        "native": "異常系・結果なし / ACTQL_E_PREPARATION_FAILED / 251 ms"
+      }
+    },
+    {
+      "id": "compat-32",
+      "originalId": 32,
+      "title": "Reject LIMIT 0",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) SELECT id FROM r LIMIT 0",
+        "sha256": "21f656b58ab6242e6538b1d62dad6e24b7b2b7179c1fe8ca64d89d6e1a292b3e"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "check_or_prepare",
+        "conditionUnderTest": "non_positive_limit"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 9 ms",
+        "python": "異常系・結果なし / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramInvalidInput / 948 ms",
+        "native": "異常系・結果なし / ACTQL_E_PROGRAM_INVALID / 230 ms"
+      }
+    },
+    {
+      "id": "compat-33",
+      "originalId": 33,
+      "title": "Reject multiple statements",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT 1 AS x; SELECT 2 AS x",
+        "sha256": "dcb8885facb5acec753aefa17aee42166477de51e3b5e287544ee840835ceee6"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "parse_or_check",
+        "conditionUnderTest": "multiple_statements"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 9 ms",
+        "python": "異常系・結果なし / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramInvalidInput / 853 ms",
+        "native": "異常系・結果なし / ACTQL_E_PROGRAM_INVALID / 270 ms"
+      }
+    },
+    {
+      "id": "compat-34",
+      "originalId": 34,
+      "title": "Reject mixed array",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT [1,'a'] AS vals",
+        "sha256": "9cb7c404194559ededac0b7a96685ac230ef92e9ef87308eaf013eb37a179550"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "check_or_prepare",
+        "conditionUnderTest": "heterogeneous_array"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 11 ms",
+        "python": "異常系・結果なし / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 926 ms",
+        "native": "異常系・結果なし / ACTQL_E_PROGRAM_INVALID / 267 ms"
+      }
+    },
+    {
+      "id": "compat-35",
+      "originalId": 35,
+      "title": "Reject noncanonical timestamp",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT CAST('2026-01-01T00:00:00Z' AS TIMESTAMP) AS ts",
+        "sha256": "bf95b25c9c36070404df2e2f8c10ada8f5042939bc7c77936a97d6b6305f2e51"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "execution",
+        "conditionUnderTest": "noncanonical_timestamp"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / ExecutionUnsuccessful / 52 ms",
+        "python": "異常系・結果なし / QueryObservationUnknown / 2090 ms",
+        "native": "異常系・結果なし / LocalOriginalValuesWorkUnavailable / 287 ms"
+      }
+    },
+    {
+      "id": "compat-36",
+      "originalId": 36,
+      "title": "Reject unsupported function",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT NO_SUCH_ACTQL_FUNCTION(1) AS n",
+        "sha256": "63f53bbca1c1d6f08d5df75fc02598e9d2b47b2ae21ba148db94cf43a7f590f1"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "check_or_prepare",
+        "conditionUnderTest": "unsupported_function"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramImplementationLimit. Inspect formatCheckOutcome(getSubmi / 8 ms",
+        "python": "異常系・結果なし / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 871 ms",
+        "native": "異常系・結果なし / ACTQL_E_PREPARATION_FAILED / 224 ms"
+      }
+    },
+    {
+      "id": "compat-37",
+      "originalId": 37,
+      "title": "Reject join overflow",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT a.n AS l, b.m AS r FROM (SELECT 1 AS n UNION ALL SELECT 2) a CROSS JOIN (SELECT 3 AS m UNION ALL SELECT 4) b MAX_OUTPUT_ROWS 2",
+        "sha256": "336da5d8a04fc47123d349512ac0a76cf8e7985e47b7520e0f20187c0ecca855"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "phaseToInvestigate": "execution",
+        "conditionUnderTest": "join_output_row_limit"
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / ExecutionUnsuccessful / 154 ms",
+        "python": "異常系・結果なし / QueryObservationUnknown / 3705 ms",
+        "native": "異常系・結果なし / ACTQL_E_EXECUTION_LIMIT / 514 ms"
+      }
+    },
+    {
+      "id": "compat-38",
+      "originalId": 38,
+      "title": "True CROSS JOIN",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT a.n AS l, b.m AS r FROM (SELECT 1 AS n UNION ALL SELECT 2) a CROSS JOIN (SELECT 3 AS m UNION ALL SELECT 4) b MAX_OUTPUT_ROWS 4 ORDER BY l, r",
+        "sha256": "8ff7dc58aab75fbe247330bf83823ea97158d0bdbe1ad1025c1ef7c3c4ed0539"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "l",
+          "r"
+        ],
+        "rows": [
+          {
+            "l": 1,
+            "r": 3
+          },
+          {
+            "l": 1,
+            "r": 4
+          },
+          {
+            "l": 2,
+            "r": 3
+          },
+          {
+            "l": 2,
+            "r": 4
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 213 ms",
+        "python": "一致 / 10242 ms",
+        "native": "一致 / 643 ms"
+      }
+    },
+    {
+      "id": "compat-39",
+      "originalId": 39,
+      "title": "JSON object behavior",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT JSON_VALUE(PARSE_JSON('{\"a\":\"ok\"}'), '$.a') AS v",
+        "sha256": "6dfe2f3b5fcc5e1f9d3c97a49d3d385008d94e57229ab9c8bc93bef0b28eec8c"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "v"
+        ],
+        "rows": [
+          {
+            "v": "ok"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract",
+        "followup": "json_value_with_admitted_json_and_unsupported_parse_json"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramImplementationLimit. Inspect formatCheckOutcome(getSubmi / 8 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 862 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_FAILED / 229 ms"
+      }
+    },
+    {
+      "id": "compat-40",
+      "originalId": 40,
+      "title": "Generated exact INT64 progression",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT n FROM UNNEST(GENERATE_ARRAY(1,7,2)) n ORDER BY n",
+        "sha256": "edc68d7e1622edb04c411c4a65d704386cdd51cc41a755f8a2704a41902f9da0"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "n"
+        ],
+        "rows": [
+          {
+            "n": "1"
+          },
+          {
+            "n": "3"
+          },
+          {
+            "n": "5"
+          },
+          {
+            "n": "7"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 121 ms",
+        "python": "一致 / 8319 ms",
+        "native": "一致 / 374 ms"
+      }
+    },
+    {
+      "id": "compat-41",
+      "originalId": 41,
+      "title": "Date spellings",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT DATE_DIFF(DATE '2026-01-03',DATE '2026-01-01',DAY) AS n",
+        "sha256": "1855ef8a1729c46016d552a3f50ec579ab879473e7ec208093b636c9eaa7f8db"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "n"
+        ],
+        "rows": [
+          {
+            "n": "2"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 104 ms",
+        "python": "一致 / 7601 ms",
+        "native": "一致 / 368 ms"
+      }
+    },
+    {
+      "id": "compat-42",
+      "originalId": 42,
+      "title": "Regex 1st match",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT REGEXP_EXTRACT('review-123','[0-9]+') AS m",
+        "sha256": "01540a3af16bedd16d90cccfdae0d1c7de400502fb18f7167d26d3802bb3f774"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "m"
+        ],
+        "rows": [
+          {
+            "m": "123"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 121 ms",
+        "python": "一致 / 8342 ms",
+        "native": "一致 / 377 ms"
+      }
+    },
+    {
+      "id": "compat-43",
+      "originalId": 43,
+      "title": "Calendar UTC month crossing",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT CAST('2026-01-31T15:01:00.000Z' AS TIMESTAMP) AS time |> calendar_bucket(time: time, into: month, unit: 'month', timezone: 'UTC') |> SELECT month",
+        "sha256": "f7d196a93498a72d2b548657cd9956eabba5999972f77011461091447cf2faa2"
+      },
+      "oracle": {
+        "kind": "missing_in_original",
+        "followup": "admitted_utc_month_and_missing_calendar_profile"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramRejected. Inspect formatCheckOutcome(getSubmissionCheckO / 11 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1030 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_FAILED / 299 ms"
+      }
+    },
+    {
+      "id": "compat-44",
+      "originalId": 44,
+      "title": "Events sequence",
+      "group": "events",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH records AS (SELECT 1 AS id, 10 AS occurred_ms, 1 AS kind UNION ALL SELECT 2, 20, 2) FROM records AS e |> sequence(by: [], id: e.id, time: e.occurred_ms, pattern: [{as: first, where: e.kind = 1}, {as: second, where: e.kind = 2}], within: 20, max_output_rows: 100) |> SELECT first_id, second_id",
+        "sha256": "cd7f438ce4a0323a71678238d4fba180642843441d1fa974411a0b12b9443db2"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "first_id",
+          "second_id"
+        ],
+        "rows": [
+          {
+            "first_id": 1,
+            "second_id": 2
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 188 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1120 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 266 ms"
+      }
+    },
+    {
+      "id": "compat-45",
+      "originalId": 45,
+      "title": "JSON object behavior",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT obj.a AS v FROM (SELECT {a: 'ok'} AS obj)",
+        "sha256": "2e80afda16b66244fe5622432e6c0cddde97d0ec581f4b56e7530fa5c176e3f2"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "v"
+        ],
+        "rows": [
+          {
+            "v": "ok"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract",
+        "followup": "struct_property_projection"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 9 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramInvalidInput / 899 ms",
+        "native": "不成功 / ACTQL_E_PROGRAM_INVALID / 246 ms"
+      }
+    },
+    {
+      "id": "compat-46",
+      "originalId": 46,
+      "title": "Graph node_rows",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH accounts AS (SELECT 'a' AS id,'Alice' AS name UNION ALL SELECT 'b','Bob'), refs AS (SELECT 'r1' AS id, 'a' AS from_id,'b' AS to_id), g AS (GRAPH (NODE TABLES (accounts AS Account KEY (id) LABEL Account PROPERTIES (name)) EDGE TABLES (refs AS Referred KEY (id) SOURCE KEY (from_id) REFERENCES Account DESTINATION KEY (to_id) REFERENCES Account LABEL Referred NO PROPERTIES))) FROM g |> node_rows() |> SELECT node_key |> ORDER BY node_key",
+        "sha256": "8789f7b4e1dc67e094259faffd37a3e6c8c13dec734e133526383a975bc65bf1"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "node_key"
+        ],
+        "rows": [
+          {
+            "node_key": "a"
+          },
+          {
+            "node_key": "b"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract",
+        "followup": "graph_node_rows_noncolliding_key"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 18 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 887 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_FAILED / 245 ms"
+      }
+    },
+    {
+      "id": "compat-47",
+      "originalId": 47,
+      "title": "Graph MATCH object",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH accounts AS (SELECT 'a' AS id,'Alice' AS name UNION ALL SELECT 'b','Bob'), refs AS (SELECT 'r1' AS id, 'a' AS from_id,'b' AS to_id), g AS (GRAPH (NODE TABLES (accounts AS Account KEY (id) LABEL Account PROPERTIES (name)) EDGE TABLES (refs AS Referred KEY (id) SOURCE KEY (from_id) REFERENCES Account DESTINATION KEY (to_id) REFERENCES Account LABEL Referred NO PROPERTIES))) FROM g |> MATCH (a:Account)-[:Referred]->(b:Account) |> SELECT a AS node",
+        "sha256": "9bbadd3cccb64e7b7fd624b7106e35e8cdc5a5944acb87fa3f9addcfbc0d6f9b"
+      },
+      "oracle": {
+        "kind": "missing_in_original",
+        "followup": "graph_match_property_projection"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 13 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1024 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_FAILED / 239 ms"
+      }
+    },
+    {
+      "id": "compat-48",
+      "originalId": 48,
+      "title": "Calendar documented example",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH days AS (calendar_series(start: '2026-01-01T00:00:00.000Z', end: '2026-03-01T00:00:00.000Z', unit: 'day', timezone: 'Asia/Tokyo')) FROM days AS d |> calendar_bucket(time: d.start, into: month, unit: 'month', timezone: 'Asia/Tokyo') |> AGGREGATE COUNT(*) AS days GROUP BY month",
+        "sha256": "38ed61fd06b43b51c74f4359bb4bcdb642b232f8f59247c938bfb3bbcdba8f10"
+      },
+      "oracle": {
+        "kind": "missing_in_original",
+        "followup": "admitted_tokyo_calendar_series_and_missing_calendar_profile"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramRejected. Inspect formatCheckOutcome(getSubmissionCheckO / 12 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1127 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_FAILED / 221 ms"
+      }
+    },
+    {
+      "id": "compat-49",
+      "originalId": 49,
+      "title": "Time series UTC",
+      "group": "events",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH times AS (time_series(start:'2026-01-01T00:00:00.000Z',end:'2026-01-01T00:00:02.000Z',step:1000)) FROM times |> SELECT time",
+        "sha256": "db54acc6267173c4fce959f2dacd3a4091872d3542e4f73de0710ca9ef8d249e"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "time"
+        ],
+        "rows": [
+          {
+            "time": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "time": "2026-01-01T00:00:01.000Z"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 117 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 886 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 234 ms"
+      }
+    },
+    {
+      "id": "compat-50",
+      "originalId": 50,
+      "title": "Graph MATCH numeric control",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)))) FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.p AS value",
+        "sha256": "2256a970ff44fb6609d698f6f1a1ecb59f2fb8cb6db923ebe00ce84bf6d68e9d"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "value"
+        ],
+        "rows": [
+          {
+            "value": 7
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 129 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 904 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 233 ms"
+      }
+    },
+    {
+      "id": "compat-51",
+      "originalId": 51,
+      "title": "Graph node_rows numeric control",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)))) FROM g |> node_rows() |> SELECT p,node_key",
+        "sha256": "bcb15a1eae6fd977f4a4259cb7680a20389dc65198c04981df29439744b6acbe"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "p",
+          "node_key"
+        ],
+        "rows": [
+          {
+            "p": 7,
+            "node_key": 1
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 150 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1004 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 354 ms"
+      }
+    },
+    {
+      "id": "compat-52",
+      "originalId": 52,
+      "title": "Event carrier roundtrip",
+      "group": "events",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS clock) FROM r |> to_events(id:id,time:clock) |> events() |> SELECT id,clock",
+        "sha256": "177522d490d0b07900aa664b844d462486f3a5055fa6bb9cda165e7eb615f2ee"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "id",
+          "clock"
+        ],
+        "rows": [
+          {
+            "id": 1,
+            "clock": 10
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 144 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 834 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 247 ms"
+      }
+    },
+    {
+      "id": "compat-53",
+      "originalId": 53,
+      "title": "JSON_VALUE documented string",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT JSON_VALUE('{\"a\":\"ok\"}', '$.a') AS v",
+        "sha256": "750ed5857a6b85bdbcfd21d25cd758308ac29993958c243e91bdc93ed7845c3e"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "v"
+        ],
+        "rows": [
+          {
+            "v": "ok"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 143 ms",
+        "python": "一致 / 8369 ms",
+        "native": "一致 / 344 ms"
+      }
+    },
+    {
+      "id": "compat-54",
+      "originalId": 54,
+      "title": "UNPIVOT",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH p AS (SELECT 'x' AS id, 10 AS east, 20 AS west) FROM p |> UNPIVOT(v FOR side IN (east,west)) |> SELECT id,side,v |> ORDER BY side",
+        "sha256": "5d96f67cf6e2ecefaa7b97465f6dd6d7e2e603b23ea4ba1f2a65c673442e6762"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id",
+          "side",
+          "v"
+        ],
+        "rows": [
+          {
+            "id": "x",
+            "side": "east",
+            "v": 10
+          },
+          {
+            "id": "x",
+            "side": "west",
+            "v": 20
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 127 ms",
+        "python": "一致 / 8583 ms",
+        "native": "一致 / 378 ms"
+      }
+    },
+    {
+      "id": "compat-55",
+      "originalId": 55,
+      "title": "DATE + interval",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT DATE_ADD(DATE '2026-02-28', INTERVAL 1 DAY) AS d",
+        "sha256": "32fe6d4b96ff5fabcd84f2c70ef9ab6e998f63cd29ab24167731c06ad8ce77e6"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "d"
+        ],
+        "rows": [
+          {
+            "d": "2026-03-01"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 106 ms",
+        "python": "一致 / 8802 ms",
+        "native": "一致 / 335 ms"
+      }
+    },
+    {
+      "id": "compat-56",
+      "originalId": 56,
+      "title": "Time formatting exact",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT FORMAT_TIMESTAMP('yyyy/MM/dd HH:mm:ss.SSS', TIMESTAMP '2026-01-02 03:04:05.123456+00') AS t",
+        "sha256": "6df8190b0080cafecf3c06ef660d5ee4bc2aeae8e70957e1ac6b15fcffe0a351"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "t"
+        ],
+        "rows": [
+          {
+            "t": "2026/01/02 03:04:05.123"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 102 ms",
+        "python": "一致 / 8663 ms",
+        "native": "一致 / 316 ms"
+      }
+    },
+    {
+      "id": "compat-57",
+      "originalId": 57,
+      "title": "quantize decimal",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT quantize(CAST('0.456' AS DECIMAL(8,3)),2) AS d",
+        "sha256": "2fb894a6c27643ff0f0fc48b2f285c4d6c90b7b371f9fb26dceee35d7fae524d"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "d"
+        ],
+        "rows": [
+          {
+            "d": "0.46"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 122 ms",
+        "python": "一致 / 8695 ms",
+        "native": "一致 / 412 ms"
+      }
+    },
+    {
+      "id": "compat-58",
+      "originalId": 58,
+      "title": "Ordered STRING_AGG",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) FROM r |> ASSERT UNIQUE BY (id) |> AGGREGATE STRING_AGG(CAST(id AS STRING), ',' ORDER BY id DESC) AS ids",
+        "sha256": "fc7bda7082a48f645f142ebda4e661156f4fc9f0a933e832bbf7fa691fe0c900"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "ids"
+        ],
+        "rows": [
+          {
+            "ids": "3,2,1"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 234 ms",
+        "python": "一致 / 10231 ms",
+        "native": "一致 / 686 ms"
+      }
+    },
+    {
+      "id": "compat-59",
+      "originalId": 59,
+      "title": "Graph edge explicit property aliases",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH n AS (SELECT 1 AS id, 'Alice' AS name UNION ALL SELECT 2, 'Bob'), e AS (SELECT 1 AS id, 1 AS src, 2 AS dst), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (name)) EDGE TABLES (e AS E KEY (id) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL Knows NO PROPERTIES))) FROM GRAPH g |> MATCH WALK (a:Person)-[:Knows]->(b:Person) |> SELECT a.name AS source,b.name AS reached",
+        "sha256": "c67413617915c33f0900cdbdeaf996bdc11f8e18a9f5271ac30a3b4fc35137fe"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "source",
+          "reached"
+        ],
+        "rows": [
+          {
+            "source": "Alice",
+            "reached": "Bob"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 247 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 949 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 234 ms"
+      }
+    },
+    {
+      "id": "compat-60",
+      "originalId": 60,
+      "title": "Graph edge default WALK control",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH n AS (SELECT 1 AS id, 'Alice' AS name UNION ALL SELECT 2, 'Bob'), e AS (SELECT 1 AS id, 1 AS src, 2 AS dst), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (name)) EDGE TABLES (e AS E KEY (id) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL Knows NO PROPERTIES))) FROM GRAPH g |> MATCH (a:Person)-[:Knows]->(b:Person) |> SELECT a.name AS source,b.name AS reached",
+        "sha256": "4428f1d2bbc49091ed3c099a267583c3035d29f7f5b274f55cb3fe7fed0bc377"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "source",
+          "reached"
+        ],
+        "rows": [
+          {
+            "source": "Alice",
+            "reached": "Bob"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 195 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1035 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 238 ms"
+      }
+    },
+    {
+      "id": "compat-61",
+      "originalId": 61,
+      "title": "STRING_AGG string",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS n, 'a' AS s UNION ALL SELECT 2, 'b' UNION ALL SELECT 3, 'c') SELECT STRING_AGG(s, ',' ORDER BY n DESC) AS letters FROM r",
+        "sha256": "31a8bb3dbd659061cf0d59fdf986bc26a826ae9fdcdd53407983e600ef83bfcf"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "letters"
+        ],
+        "rows": [
+          {
+            "letters": "c,b,a"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 204 ms",
+        "python": "一致 / 9251 ms",
+        "native": "一致 / 459 ms"
+      }
+    },
+    {
+      "id": "compat-62",
+      "originalId": 62,
+      "title": "STRING_AGG string proven key",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS n, 'a' AS s UNION ALL SELECT 2, 'b' UNION ALL SELECT 3, 'c') FROM r |> ASSERT UNIQUE BY (n) |> AGGREGATE STRING_AGG(s, ',' ORDER BY n DESC) AS letters",
+        "sha256": "93c2ea99eeb6b5d2e00d3598a46449c0faed673eda676f92ec6d8c67ce998dfb"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "letters"
+        ],
+        "rows": [
+          {
+            "letters": "c,b,a"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 191 ms",
+        "python": "一致 / 9271 ms",
+        "native": "一致 / 529 ms"
+      }
+    },
+    {
+      "id": "compat-63",
+      "originalId": 63,
+      "title": "STRING_AGG CAST preprojection",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, 10 AS v UNION ALL SELECT 2, 20 UNION ALL SELECT 3, 20) FROM r |> EXTEND CAST(id AS STRING) AS s |> ASSERT UNIQUE BY (id) |> AGGREGATE STRING_AGG(s, ',' ORDER BY id DESC) AS ids",
+        "sha256": "b03c601a24aa4d368aa2db2340f218d5f573544958ee6440c75ac45bb9e7f943"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "ids"
+        ],
+        "rows": [
+          {
+            "ids": "3,2,1"
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 204 ms",
+        "python": "一致 / 9746 ms",
+        "native": "一致 / 677 ms"
+      }
+    },
+    {
+      "id": "compat-64",
+      "originalId": 64,
+      "title": "Calendar series UTC only",
+      "group": "exploration",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH days AS (calendar_series(start:'2000-01-01T00:00:00.000Z',end:'2000-01-03T00:00:00.000Z',unit:'day',timezone:'UTC')) FROM days |> SELECT start",
+        "sha256": "b14a18d38c45f12b447e63c186d3aa5202eff784a139568087324832c3c1f1b6"
+      },
+      "oracle": {
+        "kind": "missing_in_original",
+        "followup": "admitted_utc_calendar_series_and_missing_calendar_profile"
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramRejected. Inspect formatCheckOutcome(getSubmissionCheckO / 12 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 865 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_FAILED / 229 ms"
+      }
+    },
+    {
+      "id": "compat-65",
+      "originalId": 65,
+      "title": "Event fixed-window",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, CAST('2026-01-02T00:00:00.000Z' AS TIMESTAMP) AS clock UNION ALL SELECT 2, CAST('2026-01-02T00:00:07.000Z' AS TIMESTAMP)) FROM r |> row_window(time:clock,kind:'fixed',size:'5s') |> SELECT id,window_start,window_end |> ORDER BY id",
+        "sha256": "40efcfbf3732b227f3cda4ed339a832ca1e6266a29e85f2a6c7029f77b384126"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id",
+          "window_start",
+          "window_end"
+        ],
+        "rows": [
+          {
+            "id": 1,
+            "window_start": 1767312000000,
+            "window_end": 1767312005000
+          },
+          {
+            "id": 2,
+            "window_start": 1767312005000,
+            "window_end": 1767312010000
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 204 ms",
+        "python": "一致 / 10179 ms",
+        "native": "一致 / 384 ms"
+      }
+    },
+    {
+      "id": "compat-66",
+      "originalId": 66,
+      "title": "Event drop by watermark",
+      "group": "events",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, CAST('2026-01-02T00:00:00.000Z' AS TIMESTAMP) AS clock UNION ALL SELECT 2, CAST('2026-01-02T00:00:07.000Z' AS TIMESTAMP)) FROM r AS a |> to_events(id:a.id,time:a.clock) |> watermark_events(watermark_ms:1767312001000,policy:'drop') |> events() |> SELECT id",
+        "sha256": "aad0cae4c87e9f73a3f01e89c0e2db78b4d643d3c1d65e1e84045629b5d62285"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "id"
+        ],
+        "rows": [
+          {
+            "id": 2
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 159 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 881 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 228 ms"
+      }
+    },
+    {
+      "id": "compat-67",
+      "originalId": 67,
+      "title": "Graph edge numeric property",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH nodes AS (SELECT 1 AS node_key, 7 AS p UNION ALL SELECT 2, 8), edges AS (SELECT 1 AS edge_key, 1 AS from_key, 2 AS to_key), g AS (GRAPH (NODE TABLES (nodes AS N KEY (node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (edges AS E KEY (edge_key) SOURCE KEY (from_key) REFERENCES N DESTINATION KEY (to_key) REFERENCES N LABEL Knows NO PROPERTIES))) FROM GRAPH g |> MATCH WALK (a:Person)-[:Knows]->(b:Person) |> SELECT a.p AS source,b.p AS reached",
+        "sha256": "478fa95f85fc540715d71d03416a878247b43c3b70a9ab947c3ede6b69b3b97c"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "source",
+          "reached"
+        ],
+        "rows": [
+          {
+            "source": 7,
+            "reached": 8
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 209 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 887 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 279 ms"
+      }
+    },
+    {
+      "id": "compat-68",
+      "originalId": 68,
+      "title": "Graph path length",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH nodes AS (SELECT 1 AS node_key, 7 AS p UNION ALL SELECT 2, 8), edges AS (SELECT 1 AS edge_key, 1 AS from_key, 2 AS to_key), g AS (GRAPH (NODE TABLES (nodes AS N KEY (node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (edges AS E KEY (edge_key) SOURCE KEY (from_key) REFERENCES N DESTINATION KEY (to_key) REFERENCES N LABEL Knows NO PROPERTIES))) FROM GRAPH g |> MATCH x = ACYCLIC (:Person)-[:Knows]->(:Person) |> SELECT PATH_LENGTH(x) AS depth",
+        "sha256": "e932fb6686bb73bd14dbf683740f2c43b91129f82dfe9e157edd69089e8462c9"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "multiset",
+        "columnOrder": [
+          "depth"
+        ],
+        "rows": [
+          {
+            "depth": 1
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 241 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 859 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 233 ms"
+      }
+    },
+    {
+      "id": "compat-69",
+      "originalId": 69,
+      "title": "Graph authored pattern single field",
+      "group": "graph",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH nodes AS (SELECT 1 AS node_key, 7 AS p UNION ALL SELECT 2, 8), edges AS (SELECT 1 AS edge_key, 1 AS from_key, 2 AS to_key), g AS (GRAPH (NODE TABLES (nodes AS N KEY (node_key) LABEL Person PROPERTIES (p)) EDGE TABLES (edges AS E KEY (edge_key) SOURCE KEY (from_key) REFERENCES N DESTINATION KEY (to_key) REFERENCES N LABEL Knows NO PROPERTIES))) FROM GRAPH g |> MATCH WALK (a:Person) |> SELECT a.p AS v |> ORDER BY v",
+        "sha256": "f3564664bc5d3d7b52e58b8097aed2f810e374fda67aa85a6e21888dca52114d"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "v"
+        ],
+        "rows": [
+          {
+            "v": 7
+          },
+          {
+            "v": 8
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 205 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 813 ms",
+        "native": "不成功 / ACTQL_E_PREPARATION_UNSUPPORTED / 241 ms"
+      }
+    },
+    {
+      "id": "compat-70",
+      "originalId": 70,
+      "title": "Event fixed windows milliseconds",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, CAST('2026-01-02T00:00:00.000Z' AS TIMESTAMP) AS clock UNION ALL SELECT 2, CAST('2026-01-02T00:00:07.000Z' AS TIMESTAMP)) FROM r |> row_window(time:clock,kind:'fixed',size:'5s') |> SELECT id,window_start,window_end |> ORDER BY id",
+        "sha256": "40efcfbf3732b227f3cda4ed339a832ca1e6266a29e85f2a6c7029f77b384126"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "id",
+          "window_start",
+          "window_end"
+        ],
+        "rows": [
+          {
+            "id": 1,
+            "window_start": 1767312000000,
+            "window_end": 1767312005000
+          },
+          {
+            "id": 2,
+            "window_start": 1767312005000,
+            "window_end": 1767312010000
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 149 ms",
+        "python": "一致 / 9058 ms",
+        "native": "一致 / 371 ms"
+      }
+    },
+    {
+      "id": "compat-71",
+      "originalId": 71,
+      "title": "Event sliding window first 7 sec",
+      "group": "retained",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 1 AS id, CAST('2026-01-02T00:00:00.000Z' AS TIMESTAMP) AS clock UNION ALL SELECT 2, CAST('2026-01-02T00:00:07.000Z' AS TIMESTAMP)) FROM r |> row_window(time:clock,kind:'sliding',size:'5s',step:'2s') |> WHERE id=2 |> SELECT window_start |> ORDER BY window_start",
+        "sha256": "01f59b19b3565c031e690ff520473aac9e840ce73abe034fb8f8b3e9d1000df1"
+      },
+      "oracle": {
+        "kind": "reported_rows",
+        "rowOrder": "sequence",
+        "columnOrder": [
+          "window_start"
+        ],
+        "rows": [
+          {
+            "window_start": 1767312004000
+          },
+          {
+            "window_start": 1767312006000
+          }
+        ],
+        "schemaStatus": "needs_independent_contract"
+      },
+      "historicalObservation": {
+        "node": "一致 / 178 ms",
+        "python": "一致 / 9251 ms",
+        "native": "一致 / 413 ms"
+      }
+    },
+    {
+      "id": "compat-72",
+      "originalId": 72,
+      "title": "JSONL explicit order",
+      "group": "jsonl",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 2 AS id UNION ALL SELECT 1) FROM r |> SERIALIZE FORMAT JSONL ORDER BY id OPTIONS (name = 'rows.jsonl')",
+        "sha256": "f5d918a518defd4590cdfd29cd86ee682c46da1c9e4c127a0179bacd2a14c89c"
+      },
+      "oracle": {
+        "kind": "jsonl_bytes",
+        "utf8": "{\"id\":1}\n{\"id\":2}\n",
+        "sha256": "c63f6dd68b68601e7315ea40d28bc34e55379e4fa65f82b1d32228429aeafcde",
+        "rows": 2,
+        "bytes": 18,
+        "orderBy": [
+          "id"
+        ]
+      },
+      "historicalObservation": {
+        "node": "一致 / 271 ms",
+        "python": "不成功 / SubmissionUnknown / 877 ms",
+        "native": "一致 / 510 ms"
+      }
+    },
+    {
+      "id": "compat-73",
+      "originalId": 73,
+      "title": "JSONL size guard",
+      "group": "rejection",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH r AS (SELECT 2 AS id UNION ALL SELECT 1) FROM r |> SERIALIZE FORMAT JSONL ORDER BY id OPTIONS (name = 'rows.jsonl', max_rows = 1)",
+        "sha256": "93594b258fa79917fefa4ae5516d4599df511d4a848cc01d047a0f24d9489c2a"
+      },
+      "oracle": {
+        "kind": "no_publication",
+        "typedCauseStatus": "needs_original_observation",
+        "expectedPhase": "content_prepare_or_encode",
+        "expectedCause": "serialize.row_limit",
+        "logicalRows": 2,
+        "limit": 1,
+        "initialCauseAlternatives": [
+          "TerminalContentInput(RowLimit)",
+          "TerminalContentInput(Encoding(ContentRowLimit))",
+          "TerminalContentEncoding(ContentRowLimit)"
+        ]
+      },
+      "historicalObservation": {
+        "node": "異常系・結果なし / ExecutionUnsuccessful / 79 ms",
+        "python": "異常系・結果なし / SubmissionUnknown / 903 ms",
+        "native": "異常系・結果なし / LocalContentInputUnavailable / 304 ms"
+      }
+    },
+    {
+      "id": "compat-74",
+      "originalId": 74,
+      "title": "A-10000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT COUNT(*) AS n, SUM(v) AS s FROM UNNEST(GENERATE_ARRAY(1, 10000)) AS v",
+        "sha256": "a204a5b1eacc1eddaa60333a751a9329b32682fe0de4cb940ef8f2add4aa3fcc"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "A",
+        "inputRows": 10000,
+        "independentAlgebra": {
+          "kind": "typed_sum_control_only",
+          "count": 10000,
+          "sum": "50005000"
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 10 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 809 ms",
+        "native": "不成功 / ACTQL_E_PROGRAM_INVALID / 259 ms"
+      }
+    },
+    {
+      "id": "compat-75",
+      "originalId": 75,
+      "title": "B-10000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH a AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 10000)) AS v), b AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 100)) AS v) SELECT COUNT(*) AS n FROM a JOIN b ON a.id=b.id",
+        "sha256": "63ad01d839df376b65c6a644534f9a7d73aa18684b2ae0d118ea88695a7265a7"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "B",
+        "inputRows": 10000,
+        "independentAlgebra": {
+          "kind": "one_count",
+          "count": 100
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 120 ms",
+        "python": "不成功 / QueryObservationUnknown / 2170 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 300 ms"
+      }
+    },
+    {
+      "id": "compat-76",
+      "originalId": 76,
+      "title": "C-10000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT v AS n FROM UNNEST(GENERATE_ARRAY(1, 10000)) AS v ORDER BY v",
+        "sha256": "58156c6541382ad36438e5f2e1cba78265d15e69533727999ee0a908a9791caa"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "C",
+        "inputRows": 10000,
+        "independentAlgebra": {
+          "kind": "integer_progression",
+          "column": "n",
+          "first": 1,
+          "step": 1,
+          "count": 10000
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 114 ms",
+        "python": "不成功 / QueryObservationUnknown / 1817 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 273 ms"
+      }
+    },
+    {
+      "id": "compat-77",
+      "originalId": 77,
+      "title": "D-10000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH a AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 10000)) AS v) SELECT MOD(id, 10) AS bucket, COUNT(*) AS n FROM a GROUP BY MOD(id, 10) ORDER BY bucket",
+        "sha256": "65a0e1544bcf043283119149c2af3db847185e001f735ffd533d745f323ad5e9"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "D",
+        "inputRows": 10000,
+        "independentAlgebra": {
+          "kind": "ordered_buckets",
+          "firstBucket": 0,
+          "lastBucket": 9,
+          "countPerBucket": 1000
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 74 ms",
+        "python": "不成功 / QueryObservationUnknown / 1933 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 266 ms"
+      }
+    },
+    {
+      "id": "compat-78",
+      "originalId": 78,
+      "title": "C-limit-10000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT v AS n FROM UNNEST(GENERATE_ARRAY(1, 10000)) AS v ORDER BY v LIMIT 100",
+        "sha256": "60e3d20bd3c832c1b0d588ee85bb8fd04d7fb2201f3eb8b8828b095e16aa72fb"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "C-limit",
+        "inputRows": 10000,
+        "independentAlgebra": {
+          "kind": "integer_progression",
+          "column": "n",
+          "first": 1,
+          "step": 1,
+          "count": 100
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 67 ms",
+        "python": "不成功 / QueryObservationUnknown / 2173 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 281 ms"
+      }
+    },
+    {
+      "id": "compat-79",
+      "originalId": 79,
+      "title": "A-100000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT COUNT(*) AS n, SUM(v) AS s FROM UNNEST(GENERATE_ARRAY(1, 100000)) AS v",
+        "sha256": "e2deab0572920f7dca04ebd035924c5d00cb9ca11d3586cdc382a1cb91d2e2f6"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "A",
+        "inputRows": 100000,
+        "independentAlgebra": {
+          "kind": "typed_sum_control_only",
+          "count": 100000,
+          "sum": "5000050000"
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 13 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 887 ms",
+        "native": "不成功 / ACTQL_E_PROGRAM_INVALID / 232 ms"
+      }
+    },
+    {
+      "id": "compat-80",
+      "originalId": 80,
+      "title": "B-100000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH a AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 100000)) AS v), b AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 100)) AS v) SELECT COUNT(*) AS n FROM a JOIN b ON a.id=b.id",
+        "sha256": "c0d7cf1e30690cc1d5d4ee599d9a5b01b87e8294732ccfc37b6f88c4bc5f70d2"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "B",
+        "inputRows": 100000,
+        "independentAlgebra": {
+          "kind": "one_count",
+          "count": 100
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 142 ms",
+        "python": "不成功 / QueryObservationUnknown / 1967 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 313 ms"
+      }
+    },
+    {
+      "id": "compat-81",
+      "originalId": 81,
+      "title": "C-100000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT v AS n FROM UNNEST(GENERATE_ARRAY(1, 100000)) AS v ORDER BY v",
+        "sha256": "4c45a2b0a27c8ca407fe34f887a93eace77fb79cebd4cd60ca22828c4102295e"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "C",
+        "inputRows": 100000,
+        "independentAlgebra": {
+          "kind": "integer_progression",
+          "column": "n",
+          "first": 1,
+          "step": 1,
+          "count": 100000
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 65 ms",
+        "python": "不成功 / QueryObservationUnknown / 2202 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 359 ms"
+      }
+    },
+    {
+      "id": "compat-82",
+      "originalId": 82,
+      "title": "D-100000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH a AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 100000)) AS v) SELECT MOD(id, 10) AS bucket, COUNT(*) AS n FROM a GROUP BY MOD(id, 10) ORDER BY bucket",
+        "sha256": "abd9b73993cba6b54796000fa28313bed872975fffbee6985afb619036ff3515"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "D",
+        "inputRows": 100000,
+        "independentAlgebra": {
+          "kind": "ordered_buckets",
+          "firstBucket": 0,
+          "lastBucket": 9,
+          "countPerBucket": 10000
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 73 ms",
+        "python": "不成功 / QueryObservationUnknown / 2082 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 311 ms"
+      }
+    },
+    {
+      "id": "compat-83",
+      "originalId": 83,
+      "title": "C-limit-100000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT v AS n FROM UNNEST(GENERATE_ARRAY(1, 100000)) AS v ORDER BY v LIMIT 100",
+        "sha256": "2cb55308b3c5dfaacf3e84bb610b65caae106a5670fa727f11d98e7e28191c37"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "C-limit",
+        "inputRows": 100000,
+        "independentAlgebra": {
+          "kind": "integer_progression",
+          "column": "n",
+          "first": 1,
+          "step": 1,
+          "count": 100
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 62 ms",
+        "python": "不成功 / QueryObservationUnknown / 1991 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 301 ms"
+      }
+    },
+    {
+      "id": "compat-84",
+      "originalId": 84,
+      "title": "A-1000000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT COUNT(*) AS n, SUM(v) AS s FROM UNNEST(GENERATE_ARRAY(1, 1000000)) AS v",
+        "sha256": "3d82706c22b112e4a2813b80d31daed8e95849117e23618a64e48e57e7b497c5"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "A",
+        "inputRows": 1000000,
+        "independentAlgebra": {
+          "kind": "typed_sum_control_only",
+          "count": 1000000,
+          "sum": "500000500000"
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / SubmissionNotAccepted: phase=not_accepted; problem=ClientProgramInvalidInput. Inspect formatCheckOutcome(getSubmissionCh / 11 ms",
+        "python": "不成功 / SubmissionPreparationFailed: phase=preparation_failed; problem=ClientProgramPreparationFailed / 1111 ms",
+        "native": "不成功 / ACTQL_E_PROGRAM_INVALID / 246 ms"
+      }
+    },
+    {
+      "id": "compat-85",
+      "originalId": 85,
+      "title": "B-1000000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH a AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 1000000)) AS v), b AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 100)) AS v) SELECT COUNT(*) AS n FROM a JOIN b ON a.id=b.id",
+        "sha256": "81234fec51ffd115a1338524481ac52a9d520ab7f5548dbdaedd7799c6b190de"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "B",
+        "inputRows": 1000000,
+        "independentAlgebra": {
+          "kind": "one_count",
+          "count": 100
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 108 ms",
+        "python": "不成功 / QueryObservationUnknown / 2314 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 301 ms"
+      }
+    },
+    {
+      "id": "compat-86",
+      "originalId": 86,
+      "title": "C-1000000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT v AS n FROM UNNEST(GENERATE_ARRAY(1, 1000000)) AS v ORDER BY v",
+        "sha256": "ec24e51d3b42e1a1b9a39eb53234a31c006a650ebb7b9354eee48f654bc2655a"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "C",
+        "inputRows": 1000000,
+        "independentAlgebra": {
+          "kind": "integer_progression",
+          "column": "n",
+          "first": 1,
+          "step": 1,
+          "count": 1000000
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 61 ms",
+        "python": "不成功 / QueryObservationUnknown / 1959 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 287 ms"
+      }
+    },
+    {
+      "id": "compat-87",
+      "originalId": 87,
+      "title": "D-1000000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "WITH a AS (SELECT v AS id FROM UNNEST(GENERATE_ARRAY(1, 1000000)) AS v) SELECT MOD(id, 10) AS bucket, COUNT(*) AS n FROM a GROUP BY MOD(id, 10) ORDER BY bucket",
+        "sha256": "537faf8c98526647ee0bef3efc1a427a6e696081d9b4d1005acd9c19d4e3f717"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "D",
+        "inputRows": 1000000,
+        "independentAlgebra": {
+          "kind": "ordered_buckets",
+          "firstBucket": 0,
+          "lastBucket": 9,
+          "countPerBucket": 100000
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 77 ms",
+        "python": "不成功 / QueryObservationUnknown / 1982 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 298 ms"
+      }
+    },
+    {
+      "id": "compat-88",
+      "originalId": 88,
+      "title": "C-limit-1000000",
+      "group": "large",
+      "input": {
+        "format": "aql-text",
+        "text": "SELECT v AS n FROM UNNEST(GENERATE_ARRAY(1, 1000000)) AS v ORDER BY v LIMIT 100",
+        "sha256": "31a5afebba3aff4a932966fd2e0612f8a1266f144c3d6c96d96d9e6b1090ce12"
+      },
+      "oracle": {
+        "kind": "large_investigation",
+        "family": "C-limit",
+        "inputRows": 1000000,
+        "independentAlgebra": {
+          "kind": "integer_progression",
+          "column": "n",
+          "first": 1,
+          "step": 1,
+          "count": 100
+        },
+        "profiles": [
+          "default",
+          "explicit_large"
+        ],
+        "historicalPythonCollectionLimit": 1000
+      },
+      "historicalObservation": {
+        "node": "不成功 / ExecutionUnsuccessful / 65 ms",
+        "python": "不成功 / QueryObservationUnknown / 1848 ms",
+        "native": "不成功 / LocalOriginalValuesWorkUnavailable / 373 ms"
+      }
+    }
+  ],
+  "sameHostSequence": {
+    "originalPrefix": [
+      "compat-01",
+      "compat-02",
+      "compat-03",
+      "compat-04",
+      "compat-05",
+      "compat-06",
+      "compat-07",
+      "compat-08",
+      "compat-09",
+      "compat-10",
+      "compat-11",
+      "compat-12",
+      "compat-13"
+    ],
+    "focus": "compat-13",
+    "healthyControl": {
+      "format": "aql-text",
+      "text": "SELECT 7 AS n",
+      "expectedRows": [
+        {
+          "n": 7
+        }
+      ]
+    },
+    "contrasts": [
+      "fresh_focus",
+      "original_prefix_then_health",
+      "repeated_focus",
+      "repeated_health",
+      "focus_first",
+      "original_prefix_then_reopen",
+      "cold_saved_repeated",
+      "retained_public_refs_vs_released_reader"
+    ]
+  }
+}

@@ -7,38 +7,61 @@ callback loans and failure custody. These observations issue none of those.
 from __future__ import annotations
 
 import sqlite3
-from threading import get_ident
 from collections.abc import Callable
 from typing import Any, Protocol, cast
 
 
-_CLOSED_SQL_BYTES = 65536
+_SQLITE_STATEMENT_CACHE = 64
+_TARGET_READ_KEYS = 8
+_TARGET_READ_KEY_BYTES = 8192
+
+_SCAN_RECORD_SQL = {
+    relation: f"""SELECT
+        CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
+        generation, CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
+        typeof(payload), length(payload)
+        FROM main.core_bytes WHERE key {relation} ? AND key < ?
+        ORDER BY key COLLATE BINARY LIMIT 1"""
+    for relation in ('=', '>=', '>')
+}
+_SCAN_NAME_SQL = {
+    relation: f"""SELECT
+        CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
+        generation, typeof(payload), length(payload)
+        FROM main.core_bytes WHERE key {relation} ? AND key < ?
+        ORDER BY key COLLATE BINARY LIMIT 1"""
+    for relation in ('>=', '>')
+}
+_TARGET_HEADERS_SQL = tuple(
+    """SELECT requested.ordinal, stored.key IS NOT NULL,
+       CASE WHEN typeof(stored.generation) = 'integer' THEN stored.generation END,
+       typeof(stored.payload),
+       CASE WHEN typeof(stored.payload) = 'blob' THEN length(stored.payload) END
+       FROM (WITH requested(ordinal, key) AS (VALUES """
+    + ', '.join(f'({ordinal}, ?)' for ordinal in range(count))
+    + """) SELECT ordinal, key FROM requested) AS requested
+       LEFT JOIN main.core_bytes AS stored ON stored.key = requested.key COLLATE BINARY"""
+    for count in range(1, _TARGET_READ_KEYS + 1)
+)
 
 
 class _TrackedSQLiteConnection(sqlite3.Connection):
-    """Keep transaction identity even for SQL issued through the raw connection.
+    """Retain the owned SQLite transaction state without a SQL trace."""
 
-    SQLite invokes its trace for every execution, including cached statements.
-    The installed hook remains present when a diagnostic trace is replaced or
-    removed. User trace exceptions retain SQLite's normal callback handling.
-    """
-    __slots__ = ('_transaction_epoch', '_outer_transaction_epoch', '_user_trace', '_trace_depth',
-                 '_observation_eligible', '_encoding_eligible', '_closed_invocation',
-                 '_closed_statement_epoch', '_closed_prepare')
+    __slots__ = ('_transaction_epoch', '_observation_eligible', '_encoding_eligible',
+                 '_closed_invocation')
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._transaction_epoch = 0
-        self._outer_transaction_epoch = 0
-        self._trace_depth = 0
-        self._closed_statement_epoch = 0
-        self._user_trace: Callable[[str], object] | None = None
-        self._closed_prepare: Any = None
         self._closed_invocation: Any = None
         detect_types = kwargs.get('detect_types', args[2] if len(args) > 2 else 0)
         self._observation_eligible = detect_types == 0
         self._encoding_eligible = False
-        super().set_trace_callback(self._trace_transaction)
+
+    @property
+    def _closed_statement_epoch(self) -> int:
+        return self._transaction_epoch + self.total_changes
 
     def _qualify_encoding(self) -> None:
         # Only the Store calls this after publishing connection cleanup
@@ -46,172 +69,19 @@ class _TrackedSQLiteConnection(sqlite3.Connection):
         self._encoding_eligible = self.execute('PRAGMA encoding').fetchone() == ('UTF-8',)
 
     def _closed_eligible(self) -> bool:
-        if (not self._observation_eligible or not self._encoding_eligible or self.row_factory is not None
-                or self.text_factory is not str or type(sqlite3.adapters) is not dict):
-            return False
-        # Converters are disabled at construction. Relevant global adapters
-        # may change independently of this connection, so inspect them now.
-        return not any((kind, sqlite3.PrepareProtocol) in sqlite3.adapters
-                       for kind in (str, int, float, bytes, type(None)))
-
-    def _customize(self) -> None:
-        self._observation_eligible = False
-        span = self._closed_prepare or self._closed_invocation
-        if span is not None:
-            error = RuntimeError('SQLite customization during closed observation')
-            span._fail(error)
-            raise error
-
-    def __setattr__(self, name: str, value: object) -> None:
-        if name in ('row_factory', 'text_factory') and hasattr(self, '_observation_eligible'):
-            self._customize()
-        super().__setattr__(name, value)
+        return self._observation_eligible and self._encoding_eligible
 
     def execute(self, sql: str, parameters: Any = (), /) -> sqlite3.Cursor:
-        phase = self._closed_prepare
         span = self._closed_invocation
-        closed = phase if phase is not None and not phase.suspended else span
-        if closed is not None and not closed.suspended:
+        if span is not None and not span.suspended:
             try:
-                closed._guard_sql()
-                if span is not None and not span.suspended and span is not closed:
-                    span._guard_sql()
-                # Only the audited physical read methods below construct
-                # bounded literals. Never dispatch global adapters here,
-                # including adapters registered concurrently for private types.
-                if type(parameters) is not tuple or parameters:
-                    raise ValueError('Closed SQLite reads require original literal transport')
-                return super().execute(sql)
+                span._guard_sql()
+                return super().execute(sql, parameters)
             except BaseException as error:
-                closed._fail(error)
-                raise closed.failure
+                span._fail(error)
+                raise span.failure
         return super().execute(sql, parameters)
 
-    def deserialize(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().deserialize(*args, **kwargs)
-
-    def backup(self, *args: Any, **kwargs: Any) -> None:
-        if kwargs.get('progress') is not None:
-            self._customize()
-        return super().backup(*args, **kwargs)
-
-    def set_progress_handler(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().set_progress_handler(*args, **kwargs)
-
-    def set_authorizer(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().set_authorizer(*args, **kwargs)
-
-    def create_function(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().create_function(*args, **kwargs)
-
-    def create_aggregate(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().create_aggregate(*args, **kwargs)
-
-    def create_window_function(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().create_window_function(*args, **kwargs)
-
-    def create_collation(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().create_collation(*args, **kwargs)
-
-    def enable_load_extension(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().enable_load_extension(*args, **kwargs)
-
-    def load_extension(self, *args: Any, **kwargs: Any) -> None:
-        self._customize()
-        return super().load_extension(*args, **kwargs)
-
-    @staticmethod
-    def _transaction_tokens(statement: str) -> tuple[str, ...]:
-        # Only the first three unquoted words matter: ROLLBACK [TRANSACTION]
-        # TO preserves the outer transaction. Skip comments between words,
-        # but never interpret quoted strings/identifiers as control keywords.
-        offset = 0
-        words: list[str] = []
-        while len(words) < 3:
-            while offset < len(statement):
-                if statement[offset] in ' \t\r\n\v\f\ufeff' or (
-                        not words and statement[offset] == ';'):
-                    offset += 1
-                elif statement.startswith('--', offset):
-                    end = statement.find('\n', offset + 2)
-                    if end < 0:
-                        return tuple(words)
-                    offset = end + 1
-                elif statement.startswith('/*', offset):
-                    end = statement.find('*/', offset + 2)
-                    if end < 0:
-                        return tuple(words)
-                    offset = end + 2
-                else:
-                    break
-            end = offset
-            while (end < len(statement) and statement[end].isascii()
-                   and (statement[end].isalnum() or statement[end] == '_')):
-                end += 1
-            if end == offset:
-                break
-            words.append(statement[offset:end].upper())
-            offset = end
-        return tuple(words)
-
-    def _trace_transaction(self, statement: str) -> None:
-        # SQLite marks SQL executed recursively by a trace callback with a
-        # diagnostic '-- ' prefix. That prefix is not part of the executed SQL.
-        actual = (statement[3:] if self._trace_depth and statement.startswith('-- ')
-                  else statement)
-        words = self._transaction_tokens(actual)
-        command = words[0] if words else ''
-        # Only the new genuine-Wasm closed scope uses this sticky epoch. The
-        # retained trace also sees raw cursors/base-class execute, including
-        # main/TEMP DDL and schema_version restoration which total_changes
-        # cannot observe. Do not throw from trace: SQLite swallows exceptions.
-        # Never normalize expanded write payloads. Only these short, exact
-        # getter templates need case/whitespace normalization (at most 64 chars).
-        read_only = (command == 'SELECT' or command == 'PRAGMA' and len(actual) <= 64
-            and actual.strip().rstrip(';').strip().upper() in (
-                'PRAGMA SCHEMA_VERSION', 'PRAGMA TEMP.SCHEMA_VERSION', 'PRAGMA ENCODING',
-                'PRAGMA MAIN.APPLICATION_ID'))
-        span = self._closed_invocation
-        foreign_closed = (span is not None and span.wasm_export is not None
-                          and span.admitted and get_ident() != span.thread)
-        phase = self._closed_prepare
-        foreign_prepare = phase is not None and get_ident() != phase.thread
-        if not read_only or foreign_closed or foreign_prepare:
-            self._closed_statement_epoch += 1
-        if command in {'BEGIN', 'COMMIT', 'END', 'ROLLBACK', 'SAVEPOINT', 'RELEASE'}:
-            self._transaction_epoch += 1
-            rollback_to = (command == 'ROLLBACK' and (
-                words[1:2] == ('TO',) or words[1:3] == ('TRANSACTION', 'TO')))
-            # Nested savepoints preserve the reader's outer SQLite snapshot.
-            # The stricter write-free port separately observes every control.
-            if (command in {'BEGIN', 'COMMIT', 'END'}
-                    or command == 'ROLLBACK' and not rollback_to
-                    or command == 'SAVEPOINT' and not self.in_transaction):
-                self._outer_transaction_epoch += 1
-        callback = self._user_trace
-        if callback is not None:
-            self._trace_depth += 1
-            try:
-                callback(statement)
-            finally:
-                self._trace_depth -= 1
-
-    def set_trace_callback(self, trace_callback: Callable[[str], object] | None) -> None:
-        self._customize()
-        if trace_callback is not None and not callable(trace_callback):
-            raise TypeError('SQLite trace callback must be callable or None')
-        # Retain sqlite3's closed-connection/registration checks and leave the
-        # previous callback untouched if registration itself fails.
-        super().set_trace_callback(self._trace_transaction)
-        self._user_trace = trace_callback
 
 
 _APPLICATION_ID = 0x41514C42
@@ -224,14 +94,41 @@ _SCHEMA = '''CREATE TABLE core_bytes (
 # the namespace, material key and amounts; this table carries no Run state.
 _CAPACITY_SCHEMA = '''CREATE TABLE actql_capacity(namespace TEXT NOT NULL,reservation_key TEXT NOT NULL,reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0),PRIMARY KEY(namespace, reservation_key)) STRICT'''
 
+# Total durable reservations always have custody. Retained record totals exist
+# only when the original Store was explicitly created with a retained quota.
+_STORE_USAGE_SCHEMA = '''CREATE TABLE actql_store_usage (
+    singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+    reservations INTEGER NOT NULL CHECK(reservations >= 0),
+    records INTEGER CHECK(records >= 0),
+    payload_bytes INTEGER CHECK(payload_bytes >= 0),
+    CHECK((records IS NULL) = (payload_bytes IS NULL))
+) STRICT'''
+_CAPACITY_USAGE_SCHEMA = '''CREATE TABLE actql_capacity_usage (
+    namespace TEXT PRIMARY KEY NOT NULL,
+    reservations INTEGER NOT NULL CHECK(reservations > 0),
+    reserved_bytes INTEGER NOT NULL CHECK(reserved_bytes >= 0),
+    reserved_objects INTEGER NOT NULL CHECK(reserved_objects >= 0)
+) STRICT, WITHOUT ROWID'''
+_SQLITE_INTEGER_MAX = 2**63 - 1
+
 
 # Same existing Native Run-Definition uniqueness domain, adapted only to this
 # physical table/key representation. NULL is not typed Run admission.
+_RUN_DEFINITION_EXPRESSION = (
+    "json_extract(json_extract(CAST(payload AS TEXT),'$.run_definition'),'$.run_definition_cid')")
+_RUN_DEFINITION_PREFIX = 'namespace:11:client_runs:'
+_RUN_DEFINITION_RANGE = "key>='namespace:11:client_runs:' AND key<'namespace:11:client_runs;'"
 _RUN_DEFINITION_INDEX = (
-    "CREATE UNIQUE INDEX actql_client_run_definition_unique ON core_bytes("
-    "json_extract(json_extract(CAST(payload AS TEXT),'$.run_definition'),"
-    "'$.run_definition_cid')) WHERE key>='namespace:11:client_runs:' "
-    "AND key<'namespace:11:client_runs;'")
+    f"CREATE UNIQUE INDEX actql_client_run_definition_unique ON core_bytes({_RUN_DEFINITION_EXPRESSION}) "
+    f"WHERE {_RUN_DEFINITION_RANGE}")
+
+_RUN_DEFINITION_READ_SQL = (
+    'SELECT CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key END, '
+    'generation, CASE WHEN length(payload) <= ? THEN payload END, '
+    'typeof(payload), length(payload) FROM main.core_bytes '
+    'INDEXED BY actql_client_run_definition_unique '
+    f'WHERE {_RUN_DEFINITION_RANGE} AND {_RUN_DEFINITION_EXPRESSION} = ?')
+_RUN_DEFINITION_INPUT_SQL = f'SELECT {_RUN_DEFINITION_EXPRESSION} FROM (SELECT ? AS payload)'
 
 
 _RUN_DEFINITION_PROBE = (
@@ -239,12 +136,40 @@ _RUN_DEFINITION_PROBE = (
     "'$.run_definition'),'$.run_definition_cid')"
 )
 
+_MODEL_CALL_JOURNAL = 'client_model_call_originals'
+
+
 class _PhysicalCapacityCollision(RuntimeError):
     """A different exact reservation is present; no row was removed/reissued."""
 
 
 class _PhysicalCapacityExceeded(RuntimeError):
     """The selected physical Store limits refuse this reservation."""
+
+
+class _PhysicalWriteNotApplied(RuntimeError):
+    """The original SQLite mutation did not directly change one row."""
+
+
+class _PhysicalWriteConflict(Exception):
+    """The expected physical CAS generation did not match."""
+
+
+class _PhysicalPrimaryKeyConflict(RuntimeError):
+    """The physical INSERT primary key already exists."""
+
+
+class _PhysicalRunDefinitionConflict(RuntimeError):
+    """The current SQLite Run Definition unique index refused an INSERT."""
+
+    def __init__(self, definition: str) -> None:
+        super().__init__('Original Local Run Definition unique index refused the INSERT')
+        self.definition = definition
+
+
+def _require_write_applied(cursor: sqlite3.Cursor) -> None:
+    if cursor.rowcount != 1:
+        raise _PhysicalWriteNotApplied('Original Local SQLite write did not change exactly one row')
 
 
 class _PhysicalByteDatabase(Protocol):
@@ -264,8 +189,6 @@ class _PhysicalByteDatabase(Protocol):
                    exact: bool) -> tuple[object, object, object, object, object] | None: ...
     def read_capacity(self, namespace: str, key: str) -> tuple[int, int] | None: ...
     def capacity_usage(self, namespace: str) -> tuple[int, int]: ...
-    def reservation_count(self) -> int: ...
-    def record_usage(self) -> tuple[int, int]: ...
     def reserve_capacity_in_transaction(self, namespace: str, key: str, reserved_bytes: int,
                                         reserved_objects: int, max_bytes: int, max_objects: int,
                                         max_reservations: int) -> bool: ...
@@ -280,59 +203,25 @@ class _SQLiteByteDatabase:
     Only LocalByteStore owns the connection and closes it. No second connection,
     implicit transaction completion, schema conversion or fallback is created.
     """
-    __slots__ = ('_connection', '_transaction_sequence')
+    __slots__ = ('_connection', '_transaction_sequence', '_retained_limits', '_ordinary_catalog')
 
-    def __init__(self, connection: sqlite3.Connection) -> None:
+    def __init__(self, connection: sqlite3.Connection, *,
+                 retained_limits: tuple[int, int] | None = None) -> None:
         self._connection = connection
         self._transaction_sequence = 0
+        self._retained_limits = retained_limits
+        self._ordinary_catalog = False
 
-    def _read_sql(self, fragments: tuple[str, ...], values: tuple[object, ...]) -> sqlite3.Cursor:
-        """Execute only an owned read template, without adapter dispatch in a span.
-
-        Call sites supply literal SQL fragments, not an interpolated arbitrary
-        statement. Hex text preserves quotes, NUL and Unicode on the admitted
-        UTF-8 database. The legacy path retains ordinary parameter semantics.
-        """
-        connection = self._connection
-        span = None
-        if type(connection) is _TrackedSQLiteConnection:
-            phase = connection._closed_prepare
-            span = (phase if phase is not None and not phase.suspended
-                    else connection._closed_invocation)
-        if span is None or span.suspended:
-            return connection.execute('?'.join(fragments), values)
-        try:
-            span._guard_sql()
-            if len(values) > 3 or len(fragments) != len(values) + 1:
-                raise ValueError('Invalid original closed SQLite read shape')
-            parts = [fragments[0]]
-            for value, suffix in zip(values, fragments[1:]):
-                if type(value) is str:
-                    encoded = value.encode('utf-8')
-                    if len(encoded) > 4096:
-                        raise ValueError('Closed SQLite text exceeds original key bound')
-                    literal = "CAST(X'" + encoded.hex() + "' AS TEXT)"
-                elif type(value) is int and -(2**63) <= value < 2**63:
-                    literal = str(value)
-                else:
-                    raise ValueError('Non-original closed SQLite read value')
-                parts.extend((literal, suffix))
-            statement = ''.join(parts)
-            if len(statement) > _CLOSED_SQL_BYTES:
-                raise ValueError('Closed SQLite statement exceeds its reservation')
-            return connection.execute(statement)
-        except BaseException as error:
-            span._fail(error)
-            raise span.failure
-
-    def _snapshot_identity(self) -> tuple[sqlite3.Connection, int, int, tuple[int, int]]:
+    def _snapshot_identity(self) -> tuple[sqlite3.Connection, int, int, tuple[int, int] | None]:
         """Same live transaction plus SQLite's actual mutation counter, DATA only."""
         connection = self._connection
         sequence = self._transaction_sequence
-        epoch = (connection._outer_transaction_epoch
+        epoch = (connection._transaction_epoch
                  if type(connection) is _TrackedSQLiteConnection else sequence)
         if not connection.in_transaction:
             raise ValueError('Original SQLite snapshot is not active')
+        if self._ordinary_catalog:
+            return connection, epoch, connection.total_changes, None
         # DDL does not advance total_changes. Read the actual bounded schema
         # counters too. TEMP can shadow core_bytes without changing main's
         # counter or any row. Both schemas belong to this SAME connection.
@@ -344,7 +233,7 @@ class _SQLiteByteDatabase:
             raise ValueError('Original SQLite TEMP schema snapshot is unavailable')
         if (self._connection is not connection or self._transaction_sequence != sequence
                 or (type(connection) is _TrackedSQLiteConnection
-                    and connection._outer_transaction_epoch != epoch)
+                    and connection._transaction_epoch != epoch)
                 or not connection.in_transaction):
             raise ValueError('Original SQLite snapshot changed during observation')
         return connection, epoch, connection.total_changes, (schema[0], temporary[0])
@@ -367,23 +256,28 @@ class _SQLiteByteDatabase:
         Journal. Missing and colliding entries both refuse.
         """
         before = self._snapshot_identity()
+        if self._ordinary_catalog:
+            return
         application = self._connection.execute('PRAGMA main.application_id').fetchone()
-        # At most four bounded rows distinguish the exact three catalog
+        # At most six bounded rows distinguish the exact five catalog
         # entries from an extra or colliding schema without a payload scan.
-        rows = self._read_sql(("""SELECT
+        rows = self._connection.execute("""SELECT
             CASE WHEN length(name) <= 34 THEN name ELSE NULL END,
-            type, CASE WHEN length(tbl_name) <= 16 THEN tbl_name ELSE NULL END,
-            CASE WHEN length(sql) <= """, """ THEN sql ELSE NULL END
+            type, CASE WHEN length(tbl_name) <= 34 THEN tbl_name ELSE NULL END,
+            CASE WHEN length(sql) <= ? THEN sql ELSE NULL END
             FROM main.sqlite_schema WHERE name NOT LIKE 'sqlite_%'
-            ORDER BY name LIMIT 4"""),
-            (max(len(_SCHEMA), len(_CAPACITY_SCHEMA), len(_RUN_DEFINITION_INDEX)),)).fetchall()
+            ORDER BY name LIMIT 6""",
+            (max(map(len, (_SCHEMA, _CAPACITY_SCHEMA, _CAPACITY_USAGE_SCHEMA,
+                          _STORE_USAGE_SCHEMA, _RUN_DEFINITION_INDEX))),)).fetchall()
         shadow = self._connection.execute("""SELECT 1 FROM temp.sqlite_schema
-            WHERE name COLLATE NOCASE IN ('core_bytes', 'actql_capacity') LIMIT 1""").fetchone()
+            WHERE name COLLATE NOCASE IN ('core_bytes', 'actql_capacity', 'actql_capacity_usage', 'actql_store_usage') LIMIT 1""").fetchone()
         if self._snapshot_identity() != before or shadow is not None:
             raise ValueError('Original Journal physical schema changed or was shadowed')
         expected = [
             ('actql_capacity', 'table', 'actql_capacity', _CAPACITY_SCHEMA),
+            ('actql_capacity_usage', 'table', 'actql_capacity_usage', _CAPACITY_USAGE_SCHEMA),
             ('actql_client_run_definition_unique', 'index', 'core_bytes', _RUN_DEFINITION_INDEX),
+            ('actql_store_usage', 'table', 'actql_store_usage', _STORE_USAGE_SCHEMA),
             ('core_bytes', 'table', 'core_bytes', _SCHEMA),
         ]
         if application != (_APPLICATION_ID,):
@@ -398,32 +292,33 @@ class _SQLiteByteDatabase:
     def in_transaction(self) -> bool:
         return self._connection.in_transaction
 
-    def begin_read(self) -> None:
+    def _control(self, sql: str) -> None:
+        # Attempt identity changes before a potentially ambiguous physical reply.
+        connection = self._connection
         self._transaction_sequence += 1
-        self._connection.execute('BEGIN')
+        if type(connection) is _TrackedSQLiteConnection:
+            connection._transaction_epoch += 1
+        connection.execute(sql)
+
+    def begin_read(self) -> None:
+        self._control('BEGIN')
 
     def finish_read(self) -> None:
-        # The original read must stop before any complete observation escapes.
-        # This never acknowledges a previous write or issues another BEGIN.
-        self._transaction_sequence += 1
-        self._connection.execute('ROLLBACK')
+        # Finish the actual borrowed reader before releasing any observation.
+        self._control('ROLLBACK')
 
     def cleanup_read(self) -> None:
         if self._connection.in_transaction:
-            self._transaction_sequence += 1
-            self._connection.execute('ROLLBACK')
+            self.finish_read()
 
     def begin_immediate(self) -> None:
-        self._transaction_sequence += 1
-        self._connection.execute('BEGIN IMMEDIATE')
+        self._control('BEGIN IMMEDIATE')
 
     def commit(self) -> None:
-        self._transaction_sequence += 1
-        self._connection.execute('COMMIT')
+        self._control('COMMIT')
 
     def rollback(self) -> None:
-        self._transaction_sequence += 1
-        self._connection.execute('ROLLBACK')
+        self._control('ROLLBACK')
 
     def close(self) -> None:
         self._transaction_sequence += 1
@@ -431,68 +326,181 @@ class _SQLiteByteDatabase:
 
     def has_records_or_capacity(self) -> bool:
         return bool(self._connection.execute("""SELECT
-            EXISTS(SELECT 1 FROM core_bytes) OR
-            EXISTS(SELECT 1 FROM actql_capacity)""").fetchone()[0])
+            EXISTS(SELECT 1 FROM main.core_bytes) OR
+            EXISTS(SELECT 1 FROM main.actql_capacity)""").fetchone()[0])
 
     def read_row(self, key: str, max_bytes: int) -> tuple[object, object, object, object] | None:
         # The same CASE bounds allocation before the row reaches Python.
-        raw = self._read_sql(('''SELECT generation,
-            CASE WHEN length(payload) <= ''', ''' THEN payload ELSE NULL END,
+        raw = self._connection.execute('''SELECT generation,
+            CASE WHEN length(payload) <= ? THEN payload ELSE NULL END,
             typeof(payload), length(payload)
-            FROM core_bytes WHERE key = ''', ''), (max_bytes, key)).fetchone()
+            FROM main.core_bytes WHERE key = ?''', (max_bytes, key)).fetchone()
         return cast(tuple[object, object, object, object] | None, raw)
 
     def read_header(self, key: str) -> tuple[int, int] | None:
-        return cast(tuple[int, int] | None, self._read_sql((
-            'SELECT generation, length(payload) FROM core_bytes WHERE key = ', ''),
+        return cast(tuple[int, int] | None, self._connection.execute(
+            'SELECT generation, length(payload) FROM main.core_bytes WHERE key = ?',
             (key,)).fetchone())
 
     def scan_range(self, lower: str, upper: str, max_bytes: int, *, inclusive: bool,
                    exact: bool) -> tuple[object, object, object, object, object] | None:
         relation = '=' if exact else '>=' if inclusive else '>'
-        raw = self._read_sql(('''SELECT
-            CASE WHEN length(CAST(key AS BLOB)) <= 4096 THEN key ELSE NULL END,
-            generation,
-            CASE WHEN length(payload) <= ''', f''' THEN payload ELSE NULL END,
-            typeof(payload), length(payload)
-            FROM core_bytes WHERE key {relation} ''', ' AND key < ', '''
-            ORDER BY key COLLATE BINARY LIMIT 1'''), (max_bytes, lower, upper)).fetchone()
+        raw = self._connection.execute(
+            _SCAN_RECORD_SQL[relation], (max_bytes, lower, upper)).fetchone()
         return cast(tuple[object, object, object, object, object] | None, raw)
 
+    def read_run_definition_owner(
+            self, definition: str, max_bytes: int) -> tuple[object, ...] | None:
+        self._journal_schema()
+        return cast(tuple[object, ...] | None, self._connection.execute(
+            _RUN_DEFINITION_READ_SQL, (max_bytes, definition)).fetchone())
+
+    def task_material_count_matches(self, lower: str, upper: str, expected: int) -> bool:
+        """Count unique physical keys without fetching material BLOBs."""
+        self._journal_schema()
+        limit = expected + 1
+        row = self._connection.execute(
+            'SELECT count(*) FROM (SELECT key FROM main.core_bytes WHERE key >= ? AND key < ? LIMIT ?)',
+            (lower, upper, limit)).fetchone()
+        if type(row) is not tuple or len(row) != 1 or type(row[0]) is not int or not 0 <= row[0] <= limit:
+            raise ValueError('Invalid original Local Task material count observation')
+        return row[0] == expected
+
+    def scan_name_key(self, lower: str, upper: str, *,
+                      inclusive: bool) -> tuple[object, object, object, object] | None:
+        relation = '>=' if inclusive else '>'
+        row = self._connection.execute(_SCAN_NAME_SQL[relation], (lower, upper)).fetchone()
+        return cast(tuple[object, object, object, object] | None, row)
+
+    def read_target_headers(self, keys: tuple[str, ...]
+                            ) -> list[tuple[object, object, object, object, object]]:
+        # The only input relation is the small set of original primary keys.
+        # Observe SQLite's BLOB extents without materializing their bodies.
+        if not 0 < len(keys) <= _TARGET_READ_KEYS:
+            raise ValueError('Invalid Local target read count')
+        rows = self._connection.execute(_TARGET_HEADERS_SQL[len(keys) - 1], keys).fetchall()
+        return cast(list[tuple[object, object, object, object, object]], rows)
+
     def read_capacity(self, namespace: str, key: str) -> tuple[int, int] | None:
-        return cast(tuple[int, int] | None, self._read_sql((
+        return cast(tuple[int, int] | None, self._connection.execute(
             '''SELECT reserved_bytes, reserved_objects
-            FROM actql_capacity WHERE namespace = ''', ' AND reservation_key = ', ''),
+            FROM main.actql_capacity WHERE namespace = ? AND reservation_key = ?''',
             (namespace, key)).fetchone())
 
+    def _store_usage(self) -> tuple[int, int | None, int | None]:
+        row = self._connection.execute(
+            'SELECT reservations, records, payload_bytes FROM main.actql_store_usage WHERE singleton = 1'
+        ).fetchone()
+        if (row is None or not self._counter(row[0])
+                or (row[1] is None) != (row[2] is None)
+                or row[1] is not None and not (self._counter(row[1]) and self._counter(row[2]))):
+            raise ValueError('Original Local durable usage is missing or inconsistent')
+        return cast(tuple[int, int | None, int | None], row)
+
+    @staticmethod
+    def _counter(value: object) -> bool:
+        return type(value) is int and 0 <= value <= _SQLITE_INTEGER_MAX
+
+    def require_usage_mode(self, retained: bool) -> None:
+        _, records, _ = self._store_usage()
+        if (records is not None) != retained:
+            raise ValueError('Original Local retained quota configuration changed')
+
+    def _namespace_usage(self, namespace: str) -> tuple[int, int, int]:
+        row = self._connection.execute(
+            'SELECT reservations, reserved_bytes, reserved_objects FROM main.actql_capacity_usage WHERE namespace = ?',
+            (namespace,)).fetchone()
+        if row is None:
+            if self._connection.execute(
+                    'SELECT 1 FROM main.actql_capacity WHERE namespace = ? LIMIT 1',
+                    (namespace,)).fetchone() is not None:
+                raise ValueError('Original Local reservation usage is missing')
+            return (0, 0, 0)
+        if not all(self._counter(value) for value in row) or row[0] == 0:
+            raise ValueError('Original Local reservation usage is invalid')
+        return cast(tuple[int, int, int], row)
+
     def capacity_usage(self, namespace: str) -> tuple[int, int]:
-        return cast(tuple[int, int], self._read_sql((
-            '''SELECT coalesce(sum(reserved_bytes), 0),
-            coalesce(sum(reserved_objects), 0) FROM actql_capacity WHERE namespace = ''', ''),
-            (namespace,)).fetchone())
+        _, used_bytes, used_objects = self._namespace_usage(namespace)
+        return (used_bytes, used_objects)
 
-    def reservation_count(self) -> int:
-        return cast(int, self._connection.execute('SELECT count(*) FROM actql_capacity').fetchone()[0])
-
-    def record_usage(self) -> tuple[int, int]:
-        return cast(tuple[int, int], self._connection.execute(
-            'SELECT count(*), coalesce(sum(length(payload)), 0) FROM core_bytes').fetchone())
+    def _change_capacity_usage(self, namespace: str, usage: tuple[int, int, int],
+                               delta: tuple[int, int, int], total: int) -> None:
+        count, used_bytes, used_objects = usage
+        records, bytes_delta, objects_delta = delta
+        changed = (count + records, used_bytes + bytes_delta, used_objects + objects_delta)
+        if (total < count or not all(self._counter(value) for value in changed)
+                or changed[0] == 0 and changed[1:] != (0, 0) or not self._counter(total + records)):
+            raise ValueError('Original Local reservation usage is inconsistent')
+        if changed[0] == 0:
+            cursor = self._connection.execute(
+                'DELETE FROM main.actql_capacity_usage WHERE namespace = ?', (namespace,))
+        elif count == 0:
+            cursor = self._connection.execute(
+                'INSERT INTO main.actql_capacity_usage VALUES (?, ?, ?, ?)', (namespace, *changed))
+        else:
+            cursor = self._connection.execute('''UPDATE main.actql_capacity_usage
+                SET reservations = ?, reserved_bytes = ?, reserved_objects = ? WHERE namespace = ?''',
+                (*changed, namespace))
+        _require_write_applied(cursor)
+        if records:
+            _require_write_applied(self._connection.execute(
+                'UPDATE main.actql_store_usage SET reservations = ? WHERE singleton = 1',
+                (total + records,)))
 
     def reserve_capacity_in_transaction(self, namespace: str, key: str, reserved_bytes: int,
                                         reserved_objects: int, max_bytes: int, max_objects: int,
                                         max_reservations: int) -> bool:
         existing = self.read_capacity(namespace, key)
+        usage = self._namespace_usage(namespace)
+        count, used_bytes, used_objects = usage
+        total, _, _ = self._store_usage()
         if existing is not None:
             if existing != (reserved_bytes, reserved_objects):
                 raise _PhysicalCapacityCollision()
+            if count == 0 or total < count or used_bytes < reserved_bytes or used_objects < reserved_objects:
+                raise ValueError('Original Local reservation usage is inconsistent')
             return False
-        used_bytes, used_objects = self.capacity_usage(namespace)
-        if (self.reservation_count() >= max_reservations or used_bytes > max_bytes
+        if (total >= max_reservations or used_bytes > max_bytes
                 or used_objects > max_objects or reserved_bytes > max_bytes - used_bytes
                 or reserved_objects > max_objects - used_objects):
             raise _PhysicalCapacityExceeded()
-        self._connection.execute('INSERT INTO actql_capacity VALUES (?, ?, ?, ?)',
-                                 (namespace, key, reserved_bytes, reserved_objects))
+        cursor = self._connection.execute(
+            'INSERT INTO main.actql_capacity VALUES (?, ?, ?, ?)',
+            (namespace, key, reserved_bytes, reserved_objects))
+        _require_write_applied(cursor)
+        self._change_capacity_usage(namespace, usage, (1, reserved_bytes, reserved_objects), total)
+        return True
+
+    def append_model_call_usage_in_transaction(
+            self, scope: str, previous_objects: int, body_bytes: int, max_scope_bytes: int,
+            max_reservations: int) -> bool:
+        """Add one journal row's charge to the selected invocation's bucket."""
+        existing = self.read_capacity(_MODEL_CALL_JOURNAL, scope)
+        reserved_bytes, reserved_objects = (0, 0) if existing is None else existing
+        if reserved_objects != previous_objects:
+            return False
+        if (reserved_bytes > max_scope_bytes or
+                body_bytes > max_scope_bytes - reserved_bytes):
+            raise _PhysicalCapacityExceeded()
+        usage = self._namespace_usage(_MODEL_CALL_JOURNAL)
+        total, _, _ = self._store_usage()
+        if existing is None:
+            if total >= max_reservations:
+                raise _PhysicalCapacityExceeded()
+            cursor = self._connection.execute(
+                'INSERT INTO main.actql_capacity VALUES (?, ?, ?, ?)',
+                (_MODEL_CALL_JOURNAL, scope, body_bytes, 1))
+        else:
+            cursor = self._connection.execute(
+                '''UPDATE main.actql_capacity SET reserved_bytes = ?, reserved_objects = ?
+                WHERE namespace = ? AND reservation_key = ?
+                    AND reserved_bytes = ? AND reserved_objects = ?''',
+                (reserved_bytes + body_bytes, reserved_objects + 1, _MODEL_CALL_JOURNAL, scope,
+                 reserved_bytes, reserved_objects))
+        _require_write_applied(cursor)
+        self._change_capacity_usage(
+            _MODEL_CALL_JOURNAL, usage, (int(existing is None), body_bytes, 1), total)
         return True
 
     def release_capacity_in_transaction(self, namespace: str, key: str, reserved_bytes: int,
@@ -502,32 +510,72 @@ class _SQLiteByteDatabase:
             return False
         if existing != (reserved_bytes, reserved_objects):
             raise _PhysicalCapacityCollision()
-        self._connection.execute("""DELETE FROM actql_capacity
-            WHERE namespace = ? AND reservation_key = ?""", (namespace, key))
+        usage = self._namespace_usage(namespace)
+        total, _, _ = self._store_usage()
+        cursor = self._connection.execute("""DELETE FROM main.actql_capacity
+            WHERE namespace = ? AND reservation_key = ?
+                AND reserved_bytes = ? AND reserved_objects = ?""",
+            (namespace, key, reserved_bytes, reserved_objects))
+        _require_write_applied(cursor)
+        self._change_capacity_usage(namespace, usage, (-1, -reserved_bytes, -reserved_objects), total)
         return True
 
+    def _write_retained_usage(self, key: str, payload_bytes: int,
+                              expected_generation: int | None) -> tuple[int, int]:
+        assert self._retained_limits is not None
+        insert = expected_generation is None
+        _, count, size = self._store_usage()
+        old = None if insert else self.read_header(key)
+        if not insert and (old is None or old[0] != expected_generation):
+            raise _PhysicalWriteConflict()
+        if count is None or size is None or (old is not None and (not count or size < old[1])):
+            raise ValueError('Original Local retained usage is inconsistent')
+        new_count = count + int(insert)
+        new_size = size - (0 if old is None else old[1]) + payload_bytes
+        if not self._counter(new_count) or not self._counter(new_size):
+            raise ValueError('Original Local retained usage is inconsistent')
+        max_records, max_bytes = self._retained_limits
+        if new_count > max_records or new_size > max_bytes:
+            raise _PhysicalCapacityExceeded()
+        return new_count, new_size
+
     def write_record(self, key: str, expected_generation: int | None, payload: bytes) -> int:
+        insert = expected_generation is None
         generation = 0 if expected_generation is None else expected_generation + 1
-        if expected_generation is None:
-            self._connection.execute('INSERT INTO core_bytes VALUES (?, ?, ?)',
-                                     (key, generation, payload))
+        usage = (None if self._retained_limits is None else
+                 self._write_retained_usage(key, len(payload), expected_generation))
+        if insert:
+            try:
+                cursor = self._connection.execute(
+                    'INSERT INTO main.core_bytes VALUES (?, ?, ?)', (key, generation, payload))
+            except sqlite3.IntegrityError as issue:
+                if issue.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_PRIMARYKEY:
+                    raise _PhysicalPrimaryKeyConflict() from issue
+                if (issue.sqlite_errorcode == sqlite3.SQLITE_CONSTRAINT_UNIQUE
+                        and key.startswith(_RUN_DEFINITION_PREFIX)):
+                    self._journal_schema()
+                    # SQLite may check the index before the primary key.
+                    # An occupied original address is still a key conflict.
+                    if self.read_header(key) is not None:
+                        raise _PhysicalPrimaryKeyConflict() from issue
+                    result = self._connection.execute(_RUN_DEFINITION_INPUT_SQL, (payload,)).fetchone()
+                    definition = result[0] if result is not None else None
+                    if (type(definition) is str and len(definition) == 71
+                            and definition.startswith('sha256:')
+                            and all(value in '0123456789abcdef' for value in definition[7:])):
+                        raise _PhysicalRunDefinitionConflict(definition) from issue
+                raise
         else:
-            self._connection.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
-                                     (generation, payload, key))
+            cursor = self._connection.execute(
+                '''UPDATE main.core_bytes SET generation = ?, payload = ?
+                   WHERE generation = ? AND key = ?''',
+                (generation, payload, expected_generation, key))
+            if cursor.rowcount == 0:
+                original = self.read_header(key)
+                if original is None or original[0] != expected_generation:
+                    raise _PhysicalWriteConflict()
+        _require_write_applied(cursor)
+        if usage is not None:
+            _require_write_applied(self._connection.execute(
+                'UPDATE main.actql_store_usage SET records = ?, payload_bytes = ? WHERE singleton = 1', usage))
         return generation
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(_SQLiteByteDatabase, (
-        '_journal_schema', '_read_sql', '_snapshot_identity',
-        'begin_read', 'cleanup_read', 'finish_read',
-        'in_transaction', 'read_capacity', 'read_header',
-        'read_row', 'scan_range',
-    )),
-    _capture_prepare_methods(_TrackedSQLiteConnection, (
-        '__setattr__', '_closed_eligible', '_customize',
-        '_trace_transaction', '_transaction_tokens', 'execute',
-    )),
-)

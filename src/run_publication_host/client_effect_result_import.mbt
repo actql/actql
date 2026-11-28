@@ -326,6 +326,31 @@ priv struct ClientScopeResultImportObservation {
 }
 
 ///|
+priv enum ClientScopeResultImportOriginal {
+  EffectScope
+  WholeScope(
+    @strategy.CapturedDAG,
+    ClientRequestIdentity,
+    @publication.PublicationContract
+  )
+}
+
+///|
+fn client_scope_result_import_original_matches(
+  role : ClientScopeResultImportOriginal,
+  input : ClientInferResultArtifactInput,
+) -> Bool {
+  match (role, input.original) {
+    (EffectScope, Effect(_, _)) => true
+    (WholeScope(run, request, definition), Whole(artifact, _, _)) =>
+      physical_equal(artifact.invocation.owner.run, run) &&
+      physical_equal(artifact.invocation.owner.request, request) &&
+      physical_equal(artifact.invocation.owner.definition, definition)
+    _ => false
+  }
+}
+
+///|
 fn issue_scope_model_result_import_observations(
   owner : PreparedClientEffectComputation,
   scope : ClientInferCallScope,
@@ -338,13 +363,40 @@ fn issue_scope_model_result_import_observations(
   ClientEffectLocalInvocationIssue,
 ] {
   let occurrence = scope.plan.occurrence
+  if !client_infer_occurrence_matches_effect(occurrence, owner) {
+    return Err(IncompleteResultImports)
+  }
   let program = @checked.effect_program_static_checked_computation(
     owner.candidate,
   )
-  guard client_infer_occurrence_matches_effect(occurrence, owner) &&
-    client_infer_call_scope_matches(scope, occurrence.owner, scope.input) &&
+  issue_original_scope_result_import_observations(
+    program,
+    scope,
+    EffectScope,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    before_body~,
+  )
+}
+
+///|
+fn issue_original_scope_result_import_observations(
+  program : @checked.CheckedProgram,
+  scope : ClientInferCallScope,
+  role : ClientScopeResultImportOriginal,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
+) -> Result[
+  Array[ClientScopeResultImportObservation],
+  ClientEffectLocalInvocationIssue,
+] {
+  let occurrence = scope.plan.occurrence
+  guard client_infer_call_scope_matches(scope, occurrence.owner, scope.input) &&
     @checked.unit_result_import_count(program, occurrence.stage) is Some(count) &&
-    count > 0 &&
+    (count > 0 || role is WholeScope(_, _, _)) &&
     @checked.unit_import_cid_count(program, occurrence.stage) == Some(count) &&
     scope.result_inputs.length() == count &&
     @checked.unit_definition_cid(program, occurrence.stage) is Some(consumer) else {
@@ -355,21 +407,31 @@ fn issue_scope_model_result_import_observations(
       is Some(interface) else {
       return Err(IncompleteResultImports)
     }
-    let mut matches = 0
-    for original in scope.original_result_inputs {
-      if physical_equal(original.interface, interface) {
-        matches += 1
+    let exact = match role {
+      WholeScope(_, _, _) =>
+        // Native stages the actual checked import indices in declaration order.
+        physical_equal(scope.original_result_inputs[index].interface, interface)
+      EffectScope => {
+        let mut matches = 0
+        for original in scope.original_result_inputs {
+          if physical_equal(original.interface, interface) {
+            matches += 1
+          }
+        }
+        matches == 1
       }
     }
-    if matches != 1 {
+    if !exact {
       return Err(IncompleteResultImports)
     }
   }
+  if !scope.result_inputs.all(input => {
+      client_scope_result_import_original_matches(role, input)
+    }) {
+    return Err(ForeignResultImport)
+  }
   let observations : Array[ClientScopeResultImportObservation] = []
-  for original in scope.result_inputs {
-    guard original.original is Effect(_, _) else {
-      return Err(ForeignResultImport)
-    }
+  for original in scope.original_result_inputs {
     let (artifact_cid, manifest_cid) = client_infer_result_artifact_original_cids(
       original,
     )
@@ -402,6 +464,13 @@ fn issue_scope_model_result_import_observations(
         return Err(Encoding)
       }
       if !client_infer_result_input_inventory_current(scope) {
+        return Err(ForeignResultImport)
+      }
+      if role is WholeScope(_, _, _) &&
+        (
+          !client_infer_call_scope_matches(scope, occurrence.owner, scope.input) ||
+          !client_infer_result_input_inventory_current(scope)
+        ) {
         return Err(ForeignResultImport)
       }
     }

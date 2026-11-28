@@ -10,6 +10,14 @@ struct LocalPublicationIntent {
 }
 
 ///|
+priv struct LocalPublicationContracts {
+  inventory : @publication.CheckedPublicationInventory
+  definitions : Array[@publication.PublicationContract]
+  request : @publication.PublicationContract
+  attempt : @publication.PublicationContract
+}
+
+///|
 /// Immutable scope admitted by the existing publication preflight. Retentions
 /// stay bound to the original complete inventory through Result issuance.
 struct LocalPublicationPreflight {
@@ -57,7 +65,46 @@ pub fn prepare_local_publication_intent(
   started_at : String,
   limits : LocalPublicationIntentLimits,
 ) -> Result[LocalPublicationIntent, LocalPublicationIntentIssue] {
-  let graph = @host.prepared_client_graph(plan.prepared)
+  prepare_local_publication_contracts(
+    plan.prepared,
+    plan.request,
+    plan.definition,
+    namespace_id,
+    publication_policy_cid,
+    publication_target_cid,
+    requested_at,
+    attempt_id,
+    fence_cid,
+    external_idempotency_key,
+    started_at,
+    limits,
+  ).map(contracts => {
+    plan,
+    inventory: contracts.inventory,
+    definitions: contracts.definitions,
+    request: contracts.request,
+    attempt: contracts.attempt,
+  })
+}
+
+///|
+/// Issue the full checked inventory and its contracts from the admitted
+/// preparation, request and Run definition.
+fn prepare_local_publication_contracts(
+  prepared : @host.PreparedClientProgram,
+  request_identity : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  namespace_id : String,
+  publication_policy_cid : String,
+  publication_target_cid : String,
+  requested_at : String,
+  attempt_id : String,
+  fence_cid : String,
+  external_idempotency_key : String?,
+  started_at : String,
+  limits : LocalPublicationIntentLimits,
+) -> Result[LocalPublicationContracts, LocalPublicationIntentIssue] {
+  let graph = @host.prepared_client_graph(prepared)
   let count = @strategy.graph_result_count(graph)
   if count == 0 {
     return Err(MissingResult)
@@ -77,7 +124,7 @@ pub fn prepare_local_publication_intent(
   }
   let inventory = match
     @publication.prepare_checked_publication_inventory(
-      @host.prepared_client_identity(plan.prepared).program_definition_cid,
+      @host.prepared_client_identity(prepared).program_definition_cid,
       names,
       tasks,
     ) {
@@ -94,10 +141,10 @@ pub fn prepare_local_publication_intent(
   }
   let request = match
     @publication.issue_publication_request(
-      plan.definition,
+      definition,
       definitions,
       namespace_id,
-      @host.client_request_authority_scope_cid(plan.request),
+      @host.client_request_authority_scope_cid(request_identity),
       publication_policy_cid,
       publication_target_cid,
       requested_at,
@@ -111,7 +158,7 @@ pub fn prepare_local_publication_intent(
   let attempt = match
     @publication.issue_publication_attempt(
       request,
-      plan.definition,
+      definition,
       attempt_id,
       fence_cid,
       external_idempotency_key,
@@ -123,7 +170,7 @@ pub fn prepare_local_publication_intent(
     Ok(attempt) => attempt
     Err(issue) => return Err(Contract(issue))
   }
-  Ok({ plan, inventory, definitions, request, attempt, })
+  Ok({ inventory, definitions, request, attempt, })
 }
 
 ///|
@@ -156,38 +203,82 @@ pub fn check_local_publication_preflight(
   }
   let host = invocation.host
   let run = local_compute_run(host)
-  if !local_publication_compute_unstarted(run) {
+  if invocation.origin
+    is (SourceFreeModel(_, _) | WholeSourceModel(_, _, _, _, _)) {
+    // Model evidence follows Model computation. Before issuing a publishing
+    // attempt, the same checked DAG has to own every completed task.
+    let first = @strategy.captured_compute_first_task(run)
+    let end = @strategy.graph_task_count(@strategy.captured_dag_graph(run))
+    if end <= first || @strategy.next_captured_task(run) is Some(_) {
+      return Err(UnavailableSource)
+    }
+    for index in first..<end {
+      if !@strategy.captured_task_completed(run, index) {
+        return Err(UnavailableSource)
+      }
+    }
+  } else if !local_publication_compute_unstarted(run) {
     return Err(ComputeAlreadyStarted)
-  }
-  let count = intent.definitions.length()
-  if retentions.length() != count {
-    return Err(PreflightMismatch)
   }
   let plan = intent.plan
   let computation = @publication.publication_contract_identity(
     @host.client_task_compilation_compiled_plan(plan.compilation),
   )
-  let sources = local_run_invocation_source_cids(invocation)
-  let scope = @publication.publication_contract_identity(plan.definition)
-  let authority = @host.client_request_authority_scope_cid(plan.request)
-  if !@publication.publication_preflight_valid(
+  if !local_publication_preflight_contracts_match(
+      plan.prepared,
+      plan.request,
       plan.admission,
       plan.definition,
       invocation.invocation,
+      computation,
+      local_run_invocation_source_cids(invocation),
+      invocation.data_policy_cid,
       intent.definitions,
       retentions,
-      Array::make(count, computation),
-      Array::makei(count, _ => sources.copy()),
-      Array::make(count, scope),
-      Array::make(count, invocation.data_policy_cid),
-      Array::make(count, authority),
       intent.request,
       intent.attempt,
-      @host.prepared_client_identity(plan.prepared).program_definition_cid,
     ) {
     return Err(PreflightMismatch)
   }
   Ok({ intent, invocation, retentions: retentions.copy(), })
+}
+
+///|
+fn local_publication_preflight_contracts_match(
+  prepared : @host.PreparedClientProgram,
+  request_identity : @host.ClientRequestIdentity,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  computation : String,
+  sources : Array[String],
+  data_policy_cid : String,
+  definitions : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+) -> Bool {
+  let count = definitions.length()
+  if count == 0 || retentions.length() != count {
+    return false
+  }
+  let scope = @publication.publication_contract_identity(definition)
+  let authority = @host.client_request_authority_scope_cid(request_identity)
+  @publication.publication_preflight_valid(
+    admission,
+    definition,
+    invocation,
+    definitions,
+    retentions,
+    Array::make(count, computation),
+    Array::makei(count, _ => sources.copy()),
+    Array::make(count, scope),
+    Array::make(count, data_policy_cid),
+    Array::make(count, authority),
+    request,
+    attempt,
+    @host.prepared_client_identity(prepared).program_definition_cid,
+  )
 }
 
 ///|

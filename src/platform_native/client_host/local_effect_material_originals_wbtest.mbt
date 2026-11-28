@@ -172,7 +172,7 @@ test "Native Host commits original Effect packet and Submission Run together the
   assert_eq(accepted.run_admission.unwrap().revision, record.revision)
   assert_false(record.dispatch_reserved)
   assert_false(record.physical_start_claimed)
-  assert_false(record.cancellation_requested)
+  assert_false(record.cancellation_requested())
   let wire = @host.client_effect_issued_normalization_materials_wire(issued)
   let raw = run_record_body(record).unwrap()
   let revision = record.revision

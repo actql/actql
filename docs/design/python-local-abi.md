@@ -134,6 +134,130 @@ continue to inspect that original update. Generated declarations, the exact
 compiled module and the SDK-bound artifact digest identify the private cohort.
 Client wire and journal formats retain their existing 0.1 contracts.
 
+### Installed Mock Project Check
+
+The Check child uses the original Project declaration, installed checker and
+current Account. Common derives visible Source aliases and checked Mappings
+from that Project. Connecting and checking use the admitted configuration while the mutable
+record-file seed remains closed. The Effect and Source owners admit their
+respective operations separately.
+
+#### Retained Mock preparation and first Run
+
+The Request borrows the exact preparing Submission row, checked environment
+and original Project. Common checks the preparing generation and body again
+inside the writer snapshot before first Run admission. The clock,
+Submission, Run and reference locator share the admission transaction. The
+selected input may add a named index or task material to that transaction. A
+returned ready row is observed separately under the same adopted Store.
+Reusing a name must observe the original intent and Run or refuse before
+issuing another one.
+
+#### Ordinary indexed admission and retained Run reads
+
+The ordinary Preparing transaction updates the original issuance, writes
+the exact Submission, and updates the retained usage row. Issuance and
+usage share a generation and count. The Store checks both originals on
+retained open before acquiring writable SQLite access. A missing or
+incompatible original refuses without rebuilding it from history.
+
+The Ready transaction checks the exact Preparing generation and the
+target Run, then writes the original Run, ready Submission, locator and
+any selected Task material as one atomic group. SQLite enforces Run
+Definition uniqueness during insertion. Only an actual Definition
+constraint followed by confirmed rollback allows a new indexed owner
+read. Core checks that owner's Run identity against the retained
+candidate. An unresolved write or owner read keeps the original for
+read-only reconciliation.
+
+Ordinary retained Run observations read the selected Submission, Run,
+Task material and locator under the current adopted Store. The checked Run
+selects any required cancellation witness. Explicit journal audit remains
+a separate operation. The ordinary physical copy, live resource and
+durable reservation bounds have independent units. A retained database
+quota applies when the installation explicitly selects one.
+
+#### Checked Mock File targets
+
+Each checked target binds its original installed resource, Mapping and
+ordered member. The File update receives the checked operation and exact
+locked predecessor. Common admits the document and projects the checked row
+change. The Python file owner retains the original parent and lock, applies
+one replacement and returns the successor generation and byte identity after
+physical confirmation. Missing confirmation preserves the entered operation
+for read-only reconciliation.
+
+#### Mock Effect start and Source capture
+
+The physical-start child joins the confirmed Run claim and ready Submission
+under the original Read before adopting the funded Plan. Each selected
+Source occurrence has its own bounded capture and transfer. Sealing binds
+those occurrences to the same checked Compute. Stop and close return the
+original task and Source children before retiring their parents.
+
+#### Bounded Mock Compute and Review
+
+Common advances the original Compute and dependency issuance in bounded
+steps under current authority. The Result dependency uses the logical
+preimage of the completed export. Its receipt bounds snapshot construction
+and keeps the original relation and dependency identities live. Target
+observation uses that same Compute and the already admitted Project File.
+Each member preserves its checked Mapping, row selector, expected predecessor
+and checked changes. Preview emission preserves their checked order and
+measures its retained output and scratch separately.
+
+The public Review is the Common projection of the admitted Preview,
+original Checkpoint scope and claims. Its semantic CID is independent of the
+private Preview CID and the full Review wire digest. The adopted Store holds
+the public Review and the private continuation under separate roles. The
+waiting row is visible after the five encrypted holdings have been
+acknowledged and the waiting transaction has been observed.
+
+#### Saved Review, approval and File application
+
+The Saved Review reader joins the same Checkpoint and exact public Review
+holding on the original adopted Store. Resolution rechecks the original Run,
+Checkpoint, scope, current role and held evidence before admitting the
+signed answer. The selected reviewer and Host attestation keys have distinct
+roles. The Host private key is borrowed after the exact finite use is
+confirmed. File application requires an approved answer under those roles.
+
+Approval records a durable resume claim. Each row requires confirmed
+Dispatching before physical replacement, then the exact saved response and
+an Applied transition. Subsequent rows depend on the acknowledged
+predecessor. Publication binds the final Effect evidence and the named
+Results before terminal observation. Saved Result readers reobserve these
+originals and the declared field order from the committed Store and sealed
+payload.
+
+### Portable Model physical custody
+
+Both Python client facades select an installed Local Model deployment through
+`connect(mode="local", model_deployment=...)`. The Local Host binds that
+selection to the admitted Project and its installed runtime.
+
+The current installed Source declaration, Model selection and checked
+request jointly authorize the original Task attempt. The selected Project
+Source streams through its checked extent and returns its own file
+custody. A Model call claim and Call Entry precede the physical request.
+The HTTPX worker owns the original protected credential, selected trust,
+response transfer and physical stop. The first local TLS application write
+uses the same entered attempt and current proof. Core owns response meaning
+and the Raw and settlement identities. Confirmed persistence and physical
+retirement precede terminal projection. A subsequent Saved read uses the
+adopted Store for the completed Result.
+
+### Preserving a retained rollback journal
+
+The Local state directory lease stays held while the exact database and
+rollback journal are inspected. The bounded copy checks the same physical
+generation before and after raw reads. Format admission uses the private
+snapshot before the original is opened for writable SQLite recovery. The
+same retained Local directory and file generation must still be current at
+handoff. A foreign or replaced pair refuses before changing the original.
+The directory lease coordinates supported Local openers. Separate direct
+SQLite connections participate in SQLite file locks only.
+
 ## Instance-private Wasm facade
 
 The physical adapter installs one fresh positive instance nonce. It supplies
@@ -3837,6 +3961,43 @@ modules must match the existing exact generated ABI contract.
 
 ### Saved Run observations and Result reads
 
+An incremental Saved read admits the immutable original material once. Read-only
+payload exports use the exact selected Run's generation and extent as their
+current control. Changed target generations are observed through the same
+point lookup; the operation, settings, deadline and payload generation remain
+current at the transfer and public return boundaries. Small payloads retain the
+single bounded physical chunk whose digest was verified. Larger payloads keep
+the existing bounded reader and final digest checks.
+
+Terminal delivery proposes the receipt, record and head in a three-row CAS
+group and validates those exact rows before COMMIT. A successful physical
+COMMIT advances the same validated Core proposal to its terminal state. The
+separate attempt lookup remains available after an Unknown or later explicit
+lookup. Write-side currentness and the public terminal/cleanup checks still
+run at their original boundaries.
+
+For ordinary submitted Run material, an exact output-length check uses the
+same retained Core projection before the original bytes cross the Host
+boundary. Ready admission writes the retained Task material with the original
+Run and Submission under the same conditional transaction.
+
+The explicit journal audit checks retained membership through its existing
+bounded read. Ordinary SDK admission and Saved lookup use indexed custody,
+including the original issued and retained usage facts and exact selected
+Run and Submission. A missing current original fails closed.
+
+Within the owned ordinary connection, a live Reader may retain its admitted
+physical snapshot facts only for the duration of that Read. The Store checks the
+same operation, physical current and original generation before using those facts.
+
+### Claimed source-free journal continuation
+
+A current SDK Run resolves through its selected Submission, exact Run, retained
+Task material and issued locator. Common checks the original claim and selected
+cancellation facts under the same configuration and physical Read. A changed
+or unavailable original refuses. Currentness, terminal publication and Store
+acknowledgement retain their own checks and lifetimes.
+
 A saved payload response retains its same original Saved-read carrier. After
 its payload, first workspace and clock have actually returned, response close
 retires that carrier through its existing child-first cleanup, including the
@@ -4314,7 +4475,8 @@ and Native input paths keep their existing decoder. The configured planning
 limit bounds both parser phases together for this original Buffer slot. Each
 poll spends from that single allowance. The installed Host's existing outer
 operation fuel also covers all transfers and resumptions in the operation.
-Transport parsing does not debit the Root's cumulative Run planning usage.
+Transport parsing spends the Buffer slot's allowance. The Root accounts for
+Run planning separately.
 
 The Buffer slot retains its working claim and any failed/interrupted cursor
 before those constructors can trap. A started failed parser is not replaced

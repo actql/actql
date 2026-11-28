@@ -488,3 +488,75 @@ test "handed off capacity growth rechecks original identity after one reentrant 
   assert_eq(calls.val, 3)
   finish_handed_off_capacity_growth_fixture(ledger, consumer, producer, child)
 }
+
+///|
+test "whole outcome observes only the exact started task workspace growth" {
+  let ledger = create_ledger({
+    planning_work: 100,
+    attempts: 4,
+    holdings: 4,
+    transfer_bytes: 20L,
+    retained_bytes: 100L,
+    execution_bytes: 100L,
+  }).unwrap()
+  configure_quantities(ledger, {
+    tokens: 10L,
+    cost_units: 10L,
+    duration_ms: 10L,
+  }).unwrap()
+  let origin = original_read_test_origin()
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  let inventory = begin_original_ledger_inventory(ledger, bootstrap, 5, 0, 0).unwrap()
+  let neutral = quantity_neutral_amounts(ledger)
+  let task = reserve_attempt(ledger, 0L, 9L, 11L, quantities=neutral).unwrap()
+  let other = reserve_attempt(ledger, 0L, 9L, 11L, quantities=neutral).unwrap()
+  assert_true(capture_started_task_workspace(ledger, task) is None)
+  consume_reserved_attempt(ledger, task).unwrap()
+  consume_reserved_attempt(ledger, other).unwrap()
+  let workspace = capture_started_task_workspace(ledger, task).unwrap()
+  let wrong = capture_started_task_workspace(ledger, other).unwrap()
+  let descriptor = issue_recorded_original_ledger_descriptor(inventory, origin).unwrap()
+  let claim = fund_original_read(ledger, origin, descriptor, 7L, 5L).unwrap()
+  let consumer = claim_funded_read_preparation(claim, origin, 7L, 5L).unwrap()
+  enter_funded_read_consumer(consumer, origin, 7L, 5L).unwrap()
+  let (_, model) = handoff_funded_read_consumer_capacity(
+    consumer, origin, 3L, 2L,
+  ).unwrap()
+
+  grow_execution_reservation_capacity(ledger, task, 12L, 15L).unwrap()
+  let paid = ledger_usage(ledger)
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+  assert_true(
+    funded_read_consumer_handed_off_origin(
+      consumer,
+      output_workspace=Some(wrong),
+    )
+    is None,
+  )
+  let current = fn() {
+    funded_read_consumer_handed_off_origin(
+      consumer,
+      output_workspace=Some(workspace),
+    )
+  }
+  assert_true(current() is Some(original) && physical_equal(original, origin))
+  assert_eq(ledger_usage(ledger), paid)
+  let started = task.attempt_sequence
+  task.attempt_sequence = started + 1
+  assert_true(current() is None)
+  task.attempt_sequence = started
+  let recorded = descriptor.reservations[0]
+  assert_true(physical_equal(recorded.0, task))
+  descriptor.reservations[0] = ({ ..task, }, recorded.1)
+  assert_true(current() is None)
+  descriptor.reservations[0] = recorded
+  mark_cleanup_pending(ledger, task).unwrap()
+  assert_true(current() is None)
+  settle_reservation(ledger, task).unwrap()
+  assert_true(current() is None)
+  stop_funded_read_consumer(consumer).unwrap()
+  settle_capacity(ledger, model).unwrap()
+  settle_funded_read_consumer(consumer, true).unwrap()
+  settle_reservation(ledger, other).unwrap()
+  finish_original_ledger_inventory(ledger, true).unwrap() |> ignore
+}

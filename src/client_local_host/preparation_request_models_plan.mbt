@@ -151,7 +151,12 @@ fn[I] prepare_request_models_plan_owned(
     }
     _ => return Err(ForeignOriginal)
   }
-  guard owner.phase == ModelPlanReserved &&
+  guard request_model_module_invocation_matches(
+      owner.phase,
+      request,
+      compiled,
+      definition,
+    ) &&
     owner.input is Some(same_input) &&
     physical_equal(same_input, input) &&
     owner.program_capacity is Some(capacity) &&
@@ -240,6 +245,7 @@ fn[I] prepare_request_models_plan_owned(
     @execution.checked_preparation_add_product(old_e, bytes, 1L) is Some(next_e) else {
     return Err(InsufficientCapacity)
   }
+  let plan_phase = owner.phase
   owner.phase = Selecting
   match
     @resources.reserve_working_preparation_phase(
@@ -416,7 +422,10 @@ fn[I] prepare_request_models_plan_owned(
     max_delegations,
   }
   owner.program_model = Some(plan)
-  owner.phase = ModelPlanReserved
+  // The Portable phase still names the exact Run published earlier. VM
+  // funding must observe that original before binding the group; the default
+  // path already entered ModelPlanReserved and keeps its own selection.
+  owner.phase = plan_phase
   Ok(plan)
 }
 
@@ -657,6 +666,31 @@ fn bind_request_multiple_model_read_scopes(
 }
 
 ///|
+/// Fund and bind the complete ordered group on this same VM Request.
+pub fn[P, C, I] prepare_request_portable_models_read_scopes(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledManagedModelPlan,
+  access : @resources.BackedExecutionLiveAccess[P, C, I],
+  quantity_limits : @resources.QuantityAmounts,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  ClientInstalledManagedRunIssue,
+] {
+  guard plan.models is Some(_) else { return Err(ForeignOriginal) }
+  prepare_request_model_read_scopes_owned(
+    owner,
+    input,
+    plan,
+    Some(quantity_limits),
+    bind_request_multiple_model_read_scopes,
+    fund_run=Some(() => {
+      fund_request_portable_model_run(owner, input, plan, access)
+    }),
+  )
+}
+
+///|
 pub fn[I] prepare_request_models_read_scopes(
   owner : ClientRequestPreparation[I],
   input : I,
@@ -691,7 +725,8 @@ pub fn[I] reserve_request_models_plan_projection(
   node_physical? : Bool = false,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   let array_count = if node_physical { 4L } else { 3L }
-  guard owner.phase == ModelPlanReserved &&
+  let phase = owner.phase
+  guard (phase == ModelPlanReserved || phase is PortableModelModuleReady(_)) &&
     owner.input is Some(original) &&
     physical_equal(original, input) &&
     owner.program_capacity is Some(capacity) &&
@@ -754,6 +789,6 @@ pub fn[I] reserve_request_models_plan_projection(
     owner.program_model is None else {
     return Err(ForeignOriginal)
   }
-  owner.phase = ModelPlanReserved
+  owner.phase = phase
   Ok(())
 }

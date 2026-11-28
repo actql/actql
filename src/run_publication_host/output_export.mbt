@@ -182,10 +182,15 @@ fn PublicationOutputExport::retained_effect_result_available(
 /// Bounded second traversal of the already identified immutable Result view.
 /// It exists so a Store can receive bytes only after the exact semantic and
 /// publication bindings are known.
+priv enum PublicationOutputReplayOrigin {
+  Completed(@execution.CompletedOutputExport, (String, Int, Int, Int), Int)
+  Captured(@publication.CapturedSnapshotPayload)
+}
+
+///|
 struct PublicationOutputReplay {
-  stream : @execution.CompletedOutputExport
-  expected : (String, Int, Int, Int)
-  workspace_slots : Int
+  origin : PublicationOutputReplayOrigin
+  mut captured_ended : Bool
   mut finished : Bool
 }
 
@@ -580,7 +585,11 @@ pub fn PublicationOutputExport::replay(
     self.replay_wire,
     self.max_batch_bytes,
   )
-  .map(stream => { stream, expected, workspace_slots, finished: false, })
+  .map(stream => {
+    origin: Completed(stream, expected, workspace_slots),
+    captured_ended: false,
+    finished: false,
+  })
   .map_err(issue => Output(issue))
 }
 
@@ -591,9 +600,24 @@ pub fn PublicationOutputReplay::next(
   if self.finished {
     return Err(InvalidState)
   }
-  @execution.next_completed_output_export(self.stream).map_err(issue => {
-    Output(issue)
-  })
+  match self.origin {
+    Completed(stream, _, _) =>
+      @execution.next_completed_output_export(stream).map_err(issue => {
+        Output(issue)
+      })
+    Captured(stream) => {
+      if self.captured_ended {
+        return Err(InvalidState)
+      }
+      let next = stream
+        .next()
+        .map_err(issue => PublicationOutputExportIssue::Capture(issue))
+      if next is Ok(None) {
+        self.captured_ended = true
+      }
+      next
+    }
+  }
 }
 
 ///|
@@ -610,12 +634,11 @@ pub fn PublicationOutputReplay::advance(
   if self.finished {
     return (None, 0, Some(InvalidState))
   }
-  advance_publication_output_stream(
-    self.stream,
-    quantum,
-    self.workspace_slots,
-    false,
-  )
+  match self.origin {
+    Completed(stream, _, slots) =>
+      advance_publication_output_stream(stream, quantum, slots, false)
+    Captured(_) => (None, 0, Some(InvalidState))
+  }
 }
 
 ///|
@@ -625,9 +648,27 @@ pub fn PublicationOutputReplay::rows_complete(
   if self.finished {
     return Err(InvalidState)
   }
-  @execution.completed_output_export_rows_complete(self.stream).map_err(issue => {
-    Output(issue)
+  match self.origin {
+    Completed(stream, _, _) =>
+      @execution.completed_output_export_rows_complete(stream).map_err(issue => {
+        Output(issue)
+      })
+    Captured(_) => Err(InvalidState)
+  }
+}
+
+///|
+pub fn prepare_captured_snapshot_payload_replay(
+  snapshot : @publication.CapturedResultSnapshot,
+  chunk_bytes : Int,
+) -> Result[PublicationOutputReplay, PublicationOutputExportIssue] {
+  @publication.start_captured_result_snapshot_payload(snapshot, chunk_bytes)
+  .map(stream => {
+    origin: Captured(stream),
+    captured_ended: false,
+    finished: false,
   })
+  .map_err(issue => Capture(issue))
 }
 
 ///|
@@ -637,14 +678,24 @@ pub fn PublicationOutputReplay::finish(
   if self.finished {
     return Err(InvalidState)
   }
-  match @execution.finish_completed_output_export(self.stream) {
+  let (stream, expected) = match self.origin {
+    Completed(stream, expected, _) => (stream, expected)
+    Captured(_) => {
+      if !self.captured_ended {
+        return Err(InvalidState)
+      }
+      self.finished = true
+      return Ok("")
+    }
+  }
+  match @execution.finish_completed_output_export(stream) {
     Ok((receipt, tail)) => {
       self.finished = true
       let actual = @execution.output_stream_identity(
         @execution.completed_export_content(receipt),
       )
       @execution.cancel_completed_export_receipt(receipt)
-      if actual == self.expected {
+      if actual == expected {
         Ok(tail)
       } else {
         Err(Output(@execution.ForeignMaterial))
@@ -657,7 +708,11 @@ pub fn PublicationOutputReplay::finish(
 ///|
 pub fn PublicationOutputReplay::cancel(self : PublicationOutputReplay) -> Unit {
   if !self.finished {
-    @execution.cancel_completed_output_export(self.stream)
+    match self.origin {
+      Completed(stream, _, _) =>
+        @execution.cancel_completed_output_export(stream)
+      Captured(stream) => stream.cancel()
+    }
     self.finished = true
   }
 }
@@ -884,6 +939,142 @@ pub fn PublicationOutputExport::measurement(
 ] {
   guard self.receipt is Some(receipt) else { return Err(InvalidState) }
   Ok(@execution.completed_relation_export_measurement(receipt))
+}
+
+///|
+/// Measure the same three public Result metadata bodies before they allocate.
+/// The original Definition and finished receipt supply the selected Result.
+pub fn PublicationOutputExport::captured_effect_metadata_geometry(
+  self : PublicationOutputExport,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  refs : (String, Array[String], String, String, String),
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  PublicationOutputExportIssue,
+] {
+  if !(self.retained is Some(EffectResult(_, _)) &&
+    self.retained_effect_result_available()) {
+    return Err(InvalidState)
+  }
+  self.result_metadata_geometry(
+    invocation, retention, refs, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Quote the completed managed Result's same closed evidence and Artifact
+/// constructors. Borrow the receipt from this exact captured Run.
+pub fn PublicationOutputExport::captured_managed_metadata_geometry(
+  self : PublicationOutputExport,
+  run : @strategy.CapturedDAG,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  refs : (String, Array[String], String, String, String),
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  PublicationOutputExportIssue,
+] {
+  if !(self.retained is Some(Any(borrow)) &&
+    @strategy.captured_any_result_borrow_available(borrow) &&
+    self.matches_captured_run(run)) {
+    return Err(InvalidState)
+  }
+  self.result_metadata_geometry(
+    invocation, retention, refs, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn PublicationOutputExport::result_metadata_geometry(
+  self : PublicationOutputExport,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  refs : (String, Array[String], String, String, String),
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  Array[(String, @encode.EncodingConstructionGeometry)],
+  PublicationOutputExportIssue,
+] {
+  guard self.definition is Some(definition) && self.receipt is Some(receipt) else {
+    return Err(InvalidState)
+  }
+  let (computation, inputs, scope, policy, authority) = refs
+  @publication.local_result_metadata_construction_geometry(
+    @publication.publication_contract_identity(definition),
+    @publication.publication_contract_identity(invocation),
+    @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(receipt),
+    ),
+    @execution.relation_schema_cid(
+      @execution.completed_relation_export_schema_identity(receipt),
+    ),
+    computation,
+    inputs,
+    scope,
+    policy,
+    @publication.result_export_issuer_id(),
+    authority,
+    @publication.publication_contract_identity(retention),
+    @execution.completed_relation_export_measurement(receipt).row_count,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+  .map(shapes => {
+    [
+      ("derivation_evidence", shapes[0]),
+      ("ordering_evidence", shapes[1]),
+      ("result_artifact", shapes[2]),
+    ]
+  })
+  .map_err(issue => Evidence(issue))
+}
+
+///|
+/// Retained contracts and carriers only. The original Result, Definition,
+/// receipt, field names and stream remain owned by the checked capture and
+/// compilation. The caller funds this depth-bounded walk before entry.
+pub fn PublicationOutputExport::captured_effect_metadata_retained_bytes(
+  self : PublicationOutputExport,
+  nodes : Int,
+  depth : Int,
+) -> Int64? {
+  guard self.retained is Some(EffectResult(_, _)) &&
+    self.evidence is Some(evidence) &&
+    self.artifact is Some(artifact) else {
+    return None
+  }
+  let mut retained = @execution.preparation_representation_cost({
+    record_headers: 10L,
+    reference_slots: 24L,
+    scalar_words: 12L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  for
+    contract in [
+      @publication.result_ordering_derivation_contract(evidence),
+      @publication.result_ordering_evidence_contract(evidence),
+      artifact,
+    ] {
+    guard local_effect_contract_retained_bytes(contract, nodes, depth)
+      is Some(bytes) &&
+      @execution.checked_preparation_add_product(retained, bytes, 1L)
+      is Some(total) else {
+      return None
+    }
+    retained = total
+  }
+  Some(retained)
 }
 
 ///|

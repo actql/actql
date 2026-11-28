@@ -434,6 +434,145 @@ fn derive_effect_preview_row_identities_original(
 }
 
 ///|
+fn authored_effect_preview_row_order(
+  effect : @json.CanonicalValue,
+  changes : @json.FrozenArray[@json.CanonicalValue],
+  rows : Array[String],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[String], EffectPreviewIdentityIssue] {
+  let kind = @json.object_field(effect, "effect_kind")
+  guard kind is Some(@json.String("update")) ||
+    kind is Some(@json.String("upsert")) ||
+    kind is Some(@json.String("delete")) else {
+    return Ok(rows)
+  }
+  let targets = []
+  for index in 0..<rows.length() {
+    let change = @json.array_at(changes, index).unwrap()
+    guard @json.object_field(change, "target_row_identity") is Some(target) else {
+      return Err(InvalidMember)
+    }
+    targets.push(target)
+  }
+  derive_effect_target_canonical_row_inventory(
+    targets,
+    rows.length(),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  ).map(order => order.map(index => rows[index]))
+}
+
+///|
+// The existing bounded builder owns only the new array. The measured children
+// stay immutable and keep the same backing as the admitted template.
+fn authored_effect_preview_array(
+  values : Array[@json.CanonicalValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @json.CanonicalValue raise @encode.EncodeFailure {
+  let material = @json.start_material(max_wire_bytes, max_nodes, max_depth)
+  defer @json.cancel_material(material)
+  @json.material_begin_array(material)
+  for value in values {
+    @json.material_value(material, value)
+    while !@json.advance_material(material) {
+
+    }
+  }
+  @json.material_end_array(material)
+  @json.finish_material(material).0
+}
+
+///|
+// Replace only the fields assigned by the semantic author. Keep the original
+// source enumeration in changes and the separately ordered dispatch inventory.
+fn patch_authored_effect_preview_rows(
+  preview : @json.CanonicalValue,
+  row_cids : Array[Array[String]],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@json.CanonicalValue, EffectPreviewIdentityIssue] {
+  guard @json.object_field(preview, "effects") is Some(@json.Array(effects)) &&
+    @json.array_count(effects) == row_cids.length() else {
+    return Err(InvalidMember)
+  }
+  let members = []
+  try {
+    for index, rows in row_cids {
+      let effect = @json.array_at(effects, index).unwrap()
+      guard @json.object_field(effect, "changes") is Some(@json.Array(changes)) &&
+        @json.array_count(changes) == rows.length() else {
+        return Err(InvalidMember)
+      }
+      let order = match
+        authored_effect_preview_row_order(
+          effect, changes, rows, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let patched = []
+      for row, cid in rows {
+        let change = @json.array_at(changes, row).unwrap()
+        let digest = @json.from_json(
+          Json::string(cid),
+          1,
+          0,
+          71,
+          data_keys=true,
+        )
+        guard @json.object_with_replaced_fields(change, [
+            ("row_idempotency_key", digest),
+            ("row_preview_cid", digest),
+          ])
+          is Some(value) else {
+          return Err(InvalidMember)
+        }
+        patched.push(value)
+      }
+      let changes = authored_effect_preview_array(
+        patched, max_wire_bytes, max_nodes, max_depth,
+      )
+      let ordered = []
+      for cid in order {
+        ordered.push(
+          @json.from_json(Json::string(cid), 1, 0, 71, data_keys=true),
+        )
+      }
+      let order = authored_effect_preview_array(
+        ordered, max_wire_bytes, max_nodes, max_depth,
+      )
+      guard @json.object_with_replaced_fields(effect, [
+          ("changes", changes),
+          ("row_order", order),
+        ])
+        is Some(value) else {
+        return Err(InvalidMember)
+      }
+      members.push(value)
+    }
+    let effects = authored_effect_preview_array(
+      members, max_wire_bytes, max_nodes, max_depth,
+    )
+    guard @json.object_with_replaced_fields(preview, [("effects", effects)])
+      is Some(value) else {
+      return Err(InvalidMember)
+    }
+    // The old intermediate writer imposed the aggregate bounds across the
+    // whole root. Reuse the same measurement on this already canonical tree.
+    ignore(@json.measure_value(value, max_wire_bytes, max_nodes, max_depth))
+    Ok(value)
+  } catch {
+    _ => Err(Encoding)
+  }
+}
+
+///|
 /// Emit the admitted Preview shape with MoonBit-derived row, member and set
 /// identities. A missing key inventory uses distinct row CIDs only as
 /// temporary placeholders; completion replaces them with dispatch keys.
@@ -497,46 +636,21 @@ fn emit_authored_effect_preview(
             } else if member_name == "row_order" && !reuse_row_order {
               // Changes retain source/Plan enumeration. Dispatch order is a
               // separate canonical inventory of the same original rows.
-              let kind = @json.object_field(effect, "effect_kind")
-              let target_order = if kind is Some(@json.String("update")) ||
-                kind is Some(@json.String("upsert")) ||
-                kind is Some(@json.String("delete")) {
-                let targets : Array[String] = []
-                for index in 0..<row_count {
-                  let change = @json.array_at(changes, index).unwrap()
-                  guard @json.object_field(change, "target_row_identity")
-                    is Some(target) else {
-                    return Err(InvalidMember)
-                  }
-                  targets.push(
-                    @json.stringify_value(
-                      target, max_wire_bytes, max_nodes, max_depth,
-                    ),
-                  )
-                }
-                match
-                  derive_effect_target_row_inventory(
-                    targets, row_count, max_wire_bytes, max_nodes, max_depth,
-                  ) {
-                  Ok(order) => Some(order)
-                  Err(issue) => return Err(issue)
-                }
-              } else {
-                None
+              let order = match
+                authored_effect_preview_row_order(
+                  effect,
+                  changes,
+                  rows[member_index],
+                  max_wire_bytes,
+                  max_nodes,
+                  max_depth,
+                ) {
+                Ok(value) => value
+                Err(issue) => return Err(issue)
               }
               @encode.begin_array(writer)
-              match target_order {
-                Some(order) =>
-                  for source_index in order {
-                    @encode.string_value(
-                      writer,
-                      rows[member_index][source_index],
-                    )
-                  }
-                None =>
-                  for row in rows[member_index] {
-                    @encode.string_value(writer, row)
-                  }
+              for cid in order {
+                @encode.string_value(writer, cid)
               }
               @encode.end_array(writer)
             } else if member_name == "changes" {
@@ -592,8 +706,44 @@ pub fn author_effect_preview_semantic_wire(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue] {
+  prepare_authored_effect_preview(
+    template_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(value => (value.wire, value.identity))
+}
+
+///|
+/// The admitted semantic Preview and actual emission extents. The following
+/// dispatch completion owns the same original codec policy.
+struct AuthoredEffectPreview {
+  wire : String
+  bytes : Int
+  nodes : Int
+  depth : Int
+  identity : EffectPreviewIdentity
+  max_wire_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+}
+
+///|
+pub fn authored_effect_preview_usage(
+  value : AuthoredEffectPreview,
+) -> (Int, Int, Int) {
+  (value.bytes, value.nodes, value.depth)
+}
+
+///|
+pub fn prepare_authored_effect_preview(
+  template_wire : String,
+  expected_run_identity_cid : String,
+  expected_authoring_context_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[AuthoredEffectPreview, EffectPreviewIdentityIssue] {
   // Return only the emitted wire across the full final admission boundary.
-  let wire = {
+  let (wire, bytes, nodes, depth) = {
     let template = match
       parse_effect_preview_shape(
         template_wire, max_wire_bytes, max_nodes, max_depth,
@@ -608,32 +758,28 @@ pub fn author_effect_preview_semantic_wire(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    let (preview_cid, member_cids) = {
-      let (draft, _, _, _) = match
-        emit_authored_effect_preview(
-          template,
-          rows,
-          None,
-          None,
-          None,
-          max_wire_bytes,
-          max_nodes,
-          max_depth,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      match
-        derive_effect_preview_identities(
-          draft, max_wire_bytes, max_nodes, max_depth,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
+    let patched = match
+      patch_authored_effect_preview_rows(
+        template, rows, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if !validate_generated_protocol_shape(
+        "effect_preview", patched, true, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      return Err(PreviewShape(InvalidField("effect_preview")))
+    }
+    let (preview_cid, member_cids) = match
+      derive_effect_preview_canonical_identities(
+        patched, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     match
       emit_authored_effect_preview(
-        template,
+        patched,
         rows,
         Some(member_cids),
         Some(preview_cid),
@@ -641,8 +787,9 @@ pub fn author_effect_preview_semantic_wire(
         max_wire_bytes,
         max_nodes,
         max_depth,
+        reuse_row_order=true,
       ) {
-      Ok((wire, _, _, _)) => wire
+      Ok(emission) => emission
       Err(issue) => return Err(issue)
     }
   }
@@ -651,41 +798,19 @@ pub fn author_effect_preview_semantic_wire(
       wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
       max_nodes, max_depth,
     ) {
-    Ok(identity) => Ok((wire, identity))
+    Ok(identity) =>
+      Ok({
+        wire,
+        bytes,
+        nodes,
+        depth,
+        identity,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      })
     Err(issue) => Err(issue)
   }
-}
-
-///|
-/// The already admitted semantic Preview and its original codec scope.
-/// Dispatch completion can borrow it without deriving its identity again.
-struct AuthoredEffectPreview {
-  wire : String
-  identity : EffectPreviewIdentity
-  max_wire_bytes : Int
-  max_nodes : Int
-  max_depth : Int
-}
-
-///|
-pub fn prepare_authored_effect_preview(
-  template_wire : String,
-  expected_run_identity_cid : String,
-  expected_authoring_context_cid : String,
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> Result[AuthoredEffectPreview, EffectPreviewIdentityIssue] {
-  author_effect_preview_semantic_wire(
-    template_wire, expected_run_identity_cid, expected_authoring_context_cid, max_wire_bytes,
-    max_nodes, max_depth,
-  ).map(value => {
-    wire: value.0,
-    identity: value.1,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
-  })
 }
 
 ///|
@@ -1915,4 +2040,61 @@ pub fn effect_preview_ordered_row_correlation_wire(
     Some(rows) => rows.get(ordered_index)
     None => None
   }
+}
+
+///|
+fn derive_effect_preview_canonical_identities(
+  preview : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[(String, Array[String]), EffectPreviewIdentityIssue] {
+  let members = match @json.object_field(preview, "effects") {
+    Some(@json.Array(items)) => @json.array_values(items)
+    _ => return Err(InvalidMember)
+  }
+  let cids = []
+  let seen_effect_ids : Map[String, Bool] = Map([])
+  let seen_effect_identities : Map[String, Bool] = Map([])
+  for index in 0..<members.length() {
+    let effect = members[index]
+    let effect_id = match @json.object_field(effect, "effect_id") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    if seen_effect_ids.contains(effect_id) {
+      return Err(InvalidMember)
+    }
+    seen_effect_ids[effect_id] = true
+    let effect_identity = match
+      @json.object_field(effect, "effect_identity_cid") {
+      Some(@json.String(value)) => value
+      _ => return Err(InvalidMember)
+    }
+    if seen_effect_identities.contains(effect_identity) {
+      return Err(InvalidMember)
+    }
+    seen_effect_identities[effect_identity] = true
+    match
+      effect_member_row_inventory(
+        preview, effect, index, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let cid = match
+      effect_member_semantic_cid(effect, max_wire_bytes, max_nodes, max_depth) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    cids.push(cid)
+  }
+  let cid = match
+    effect_preview_semantic_cid(
+      preview, cids, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok((cid, cids))
 }

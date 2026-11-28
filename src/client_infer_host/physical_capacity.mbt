@@ -134,3 +134,105 @@ pub fn bind_egress_admission(
   active.egress_admission = Some(admission)
   Ok(())
 }
+
+///|
+/// Quote the simultaneous codec and original Model startup backing before
+/// preparing the original Read Scope. The binder checks these same sums.
+pub fn portable_chat_model_startup_capacity(
+  limits : Limits,
+  profile : @environment.ModelResponseProfile,
+  scope? : @relation.ExecutionCapacity? = None,
+) -> @relation.ExecutionCapacity? {
+  let bounds = @environment.model_response_profile_limits(profile)
+  let slots = Int::min(limits.model.max_items, limits.model.ledger.attempts)
+  guard bounds.request_bytes.to_int64() <= limits.model.max_request_bytes &&
+    bounds.response_bytes.to_int64() <= limits.model.max_response_bytes &&
+    @model.model_http_chat_preflight_scope_capacity(
+      profile,
+      bounds.parse_nodes,
+      slots,
+      scope~,
+    )
+    is Some(codec) &&
+    @relation.checked_preparation_add_product(
+      limits.mapping.logical.max_live_value_bytes,
+      @relation.execution_capacity_retained_bytes(codec),
+      1L,
+    )
+    is Some(retained) &&
+    @relation.checked_preparation_add_product(
+      limits.identity.wire.max_bytes.to_int64(),
+      @relation.execution_capacity_execution_bytes(codec),
+      1L,
+    )
+    is Some(execution) else {
+    return None
+  }
+  @relation.execution_capacity(retained, execution)
+}
+
+///|
+/// Bind the installed Portable Chat codec before input advancement. Its
+/// eventual cursor uses the same startup reservation retained by this Model.
+/// The port receives the exact prepared material only at durable Call entry.
+pub fn bind_original_portable_chat_preflight(
+  active : Execution,
+  provider : @model.AdmittedStructuredModelProvider,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  start : @model.ModelHttpChatStart?,
+) -> Result[Unit, Issue] {
+  guard active.original_preparation is Some(original) &&
+    original.read is Claimed(_) &&
+    original.shared_mock &&
+    active.source is Physical(physical) &&
+    active.plan is Some(plan) &&
+    @model.admitted_model_http_chat_provider(
+      provider,
+      @publication_host.client_infer_plan_graph_execution_contract(plan),
+      installation,
+    )
+    is Some(admitted) &&
+    physical_equal(physical, admitted) &&
+    active.quantity_capacity is Some(quantities) else {
+    return Err(Model(@model.RequestIdentity))
+  }
+  guard @model.model_http_chat_installation_profile_matches(
+    provider, profile, installation,
+  ) else {
+    return Err(Model(@model.RequestIdentity))
+  }
+  guard portable_chat_model_startup_capacity(active.limits, profile)
+    is Some(capacity) else {
+    return Err(Model(@model.InvalidLimits))
+  }
+  let retained = @relation.execution_capacity_retained_bytes(capacity)
+  let execution = @relation.execution_capacity_execution_bytes(capacity)
+  // The request/attempt reservations already cover wire and bookkeeping.
+  // Only the excess simultaneous overlap belongs to the startup loan.
+  if retained > original.retained_bytes {
+    return Err(Model(@model.Ledger(@resources.RetentionLimit)))
+  }
+  if execution > original.execution_bytes {
+    return Err(Model(@model.Ledger(@resources.ExecutionLimit)))
+  }
+  let max_frames = @environment.model_response_profile_limits(profile).parse_nodes
+  bind_physical_preflight(active, request => {
+    @model.start_model_http_chat_preflight(
+      provider,
+      request,
+      installation,
+      quantities.per_attempt,
+      max_frames,
+      _ => {
+        guard original.startup is Some(startup) else {
+          return Err(@model.RequestIdentity)
+        }
+        @model.check_original_model_http_chat_preflight_capacity(
+          startup, provider, retained, execution,
+        )
+      },
+      start,
+    )
+  })
+}

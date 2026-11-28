@@ -51,7 +51,7 @@ class ObservationTransferTests(unittest.TestCase):
                         except (ValueError, UnicodeError):
                             return -8
                     return state[name]
-                if name in ('prepare_lookup', 'prepare_observation'):
+                if name in ('prepare_lookup', 'prepare_observation', 'prepare_exact_observation'):
                     self.assertEqual((args[0], args[2], args[3]), (23, 17, 31))
                     packets.append(core._inputs[handles[args[1]]].payload)
                     state['borrow'] = True
@@ -78,8 +78,10 @@ class ObservationTransferTests(unittest.TestCase):
         transfer.reserve()
         reference = transfer.retain_source(self.reference)
         index = transfer.retain_source(self.index)
-        self.assertFalse(any(name == 'seal' for _, name, _ in calls))
-        self.assertIs(core._loans[reference.ticket], reference)
+        self.assertFalse(any(family == 'buffer' for family, _, _ in calls))
+        self.assertIs(reference.payload, self.reference)
+        with self.assertRaises(ValueError):
+            transfer.consume_source(copy.copy(reference), lambda _: None)
         transfer.transfer_lookup_inputs(reference, index)
         self.assertEqual(json.loads(packets[0]), {
             'identity': self.reference.decode(), 'index': self.index.decode()})
@@ -87,7 +89,7 @@ class ObservationTransferTests(unittest.TestCase):
         state['borrow'] = False
         self.assertTrue(transfer.close())
 
-    def test_original_rows_and_envelope_use_in_order_bounded_fill_chunks(self):
+    def test_only_the_original_envelope_uses_in_order_bounded_guest_fill_chunks(self):
         core, _, _, transfer, calls, state, packets = self.bridge(source=40000, packet=50000)
         state['bounded_fill'] = state['require_json_seal'] = True
         raw = b'{"text":"' + b'x' * 17000 + b'"}'
@@ -97,14 +99,15 @@ class ObservationTransferTests(unittest.TestCase):
         transfer.transfer_lookup_inputs(reference, index)
         self.assertEqual(json.loads(packets[0])['index'].encode(), raw)
         fills = [args for _, name, args in calls if name == 'fill']
-        for value in (reference, index, transfer.pending_input):
-            chunks = [(start, count) for handle, start, count in fills if handle == value.handle]
-            offset = 0
-            for start, count in chunks:
-                self.assertEqual(start, offset)
-                self.assertLessEqual(count, 16384)
-                offset += count
-            self.assertEqual(offset, value.length)
+        value = transfer.pending_input
+        self.assertTrue(fills)
+        offset = 0
+        for handle, start, count in fills:
+            self.assertEqual(handle, value.handle)
+            self.assertEqual(start, offset)
+            self.assertLessEqual(count, 16384)
+            offset += count
+        self.assertEqual(offset, value.length)
         state['borrow'] = False
         self.assertTrue(transfer.close())
 
@@ -177,6 +180,18 @@ class ObservationTransferTests(unittest.TestCase):
                 self.assertFalse(any(name in ('finish_commit', 'finish_observation') for _, name, _ in calls))
                 state['borrow'] = False
                 self.assertTrue(transfer.close())
+
+    def test_exact_original_binary_transfer_uses_the_original_bytes_without_generic_seal(self):
+        _, _, _, transfer, calls, state, packets = self.bridge()
+        transfer.reserve()
+        request = transfer.retain_source(self.request)
+        attempt = transfer.retain_source(self.attempt)
+        transfer.transfer_exact_stored_inputs(request, attempt)
+        self.assertEqual(packets, [len(self.request).to_bytes(4, 'little') + self.request + self.attempt])
+        self.assertEqual(calls[-1][1], 'prepare_exact_observation')
+        self.assertFalse(any(name == 'seal' for _, name, _ in calls))
+        state['borrow'] = False
+        self.assertTrue(transfer.close())
 
     def test_bounds_escaping_and_source_type_refuse_before_input_reservation(self):
         for raw, source, packet in ((b'x' * 9, 8, 512), (b'\x00' * 10, 256, 64),

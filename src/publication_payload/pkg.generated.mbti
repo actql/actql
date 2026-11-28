@@ -114,6 +114,8 @@ pub fn publication_payload_record_revision(PublicationPayloadRecord) -> Int
 
 pub fn publication_payload_record_state(PublicationPayloadRecord) -> PublicationPayloadState
 
+pub let publication_payload_record_transport_bytes : Int
+
 pub fn publication_payload_request_attempt(PublicationPayloadRequest) -> String
 
 pub fn publication_payload_request_codec(PublicationPayloadRequest) -> String

@@ -675,6 +675,7 @@ pub(all) enum CapturedPausedDependencyIssue {
   Boundary(CapturedTaskBoundaryIssue)
   InvalidDependency
   InputWorkLimit
+  InputCapacity(@resources.LedgerIssue)
   DependencyUnavailable(RunIssue)
   Cell(@execution.RelationPresenceIssue)
 }
@@ -874,11 +875,8 @@ pub fn captured_paused_next_sample_input(
     generation == pause_generation else {
     return Err(Boundary(StaleBoundary))
   }
-  guard graph_task_unit_index(graph, next) is Some(stage) &&
-    captured_task_target(run, next) is Some(@pipeline.Step(operation)) &&
-    graph_stage_operation_task(graph, stage, operation) == Some(next) &&
-    @checked.unit_pipeline(graph_program(graph), stage) is Some(pipeline) &&
-    @pipeline.step_at(pipeline, operation) is Some(step) &&
+  guard paused_sample_input_coordinate(run, next)
+    is Some((stage, operation, step)) &&
     @pipeline.input_occurrence_at(step, input) is Some(occurrence) else {
     return Err(InvalidDependency)
   }
@@ -908,6 +906,174 @@ pub fn captured_paused_next_sample_input(
 }
 
 ///|
+fn paused_sample_input_coordinate(
+  run : CapturedDAG,
+  next : Int,
+) -> (Int, Int, @pipeline.CheckedStep)? {
+  let graph = run.graph
+  guard graph_task_unit_index(graph, next) is Some(stage) &&
+    captured_task_target(run, next) is Some(@pipeline.Step(operation)) &&
+    graph_stage_operation_task(graph, stage, operation) == Some(next) &&
+    @checked.unit_pipeline(graph_program(graph), stage) is Some(pipeline) &&
+    @pipeline.step_at(pipeline, operation) is Some(step) else {
+    return None
+  }
+  Some((stage, operation, step))
+}
+
+///|
+fn index_paused_sample_input(
+  index : Map[Int, @graph.DataEdge?],
+  ordinal : Int,
+  edge : @graph.DataEdge,
+) -> Unit {
+  // Preserve the existing single-port refusal for two matching edges.
+  index.set(ordinal, if index.contains(ordinal) { None } else { Some(edge) })
+}
+
+///|
+/// Visit the original sampled dependencies of the same scheduler pause.
+/// Only checked structure and committed occurrence scalars can leave this
+/// visit. The caller owns any copies retained after returning.
+pub fn visit_captured_paused_next_sample_inputs(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+  revision : Int,
+  pause_generation : Int,
+  max_work : Int,
+  visit : (Int, @graph.DataEdge, Int, Int, Int) -> Unit,
+) -> Result[Unit, CapturedPausedDependencyIssue] {
+  let current = () => {
+    revision >= 2 &&
+    pause_generation > 0 &&
+    captured_task_control_state(run, hooks) is Ok((observed, Paused)) &&
+    observed == revision &&
+    run.generation == pause_generation
+  }
+  if !current() {
+    return Err(Boundary(StaleBoundary))
+  }
+  let graph = run.graph
+  let tasks = graph_task_count(graph).to_int64()
+  let data = graph_data_count(graph).to_int64()
+  let control = graph_control_count(graph).to_int64()
+  let budget = max_work.to_int64()
+  // Charge before running the scheduler's bounded readiness scan and the
+  // fixed coordinate check. The edge index and port walk are charged below.
+  if tasks <= 0 || budget < tasks || data + control + 2L > budget / tasks {
+    return Err(InputWorkLimit)
+  }
+  let scheduler = tasks * (data + control + 2L)
+  if @resources.charge_planning(run.ledger, scheduler.to_int()) is Err(_) {
+    return Err(InputWorkLimit)
+  }
+  guard captured_task_control_paused_task(run, hooks)
+    is Ok((observed, _, Some(next), generation)) &&
+    observed == revision &&
+    generation == pause_generation else {
+    return Err(Boundary(StaleBoundary))
+  }
+  guard paused_sample_input_coordinate(run, next)
+    is Some((stage, operation, step)) else {
+    return Err(InvalidDependency)
+  }
+  let count = @pipeline.input_occurrence_count(step)
+  let index_work = 4L * data + 6L * count.to_int64()
+  if index_work > budget - scheduler ||
+    @resources.charge_planning(run.ledger, index_work.to_int()) is Err(_) {
+    return Err(InputWorkLimit)
+  }
+  // Both associative tables borrow checked edges. Each edge occupies at
+  // most one entry, including spare buckets and resizing scratch.
+  let bytes = 512L + 256L * data
+  let scratch = match @resources.reserve_capacity(run.ledger, 0L, bytes) {
+    Err(issue) => return Err(InputCapacity(issue))
+    Ok(value) => value
+  }
+  let result = visit_indexed_paused_sample_inputs(
+    run, next, stage, operation, step, count, current, visit,
+  )
+  match @resources.settle_capacity(run.ledger, scratch) {
+    Err(issue) => Err(InputCapacity(issue))
+    Ok(_) => result
+  }
+}
+
+///|
+fn visit_indexed_paused_sample_inputs(
+  run : CapturedDAG,
+  next : Int,
+  stage : Int,
+  operation : Int,
+  step : @pipeline.CheckedStep,
+  count : Int,
+  current : () -> Bool,
+  visit : (Int, @graph.DataEdge, Int, Int, Int) -> Unit,
+) -> Result[Unit, CapturedPausedDependencyIssue] {
+  if !current() {
+    return Err(Boundary(StaleBoundary))
+  }
+  let operation_inputs : Map[Int, @graph.DataEdge?] = Map([])
+  let stage_inputs : Map[Int, @graph.DataEdge?] = Map([])
+  let graph = run.graph
+  for edge in graph.data_iter() {
+    if edge.consumer != next {
+      continue
+    }
+    match edge.operation_input {
+      Some((op, ordinal)) =>
+        if op == operation &&
+          @pipeline.input_occurrence_at(step, ordinal) is Some(original) &&
+          paused_sample_input_matches(
+            graph,
+            edge,
+            stage,
+            operation,
+            ordinal,
+            original.target,
+          ) {
+          index_paused_sample_input(operation_inputs, ordinal, edge)
+        }
+      None =>
+        if edge.source_input is Some(source) && edge.input == source {
+          index_paused_sample_input(stage_inputs, source, edge)
+        }
+    }
+  }
+  for input in 0..<count {
+    if !current() {
+      return Err(Boundary(StaleBoundary))
+    }
+    guard @pipeline.input_occurrence_at(step, input) is Some(original) else {
+      return Err(InvalidDependency)
+    }
+    let direct = operation_inputs.get(input)
+    let fallback = match original.target {
+      @pipeline.Input(source) => stage_inputs.get(source)
+      @pipeline.Step(_) => None
+    }
+    let selected = match (direct, fallback) {
+      (Some(Some(edge)), None) | (None, Some(Some(edge))) => edge
+      _ => continue
+    }
+    if !task_done(run, selected.producer) {
+      continue
+    }
+    if paused_dependency_target(graph, selected).bind(edge => {
+        paused_sample_dependency_commit(run, edge)
+      })
+      is Ok((edge, start, generation, attempt)) {
+      visit(input, edge, start, generation, attempt)
+    }
+  }
+  if current() {
+    Ok(())
+  } else {
+    Err(Boundary(StaleBoundary))
+  }
+}
+
+///|
 fn paused_sample_input_matches(
   graph : CheckedDAG,
   edge : @graph.DataEdge,
@@ -918,11 +1084,11 @@ fn paused_sample_input_matches(
 ) -> Bool {
   let operation_input = edge.operation_input == Some((operation, input))
   match target {
-    @pipeline.Step(_) =>
+    @pipeline.Step(producer) =>
       operation_input &&
       edge.source_input is None &&
       edge.target == target &&
-      graph_task_unit_index(graph, edge.producer) == Some(stage)
+      graph_stage_operation_task(graph, stage, producer) == Some(edge.producer)
     @pipeline.Input(source) =>
       edge.source_input == Some(source) &&
       (

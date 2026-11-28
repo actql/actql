@@ -6,34 +6,52 @@ fn prepare_publication_commit_owner(
   borrow : @buffers.BufferBorrow,
 ) -> Result[
   (@publication.PublicationContract, @publication.PublicationCommitPreparation),
-  Unit,
+  Int,
 ] {
   guard input_cursor(value, borrow.slot) is Some(cursor) &&
     @decode.closed_object(cursor, ["bindings", "committed_at"]) is Ok(object) &&
     @decode.required(object, "bindings") is Ok(bindings_cursor) &&
     @decode.elements(bindings_cursor) is Ok(binding_values) &&
-    binding_values.length() == record.publications.length() &&
+    binding_values.length() == publication_result_count(record) &&
     required_text(object, "committed_at") is Some(committed_at) &&
-    record.manifest is Some(manifest) &&
     record.receipt is Some(receipt) &&
-    record.captured is Some(captured) &&
+    record.captured is Some(captured) else {
+    return Err(-32)
+  }
+  if record.file is Some(file) {
+    return prepare_sdk_file_commit_candidate(
+      value, record, file, receipt, captured, binding_values, committed_at, account,
+    )
+  }
+  if record.saved_effect is Some(effect) {
+    return prepare_saved_effect_commit(
+      value, record, effect, account, binding_values, committed_at,
+    )
+  }
+  guard record.manifest is Some(manifest) &&
     value.publication_preflights.get(record.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) &&
+    is Some(
+      {
+        closing: false,
+        origin: ComputePublicationPreflight({ prepared: Some(preflight), .. }),
+        ..
+      }
+    ) &&
     value.run_invocations.get(record.source) is Some({ compute, .. }) &&
     value.computes.get(compute) is Some(original_compute) &&
     stored_compute_original_run(value, original_compute)
     is Some({ normalization: Some(normalization), .. }) else {
-    return Err(())
+    return Err(-32)
   }
   let bindings : Array[@publication.PublicationContract] = []
   for cursor in binding_values {
-    guard @decode.text(cursor) is Ok(wire) else { return Err(()) }
+    guard @decode.text(cursor) is Ok(wire) else { return Err(-32) }
     match
       @publication.admit_publication_contract(
         "durable_result_binding", wire, 1048576, 100000, 64,
       ) {
       Ok(binding) => bindings.push(binding)
-      Err(_) => return Err(())
+      Err(_) => return Err(-32)
     }
   }
   @local_run.prepare_local_preflight_commit_candidate(
@@ -52,7 +70,7 @@ fn prepare_publication_commit_owner(
       max_depth: 64,
     },
     record.max_workspace,
-  ).map_err(_ => ())
+  ).map_err(_ => -32)
 }
 
 ///|
@@ -118,9 +136,9 @@ pub fn prepare_publication_commit(
       record.commit = Some(commit)
       0
     }
-    Err(_) => {
+    Err(code) => {
       record.commit_failed = true
-      -32
+      code
     }
   }
 }
@@ -231,25 +249,37 @@ pub fn finish_publication_commit(
   if record.pending || record.commit_failed {
     return -33
   }
-  if record.commit_finished {
-    return 0
-  }
-  guard record.commit is Some(commit) &&
-    record.commit_progress is Some((true, _)) else {
-    return -7
-  }
-  record.pending = true
-  let result = commit.finish_view()
-  record.pending = false
-  match result {
-    Ok(view) => {
-      record.commit_finished = true
-      record.commit_view = Some(view)
-      0
+  if !record.commit_finished {
+    guard record.commit is Some(commit) &&
+      record.commit_progress is Some((true, _)) else {
+      return -7
     }
-    Err(_) => {
-      record.commit_failed = true
-      -32
+    record.pending = true
+    let result = commit.finish_view()
+    record.pending = false
+    match result {
+      Ok(view) => {
+        record.commit_finished = true
+        record.commit_view = Some(view)
+      }
+      Err(_) => {
+        record.commit_failed = true
+        return -32
+      }
     }
   }
+  // The original Model commit view retains admitted contracts. Once it owns
+  // them, the serialized constructor input has no remaining reader.
+  if record.file is None &&
+    record.saved_effect is None &&
+    value.run_invocations.get(record.source)
+    is Some({ model_issuance: Some(_), .. }) &&
+    record.commit_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.commit_borrow = None
+  }
+  0
 }

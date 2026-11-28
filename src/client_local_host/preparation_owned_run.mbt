@@ -392,8 +392,9 @@ fn[P] preparation_owned_run_limits_fit(
 fn[P] retire_preparation_owned_installed_run(
   value : ClientInstalledManagedRun,
   original : ClientManagedPreparationRetirement[P],
-) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  guard value.ledger is Some(ledger) else { return Ok(()) }
+  capture_ledger : Bool,
+) -> Result[String?, ClientInstalledManagedRunIssue] {
+  guard value.ledger is Some(ledger) else { return Ok(None) }
   if value.preparation is Some(_) &&
     !@resources.prepared_run_usage_isolated(original.admission, ledger) {
     return Err(CleanupPending)
@@ -463,9 +464,16 @@ fn[P] retire_preparation_owned_installed_run(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
+  let wire = if capture_ledger {
+    @resources.stopped_prepared_run_ledger_state(original.admission, ledger)
+    .bind(@resources.encode_ledger_continuation_state)
+    .to_option()
+  } else {
+    None
+  }
   value.ledger = None
   value.preparation_retirement = None
-  Ok(())
+  Ok(wire)
 }
 
 ///|

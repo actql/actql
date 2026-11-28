@@ -107,3 +107,56 @@ fn request_authoring_collection_extents(
   }
   Some((r, e))
 }
+
+///|
+/// Whole File publication uses the same annotation collection and final
+/// sealer layouts on its existing capture reservation.
+pub fn issue_funded_capture_authoring_context(
+  owner : @publication_host.PreparedClientProgram,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  fund : (Int64, Int64) -> Bool,
+) -> Result[
+  @publication.RunEvidenceValue,
+  @publication_host.ClientAuthoringContextIssue,
+]? {
+  let control = request_authoring_control_bytes()
+  if !fund(0L, control) {
+    return None
+  }
+  let (geometry, _) = @publication_host.observe_client_authoring_collection_geometry(
+    owner,
+    max_bytes.to_int64(),
+  )
+  let geometry = match geometry {
+    Ok(value) => value
+    Err(issue) => return Some(Err(issue))
+  }
+  guard request_authoring_collection_extents(geometry) is Some((_, collection)) &&
+    @execution.checked_preparation_add_product(control, collection, 1L)
+    is Some(peak) &&
+    fund(0L, peak) else {
+    return None
+  }
+  let preparation = match
+    @publication_host.prepare_client_authoring_context(
+      owner, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Some(Err(issue))
+  }
+  let measured = match
+    @publication_host.measure_prepared_client_authoring_context(preparation) {
+    Ok(value) => value
+    Err(issue) => return Some(Err(issue))
+  }
+  guard request_evidence_publication_extents(measured.complete)
+    is Some((retained, scratch)) &&
+    @execution.checked_preparation_add_product(peak, scratch, 1L)
+    is Some(execution) &&
+    fund(retained, execution) else {
+    return None
+  }
+  Some(@publication_host.finish_prepared_client_authoring_context(preparation))
+}

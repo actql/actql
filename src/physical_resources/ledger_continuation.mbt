@@ -101,6 +101,15 @@ pub fn capture_quiescent_ledger_state(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
+  quiescent_ledger_data(ledger)
+}
+
+///|
+// The selected caller either holds current mutability or proves exact
+// acknowledged retirement. This projection never invokes an external port.
+fn quiescent_ledger_data(
+  ledger : Ledger,
+) -> Result[LedgerContinuationState, LedgerContinuationIssue] {
   if !continuation_quiescent(ledger) {
     return Err(PendingOriginal)
   }
@@ -224,6 +233,16 @@ pub fn restore_quiescent_ledger_state(
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
+  restore_quiescent_ledger_state_current(ledger, saved)
+}
+
+///|
+// For a caller that just observed original mutation/currentness and has not
+// crossed a callback since. The same one-use pristine proof still applies.
+fn restore_quiescent_ledger_state_current(
+  ledger : Ledger,
+  saved : LedgerContinuationState,
+) -> Result[Unit, LedgerContinuationIssue] {
   if ledger.continuation_restored {
     return Err(AlreadyRestored)
   }
@@ -257,4 +276,31 @@ pub fn restore_quiescent_ledger_state(
   ledger.quantity_limits = state.quantity_limits
   ledger.quantity_usage = state.quantities
   Ok(())
+}
+
+///|
+/// Internal restoration fence. A freshly allocated Ledger with the same
+/// limits is not an original continuation, even before its first attempt.
+pub fn restored_ledger_attempts(ledger : Ledger) -> Int? {
+  if ledger.continuation_restored {
+    Some(ledger.usage.attempts)
+  } else {
+    None
+  }
+}
+
+///|
+/// Fixed private wire for an already funded retirement or admission scope.
+pub fn encode_ledger_continuation_state(
+  saved : LedgerContinuationState,
+) -> Result[String, LedgerContinuationIssue] {
+  try {
+    let writer = @encode.writer(2048, 64, 8)
+    match write_ledger_continuation_state(saved, writer) {
+      Err(issue) => Err(issue)
+      Ok(_) => Ok(@encode.finish(writer))
+    }
+  } catch {
+    _ => Err(Encoding)
+  }
 }

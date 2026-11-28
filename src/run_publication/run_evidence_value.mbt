@@ -145,6 +145,7 @@ fn seal_run_evidence_value_with_identity(
       max_depth,
       data_keys=generated_interactive_protocol_schema(name) ||
         name == "review_projection" ||
+        name == "model_capture_bundle" ||
         name == "model_journal_entry" ||
         name == "model_journal_settlement",
     ) {
@@ -276,6 +277,7 @@ pub fn admit_run_evidence_value(
       max_depth,
       data_keys=generated_interactive_protocol_schema(name) ||
         name == "review_projection" ||
+        name == "model_capture_bundle" ||
         name == "model_journal_entry" ||
         name == "model_journal_settlement",
     ) {

@@ -934,3 +934,100 @@ pub fn check_client_effect_unit_artifact_export(
   }
   Ok(())
 }
+
+///|
+/// Read the dependency Definition from the completed Effect export that
+/// issued this Artifact. Only its original live inputs and receipt may supply
+/// these preimages to the dependency inventory.
+pub fn client_effect_dependency_result_definition(
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  artifact : ClientEffectLocalResultArtifact,
+  exported : @strategy.CapturedEffectLocalResultExport,
+  receipt : @execution.CompletedRelationExportReceipt,
+) -> Result[
+  ClientEffectLocalResultDefinition,
+  ClientEffectLocalResultArtifactIssue,
+] {
+  guard artifact.custody is EffectInputs(original) &&
+    physical_equal(original, inputs) &&
+    physical_equal(artifact.invocation.owner, owner) &&
+    artifact.run_invocation is Some(_) &&
+    physical_equal(artifact.export_receipt, receipt) &&
+    @strategy.captured_effect_local_result_export_matches_receipt(
+      inputs, exported, receipt,
+    ) &&
+    artifact.source is ResultSource(_, definition) else {
+    return Err(ForeignExport)
+  }
+  Ok(definition)
+}
+
+///|
+/// Observe the construction bounds from exactly this member's original
+/// metadata and contracts. The synchronous quote scans the three private
+/// wires without allocating their trees. The caller funds the preflight.
+pub fn client_effect_local_source_evidence_geometry(
+  manifest : ClientEffectLocalManifest,
+  artifact : ClientEffectLocalResultArtifact,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (Int, Int, Int)? {
+  let definition = match artifact.source {
+    ResultSource(_, definition) => definition.wire
+    TableSource(_, definition) => definition.wire
+  }
+  let invocation = artifact.invocation
+  if !physical_equal(manifest.invocation, invocation) ||
+    !manifest.artifacts.any(selected => physical_equal(selected, artifact)) {
+    return None
+  }
+  // Seven ASCII keys, one root and their punctuation. The backing bound
+  // includes each input body once even when its value remains borrowed.
+  let mut bytes = 96L
+  let mut nodes = 1L
+  let mut depth = 0
+  let limits : @source.ParseLimits = {
+    max_input_bytes: max_bytes,
+    max_nodes,
+    max_depth,
+  }
+  for wire in [definition, invocation.wire, manifest.wire] {
+    guard wire.length() < 2147483647 &&
+      @source.start_json_source_preflight(wire, limits) is Ok(preflight) else {
+      return None
+    }
+    let observed = @source.advance_json_source_preflight(
+      preflight,
+      wire.length() + 1,
+    )
+    @source.cancel_json_source_preflight(preflight)
+    guard observed is Ok(JsonSourceReady(shape, ..)) else { return None }
+    bytes += shape.input_bytes.to_int64()
+    nodes += shape.node_upper.to_int64()
+    depth = Int::max(depth, shape.depth_upper)
+  }
+  for
+    contract in [
+      artifact.artifact,
+      @publication.result_ordering_derivation_contract(artifact.evidence),
+      @publication.result_ordering_evidence_contract(artifact.evidence),
+      artifact.retention,
+    ] {
+    guard @publication.publication_contract_wire_usage(contract)
+      is Some((b, n, d)) else {
+      return None
+    }
+    bytes += b.to_int64()
+    nodes += n.to_int64()
+    depth = Int::max(depth, d)
+  }
+  Some(
+    (
+      Int64::min(bytes, max_bytes.to_int64()).to_int(),
+      Int64::min(nodes, max_nodes.to_int64()).to_int(),
+      Int64::min(depth.to_int64() + 1L, max_depth.to_int64()).to_int(),
+    ),
+  )
+}

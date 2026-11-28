@@ -11,7 +11,9 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -19,6 +21,7 @@ import urllib.error
 import urllib.request
 import zipfile
 
+from python_model_installed_case import accept_installed_portable_model
 from python_release_cohort import select_release_version, verify_built_cohort
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +32,7 @@ LINUX_DUCKDB_URL = 'https://github.com/duckdb/duckdb/releases/download/v1.4.3/li
 LINUX_DUCKDB_SHA256 = '3c7bb8d586d39ccce56442c3f6bafa97f53d7b6bb5405dac827442fcb31494aa'
 LINUX_DUCKDB_BYTES = 36042490
 BUILD_REQUIREMENTS = ('build==1.3.0', 'setuptools==80.10.2', 'wheel==0.45.1',
-                      'wasmtime==38.0.0', 'httpx==0.28.1', 'rfc8785==0.1.4')
+                      'wasmtime==51.0.0', 'httpx==0.28.1', 'rfc8785==0.1.4')
 
 
 def consumer_environment(venv: Path, home: Path) -> dict[str, str]:
@@ -129,17 +132,28 @@ def accept_submission_observation(run, python: Path, module: Path, receipt: Path
 
 
 def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
-                            destination: Path) -> dict:
+                            destination: Path, *, platform_artifact: Path) -> dict:
     """Reuse this producer's Core for the existing public lifecycle boundary.
 
-    Each control owns fresh SQLite state. These source SDK/raw ABI checks do
-    not replace the later normal wheel install or promote physical ACK scope.
+    Each control owns fresh SQLite state. Succeeded delivery uses the same
+    selected image as the ordinary runtime. Installed wheels are checked later.
     """
     original = json.loads(receipt.read_text())
+    artifact_bytes = _read_runtime_evidence(platform_artifact, 'artifact.json', 65536)
+    artifact = json.loads(artifact_bytes, object_pairs_hook=_unique_runtime_receipt_pairs)
+    image = artifact['compiled_image']
+    image_digest = image['sha256']
+    if (artifact['source_sha'] != original['source_sha']
+            or artifact['module']['sha256'] != original['module_sha256']
+            or image['runtime_allocation'] != 'platform'
+            or type(image_digest) is not str or re.fullmatch('[0-9a-f]{64}', image_digest) is None):
+        raise ValueError('Public lifecycle requires the original platform image')
     def unchanged():
         if (Path(original['module']).resolve() != module.resolve()
                 or original['module_sha256'] != hashlib.sha256(module.read_bytes()).hexdigest()):
             raise ValueError('Public lifecycle requires the original Core module')
+        if _read_runtime_evidence(platform_artifact, 'artifact.json', 65536) != artifact_bytes:
+            raise ValueError('Public lifecycle original platform image selection changed')
     unchanged()
     cases = []
     controls = (
@@ -165,15 +179,22 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
                 destination / (name + '-state')]
         if selection is not None:
             args.append(selection)
+        succeeded = fixture == 'python-local-public-success-abi.py'
+        if succeeded:
+            args.extend(('--platform-artifact', platform_artifact))
         observed = json.loads(run(name, args, timeout=timeout))
         unchanged()
         if (observed.get('success') is not True or type(observed.get('actualCases')) is not int
                 or observed['actualCases'] != 1 or observed.get('case') != expected
                 or observed.get('module_sha256') != original['module_sha256']):
             raise ValueError('Incomplete original public lifecycle component')
-        if (fixture == 'python-local-public-success-abi.py'
-                and observed.get('atomic_precommit_writer_exclusion') is not True):
-            raise ValueError('Incomplete original atomic publication component')
+        if succeeded:
+            if observed.get('atomic_precommit_writer_exclusion') is not True:
+                raise ValueError('Incomplete original atomic publication component')
+            if (observed.get('image_sha256') != image_digest
+                    or observed.get('first_core_closed') is not True
+                    or observed.get('saved_first_core_closed') is not True):
+                raise ValueError('Incomplete original platform image and Saved close observation')
         if (selection == 'commit-unknown'
                 and observed.get('commit_reply_loss_readback_without_reexecution') is not True):
             raise ValueError('Incomplete original publication recovery component')
@@ -191,7 +212,8 @@ def accept_public_lifecycle(run, python: Path, module: Path, receipt: Path,
                 raise ValueError('Incomplete original task-drive component')
         cases.append(observed)
     result = {'source_sha': original['source_sha'], 'module_sha256': original['module_sha256'],
-              'cases': cases, 'qualification': 'actual source SDK/raw ABI/SQLite components only',
+              'image_sha256': image_digest, 'cases': cases,
+              'qualification': 'source SDK/SQLite lifecycle and selected platform image components',
               'normal_image_acceptance': False, 'installed_wheel_acceptance': False}
     with (destination / 'public-lifecycle.json').open('x') as output:
         json.dump(result, output, indent=2)
@@ -310,6 +332,34 @@ def accept_installed_repeated_host(run, consumer: Path, destination: Path, env: 
             'original_first_closes_returned': True}
 
 
+def accept_installed_ordered_python(run, consumer: Path, destination: Path,
+                                    target_platform: str, env: dict[str, str]) -> dict:
+    """Execute the original thirteen inputs and separate Saved with the existing installed interpreter."""
+    node = shutil.which('node')
+    if node is None or not Path(node).is_absolute():
+        raise ValueError('Missing selected Node controller for original Python compatibility')
+    work = destination / 'ordinary-python-ordered'
+    work.mkdir(mode=0o700)
+    raw = run('installed-ordinary-python-ordered', [
+        node, ROOT / 'scripts/ordinary-python-ordered-parity.mjs', consumer, work, target_platform,
+    ], cwd=work, env=env, timeout=900)
+    records = [json.loads(line) for line in raw.splitlines()]
+    if (len(records) != 3 or any(type(item) is not dict for item in records)
+            or [item.get('phase') for item in records] != ['ordered', 'saved', 'accepted']):
+        raise ValueError('Incomplete original Python compatibility evidence')
+    ordered, saved, accepted = records
+    children = [item.get('command') for item in (ordered, saved)]
+    pids = [accepted.get('orderedPid'), accepted.get('savedPid')]
+    if (accepted.get('platform') != target_platform or accepted.get('runs') != 13
+            or any(type(pid) is not int or pid <= 0 for pid in pids) or pids[0] == pids[1]
+            or any(type(child) is not dict or child.get('command') != str(consumer)
+                   or child.get('pid') != pid or child.get('code') != 0
+                   or child.get('closeObservationAcknowledged') is not True
+                   for child, pid in zip(children, pids, strict=True))):
+        raise ValueError('Foreign original Python compatibility evidence')
+    return accepted
+
+
 def accept_installed_fuel(run, consumer: Path, destination: Path,
                           source: str, cohort, env: dict[str, str]) -> None:
     """One changed-default regression and one deliberate fail-closed operation.
@@ -403,8 +453,12 @@ def accept_installed_saved(run, consumer: Path, destination: Path,
             or type(injection.get('actualCurrentResult')) is not int
             or injection['actualCurrentResult'] != injection['operation']):
         raise ValueError('Missing one actual Saved fuel injection under current')
+    trap_code = stopped.get('originalTrapCode')
+    out_of_fuel_code = stopped.get('outOfFuelTrapCode')
     if (stopped.get('passed') is not True or stopped.get('cases') != 1
-            or stopped.get('originalTrapCode') != 12 or stopped.get('firstClose') is not True
+            or type(trap_code) is not int or not 0 < trap_code <= 255
+            or type(out_of_fuel_code) is not int or trap_code != out_of_fuel_code
+            or stopped.get('firstClose') is not True
             or stopped.get('normalFenced') is not True or stopped.get('sameStore') is not True
             or stopped.get('newSubmission') is not False or stopped.get('installedSourceOverlay') is not False):
         raise ValueError('Incomplete same-original Saved fuel stop and first close')
@@ -416,20 +470,6 @@ def accept_installed_saved(run, consumer: Path, destination: Path,
     return {**identity, 'continuation_pid': continued['pid'], 'fuel_warm_pid': warm['pid'],
             'fuel_stop_pid': stopped['pid'], 'fuel_recovery_pid': recovery['pid'],
             'original_first_closes_returned': True}
-
-
-def require_closed_task_drive(observed) -> None:
-    """Require the existing installed initial case's same-Core call witness."""
-    witness = observed.get('closed_task_drive') if type(observed) is dict else None
-    counts = ('drive_calls', 'drive_returns', 'wasm_entries', 'wasm_returns', 'retained_holder_checks')
-    flags = ('actual_closed_task_drive', 'methods_unchanged', 'profilers_restored')
-    absent = ('per_drive_fuel_observed', 'hash_count_observed')
-    if (type(witness) is not dict or set(witness) != set(counts + flags + absent)
-            or any(witness.get(key) is not True for key in flags)
-            or any(witness.get(key) is not False for key in absent)
-            or any(type(witness.get(key)) is not int or not 0 < witness[key] <= 1024 for key in counts)
-            or len({witness[key] for key in counts}) != 1):
-        raise ValueError('Incomplete installed closed task drive control')
 
 
 def accept_installed_numeric_reductions(run, consumer: Path, destination: Path,
@@ -456,47 +496,229 @@ def accept_installed_numeric_reductions(run, consumer: Path, destination: Path,
         previous_pid = pid
 
 
+def accept_installed_csv_projects(run, consumer: Path, destination: Path, cohort: Path,
+                                  source: str, env: dict[str, str]) -> dict:
+    fixtures = ROOT / 'scripts/fixtures'
+    work = destination / 'csv-projects'
+    work.mkdir()
+    for filename in ('python-product-csv-installed.py', 'python_csv_publication.py', 'python-csv-project-cases.json'):
+        shutil.copyfile(fixtures / filename, work / filename)
+    cases = json.loads((work / 'python-csv-project-cases.json').read_bytes())['cases']
+    receipts = []
+    for facade in ('sync', 'async'):
+        for case in cases:
+            selections = tuple(command['file'] for command in case['sql']) or (None,)
+            for command in selections:
+                branch = work / facade / case['id'] / (command or 'invalid')
+                project = branch / 'project'
+                project.mkdir(parents=True)
+                for file, value in case['files'].items():
+                    path = project / file
+                    path.parent.mkdir(exist_ok=True, parents=True)
+                    path.write_bytes(value['wire'].encode('utf-8'))
+                prefix = [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+                          work / 'python-product-csv-installed.py', '--case', case['id'],
+                          '--facade', facade, '--source', source, '--cohort', cohort / 'cohort.json']
+                phases = ('refuse',) if command is None else ('initial', 'saved')
+                if command is not None:
+                    prefix.extend(('--command', command))
+                original = branch / 'initial.json'
+                for phase in phases:
+                    arguments = [*prefix, '--phase', phase]
+                    if phase == 'saved':
+                        arguments.extend(('--prior', original))
+                    name = '-'.join(('installed-csv', facade, case['id'], command or 'invalid', phase))
+                    observed = json.loads(run(name, arguments, cwd=project, env=env, timeout=180))
+                    if (type(observed['pid']) is not int or observed['pid'] <= 0
+                            or not observed['first_close'] or observed['phase'] != phase
+                            or observed['case'] != case['id'] or observed['facade'] != facade
+                            or observed['command'] != command or observed['source']['source_sha'] != source):
+                        raise ValueError('Missing first close from the installed CSV original')
+                    if phase == 'initial':
+                        with original.open('x') as retained:
+                            json.dump(observed, retained)
+                    receipts.append(observed)
+    if len(receipts) != 14 or len({receipt['pid'] for receipt in receipts}) != len(receipts):
+        raise ValueError('Installed CSV phases require distinct original processes')
+    return {'fixture_index_sha256': hashlib.sha256((work / 'python-csv-project-cases.json').read_bytes()).hexdigest(),
+            'phases': receipts}
+
+
 def accept_installed_named_results(run, consumer: Path, destination: Path,
                                    version: str, env: dict[str, str]) -> None:
     work = destination / 'named-results'
     work.mkdir(mode=0o700)
     fixture = work / 'named-result-publication.json'
     shutil.copyfile(ROOT / 'scripts/fixtures' / fixture.name, fixture)
-    receipt = work / 'original.json'
-    previous_pid = None
-    for phase in ('initial', 'resume'):
-        observed = json.loads(run('installed-linux-named-results-' + phase, [
-            consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
-            destination / 'python-product-installed.py', '--mode', 'local', '--facade', 'sync',
-            '--version', version, '--phase', phase, '--case', 'named-results',
-            '--named-results-fixture', fixture, '--receipt', receipt,
-        ], cwd=work, env=env, timeout=180))
-        if type(observed) is not dict:
-            raise ValueError('Invalid installed named Results receipt')
-        pid = observed.get('pid')
-        names = observed.get('results')
-        if (observed.get('mode') != 'local' or observed.get('version') != version
-                or observed.get('case') != 'named-results' or observed.get('phase') != phase
-                or type(names) is not list or len(names) != 2
-                or 'before_change' not in names or 'after_change' not in names
-                or observed.get('submitted') is not (phase == 'initial')
-                or observed.get('original_run_reused') is not (phase == 'resume')
-                or observed.get('first_close') is not True
-                or type(pid) is not int or pid <= 0 or pid == previous_pid):
-            raise ValueError('Incomplete installed named Results or original Saved')
-        previous_pid = pid
+    pids = set()
+    for facade in ('sync', 'async'):
+        selected = work / facade
+        selected.mkdir(mode=0o700)
+        receipt = selected / 'original.json'
+        for phase in ('initial', 'resume'):
+            observed = json.loads(run('installed-named-results-' + facade + '-' + phase, [
+                consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+                destination / 'python-product-installed.py', '--mode', 'local', '--facade', facade,
+                '--version', version, '--phase', phase, '--case', 'named-results',
+                '--named-results-fixture', fixture, '--receipt', receipt,
+            ], cwd=selected, env=env, timeout=180))
+            if type(observed) is not dict:
+                raise ValueError('Invalid installed named Results receipt')
+            pid = observed.get('pid')
+            names = observed.get('results')
+            if (observed.get('mode') != 'local' or observed.get('version') != version
+                    or observed.get('case') != 'named-results' or observed.get('phase') != phase
+                    or observed.get('facade') != facade
+                    or type(names) is not list or len(names) != 2
+                    or 'before_change' not in names or 'after_change' not in names
+                    or observed.get('named_submission') is not True
+                    or observed.get('same_name_reused') is not (phase == 'initial')
+                    or observed.get('changed_intent_refused') is not (phase == 'initial')
+                    or observed.get('submitted') is not (phase == 'initial')
+                    or observed.get('original_run_reused') is not (phase == 'resume')
+                    or observed.get('first_close') is not True
+                    or type(pid) is not int or pid <= 0 or pid in pids):
+                raise ValueError('Incomplete installed named Results or original Saved')
+            pids.add(pid)
 
 
-def run_acceptance(destination: Path) -> None:
-    target_platform = normal_target()
+def prepare_normal_runtime(run, python: Path, destination: Path, source: str,
+                           target_platform: str, model_crypto_preparation: Path | None) -> Path:
     _, _, archive_bytes, library_name = duckdb_release(target_platform)
+    run('platform-vm-original', [python, ROOT / 'scripts/fixtures/python-local-platform-vm-original.py'])
+    run('closed-wasm-sql', [python, '-I', '-B', ROOT / 'packages/python-sdk/tests/run.py',
+                           '--pattern', 'test_local_closed_wasm_sql.py'])
+    archive = destination / 'duckdb.zip'
+    with open_duckdb_release(target_platform) as response, archive.open('xb') as target:
+        body = response.read(archive_bytes + 1)
+        target.write(body)
+    library = extract_duckdb(archive, destination / library_name, target_platform=target_platform)
+    run('duckdb-physical', [python, ROOT / 'scripts/fixtures/python-local-duckdb-physical.py', library,
+                          '--digest', hashlib.sha256(library.read_bytes()).hexdigest(), '--version', 'v1.4.3'])
+    moon = destination / 'moon'
+    run('core-build', ['moon', 'build', '--target', 'wasm', '--release', 'src/client_host_wasm', '--target-dir', moon])
+    module = moon / 'wasm/release/build/client_host_wasm/client_host_wasm.wasm'
+    receipt = destination / 'module-receipt.json'
+    producer = ROOT / 'scripts/produce-python-local-runtime.py'
+    run('core-receipt', [python, producer, '--record-module-original', '--source', source,
+                        '--compiled-source', source, '--module', module, '--link-response', str(module) + '.rsp',
+                        '--moon-home', os.environ['MOON_HOME'], '--destination', receipt])
+    accept_submission_observation(run, python, module, receipt, destination)
+    image = destination / 'image'
+    run('image', [python, ROOT / 'scripts/compile-python-local-image.py', '--compile-platform',
+                  '--source', source, '--core-receipt', receipt, '--destination', image])
+    artifact = destination / 'artifact'
+    runtime_arguments = [python, producer, '--platform-runtime', '--core-receipt', receipt,
+                         '--duckdb-receipt', destination / 'duckdb-physical.stdout',
+                         '--image-receipt', image / 'image-receipt.json', '--destination', artifact]
+    if model_crypto_preparation is not None:
+        runtime_arguments.extend(('--model-crypto-preparation', model_crypto_preparation))
+    run('runtime', runtime_arguments)
+    accept_public_lifecycle(run, python, module, receipt, destination, platform_artifact=artifact)
+    if model_crypto_preparation is not None:
+        retained_crypto = destination / 'model-crypto'
+        retained_crypto.mkdir()
+        (artifact / 'model-crypto-producer.json').rename(retained_crypto / 'producer.json')
+    return artifact
+
+
+def _read_runtime_evidence(root: Path, relative: str, maximum: int) -> bytes:
+    path = root / relative
+    if path.resolve(strict=True) != path:
+        raise ValueError('Ordinary runtime evidence uses an indirect path')
+    def generation(info):
+        return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+    with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK), 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode) or not 0 < before.st_size <= maximum:
+            raise ValueError('Invalid ordinary runtime evidence extent')
+        raw = stream.read(maximum + 1)
+        after = os.fstat(stream.fileno())
+        if len(raw) != before.st_size or generation(before) != generation(after):
+            raise ValueError('Ordinary runtime evidence changed during read')
+    current = path.stat(follow_symlinks=False)
+    if generation(current) != generation(after):
+        raise ValueError('Ordinary runtime evidence was replaced')
+    return raw
+
+
+def _unique_runtime_receipt_pairs(pairs):
+    result = dict(pairs)
+    if len(result) != len(pairs):
+        raise ValueError('Duplicate ordinary runtime evidence field')
+    return result
+
+
+def select_normal_runtime(preparation: Path, source: str, target_platform: str
+                          ) -> tuple[Path, dict[str, bytes]]:
+    root = preparation.resolve(strict=True)
+    if not root.is_dir() or root == ROOT or ROOT in root.parents:
+        raise ValueError('Select an ordinary runtime preparation outside the checkout')
+    paths = {'artifact/artifact.json': 65536, 'artifact/producer.json': 65536,
+             'image/image-receipt.json': 65536, 'module-receipt.json': 65536,
+             'duckdb-physical.stdout': 65536}
+    evidence = {name: _read_runtime_evidence(root, name, maximum) for name, maximum in paths.items()}
+    artifact = json.loads(evidence['artifact/artifact.json'], object_pairs_hook=_unique_runtime_receipt_pairs)
+    producer = json.loads(evidence['artifact/producer.json'], object_pairs_hook=_unique_runtime_receipt_pairs)
+    if (type(artifact) is not dict or type(producer) is not dict
+            or artifact.get('source_sha') != source or artifact.get('platform') != target_platform
+            or type(artifact.get('compiled_image')) is not dict
+            or artifact['compiled_image'].get('runtime_allocation') != 'platform'
+            or producer.get('scope') != 'ordinary_platform_components_only'
+            or producer.get('source_sha') != source or producer.get('artifact') != artifact
+            or producer.get('wheel_built') is not False or producer.get('runtime_executed') is not False
+            or producer.get('public_local_accepted') is not False):
+        raise ValueError('Foreign ordinary runtime preparation')
+    references = {'artifact/artifact.json': 'artifact_sha256', 'image/image-receipt.json': 'image_receipt_sha256',
+                  'module-receipt.json': 'core_receipt_sha256', 'duckdb-physical.stdout': 'duckdb_receipt_sha256'}
+    if 'model_crypto' in artifact:
+        name = 'model-crypto/producer.json'
+        evidence[name] = _read_runtime_evidence(root, name, 2 * 1024 * 1024)
+        references[name] = 'model_crypto_receipt_sha256'
+    elif 'model_crypto_receipt_sha256' in producer:
+        raise ValueError('Ordinary runtime Model component evidence is inconsistent')
+    if any(hashlib.sha256(evidence[name]).hexdigest() != producer.get(pin)
+           for name, pin in references.items()):
+        raise ValueError('Ordinary runtime preparation evidence differs from its producer')
+    return root / 'artifact', evidence
+
+
+def run_acceptance(destination: Path, *, model_crypto_preparation: Path | None = None,
+                   runtime_preparation: Path | None = None, shared_wheels: Path | None = None,
+                   prepare_runtime_only: bool = False,
+                   pair_runtime_preparations: dict[str, Path] | None = None,
+                   expected_source: str | None = None) -> None:
+    target_platform = normal_target()
+    if ((runtime_preparation is None) != (shared_wheels is None)
+            or runtime_preparation is not None and (prepare_runtime_only or model_crypto_preparation is not None)):
+        raise ValueError('Select one runtime preparation or consume one with the paired shared wheels')
+    if pair_runtime_preparations is not None and (
+            set(pair_runtime_preparations) != {'linux-x64', 'darwin-arm64'}
+            or expected_source is None or re.fullmatch('[0-9a-f]{40}', expected_source) is None
+            or any(value is not None for value in (model_crypto_preparation, runtime_preparation, shared_wheels))
+            or prepare_runtime_only):
+        raise ValueError('Select both original runtime preparations and the exact shared Python source')
     destination = external_destination(destination)
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    if expected_source is not None and expected_source != source:
+        raise ValueError('Foreign ordinary Python source')
     def clean():
         if (subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT).strip()
                 or subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != source):
             raise ValueError('Acceptance requires the unchanged clean selected commit')
     clean()
+    original_runtime = (select_normal_runtime(runtime_preparation, source, target_platform)
+                        if runtime_preparation is not None else None)
+    pair_originals = {}
+    if pair_runtime_preparations is not None:
+        pair_originals = {
+            platform: select_normal_runtime(preparation, source, platform)
+            for platform, preparation in sorted(pair_runtime_preparations.items())
+        }
+        model_roles = {'model-crypto/producer.json' in evidence for _, evidence in pair_originals.values()}
+        if len(model_roles) != 1:
+            raise ValueError('Original Python platform runtimes select different Model variants')
     destination.mkdir(parents=True)
     steps = []
     def run(name, args, *, cwd=ROOT, env=None, timeout=600):
@@ -522,39 +744,48 @@ def run_acceptance(destination: Path) -> None:
     python = builder / 'bin/python'
     run('builder-dependencies', [python, '-m', 'pip', '--isolated', 'install', '--only-binary=:all:',
                                 '--index-url', 'https://pypi.org/simple', *BUILD_REQUIREMENTS])
-    run('platform-vm-original', [python, ROOT / 'scripts/fixtures/python-local-platform-vm-original.py'])
-    run('closed-wasm-sql', [python, '-I', '-B', ROOT / 'packages/python-sdk/tests/run.py',
-                           '--pattern', 'test_local_closed_wasm_sql.py'])
-    archive = destination / 'duckdb.zip'
-    with open_duckdb_release(target_platform) as response, archive.open('xb') as target:
-        body = response.read(archive_bytes + 1)
-        target.write(body)
-    library = extract_duckdb(archive, destination / library_name, target_platform=target_platform)
-    run('duckdb-physical', [python, ROOT / 'scripts/fixtures/python-local-duckdb-physical.py', library,
-                          '--digest', hashlib.sha256(library.read_bytes()).hexdigest(), '--version', 'v1.4.3'])
-    moon = destination / 'moon'
-    run('core-build', ['moon', 'build', '--target', 'wasm', '--release', 'src/client_host_wasm', '--target-dir', moon])
-    module = moon / 'wasm/release/build/client_host_wasm/client_host_wasm.wasm'
-    receipt = destination / 'module-receipt.json'
-    producer = ROOT / 'scripts/produce-python-local-runtime.py'
-    run('core-receipt', [python, producer, '--record-module-original', '--source', source,
-                        '--compiled-source', source, '--module', module, '--link-response', str(module) + '.rsp',
-                        '--moon-home', os.environ['MOON_HOME'], '--destination', receipt])
-    accept_submission_observation(run, python, module, receipt, destination)
-    accept_public_lifecycle(run, python, module, receipt, destination)
-    image = destination / 'image'
-    run('image', [python, ROOT / 'scripts/compile-python-local-image.py', '--compile-platform',
-                  '--source', source, '--core-receipt', receipt, '--destination', image])
-    artifact = destination / 'artifact'
-    run('runtime', [python, producer, '--platform-runtime', '--core-receipt', receipt,
-                    '--duckdb-receipt', destination / 'duckdb-physical.stdout',
-                    '--image-receipt', image / 'image-receipt.json', '--destination', artifact])
+    if pair_runtime_preparations is not None:
+        semver = json.loads((ROOT / 'package.json').read_text())['version']
+        command = [python, ROOT / 'scripts/build-python-product-wheels.py',
+                   '--destination', destination / 'shared', '--version', semver]
+        for platform, (artifact, _) in pair_originals.items():
+            command.extend(('--paired-runtime-artifact', platform, artifact))
+        run('shared-wheels', command)
+        if any(select_normal_runtime(preparation, source, platform) != pair_originals[platform]
+               for platform, preparation in pair_runtime_preparations.items()):
+            raise ValueError('Original Python platform runtime changed during shared wheel construction')
+        clean()
+        return
+    if runtime_preparation is None:
+        artifact = prepare_normal_runtime(run, python, destination, source, target_platform, model_crypto_preparation)
+        model_enabled = model_crypto_preparation is not None
+    else:
+        assert original_runtime is not None
+        artifact, evidence = original_runtime
+        for name, raw in evidence.items():
+            retained = destination / name
+            retained.parent.mkdir(parents=True, exist_ok=True)
+            with retained.open('xb') as stream:
+                stream.write(raw)
+        model_enabled = 'model-crypto/producer.json' in evidence
+    clean()
+    if prepare_runtime_only:
+        return
     semver = json.loads((ROOT / 'package.json').read_text())['version']
     version = select_release_version(semver)['pythonVersion']
     cohort_directory = destination / 'cohort'
-    run('wheels', [python, ROOT / 'scripts/build-python-product-wheels.py', '--artifact-directory', artifact,
-                   '--destination', cohort_directory, '--version', semver, '--target-platform', target_platform])
+    wheels_arguments = [python, ROOT / 'scripts/build-python-product-wheels.py', '--artifact-directory', artifact,
+                        '--destination', cohort_directory, '--version', semver, '--target-platform', target_platform]
+    if shared_wheels is not None:
+        wheels_arguments.extend(('--shared-wheels', shared_wheels.resolve(strict=True)))
+    run('wheels', wheels_arguments)
     cohort = verify_built_cohort(cohort_directory, source, version)['cohort']
+    if original_runtime is not None:
+        assert runtime_preparation is not None
+        source_artifact = hashlib.sha256(original_runtime[1]['artifact/artifact.json']).hexdigest()
+        if (cohort['release_metadata']['source_artifact_sha256'] != source_artifact
+                or select_normal_runtime(runtime_preparation, source, target_platform) != original_runtime):
+            raise ValueError('Ordinary runtime preparation changed during wheel construction')
     venv = destination / 'consumer'
     run('consumer-venv', [sys.executable, '-m', 'venv', venv])
     home = destination / 'home'
@@ -580,34 +811,47 @@ def run_acceptance(destination: Path) -> None:
         work = destination / facade
         work.mkdir()
         for phase in ('initial', 'resume'):
-            observed = run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+            run(f'{facade}-{phase}', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                 destination / 'python-product-installed.py',
                 '--version', version, '--mode', 'local', '--facade', facade, '--phase', phase,
                 '--receipt', work / 'original.json'], cwd=work, env=env, timeout=180)
-            if facade == 'sync' and phase == 'initial':
-                require_closed_task_drive(json.loads(observed))
     health = destination / 'health'
     health.mkdir()
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                    destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
     accept_installed_cancellation(run, consumer, destination, version, env)
+    retained_store = destination / 'retained-store'
+    retained_store.mkdir()
+    retained_consumer = destination / 'ci-python-retained-store.py'
+    shutil.copyfile(ROOT / 'scripts/fixtures' / retained_consumer.name, retained_consumer)
+    run('installed-retained-store', [consumer, '-I', '-B', retained_consumer,
+        'verify', retained_store, version], cwd=retained_store, env=env, timeout=360)
     if target_platform == 'linux-x64':
         accept_installed_numeric_reductions(
             run, consumer, destination, source, cohort['module_sha256'], env)
-        accept_installed_named_results(run, consumer, destination, version, env)
+    csv_projects = accept_installed_csv_projects(run, consumer, destination, cohort_directory, source, env)
+    accept_installed_named_results(run, consumer, destination, version, env)
     repeated_host = accept_installed_repeated_host(run, consumer, destination, env)
+    ordered_python = accept_installed_ordered_python(run, consumer, destination, target_platform, env)
     accept_installed_fuel(run, consumer, destination, source, cohort, env)
     saved_read = accept_installed_saved(run, consumer, destination, source, cohort, env)
+    portable_model = None
+    if model_enabled:
+        portable_model = accept_installed_portable_model(
+            run, consumer, destination, version, env, cohort['image_sha256'], source=True)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
     clean()
     (destination / 'acceptance.json').write_text(json.dumps({
         'source_sha': source, 'platform': target_platform, 'package_version': version,
+        'csv_projects': csv_projects,
+        **({'portable_model': portable_model} if portable_model is not None else {}),
         'cohort_sha256': hashlib.sha256((cohort_directory / 'cohort.json').read_bytes()).hexdigest(),
         'normal_wheel_install': True, 'public_local_accepted': True,
         'separate_process_saved': True, 'typed_refusal_and_health': True,
         'context_close': True, 'installed_active_cancellation': True,
         'ordinary_repeated_host': repeated_host, 'installed_saved_read': saved_read,
+        'ordinary_ordered_python': ordered_python,
         'cancelled_saved_recovery': True, 'first_cancel_case_close': True,
         'physical_release_observed': False,
         'published': False, 'steps': steps}, indent=2) + '\n')
@@ -616,4 +860,21 @@ def run_acceptance(destination: Path) -> None:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--destination', type=Path, required=True)
-    run_acceptance(parser.parse_args().destination)
+    parser.add_argument('--model-crypto-preparation', type=Path)
+    parser.add_argument('--prepare-runtime-only', action='store_true')
+    parser.add_argument('--runtime-preparation', type=Path)
+    parser.add_argument('--shared-wheels', type=Path)
+    parser.add_argument('--pair-runtime-preparation', nargs=2, action='append', metavar=('PLATFORM', 'DIRECTORY'))
+    parser.add_argument('--source', help='Exact clean source SHA selected by the ordinary job')
+    arguments = parser.parse_args()
+    preparation = arguments.model_crypto_preparation
+    pair = None
+    if arguments.pair_runtime_preparation is not None:
+        pair = {platform: Path(directory) for platform, directory in arguments.pair_runtime_preparation}
+        if len(pair) != len(arguments.pair_runtime_preparation):
+            parser.error('Select each original runtime platform once')
+    run_acceptance(arguments.destination,
+                   model_crypto_preparation=preparation.resolve(strict=True) if preparation is not None else None,
+                   runtime_preparation=arguments.runtime_preparation, shared_wheels=arguments.shared_wheels,
+                   prepare_runtime_only=arguments.prepare_runtime_only,
+                   pair_runtime_preparations=pair, expected_source=arguments.source)

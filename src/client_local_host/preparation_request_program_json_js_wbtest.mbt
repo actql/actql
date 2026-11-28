@@ -246,7 +246,8 @@ fn request_json_expected_bootstrap_control() -> Int64 {
   original_problem_category +
   original_parameter_projection +
   original_observation_holders +
-  sample_start_journal_extent
+  sample_start_journal_extent +
+  8L // Read-only Debug Plan selector lives in the original Request.
 }
 
 ///|

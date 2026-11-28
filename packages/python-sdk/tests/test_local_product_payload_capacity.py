@@ -101,6 +101,26 @@ class ProductPayloadCapacityTests(unittest.TestCase):
                                 max_record_bytes=1048576, max_payload_bytes=8388608) as store:
                 self.assertEqual(store.read_capacity(capacity.namespace, capacity.key), capacity)
 
+    def test_ordinary_result_keeps_durable_objects_beyond_the_live_file_budget(self):
+        with TemporaryDirectory(prefix='actql-durable-payload-capacity-') as directory:
+            host, _, held, _, _ = self.host(Path(directory))
+            store = host._installation._store
+            results = host._installation._results
+            max_files = results._max_files
+            for ordinal in range(max_files):
+                namespace = 'publication_payload'
+                self.assertTrue(store.reserve_capacity(namespace, f'prior/{ordinal}',
+                    1, 1, store._max_payload_bytes, max_files))
+            self.assertEqual(store.capacity_usage('publication_payload').reserved_objects, max_files)
+            with (patch.object(store, '_ordinary', True),
+                  patch.object(store, '_max_reservations', 4096)):
+                host._reserve_original_payload_capacity(held)
+                host._save_original_payload_reserved(held)
+                self.assertEqual(held.capacity.reserved_objects, 1)
+                self.assertEqual(results._max_files, max_files)
+                self.assertEqual(store.capacity_usage('publication_payload').reserved_objects, max_files + 1)
+                self.assertTrue(host.close())
+
     def test_capacity_reply_loss_is_observed_once_after_pending_close_without_rereserving(self):
         with TemporaryDirectory(prefix='actql-payload-capacity-') as directory:
             host, _, held, calls, _ = self.host(Path(directory))

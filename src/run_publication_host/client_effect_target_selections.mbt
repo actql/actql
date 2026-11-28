@@ -14,7 +14,7 @@ pub(all) enum ClientEffectUpdateTargetIssue {
 ///|
 /// Concrete checked occurrence evidence. Alias names, current grants, captured
 /// rows and SET values are deliberately absent from this identity projection.
-priv struct ClientEffectUpdateTargetSelection {
+pub struct ClientEffectUpdateTargetSelection {
   stage_index : Int
   effect_id : String
   target_ref : String
@@ -575,4 +575,37 @@ fn emit_client_effect_target_selection_entries(
     @encode.end_object(writer)
   }
   @encode.end_array(writer)
+}
+
+///|
+/// The complete checked UPDATE set published by this preparation. A missing
+/// selection or another Effect family cannot appear as a smaller UPDATE set.
+pub fn prepared_client_effect_update_target_count(
+  prepared : PreparedClientEffectComputation,
+) -> Int? {
+  guard prepared.target_selections is Some(selection) else { return None }
+  let headers = @checked.effect_program_static_headers(
+    prepared_client_effect_computation_candidate(prepared),
+  )
+  let count = @syntax.effect_header_count(headers)
+  if count != selection.entries.length() || count == 0 {
+    return None
+  }
+  for index in 0..<count {
+    guard @syntax.effect_header_at(headers, index) is Some(header) &&
+      @syntax.effect_header_kind(header) == "update" else {
+      return None
+    }
+  }
+  Some(count)
+}
+
+///|
+/// Borrow one already admitted entry in canonical selection order. No target
+/// alias, publication or installation body is read a second time.
+pub fn prepared_client_effect_target_selection_at(
+  prepared : PreparedClientEffectComputation,
+  index : Int,
+) -> ClientEffectUpdateTargetSelection? {
+  prepared.target_selections.bind(selection => selection.entries.get(index))
 }

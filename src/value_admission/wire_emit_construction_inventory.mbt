@@ -112,3 +112,18 @@ pub fn wire_emit_next_construction_inventory(
 pub fn wire_emit_fragment_byte_bound() -> Int {
   64 * 6 + 4
 }
+
+///|
+/// Whole-loop envelope for a caller that fences pending frames before each
+/// wire transition. Borrowed Values and the supplied Writer stay separate.
+pub fn wire_emit_bounded_construction_inventory(
+  max_frames : Int,
+) -> WireEmitConstructionInventory? {
+  if max_frames < 1 {
+    return None
+  }
+  // One last transition can add a frame. Double the bounded live slots for
+  // the spare Array backing of the typed stack and any one reference child.
+  // The same inventory function owns the largest decimal leaf at precision 38.
+  wire_emit_construction_inventory(2L * (max_frames.to_int64() + 1L), 38)
+}

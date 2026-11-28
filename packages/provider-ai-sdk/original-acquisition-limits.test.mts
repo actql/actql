@@ -11,7 +11,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 // This witnesses checks after Node acquisition, not a funded first allocator.
 // The controlled connector bypasses native delivery; its input backing still
 // exists at preparation and must be included in the same declared union.
-const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.resolve('@actql/local-node/_internal/model-http-transport'));
 const undici = require('undici') as typeof import('undici');
 const buildConnector = undici.buildConnector;
 let selectedSocket!: Duplex, connections = 0;
@@ -21,8 +21,8 @@ undici.buildConnector = () => (_options, callback) => {
   queueMicrotask(() => callback(null, socket as Socket));
   return socket;
 };
-let physical!: typeof import('./_internal/original-undici-transport.mjs');
-try { physical = await import('./_internal/original-undici-transport.mjs'); }
+let physical!: typeof import('@actql/local-node/_internal/model-http-transport');
+try { physical = await import('@actql/local-node/_internal/model-http-transport'); }
 finally { undici.buildConnector = buildConnector; }
 const endpoint = 'http://fixture.invalid/chat/completions';
 const responseLimits = {maxBytes: 8192, maxChunkBytes: 8192, maxChunks: 32,

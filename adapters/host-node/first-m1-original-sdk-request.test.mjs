@@ -7,9 +7,10 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openFundedClientPreparation, fundedModelMaterialFixture} from './funded-client-preparation.fixture.mjs';
 import {readInstalledModelExecution,readInstalledModelDependencies} from './installed-model.mjs';
-import {prepareAdmittedOpenAIChatRequest} from '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
-import {pollSdkPreparation,sdkPreparedRequest,cleanupSdkPreparation,cancelSdkPreparation}
-  from '../../packages/provider-ai-sdk/_internal/intercepted-request.mjs';
+import {createOpenAI} from '@ai-sdk/openai';
+import {sdkProvider, verifyRequest} from '../../packages/provider-ai-sdk/_internal/openai-chat.mjs';
+import {createAdmittedRegisteredSdkPreflight} from '../../packages/provider-ai-sdk/_internal/model-port.mjs';
+import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {canonical,identity,configuration,program,task,prompt,output,instructions}
   from '../../scripts/fixtures/first-m1-common-materials.mjs';
 
@@ -20,6 +21,7 @@ const values=canonical(aoa.execution_contracts['REL.values']);
 const fragment=canonical(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
 const ordered=canonical(aoa.execution_contracts['REL.derive.ordered']);
 const control=runtimeCore(moon).publicationControl;
+const modelId='gpt-4.1-mini-2025-04-14', selector='fixture-risk-model', apiMode='chat_completions';
 const quantities=Object.freeze({limits:Object.freeze({tokens:33n,costUnits:0n,durationMs:500n}),
   perAttempt:Object.freeze({tokens:33n,costUnits:0n,durationMs:500n})});
 
@@ -52,6 +54,9 @@ async function openOriginal(t) {
   // These positive values are not physical adequacy, a normal profile or fees.
   const vector=JSON.parse(readFileSync(new URL('../../portability/corpus/model-response-profiles.json',import.meta.url))).cases[0];
   const profileBody=JSON.parse(vector.wire);delete profileBody.self_cid;
+  profileBody.adapter.codec_id='fixture/sdk-v4-saved-text';
+  profileBody.completion.validator_id=profileBody.adapter.codec_id;
+  profileBody.limits.request_bytes=1000;
   profileBody.task={contract_cid:identity(task),input_schema_cid:task.input_schema_cid,
     output_schema_cid:task.output_schema_cid,kind:'structured_generate'};
   profileBody.adapter.sdk={package:'@ai-sdk/openai',version:'4.0.91',interface:'v4',lock_artifact_cid:cid('d')};
@@ -63,6 +68,16 @@ async function openOriginal(t) {
     endpoint:profileBody.operation.endpoint,http_method:'POST',streaming:false,
     validator_id:profileBody.completion.validator_id,validator_revision:profileBody.completion.validator_revision,
     validator_artifact_cid:profileBody.completion.validator_artifact_cid,completion_basis:'generation_finish'};
+  const {endpoint}=installation;
+  const bindingOriginals=providerBindingOriginals('models/fixture',{endpoint,selector});
+  const configurationWire=canonical({...JSON.parse(bindingOriginals.configuration.wire),adapter_kind:'ai-sdk',
+    structured_routes:{[selector]:{model_id:modelId,api_mode:apiMode,endpoint,
+      structured_capability:{operation:'structured_generate',adapter:'supported',model:'supported'}}}});
+  const binding=checked(moon.clientProgramModelProviderBinding('models/fixture',
+    bindingOriginals.installationRevision.wire,bindingOriginals.configurationContract.wire,configurationWire));
+  const capability=checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
+    provider,binding,configurationWire,selector,modelId,apiMode,endpoint,profile));
+  const admission=checked(moon.clientProgramAdmitInstalledStructuredSdkCapability(capability,admitted,installation));
   const selection={layout:{response_profile:profile,runtime_artifact_cid:cid('e'),layout_artifact_cid:cid('f'),
     program_definition_cid:moon.clientRequestProgramCid(requestIdentity),
     parameter_values_cid:moon.clientRequestParametersCid(requestIdentity),barrier_cid:moon.clientProgramInferPlanBoundary(graph)._3,
@@ -78,7 +93,7 @@ async function openOriginal(t) {
   checked(moon.clientProgramBindInferQuantityCapacity(active,33n,0n,500n,33n,0n,500n));
   checked(moon.clientProgramBindInferEgress(active,checked(moon.clientProgramAdmitInferEgress(prepared,2,execution,
     ()=>({_0:'public',_1:'fixture-region',_2:false,_3:false})))));
-  return {admitted,active,compiled,definition,graph,scope,read};
+  return {admission,profile,installation,active,compiled,definition,graph,scope,read};
 }
 
 async function stopOriginal(original) {
@@ -89,15 +104,13 @@ async function stopOriginal(original) {
   }
   assert.fail('Same original execution did not stop');
 }
-async function sdkRetired(handle) {
-  for(let n=0;n<30;n++){
-    if(cleanupSdkPreparation(handle))return;
-    await turn();
-  }
-  assert.fail('Same SDK preparation did not retire');
-}
 async function finishOriginal(original) {
-  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)),true);
+  let released=false;
+  for(let n=0;n<30&&!released;n++){
+    released=checked(moon.clientProgramCleanupInferExecution(original.active));
+    if(!released)await turn();
+  }
+  assert.equal(released,true);
   control.settleCheckedClientInferOriginalReadPreparation(original.compiled,original.definition,original.graph,original.read,true);
   assert.equal(control.finishCheckedClientInferOriginalReadScope(original.compiled,original.definition,original.graph,original.scope,true),true);
 }
@@ -109,46 +122,67 @@ test(`first M1 actual original Core request ${rejectProjection?'bounded refusal'
   globalThis.fetch=()=>{physical++;assert.fail('No ambient transport');};
   t.after(()=>{globalThis.fetch=ambient;});
   const original=await openOriginal(t);
-  let request,handle,preflights=0,cleanupAllowed=false,cleanupCalls=0;
+  let request,advance,wire,issue,preflights=0,cleanupAllowed=false,cleanupCalls=0;
+  const route={selector,modelId,apiMode,endpoint:original.installation.endpoint};
+  const sdk=original.installation.sdk;
+  const providerOptions=Object.freeze({openai:Object.freeze({})});
+  const runtime=Object.create(moon,{
+    clientProgramModelRequestPreflight:{value(next,cleanup){
+      advance=next;
+      // This diagnostic drives the selected preflight itself while the actual
+      // execution retains its CallSet and cannot consume an Entry.
+      return moon.clientProgramModelRequestPreflight(()=>({_0:false,_1:undefined}),()=>{
+        cleanupCalls++;
+        return cleanupAllowed&&cleanup();
+      });
+    }},
+  });
   checked(moon.clientProgramBindInferPhysicalPreflight(original.active,current=>{
     preflights++;
     request=current;
-    if(rejectProjection){
-      assert.throws(()=>prepareAdmittedOpenAIChatRequest({moon,request,admittedProvider:original.admitted,
-        taskCid:identity(task),promptCid:identity(prompt),outputSchemaCid:identity(output),modelSelector:'fixture-risk-model',
-        projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:13},
-        modelId:'gpt-4.1-mini-2025-04-14',baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',
-        maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,notify(){}}),
-        {message:'OpenAIProjection:limit'});
-    }else{
-      handle=prepareAdmittedOpenAIChatRequest({moon,request,admittedProvider:original.admitted,
-        taskCid:identity(task),promptCid:identity(prompt),outputSchemaCid:identity(output),modelSelector:'fixture-risk-model',
-        projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
-        modelId:'gpt-4.1-mini-2025-04-14',baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',
-        maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,notify(){}});
-    }
-    // No physical Plan is admitted; retain this same preflight through the
-    // SDK's actual Promise settlement and original cancellation/cleanup.
-    return moon.clientProgramModelRequestPreflight(()=>({_0:false,_1:undefined}),()=>{
-      cleanupCalls++;
-      if(!cleanupAllowed)return false;
-      return handle===undefined||cleanupSdkPreparation(handle);
-    });
+    return createAdmittedRegisteredSdkPreflight({moon:runtime,request,admission:original.admission,
+      profile:original.profile,installation:original.installation,
+      registeredSdk:{route,sdkProvider,providerOptions,sdkPackage:sdk.package_name,sdkVersion:sdk.version,
+        lockArtifactCid:sdk.lock_artifact_cid,adapterArtifactCid:original.installation.build_artifact_cid,
+        createLanguageModel:fetch=>createOpenAI({baseURL:route.endpoint.slice(0,-'/chat/completions'.length),
+          apiKey:'fixture-only',fetch}).chat(modelId),
+        verifyRequest(body,options){wire=body;return verifyRequest(body,options,route,providerOptions);}},
+      taskCid:identity(task),promptCid:identity(prompt),outputSchemaCid:identity(output),
+      projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:rejectProjection?13:10000},
+      maxRequestBytes:1000,maxHeaderBytes:4096,maxHeaders:16,notify(){},
+      quantities:quantities.perAttempt,
+      fetch(){physical++;assert.fail('Request preparation cannot send');},
+      responseLimits:{maxBytes:4096,maxChunkBytes:1024,maxChunks:8,maxHeaderBytes:4096},
+      persistRaw(){assert.fail('No Raw without Entry');},cleanupRaw:()=>true,
+      observeAt:()=> '2026-10-15T00:00:00.000Z',
+      checked(result){if(result?.$tag===0)issue=moon.clientProgramOpenAIChatProjectionIssueKind(result._0);
+        return checked(result);},
+    }).preflight;
   }));
   for(let n=0;n<2000&&!request;n++){
     const observed=checked(moon.clientProgramAdvanceInferExecution(original.active,1));
     assert.equal(moon.clientProgramInferExecutionPollKind(observed),'continue');
   }
   assert.ok(request,'Only the actual Common Model owner supplies this request');
-  if(!rejectProjection)assert.ok(handle,'The positive original request must create its SDK preparation');
   assert.equal(preflights,1);
   const generation=moon.clientProgramModelRequestGeneration(request);
   assert.equal(generation._0,'fixture-risk-model');
   assert.equal(BigInt.asIntN(64,generation._4),-7n);
-  if(!rejectProjection){
-    for(let n=0;n<30&&pollSdkPreparation(handle).kind==='pending';n++)await turn();
-    assert.equal(pollSdkPreparation(handle).kind,'ready');
-    assert.deepEqual(JSON.parse(sdkPreparedRequest(handle).body),{
+  let terminal;
+  for(let n=0;n<2000;n++){
+    const progress=advance();
+    if(progress._0){terminal=progress;break;}
+    await turn();
+  }
+  assert.ok(terminal,'The same selected Core preflight must reach its terminal observation');
+  if(rejectProjection){
+    assert.equal(issue,'limit');
+    assert.equal(wire,undefined);
+    assert.equal(terminal._1,undefined);
+  }else{
+    assert.ok(terminal._1,'The registered SDK reaches the actual checked physical Plan');
+    assert.equal(issue,undefined);
+    assert.deepEqual(JSON.parse(wire),{
       model:'gpt-4.1-mini-2025-04-14',temperature:0,top_p:1,max_tokens:32,seed:-7,
       messages:[{role:'system',content:instructions},{role:'user',content:'{"text":"hello"}'}],
       response_format:{type:'json_schema',json_schema:{name:'actql_output',strict:true,schema:{type:'object',
@@ -160,7 +194,6 @@ test(`first M1 actual original Core request ${rejectProjection?'bounded refusal'
   assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)),false);
   assert.equal(control.checkedClientInferOriginalReadScopeLive(original.compiled,original.definition,original.graph,original.scope),true);
   assert.ok(cleanupCalls>0);
-  if(!rejectProjection){cancelSdkPreparation(handle);await sdkRetired(handle);}
   cleanupAllowed=true;
   await finishOriginal(original);
   assert.equal(control.checkedClientInferOriginalReadScopeLive(original.compiled,original.definition,original.graph,original.scope),false);

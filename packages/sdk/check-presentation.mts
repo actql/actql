@@ -176,6 +176,14 @@ export function localizeCheck(key: string, english: readonly string[], options?:
     ? translated : english;
 }
 
+type CheckSentencePair = readonly [summary: string, hint: string];
+
+function localizeCheckPair(key: string, english: CheckSentencePair,
+  options?: CheckExplanationOptions): CheckSentencePair {
+  const [summary = english[0], hint = english[1]] = localizeCheck(key, english, options);
+  return [summary, hint];
+}
+
 export function explainCheckOutcome(outcome: unknown, options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined {
   if (!validCheckOutcome(outcome)) return undefined;
   const reportExplanation = <R extends CompleteReport | PartialReport, C extends 'complete' | 'partial'>(report: R, completeness: C) => ({completeness,
@@ -189,28 +197,28 @@ export function explainCheckOutcome(outcome: unknown, options?: CheckExplanation
         'Use the execution, cancellation and release owners for their respective results.'],
       undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
         'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
-    };
+    } satisfies Record<CompleteReport['verdict'], CheckSentencePair>;
     // Capture observation fields before reading application-owned locale options.
     const report = reportExplanation(outcome.report, 'complete');
-    const [summary, hint] = localizeCheck(`completed.${report.verdict}`,
+    const [summary, hint] = localizeCheckPair(`completed.${report.verdict}`,
       explanations[report.verdict], options);
     return freezeInput({outcome: 'completed', summary, hint, report} as const);
   }
   if (outcome.outcome === 'failed') {
-    const explanations: Record<string, readonly string[]> = {
+    const explanations: Readonly<Partial<Record<string, CheckSentencePair>>> = {
       check_report_unbounded: ['The reporting budget could not produce a complete bound check report.',
         'Ask the checking-context owner to review reporting capacity for the original checking scope.'],
       check_internal: ['An internal checking failure prevented a complete bound check report.',
         'Ask the checking-context owner to investigate the reporting failure.'],
     };
-    const known = Object.hasOwn(explanations, outcome.problem.code);
-    const problem = {kind: known ? 'known' : 'unknown', code: outcome.problem.code} as const;
+    const code = outcome.problem.code;
+    const english = Object.hasOwn(explanations, code) ? explanations[code] : undefined;
+    const problem = {kind: english === undefined ? 'unknown' : 'known', code} as const;
     const correlationRef = outcome.correlation_ref;
     const report = outcome.partial_report === undefined ? undefined
       : reportExplanation(outcome.partial_report, 'partial');
-    const [summary, hint] = localizeCheck(`failed.${known ? problem.code : 'unknown'}`,
-      known ? explanations[problem.code]
-      : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
+    const [summary, hint] = localizeCheckPair(`failed.${english === undefined ? 'unknown' : code}`,
+      english ?? ['A complete bound check report could not be issued; this problem code has no supported explanation.',
         'Ask the checking-context owner to investigate; a partial report does not verify the input.'], options);
     return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,
       ...(report === undefined ? {} : {report})} as const);
@@ -218,7 +226,7 @@ export function explainCheckOutcome(outcome: unknown, options?: CheckExplanation
   const problem = {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
     code: outcome.problem.code} as const;
   const correlationRef = outcome.correlation_ref;
-  const [summary, hint] = localizeCheck('unavailable',
+  const [summary, hint] = localizeCheckPair('unavailable',
     ['The scope and checking context needed for a safe public report are unavailable.',
       'Ask the checking-context owner to review the published context; this response does not establish an input error.'], options);
   return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef} as const);
@@ -232,8 +240,11 @@ const checkDisplayString = (value: unknown) => JSON.stringify(value).replace(
   /[\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
   (character: string) => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
 
-const checkHtml = (value: string) => value.replace(/[&<>"']/gu, (character: string) =>
-  ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'} as Record<string, string>)[character]);
+const checkHtmlEscapes: Readonly<Partial<Record<string, string>>> = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+};
+const checkHtml = (value: string) => value.replace(/[&<>"']/gu, character =>
+  checkHtmlEscapes[character] ?? character);
 
 const checkAgentJson = (value: unknown) => JSON.stringify(value).replace(
   /[<>&\u007f-\u009f\u061c\u200e\u200f\u2028-\u202e\u2066-\u2069]/gu,
@@ -260,7 +271,7 @@ export function renderCheckOutcome(outcome: unknown, options: CheckFormatOptions
   try { locale = options?.locale; } catch { locale = 'en'; }
   if (!['text', 'html', 'json'].includes(format) || !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding) || !Number.isSafeInteger(maxBytes) ||
       maxBytes < 1024 || maxBytes > 1048576) return undefined;
-  const presentation = getCheckPresentationInfo({locale});
+  const presentation = getCheckPresentationInfo(locale === undefined ? undefined : {locale});
   const observation = explainCheckOutcome(snapshot, {locale: presentation.locale}) as RenderObservation;
   const report = snapshot.outcome === 'completed' ? snapshot.report : (snapshot as {partial_report?: PartialReport}).partial_report;
   const rows: DisplayRow[] = report === undefined ? [] : [
@@ -335,10 +346,11 @@ export function explainCheckReason(reason: Readonly<{code: string; facts?: unkno
 export function explainCheckReason(reason: unknown, options?: CheckExplanationOptions) {
   const display = selectCheckReasonPresentation(reason);
   if (display) {
-    const [summary, hint] = localizeCheck(display.key, display.english, options);
+    const [summary, hint] = localizeCheckPair(display.key, display.english, options);
     return Object.freeze({kind: 'known', summary, hint});
   }
-  const [summary] = localizeCheck('reason.unknown', ['No supported explanation is available for this reason.'], options);
+  const english = 'No supported explanation is available for this reason.';
+  const [summary = english] = localizeCheck('reason.unknown', [english], options);
   return Object.freeze({kind: 'unknown', summary});
 }
 
@@ -353,8 +365,8 @@ export function presentCheckFailure(failure: CheckFailureKind, options?: CheckEx
       'Use matching Host and SDK contracts; the rejected reply establishes no check verdict.'],
     malformed_response: ['The check reply violates the registered response contract or original input binding.',
       'Ask the Host owner to investigate the protocol failure; it is not a diagnosed source error.'],
-  };
-  const [summary, hint] = localizeCheck(`protocol.${failure.problem}`, messages[failure.problem], options);
+  } satisfies Record<CheckFailureKind['problem'], CheckSentencePair>;
+  const [summary, hint] = localizeCheckPair(`protocol.${failure.problem}`, messages[failure.problem], options);
   // The original admitted kind and problem are copied together without exposing its input.
   return freezeInput({kind: failure.kind, problem: failure.problem, summary, hint}) as CheckFailureExplanation;
 }

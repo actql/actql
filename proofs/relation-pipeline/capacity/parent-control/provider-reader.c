@@ -18,6 +18,8 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
   seen[seen_count++] = candidates; seen[seen_count++] = backing;
   uint64_t bytes = regular_bytes(candidates) + 8 + 11 * 8;
   int callbacks = 0, arrays = 0, unclassified = 0, scalar = 0;
+  int numeric_extensions = 0;
+  uint64_t numeric_extension_bytes = 0;
   for (int i = 0; i < 11; i++) {
     memcpy(&records[i], (uint8_t *)backing + i * 8, sizeof(void *));
     assert(records[i] && !has_pointer(seen, seen_count, records[i]));
@@ -37,6 +39,24 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
     for (int j = 0; j < 5; j++) {
       assert(s[2 + j] == (uint32_t)j * 4);
       void *callback; memcpy(&callback, (uint8_t *)records[i] + j * 8, sizeof callback);
+      if (j == 4) {
+        /* The selected Relation and Group factories own one Numeric tag each.
+         * This tagged record is not a callback and its callback can be shared. */
+        assert((callback != NULL) == (i == 0 || i == 6));
+        if (!callback) continue;
+        assert(!has_pointer(seen, seen_count, callback) && seen_count < 128);
+        assert(Moonbit_object_kind(callback) == moonbit_BLOCK_KIND_REGULAR);
+        assert(Moonbit_rc_count(Moonbit_object_header(callback)) >= 0);
+        assert(Moonbit_object_tag(callback) == 0);
+        const uint32_t *tag = layout(callback);
+        assert(tag[0] == 2 && tag[1] == 1 && tag[2] == 0);
+        numeric_extensions++;
+        numeric_extension_bytes += regular_bytes(callback);
+        bytes += regular_bytes(callback);
+        seen[seen_count++] = callback;
+        memcpy(&callback, callback, sizeof callback);
+        assert(callback != NULL);
+      }
       if (callback) { assert(queued < 128); queue[queued++] = callback; }
     }
   }
@@ -87,8 +107,8 @@ moonbit_string_t actql_proof_provider_construction(void *candidates,
   }
   struct current_json json = {.used = 0};
   current_add(&json,
-    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"providerRecordFields\":6,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d,\"scalarCodes\":[",
-    callbacks, arrays, bytes, unclassified, scalar);
+    "ACTQL_PIPELINE_FAULT:{\"kind\":\"provider construction observation\",\"providers\":11,\"providerRecordFields\":6,\"records\":11,\"arraySlots\":11,\"callbacks\":%d,\"defaultArrays\":%d,\"indexedBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"scalarDynamicCallbacks\":%d,\"numericStartExtensions\":%d,\"numericStartExtensionBytes\":%" PRIu64 ",\"scalarCodes\":[",
+    callbacks, arrays, bytes, unclassified, scalar, numeric_extensions, numeric_extension_bytes);
   for (int i = 0; i < scalar; i++) {
     current_add(&json, "%s{\"identity\":\"%" PRIxPTR "\",\"codeDelta\":\"%" PRIdPTR "\"}",
       i ? "," : "", (uintptr_t)scalar_objects[i], scalar_deltas[i]);

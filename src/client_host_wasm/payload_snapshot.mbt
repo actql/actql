@@ -35,18 +35,20 @@ fn validate_original_payload_record_snapshot(
   if value.closing || value.runtime_closing || record.closing {
     return -5
   }
-  let current = if record.source is SavedResult(_, _) {
-    saved_payload_record_current(
-      value,
-      record,
-      current_configuration,
-      same_reader_census~,
-    )
+  if record.source is SavedResult(_, _) {
+    if !saved_payload_record_current(
+        value,
+        record,
+        current_configuration,
+        same_reader_census~,
+      ) {
+      return -32
+    }
   } else {
-    payload_record_current(value, record, current_configuration)
-  }
-  if !current {
-    return -32
+    match observed_live_payload_current(value, record, current_configuration) {
+      Ok(_) => ()
+      Err(code) => return code
+    }
   }
   guard input_cursor(value, slot) is Some(cursor) &&
     @decode.closed_object(cursor, [

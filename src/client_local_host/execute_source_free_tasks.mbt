@@ -802,3 +802,114 @@ fn retire_installed_capture_ports(
     }
   }
 }
+
+///|
+fn prepare_local_values_task(
+  run : @strategy.CapturedDAG,
+  graph : @strategy.CheckedDAG,
+  installed : @local_driver.LocalDispatchModule,
+  tasks : Array[LocalValuesTaskExecution?],
+  first : Int,
+  continuation : Bool,
+  supplied_whole : Bool,
+  captured_prefix : Bool,
+  max_entries : Int,
+) -> Result[
+  (Int, Array[Int], @local_driver.LocalManagedDispatchConfiguration[Int]),
+  LocalValuesExecutionIssue,
+] {
+  guard @strategy.next_captured_task(run) is Some(index) &&
+    index >= first &&
+    index < tasks.length() &&
+    tasks[index] is None &&
+    @strategy.graph_task_owner(graph, index) is Some(_) else {
+    return Err(UnsupportedGraph)
+  }
+  // Carrier snapshots remain with their existing physical Store owner.
+  // This entry does not turn a missing Carrier custody into row storage.
+  if @local_driver.local_dispatch_next_carrier_path(installed) {
+    return Err(UnsupportedGraph)
+  }
+  let producers = @strategy.captured_next_managed_producers(run)
+  let inputs : Array[@local_driver.LocalManagedAvailableOutput[Int]] = []
+  for producer in producers {
+    if (continuation || supplied_whole) && producer == -1 {
+      inputs.push(@local_driver.local_managed_supplied_relation_input())
+      continue
+    }
+    if continuation &&
+      producer >= 0 &&
+      producer < tasks.length() &&
+      tasks[producer] is None &&
+      @strategy.captured_task_completed(run, producer) {
+      // The common DAG binds the receiver to this exact original output.
+      // This does not fabricate a ManagedCompletedOutput or its provider.
+      inputs.push(@local_driver.local_managed_captured_relation_input())
+      continue
+    }
+    if (first == 1 && producer == 0) ||
+      (captured_prefix && producer >= 0 && producer < first) {
+      inputs.push(@local_driver.local_managed_captured_relation_input())
+      continue
+    }
+    guard producer >= first &&
+      producer < tasks.length() &&
+      tasks[producer] is Some(task) &&
+      task.completed is Some(output) else {
+      return Err(MissingOutput)
+    }
+    inputs.push(@local_driver.local_managed_relation_output(output))
+  }
+  let obligations = match
+    @strategy.captured_next_managed_obligations(run, max_entries) {
+    Ok(value) => value
+    Err(_) => return Err(Driver(Configuration(InvalidLimits)))
+  }
+  let prepared = match
+    @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed, inputs, obligations, 0L,
+    ) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(UnsupportedGraph)
+    Err(issue) => return Err(Driver(issue))
+  }
+  Ok((index, producers, prepared))
+}
+
+///|
+fn start_local_values_task(
+  run : @strategy.CapturedDAG,
+  index : Int,
+  installed : @local_driver.LocalDispatchModule,
+  prepared : @local_driver.LocalManagedDispatchConfiguration[Int],
+  select_registration : Bool,
+  canonical_managed_rows? : Bool = false,
+) -> Result[
+  @local_driver.LocalManagedDispatchOperations[Int],
+  LocalValuesExecutionIssue,
+] {
+  // The same original Source-free Host has one selected Local module.
+  // Commit its actual managed candidate only after preparing this next
+  // Task with its real inputs; no whole-Run future DATA reservation is
+  // needed. The start boundary still admits its complete simultaneous cost.
+  if select_registration {
+    match
+      @strategy.select_captured_managed_registration(
+        run,
+        index,
+        @local_driver.local_dispatch_registration(installed),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Driver(Execution(issue)))
+    }
+  }
+  let operations = match
+    @local_driver.start_local_managed_dispatch_node(
+      prepared,
+      canonical_managed_rows~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Driver(issue))
+  }
+  Ok(operations)
+}

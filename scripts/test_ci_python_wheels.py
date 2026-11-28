@@ -1,18 +1,27 @@
 """Harness unit tests only: these fixtures are not installed product acceptance."""
+from base64 import b64encode
 import hashlib
+from http.client import IncompleteRead
 import importlib.util
 import io
 import json
+import sqlite3
+import ssl
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import AsyncMock, patch
+from urllib.error import HTTPError
+from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener
 import zipfile
 
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
+
+from python_model_installed_case import accept_installed_portable_model, wire
 
 def load(name, path):
     spec = importlib.util.spec_from_file_location(name, path)
@@ -24,10 +33,669 @@ ci = load('ci_python_wheels', SCRIPTS / 'ci-python-wheels.py')
 audit = load('ci_python_audit', SCRIPTS / 'fixtures/ci-python-installed-audit.py')
 
 
+class OrdinaryRuntimeHandoffTests(unittest.TestCase):
+    source = 'a' * 40
+    platform = 'darwin-arm64'
+
+    def original(self, home, platform=None, *, model=True):
+        root = home / 'prepared'
+        evidence = {'image/image-receipt.json': b'{"image":"fixture"}',
+                    'module-receipt.json': b'{"module":"fixture"}',
+                    'duckdb-physical.stdout': b'{"physical":"fixture"}'}
+        artifact = {'source_sha': self.source, 'platform': platform or self.platform,
+                    'compiled_image': {'runtime_allocation': 'platform'}}
+        if model:
+            artifact['model_crypto'] = {'file': 'fixture'}
+            evidence['model-crypto/producer.json'] = b'{"crypto":"fixture"}'
+        evidence['artifact/artifact.json'] = wire(artifact)
+        producer = {'scope': 'ordinary_platform_components_only', 'source_sha': self.source,
+                    'artifact': artifact, 'wheel_built': False, 'runtime_executed': False,
+                    'public_local_accepted': False}
+        for name, pin in {
+            'artifact/artifact.json': 'artifact_sha256', 'image/image-receipt.json': 'image_receipt_sha256',
+            'module-receipt.json': 'core_receipt_sha256', 'duckdb-physical.stdout': 'duckdb_receipt_sha256',
+            'model-crypto/producer.json': 'model_crypto_receipt_sha256',
+        }.items():
+            if name in evidence:
+                producer[pin] = hashlib.sha256(evidence[name]).hexdigest()
+        evidence['artifact/producer.json'] = wire(producer)
+        for name, raw in evidence.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+        return root, evidence
+
+    def test_selects_original_preparation_and_exact_receipts(self):
+        with tempfile.TemporaryDirectory() as path:
+            root, evidence = self.original(Path(path))
+            self.assertEqual(ci.select_normal_runtime(root, self.source, self.platform),
+                             (root.resolve() / 'artifact', evidence))
+            for source, platform in (('b' * 40, self.platform), (self.source, 'linux-x64')):
+                with self.assertRaisesRegex(ValueError, 'Foreign ordinary runtime'):
+                    ci.select_normal_runtime(root, source, platform)
+            (root / 'model-crypto/producer.json').write_bytes(b'{"crypto":"changed"}')
+            with self.assertRaisesRegex(ValueError, 'differs from its producer'):
+                ci.select_normal_runtime(root, self.source, self.platform)
+
+    def test_rejects_duplicate_receipt_field_and_indirect_path(self):
+        with tempfile.TemporaryDirectory() as path:
+            root, evidence = self.original(Path(path))
+            producer = root / 'artifact/producer.json'
+            producer.write_bytes(b'{"source_sha":"injected",' + evidence['artifact/producer.json'][1:])
+            with self.assertRaisesRegex(ValueError, 'Duplicate ordinary runtime'):
+                ci.select_normal_runtime(root, self.source, self.platform)
+            producer.write_bytes(evidence['artifact/producer.json'])
+            image = root / 'image/image-receipt.json'
+            other = image.with_name('other.json')
+            image.rename(other)
+            image.symlink_to(other)
+            with self.assertRaisesRegex(ValueError, 'indirect path'):
+                ci.select_normal_runtime(root, self.source, self.platform)
+
+    def test_prepare_only_stops_before_either_wheel_or_consumer(self):
+        with tempfile.TemporaryDirectory() as path:
+            destination = Path(path) / 'prepared'
+            def head(args, **kwargs):
+                return '' if 'status' in args else self.source
+            with patch.object(ci, 'normal_target', return_value=self.platform), \
+                    patch.object(ci.subprocess, 'check_output', side_effect=head), \
+                    patch.object(ci.subprocess, 'run', return_value=SimpleNamespace(stdout=b'', stderr=b'', returncode=0)) as steps, \
+                    patch.object(ci, 'prepare_normal_runtime', return_value=destination / 'artifact') as prepare:
+                ci.run_acceptance(destination, prepare_runtime_only=True)
+            self.assertEqual(steps.call_count, 2)
+            prepare.assert_called_once()
+            self.assertEqual(prepare.call_args.args[2:5], (destination.resolve(), self.source, self.platform))
+            self.assertFalse((destination / 'cohort').exists() or (destination / 'acceptance.json').exists())
+
+    def test_pair_only_uses_same_pinned_builder_and_both_originals(self):
+        with tempfile.TemporaryDirectory() as path:
+            home = Path(path)
+            darwin, _ = self.original(home / 'darwin')
+            linux, _ = self.original(home / 'linux', 'linux-x64')
+            preparations = {'linux-x64': linux, 'darwin-arm64': darwin}
+            destination = home / 'pair'
+            def head(args, **kwargs):
+                return '' if 'status' in args else self.source
+            with patch.object(ci, 'normal_target', return_value='linux-x64'), \
+                    patch.object(ci.subprocess, 'check_output', side_effect=head), \
+                    patch.object(ci.subprocess, 'run', return_value=SimpleNamespace(stdout=b'', stderr=b'', returncode=0)) as steps, \
+                    patch.object(ci, 'prepare_normal_runtime') as prepare:
+                for source, pair in (('b' * 40, preparations), (self.source, {'linux-x64': linux})):
+                    with self.assertRaisesRegex(ValueError, 'source|preparations'):
+                        ci.run_acceptance(destination, pair_runtime_preparations=pair, expected_source=source)
+                steps.assert_not_called()
+                ci.run_acceptance(destination, pair_runtime_preparations=preparations,
+                                  expected_source=self.source)
+            prepare.assert_not_called()
+            venv, dependencies, shared = [call.args[0] for call in steps.call_args_list]
+            self.assertEqual(venv[-1], str(destination.resolve() / 'builder'))
+            self.assertEqual(tuple(dependencies[-len(ci.BUILD_REQUIREMENTS):]), ci.BUILD_REQUIREMENTS)
+            self.assertEqual(shared[shared.index('--destination') + 1], str(destination.resolve() / 'shared'))
+            self.assertEqual(shared[-6:], ['--paired-runtime-artifact', 'darwin-arm64',
+                str(darwin.resolve() / 'artifact'), '--paired-runtime-artifact', 'linux-x64',
+                str(linux.resolve() / 'artifact')])
+            self.assertFalse((destination / 'acceptance.json').exists())
+
+    def test_pair_only_refuses_inconsistent_model_variants_before_setup(self):
+        with tempfile.TemporaryDirectory() as path:
+            home = Path(path)
+            darwin, _ = self.original(home / 'darwin')
+            linux, _ = self.original(home / 'linux', 'linux-x64', model=False)
+            def head(args, **kwargs):
+                return '' if 'status' in args else self.source
+            with patch.object(ci, 'normal_target', return_value='linux-x64'), \
+                    patch.object(ci.subprocess, 'check_output', side_effect=head), \
+                    patch.object(ci.subprocess, 'run') as steps, \
+                    self.assertRaisesRegex(ValueError, 'different Model variants'):
+                ci.run_acceptance(home / 'pair', expected_source=self.source,
+                                  pair_runtime_preparations={'linux-x64': linux, 'darwin-arm64': darwin})
+            steps.assert_not_called()
+
+    def test_consumer_selects_both_inputs_before_any_wheel_build(self):
+        with tempfile.TemporaryDirectory() as path:
+            home = Path(path)
+            root, evidence = self.original(home)
+            shared = home / 'shared'
+            shared.mkdir()
+            destination = home / 'acceptance'
+            def head(args, **kwargs):
+                return '' if 'status' in args else self.source
+            commands = []
+            def stop_at_wheels(args, **kwargs):
+                commands.append(args)
+                return SimpleNamespace(stdout=b'', stderr=b'', returncode=int('--shared-wheels' in args))
+            with patch.object(ci, 'normal_target', return_value=self.platform), \
+                    patch.object(ci.subprocess, 'check_output', side_effect=head), \
+                    patch.object(ci.subprocess, 'run', side_effect=stop_at_wheels), \
+                    patch.object(ci, 'select_release_version', return_value={'pythonVersion': '0.0.3'}), \
+                    patch.object(ci, 'prepare_normal_runtime') as prepare:
+                with self.assertRaisesRegex(ValueError, 'paired shared wheels'):
+                    ci.run_acceptance(destination, runtime_preparation=root)
+                with self.assertRaisesRegex(RuntimeError, 'wheels failed'):
+                    ci.run_acceptance(destination, runtime_preparation=root, shared_wheels=shared)
+            prepare.assert_not_called()
+            self.assertEqual(len(commands), 3)
+            self.assertEqual(commands[-1][commands[-1].index('--artifact-directory') + 1],
+                             str(root.resolve() / 'artifact'))
+            self.assertEqual(commands[-1][-2:], ['--shared-wheels', str(shared.resolve())])
+            self.assertFalse((destination / 'acceptance.json').exists())
+            for name, raw in evidence.items():
+                self.assertEqual((destination / name).read_bytes(), raw)
+
+
+class InstalledPortableModelHarness(unittest.TestCase):
+    version = '0.0.3'
+    image = 'ab' * 32
+
+    @staticmethod
+    def fixture_cid(raw):
+        return 'sha256:' + hashlib.sha256(raw).hexdigest()
+
+    def model_store_fixture(self, path, reference, task, *, reported_input=3, submission=None, fault=None):
+        # Test-only row carriers. The ordinary case reads production-encrypted originals.
+        cid = self.fixture_cid
+        definition = reference['runDefinitionCid']
+        store, scope, request, slot, fixed = (cid(role.encode()) for role in (
+            'store', 'scope', 'request', 'slot', 'fixed-wire'))
+
+        def sealed(body):
+            return {**body, 'self_cid': cid(wire(body))}
+
+        authority = sealed({'operation': 'infer', 'connection': 'operator', 'model_invocation_scope_cid': scope,
+                            'run_definition_cid': definition, 'model_task_cid': task, 'fixed_request_cid': fixed})
+        attempt = sealed({'version': 'actql-model-call-attempt/0.1', 'attempt': 1, 'provider_id': 'operator',
+                          'run_definition_cid': definition, 'model_task_cid': task, 'fixed_request_cid': fixed,
+                          'authority_evidence_cid': authority['self_cid'], 'slot_cid': slot})
+        call = {'model_call_slot_cid': slot, 'model_task_cid': task, 'fixed_request_cid': fixed}
+        common = {'run_definition_cid': definition, 'request_scope_cid': request, 'slot': 0}
+        entry = wire({**common, 'version': 'actql-native-model-call-original/0.1',
+                      **{key: wire(value).decode() for key, value in
+                         [('attempt', attempt), ('authority', authority), ('call', call)]}})
+        path.parent.mkdir(parents=True)
+        db = sqlite3.connect(path)
+        try:
+            db.executescript('CREATE TABLE core_bytes(key TEXT PRIMARY KEY, generation INTEGER, payload BLOB);'
+                             'CREATE TABLE actql_capacity(namespace TEXT, reservation_key TEXT, '
+                             'reserved_bytes INTEGER, reserved_objects INTEGER);')
+            def put(namespace, key, payload, generation=0):
+                db.execute('INSERT INTO core_bytes VALUES(?,?,?)',
+                           (f'namespace:{len(namespace)}:{namespace}:{key}', generation, payload))
+
+            def hold(phase, role, namespace):
+                holding = cid(wire({'attempt': 1, 'attempt_cid': attempt['self_cid'], 'phase': phase, 'role': role,
+                    'run_definition_cid': definition, 'scope_cid': scope, 'slot_cid': slot,
+                    'store_authority_cid': store, 'version': 'actql-model-scoped-private-holding/0.1'}))
+                envelope = {'version': 'actql-private-publication-evidence/0.1',
+                            'nonce': b64encode(bytes(12)).decode(), 'tag': b64encode(bytes(16)).decode(),
+                            'ciphertext': b64encode(role.encode()).decode()}
+                put(namespace, holding, wire(envelope))
+                return holding
+
+            actual = path.stat()
+            run_id = 'controlled-ordinary-python-model'
+            environment = {'host_policy_profile': {'capacity': {'max_model_request_bytes_per_item': 1000}}}
+            environment_cid = cid(wire(environment))
+            environment['evidence_bundle_cid'] = environment_cid
+            material = wire({'run_id': run_id, 'check_environment_cid': environment_cid,
+                             'check_environment': wire(environment).decode()})
+            caller = cid(b'caller')
+            request_wire = wire({'authority_scope_cid': reference['authorityScopeCid'],
+                                 'logical_request_scope_cid': request, 'caller_request_id': caller}).decode()
+            run = {'run_definition': wire({'run_definition_cid': definition, 'run_id': run_id}).decode(),
+                   'request': request_wire,
+                   'publication_binding': wire([reference['namespaceId'], store,
+                                                str(actual.st_dev), str(actual.st_ino)]).decode(),
+                   'task_materials_cid': cid(material)}
+            put('client_runs', definition, wire(run), 3 if submission is not None else 0)
+            put('client_task_run_materials', definition + ':0', material)
+            put('client_model_call_originals', attempt['self_cid'], entry, int(fault == 'loss-entry-generation'))
+            if submission is not None:
+                key = {'version': 'actql-run-state/0.1', 'run_id': run_id, 'status': 'needs_reconciliation',
+                       'control': {'cancellation_requested': False, 'physical_stop': 'confirmed', 'revision': 3},
+                       'next_action': {'kind': 'reconcile_run', 'reason': 'execution_unknown'},
+                       'result_available': False,
+                       'result_availability': {'answer': {'reason': 'not_published', 'state': 'unavailable'}}}
+                updated = '2026-11-25T15:13:03.950Z'
+                state = {**key, 'revision': 0, 'updated_at': updated,
+                         'result_availability': {'answer': {**key['result_availability']['answer'],
+                                                            'observed_at': updated}}}
+                retained = {'manifest': None, 'run_definition_cid': definition, 'state': wire(state).decode()}
+                put('client_submitted_intents', caller, wire({'phase': 'ready', 'reference': wire(submission).decode(),
+                    'run_admission': wire({'request': request_wire, 'run_definition_cid': definition}).decode(),
+                    'run_state_revision': 0, 'run_state_key': wire(key).decode(),
+                    'run_state_original': None if fault == 'loss-unsaved' else wire(retained).decode()}), 2)
+                db.execute('INSERT INTO actql_capacity VALUES(?,?,?,1)',
+                           ('client_model_call_originals', scope, len(entry)))
+                if fault == 'loss-raw':
+                    hold('entered', 'model_raw_response', 'client_model_raw_responses')
+                db.commit()
+                return state
+            hold('entered', 'model_raw_response', 'client_model_raw_responses')
+            accounting = {'version': 'actql-model-attempt-accounting/0.1',
+                          'attempt_cid': attempt['self_cid'], 'slot_cid': slot, 'cumulative_work': 356,
+                          'input_tokens': reported_input, 'output_tokens': 2,
+                          'cost_units': None, 'duration_ms': None, 'uncertain_wire_bytes': 66536,
+                          'reservation': {'tokens': 1024, 'cost_units': 0, 'duration_ms': 6000}}
+            identities = {'model_call_attempt': attempt['self_cid'], 'model_dispatch_authority': authority['self_cid'],
+                          'model_attempt_accounting': cid(wire(accounting))}
+            evidence = [{'role': role, 'cid': identities.get(role, cid(role.encode())),
+                         'holding_cid': hold('settled', role, 'client_model_evidence')}
+                        for role in ('model_call_attempt', 'model_attempt_accounting', 'model_attempt_outcome',
+                                     'model_dispatch_authority', 'model_slot_capture', 'model_invocation_evidence',
+                                     'model_capture_bundle')]
+            terminal = wire({**common, 'version': 'actql-native-model-call-settlement-original/0.1',
+                'entry_digest': cid(entry), 'attempt_cid': attempt['self_cid'], 'scope_cid': scope,
+                'store_binding': store, 'evidence': evidence})
+            put('client_model_call_settlements', attempt['self_cid'], terminal)
+            db.execute('INSERT INTO actql_capacity VALUES(?,?,?,2)',
+                       ('client_model_call_originals', scope, len(entry) + len(terminal)))
+            db.commit()
+        finally:
+            db.close()
+
+    def observed_run(self, root: Path, child_fault=None, *, source=False):
+        pids = iter(range(101, 109))
+        seen = []
+        saved_loss_state = {}
+        consumer = root / 'consumer/bin/python'
+        env = {'PATH': str(consumer.parent)}
+
+        def run(name, args, *, cwd, env: dict, timeout):
+            self.assertEqual(args[:5], [consumer, '-I', '-B', root / 'ci-python-installed-run.py',
+                                        root / 'python-product-installed.py'])
+            flags = dict(zip(args[5::2], args[6::2]))
+            work = flags['--model-fixture']
+            facade, phase = flags['--facade'], flags['--phase']
+            cold = phase == 'resume'
+            loss = flags['--case'] == 'portable-model-loss'
+            self.assertEqual(name, f'{facade}-model-{"loss-" if loss else ""}{phase}')
+            self.assertEqual((cwd, flags['--receipt']), (work / 'project', work / 'original.json'))
+            self.assertIn(flags['--case'], ('portable-model', 'portable-model-loss'))
+            self.assertEqual(timeout, 180)
+            self.assertEqual(env, {'PATH': str(consumer.parent)})
+            self.assertEqual((work / 'program.json').exists(), not cold)
+            case = json.loads((work / 'case.json').read_bytes())
+            deployment = work / 'deployment'
+            provider = json.loads((deployment / 'provider.json').read_bytes())
+            profile = json.loads((deployment / 'response-profile.json').read_bytes())
+            selected = json.loads((deployment / 'selection.json').read_bytes())
+            trust = deployment / selected['tls_ca']['file']
+            credential = deployment / selected['credential_file']
+            endpoint = provider['endpoint']
+            self.assertEqual(endpoint, profile['operation']['endpoint'])
+            self.assertEqual('sha256:' + self.image, profile['adapter']['build_artifact_cid'])
+            seal = 'sha256:' + hashlib.sha256(wire({key: value for key, value in profile.items()
+                                           if key != 'self_cid'})).hexdigest()
+            self.assertEqual([profile['self_cid'], selected['profile_cid'], provider['response_profile_cid']],
+                             [seal] * 3)
+            self.assertEqual(selected['tls_ca']['sha256'], 'sha256:' + hashlib.sha256(trust.read_bytes()).hexdigest())
+            self.assertEqual(credential.stat().st_mode & 0o777, 0o600)
+            if source and not loss:
+                self.assertEqual(case['source_file'], 'small.csv')
+                self.assertEqual((cwd / 'data/small.csv').read_bytes(), b'id,name\noriginal,Example\n')
+                descriptor = deployment / selected['source_catalog']['file']
+                descriptor_bytes = descriptor.read_bytes()
+                self.assertEqual(selected['source_catalog']['sha256'], self.fixture_cid(descriptor_bytes))
+                declaration = json.loads(descriptor_bytes)
+                self.assertEqual(declaration['root'], str(cwd / 'data'))
+                self.assertEqual(declaration['data_classification'], 'internal')
+                self.assertEqual(declaration['connectors_sha256'],
+                                 self.fixture_cid((cwd / 'connectors.json').read_bytes()))
+            if not cold or child_fault == ('loss-resend' if loss else 'resend'):
+                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                context.load_verify_locations(cafile=trust)
+                input_body = '{"name":"Example"}' if source and not loss else '{}'
+                request = Request(endpoint, data=wire({'model': 'deployed-chat', 'stream': False, 'n': 1,
+                    'messages': [{'role': 'system', 'content': ''}, {'role': 'user', 'content': input_body}]}),
+                    headers={'Authorization': 'Bearer ' + credential.read_text()})
+                try:
+                    opener = build_opener(ProxyHandler({}), HTTPSHandler(context=context))
+                    with opener.open(request, timeout=2) as response:
+                        if loss:
+                            with self.assertRaises(IncompleteRead):
+                                response.read()
+                        else:
+                            self.assertEqual(json.load(response)['usage'], {'prompt_tokens': 3, 'completion_tokens': 2})
+                except HTTPError as error:
+                    self.assertEqual((child_fault, cold, error.code), ('loss-resend' if loss else 'resend', True, 400))
+                    error.close()
+            seen.append((facade, phase, endpoint))
+            pid = next(pids)
+            ref = {'runDefinitionCid': self.fixture_cid((facade + ('-loss' if loss else '')).encode()),
+                   'authorityScopeCid': self.fixture_cid(b'authority'), 'namespaceId': 'local'}
+            store = cwd / 'state/state/client.sqlite3'
+            if loss:
+                submission = {'nonce': 'response-loss-test'}
+                if not cold:
+                    saved_loss_state[facade] = self.model_store_fixture(
+                        store, ref, profile['task']['contract_cid'], submission=submission, fault=child_fault)
+                state = dict(saved_loss_state[facade]) if cold else None
+                if cold and child_fault == 'loss-reprojected':
+                    state['revision'] = 1
+                return json.dumps({'mode': 'local', 'version': self.version, 'case': 'portable-model-loss',
+                    'facade': facade, 'phase': phase, 'pid': pid, 'check_verdict': None if cold else 'verified',
+                    'first_close': True, 'cold_original_lookup': cold, 'python_check_events': None if cold else [],
+                    'python_cold_events': [] if cold else None, 'run': ref, 'state': state,
+                    'submission_cid': self.fixture_cid(wire(submission)),
+                    'worker_stopped_without_status': None if cold else child_fault != 'loss-subscriber'})
+            if not cold:
+                self.model_store_fixture(store, ref, profile['task']['contract_cid'],
+                    reported_input={'usage-zero': 0, 'usage-absent': None}.get(child_fault, 3))
+            elif child_fault in ('ciphertext', 'generation', 'missing-raw', 'capacity', 'foreign-material', 'material-gap'):
+                db = sqlite3.connect(store)
+                try:
+                    raw = 'namespace:26:client_model_raw_responses:%'
+                    match child_fault:
+                        case 'ciphertext':
+                            body, = db.execute('SELECT payload FROM core_bytes WHERE key LIKE ?', (raw,)).fetchone()
+                            envelope = json.loads(body)
+                            envelope['ciphertext'] = b64encode(b'changed after warm').decode()
+                            db.execute('UPDATE core_bytes SET payload=? WHERE key LIKE ?', (wire(envelope), raw))
+                        case 'generation':
+                            db.execute('UPDATE core_bytes SET generation=1 WHERE key LIKE ?', (raw,))
+                        case 'missing-raw':
+                            db.execute('DELETE FROM core_bytes WHERE key LIKE ?', (raw,))
+                        case 'capacity':
+                            db.execute('UPDATE actql_capacity SET reserved_objects=1')
+                        case 'foreign-material':
+                            db.execute('UPDATE core_bytes SET payload=CAST(? AS BLOB) WHERE key LIKE ?',
+                                       ('{}', 'namespace:25:client_task_run_materials:%'))
+                        case 'material-gap':
+                            db.execute('UPDATE core_bytes SET key=substr(key,1,length(key)-1)||1 WHERE key LIKE ?',
+                                       ('namespace:25:client_task_run_materials:%',))
+                    db.commit()
+                finally:
+                    db.close()
+            record = {'mode': 'local', 'version': self.version, 'case': 'portable-model', 'facade': facade,
+                      'phase': phase, 'pid': pid, 'check_verdict': None if cold else 'verified',
+                      'first_close': True, 'original_saved_first': cold,
+                      'python_check_events': None if cold else [],
+                      'python_cold_events': [] if cold else None,
+                      'rows_sha256': hashlib.sha256(wire(case['rows'])).hexdigest(),
+                      'run': ref,
+                      'delivery': {'attempt_id': f'attempt-{pid}', 'bytes': 12, 'sha256': 'e' * 64,
+                                   'artifact_cid': 'sha256:' + 'a' * 64, 'manifest_cid': 'sha256:' + 'b' * 64,
+                                   'receipt_cid': 'sha256:' + 'c' * 64}}
+            if source and not loss:
+                record.update(python_source_opens=0 if cold else 1, python_source_unchanged=True)
+                if cold and child_fault == 'source_reopen':
+                    record['python_source_opens'] = 1
+                if cold and child_fault == 'source_modified':
+                    (cwd / 'data/small.csv').write_bytes(b'id,name\noriginal,Changed\n')
+            if not cold and child_fault == 'check-egress':
+                record['python_check_events'] = ['socket.connect']
+            if not cold and child_fault == 'missing-check':
+                record.pop('python_check_events')
+            if cold and child_fault == 'missing-cold-audit':
+                record.pop('python_cold_events')
+            if cold and child_fault == 'foreign':
+                record['run']['runDefinitionCid'] = 'sha256:' + 'f' * 64
+            if cold and child_fault == 'same-process':
+                record['pid'] -= 1
+            return json.dumps(record)
+
+        return accept_installed_portable_model(
+            run, consumer, root, self.version, env, self.image, source=source), seen
+
+    def test_original_typed_source_in_both_warm_requests_and_no_cold_open(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            result, seen = self.observed_run(Path(scratch), source=True)
+            self.assertTrue(result['source_backed'])
+            self.assertEqual(len(seen), 8)  # Warm/cold success and loss on both facades.
+            for lane in result['facades']:
+                self.assertEqual([phase['python_source_opens'] for phase in lane['phases']], [1, 0])
+                self.assertEqual(lane['warm_peer']['posts'], 1)
+                self.assertTrue(lane['cold_peer_unchanged'])
+        for fault in ('source_reopen', 'source_modified'):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as scratch:
+                with self.assertRaisesRegex(ValueError, 'original Source'):
+                    self.observed_run(Path(scratch), fault, source=True)
+
+    def test_source_audit_observes_actual_posix_open_and_refuses_check_or_cold_open(self):
+        command = r'''
+import os
+from pathlib import Path
+import runpy
+import sys
+audit_type = runpy.run_path(sys.argv[1])['_ModelEgressAudit']
+mode = sys.argv[2]
+source = Path('small.csv').absolute()
+audit = audit_type('provider.key', 'fixture.pem', mode == 'cold', source=source)
+if mode == 'warm':
+    audit.begin_run()
+    os.close(os.open(source.name, os.O_RDONLY))
+    assert audit.observation()['python_source_opens'] == 1
+    try:
+        os.open(source.name, os.O_RDONLY)
+    except AssertionError:
+        assert audit.source_opens == 2
+    else:
+        raise AssertionError('Second Source open was admitted')
+else:
+    try:
+        os.open(source, os.O_RDONLY)
+    except AssertionError:
+        assert audit.source_opens == 1
+    else:
+        raise AssertionError('Source opened before dispatch or during Saved')
+'''
+        child = SCRIPTS / 'fixtures/python-product-installed.py'
+        with tempfile.TemporaryDirectory() as scratch:
+            (Path(scratch) / 'small.csv').write_bytes(b'id,name\noriginal,Example\n')
+            for mode in ('warm', 'check', 'cold'):
+                with self.subTest(mode=mode):
+                    direct = subprocess.run(
+                        [sys.executable, '-I', '-B', '-c', command, child, mode],
+                        cwd=scratch, capture_output=True, text=True, timeout=5)
+                    self.assertEqual(direct.returncode, 0, direct.stderr)
+
+    def test_own_protected_roots_and_separate_warm_cold_process_receipts(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            result, seen = self.observed_run(Path(scratch))
+            self.assertEqual([values[:2] for values in seen], [
+                ('sync', 'initial'), ('sync', 'resume'), ('async', 'initial'), ('async', 'resume'),
+                ('async', 'initial'), ('async', 'resume'), ('sync', 'initial'), ('sync', 'resume')])
+            for key, name in (('response_loss', 'async'), ('sync_response_loss', 'sync')):
+                loss = result[key]
+                self.assertEqual((loss['warm_peer']['posts'], loss['warm_peer']['partial_responses']), (1, 1))
+                self.assertTrue(loss['cold_peer_unchanged'])
+                self.assertTrue(loss['cold_original_unchanged'])
+                self.assertEqual(loss['original_before_cold']['journal_charge']['objects'], 1)
+                self.assertEqual([phase['facade'] for phase in loss['phases']], [name, name])
+                self.assertTrue(all('submission' not in phase for phase in loss['phases']))
+            self.assertNotEqual(result['response_loss']['phases'][0]['run'],
+                                result['sync_response_loss']['phases'][0]['run'])
+            for facade in result['facades']:
+                self.assertTrue(facade['cold_peer_unchanged'])
+                self.assertEqual(facade['warm_peer']['posts'], 1)
+                self.assertTrue(facade['cold_model_holdings_unchanged'])
+                [attempt] = facade['model_holdings']['attempts']
+                self.assertEqual(attempt['journal_charge']['objects'], 2)
+                self.assertIn('model_attempt_accounting', attempt['evidence'])
+                body = attempt['matched_accounting_preimage']
+                self.assertEqual((body['input_tokens'], body['output_tokens']), (3, 2))
+                self.assertEqual(attempt['evidence']['model_attempt_accounting']['evidence_cid'],
+                                 self.fixture_cid(wire(body)))
+
+    def test_loss_rejects_unsaved_or_reprojected_state_wrong_entry_and_cold_resend(self):
+        for fault, reason in [('loss-unsaved', 'did not durably publish'),
+                              ('loss-entry-generation', 'changed original Model Store record'),
+                              ('loss-raw', 'inventory for client_model_raw_responses'),
+                              ('loss-reprojected', 'differs from the durably stopped original'),
+                              ('loss-subscriber', 'Incomplete installed Portable Model loss consumer'),
+                              ('loss-resend', 'Cold reconciliation reached')]:
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as scratch:
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.observed_run(Path(scratch), fault)
+
+    def test_requires_distinct_check_and_cold_egress_observations(self):
+        for fault in ('check-egress', 'missing-check', 'missing-cold-audit'):
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as scratch:
+                with self.assertRaisesRegex(ValueError, 'Incomplete installed Portable Model consumer'):
+                    self.observed_run(Path(scratch), fault)
+
+    def test_model_egress_audit_guards_startup_and_all_of_cold_saved(self):
+        # Python audit hooks cannot be removed. Use one isolated process per
+        # case, with actual file-open/DNS entry and no network exchange.
+        run_audit = r'''
+import os
+from pathlib import Path
+import runpy
+import socket
+import sys
+
+audit_type = runpy.run_path(sys.argv[1])['_ModelEgressAudit']
+mode, target = sys.argv[2:4]
+audit = audit_type('provider.key', 'fixture.pem', mode == 'cold')
+assert Path('selection.json').read_bytes() == b'policy'
+if target == 'clean':
+    if mode == 'warm':
+        try:
+            audit.observation()
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('Check reported complete before the Run cut')
+        audit.begin_run()
+        assert Path('provider.key').read_bytes() == b'fixture'
+    else:
+        try:
+            audit.begin_run()
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError('Cold observation opened a physical Run')
+    expected = {'python_check_events': [] if mode == 'warm' else None,
+                'python_cold_events': [] if mode == 'cold' else None}
+    assert audit.observation() == expected
+else:
+    try:
+        if target == 'dns':
+            socket.getaddrinfo('127.0.0.1', 443, socket.AF_INET, socket.SOCK_STREAM)
+        else:
+            os.close(os.open({'credential': 'provider.key', 'trust': 'fixture.pem'}[target], os.O_RDONLY))
+    except AssertionError:
+        assert audit.events == ['socket.getaddrinfo' if target == 'dns' else target]
+    else:
+        raise AssertionError('Unapproved startup or Saved operation was admitted')
+    try:
+        if mode == 'warm':
+            audit.begin_run()
+        else:
+            audit.observation()
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError('Suppressed audit failure disappeared from the observation')
+'''
+        child = SCRIPTS / 'fixtures/python-product-installed.py'
+        with tempfile.TemporaryDirectory() as scratch:
+            for name, body in [('selection.json', b'policy'), ('provider.key', b'fixture'), ('fixture.pem', b'fixture')]:
+                (Path(scratch) / name).write_bytes(body)
+            for mode in ('warm', 'cold'):
+                for target in ('clean', 'credential', 'trust', 'dns'):
+                    with self.subTest(mode=mode, target=target):
+                        direct = subprocess.run(
+                            [sys.executable, '-I', '-B', '-c', run_audit, child, mode, target],
+                            cwd=scratch, capture_output=True, text=True, timeout=5,
+                        )
+                        self.assertEqual(direct.returncode, 0, direct.stderr)
+
+    def test_reject_foreign_identity_same_process_and_real_cold_resend(self):
+        for injected, reason in [('foreign', 'reuse its original Run'),
+                                 ('same-process', 'reuse its original Run'),
+                                 ('resend', 'Cold Saved reached')]:
+            with self.subTest(injected=injected), tempfile.TemporaryDirectory() as scratch:
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.observed_run(Path(scratch), injected)
+
+
+    def test_reject_cold_ciphertext_change_later_generation_missing_raw_and_wrong_charge(self):
+        for injected, reason in [('ciphertext', 'changed the original Model Store holdings'),
+                                 ('generation', 'changed original Model Store record'),
+                                 ('missing-raw', 'inventory for client_model_raw_responses'),
+                                 ('capacity', 'charge disagrees')]:
+            with self.subTest(injected=injected), tempfile.TemporaryDirectory() as scratch:
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.observed_run(Path(scratch), injected)
+
+
+    def test_usage_values_and_exact_retained_check_material_are_required(self):
+        for injected, reason in [('usage-zero', 'accounting CID does not match'),
+                                 ('usage-absent', 'accounting CID does not match'),
+                                 ('foreign-material', 'Changed original Run task material digest'),
+                                 ('material-gap', 'foreign Run task material chunks')]:
+            with self.subTest(injected=injected), tempfile.TemporaryDirectory() as scratch:
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.observed_run(Path(scratch), injected)
+
+
+class InstalledCsvProjectTests(unittest.TestCase):
+    def exercise(self, destination, fault=None):
+        source = '9' * 40
+        cohort = destination / 'cohort'
+        consumer = destination / 'consumer/bin/python'
+        environment = {'PATH': str(consumer.parent)}
+        calls = []
+
+        def run(name, command, *, cwd, env, timeout):
+            self.assertEqual(command[:4], [consumer, '-I', '-B', destination / 'ci-python-installed-run.py'])
+            self.assertEqual(env, environment)
+            self.assertEqual(timeout, 180)
+            options = dict(zip(command[5::2], command[6::2], strict=True))
+            original = cwd.parent / 'initial.json'
+            selected = options.get('--command')
+            phase = options['--phase']
+            self.assertTrue((cwd / 'actql.config.json').is_file())
+            self.assertEqual(options['--cohort'], cohort / 'cohort.json')
+            observed = {'pid': len(calls) + 1, 'first_close': True, 'phase': phase,
+                        'case': options['--case'], 'facade': options['--facade'], 'command': selected,
+                        'source': {'source_sha': options['--source']}}
+            if phase == 'saved':
+                self.assertEqual(options['--prior'], original)
+                prior = json.loads(original.read_bytes())
+                self.assertEqual(prior['phase'], 'initial')
+                self.assertEqual(prior['command'], selected)
+                if fault == 'same-process':
+                    observed['pid'] = prior['pid']
+            else:
+                self.assertFalse(original.exists())
+            if fault == 'close':
+                observed['first_close'] = False
+            if fault == 'foreign-source':
+                observed['source']['source_sha'] = '5' * 40
+            calls.append((options['--facade'], options['--case'], selected, phase))
+            return wire(observed)
+
+        accepted = ci.accept_installed_csv_projects(run, consumer, destination, cohort, source, environment)
+        return calls, accepted
+
+    def test_each_facade_uses_original_csv_projects_and_distinct_saved_processes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            calls, accepted = self.exercise(Path(temporary))
+        self.assertEqual(len(calls), 14)
+        wanted = [('original-one-table', 'small.sql', 'initial'),
+                  ('original-one-table', 'small.sql', 'saved'),
+                  ('two-tables', 'small.sql', 'initial'), ('two-tables', 'small.sql', 'saved'),
+                  ('two-tables', 'other.sql', 'initial'), ('two-tables', 'other.sql', 'saved'),
+                  ('invalid-second-declaration', None, 'refuse')]
+        self.assertEqual(calls, [(facade, *selection) for facade in ('sync', 'async') for selection in wanted])
+        self.assertEqual(len(accepted['phases']), len(calls))
+
+    def test_csv_harness_refuses_cleanup_loss_foreign_source_or_same_process(self):
+        for fault, message in [('close', 'Missing first close'), ('foreign-source', 'Missing first close'),
+                               ('same-process', 'distinct original processes')]:
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as temporary:
+                with self.assertRaisesRegex(ValueError, message):
+                    self.exercise(Path(temporary), fault)
+
+
 class InstalledNamedResultTests(unittest.TestCase):
-    def observed(self, phase):
+    def observed(self, facade, phase):
         return {'mode': 'local', 'version': '0.0.0.dev0', 'phase': phase, 'case': 'named-results',
-                'pid': 41 if phase == 'initial' else 42, 'results': ['before_change', 'after_change'],
+                'facade': facade, 'named_submission': True, 'same_name_reused': phase == 'initial',
+                'changed_intent_refused': phase == 'initial',
+                'pid': 41 + 2 * int(facade == 'async') + int(phase == 'resume'), 'results': ['before_change', 'after_change'],
                 'submitted': phase == 'initial', 'original_run_reused': phase == 'resume',
                 'first_close': True}
 
@@ -39,31 +707,33 @@ class InstalledNamedResultTests(unittest.TestCase):
             destination = Path(tmp)
             def run(name, args, **options):
                 flags = dict(zip(args[5::2], args[6::2]))
-                calls.append(flags['--phase'])
+                calls.append((flags['--facade'], flags['--phase']))
                 self.assertEqual(args[:3], [consumer, '-I', '-B'])
                 self.assertEqual(args[3:5], [destination / 'ci-python-installed-run.py',
                                              destination / 'python-product-installed.py'])
                 self.assertEqual((flags['--mode'], flags['--facade'], flags['--case']),
-                                 ('local', 'sync', 'named-results'))
+                                 ('local', flags['--facade'], 'named-results'))
                 self.assertEqual(flags['--named-results-fixture'].read_bytes(),
                                  (ci.ROOT / 'scripts/fixtures/named-result-publication.json').read_bytes())
                 self.assertEqual(flags['--receipt'], options['cwd'] / 'original.json')
-                self.assertEqual(options['cwd'], destination / 'named-results')
+                self.assertEqual(options['cwd'], destination / 'named-results' / flags['--facade'])
                 self.assertIs(options['env'], env)
-                return json.dumps(self.observed(flags['--phase']))
+                return json.dumps(self.observed(flags['--facade'], flags['--phase']))
             ci.accept_installed_named_results(run, consumer, destination, '0.0.0.dev0', env)
-        self.assertEqual(calls, ['initial', 'resume'])
+        self.assertEqual(calls, [('sync', 'initial'), ('sync', 'resume'),
+                                 ('async', 'initial'), ('async', 'resume')])
 
     def test_named_results_refuse_missing_outcomes_close_failure_or_resubmission(self):
         for changed in ({'results': ['before_change', 'before_change']},
                         {'first_close': False}, {'submitted': True},
-                        {'original_run_reused': False}, {'pid': 41}):
+                        {'original_run_reused': False}, {'pid': 41},
+                        {'named_submission': False}, {'same_name_reused': True}, {'facade': 'async'}):
             calls = []
             with self.subTest(changed=changed), tempfile.TemporaryDirectory() as tmp:
                 def run(name, args, **options):
                     phase = args[args.index('--phase') + 1]
                     calls.append(phase)
-                    report = self.observed(phase)
+                    report = self.observed('sync', phase)
                     return json.dumps(report if phase == 'initial' else report | changed)
                 with self.assertRaisesRegex(ValueError, 'original Saved'):
                     ci.accept_installed_named_results(run, Path('/python'), Path(tmp), '0.0.0.dev0', {})
@@ -81,7 +751,7 @@ class InstalledSavedControlTests(unittest.TestCase):
             dict(pid=41, first_close=True, rows=1, core_cancellation=[{'phase': 'core'}],
                  hash_cancellation=[{'phase': 'hash'}], successful_reads=[{'core_turns': 2}] * 2),
             dict(pid=42, phase='warm', first_close=True),
-            dict(pid=43, passed=True, cases=1, originalTrapCode=12, firstClose=True,
+            dict(pid=43, passed=True, cases=1, originalTrapCode=11, outOfFuelTrapCode=11, firstClose=True,
                  normalFenced=True, sameStore=True, newSubmission=False, installedSourceOverlay=False,
                  injections=[{'before': 10, 'after': 0, 'actualCurrentResult': 5,
                               'ticket': 7, 'operation': 5}]),
@@ -123,7 +793,9 @@ class InstalledSavedControlTests(unittest.TestCase):
                 (0, {'module': '0' * 64}), (0, {'hash_cancellation': []}),
                 (0, {'successful_reads': [{'core_turns': 2}]}),
                 (1, {'pid': 41}), (1, {'first_close': False}),
-                (2, {'originalTrapCode': 0}), (2, {'sameStore': False}),
+                (2, {'originalTrapCode': 0}), (2, {'originalTrapCode': 12}), (2, {'outOfFuelTrapCode': None}),
+                (2, {'outOfFuelTrapCode': 12}), (2, {'outOfFuelTrapCode': True}),
+                (2, {'sameStore': False}),
                 (2, {'injections': []}), (2, {'firstClose': False}),
                 (2, {'injections': [{'before': 10, 'after': 0, 'actualCurrentResult': 0,
                                      'ticket': 7, 'operation': 5}]}),
@@ -390,6 +1062,51 @@ class RepeatedHostAcceptanceTests(unittest.TestCase):
         self.assertEqual(calls, ['installed-ordinary-repeated-warm'])
 
 
+class OrderedPythonCompatibilityTests(unittest.TestCase):
+    interpreter = Path('/ordinary/consumer/bin/python')
+
+    def records(self):
+        def command(pid):
+            return {'command': str(self.interpreter), 'pid': pid, 'code': 0, 'closeObservationAcknowledged': True}
+        return [{'phase': 'ordered', 'command': command(41)}, {'phase': 'saved', 'command': command(42)},
+                {'phase': 'accepted', 'platform': 'linux-x64', 'runs': 13, 'orderedPid': 41, 'savedPid': 42}]
+
+    def select(self, records):
+        calls = []
+        def run(name, args, **options):
+            calls.append((name, args, options))
+            return ('\n'.join(json.dumps(row) for row in records) + '\n').encode()
+        with tempfile.TemporaryDirectory() as tmp, patch.object(ci.shutil, 'which', return_value='/normal/node'):
+            root = Path(tmp)
+            home = {'PATH': '/ordinary/consumer/bin'}
+            accepted = ci.accept_installed_ordered_python(run, self.interpreter, root, 'linux-x64', home)
+            work = root / 'ordinary-python-ordered'
+            self.assertEqual(calls, [('installed-ordinary-python-ordered', [
+                '/normal/node', SCRIPTS / 'ordinary-python-ordered-parity.mjs', self.interpreter, work, 'linux-x64',
+            ], {'cwd': work, 'env': home, 'timeout': 900})])
+        return accepted
+
+    def test_uses_the_same_installed_interpreter_and_both_first_closes(self):
+        records = self.records()
+        self.assertEqual(self.select(records), records[-1])
+
+    def test_unrun_or_foreign_ordered_delivery_cannot_pass(self):
+        records = self.records()
+        with self.assertRaisesRegex(ValueError, 'Incomplete'):
+            self.select(records[1:])
+        for field, change in [('command', '/usr/bin/python3'), ('pid', 41),
+                              ('closeObservationAcknowledged', False), ('code', 1)]:
+            records = self.records()
+            records[1]['command'][field] = change
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'Foreign'):
+                self.select(records)
+        for field, change in [('platform', 'darwin-arm64'), ('runs', 10), ('savedPid', 41)]:
+            records = self.records()
+            records[-1][field] = change
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'Foreign'):
+                self.select(records)
+
+
 class OrchestrationTests(unittest.TestCase):
     def test_transient_release_rejection_retries_same_pinned_get(self):
         error = ci.urllib.error.HTTPError(ci.DUCKDB_URL, 504, 'gateway', {}, None)
@@ -555,7 +1272,7 @@ class LinuxOrchestrationTests(unittest.TestCase):
                     receipt.write_text(json.dumps({'module': str(builds[0]), 'source_sha': source,
                         'module_sha256': hashlib.sha256(builds[0].read_bytes()).hexdigest()}))
                 return subprocess.CompletedProcess(args, 0, stdout=b'{}', stderr=b'')
-            def component(run, python, module, receipt, selected):
+            def component(run, python, module, receipt, selected, *, platform_artifact=None):
                 self.assertEqual(builds, [module])
                 self.assertEqual(Path(json.loads(receipt.read_text())['module']), module)
                 observed.append(module)
@@ -612,6 +1329,8 @@ class SubmissionObservationTests(unittest.TestCase):
             destination = (Path(tmp) / 'acceptance').resolve()
             builds = []
             reached = []
+            compiled = []
+            staged = []
             source = 'a' * 40
             def git(args, **options):
                 return b'' if 'status' in args else source + '\n'
@@ -630,15 +1349,25 @@ class SubmissionObservationTests(unittest.TestCase):
                     receipt.write_text(json.dumps({'module': str(builds[0]), 'source_sha': source,
                         'module_sha256': hashlib.sha256(builds[0].read_bytes()).hexdigest()}))
                 if '--compile-platform' in args:
-                    self.fail('Image construction bypassed the original component')
+                    self.assertEqual(reached, builds)
+                    selected = Path(args[args.index('--core-receipt') + 1])
+                    self.assertEqual(Path(json.loads(selected.read_text())['module']), builds[0])
+                    compiled.append(Path(args[args.index('--destination') + 1]))
+                if '--platform-runtime' in args:
+                    self.assertEqual(len(compiled), 1)
+                    self.assertEqual(Path(args[args.index('--image-receipt') + 1]),
+                                     compiled[0] / 'image-receipt.json')
+                    staged.append(Path(args[args.index('--destination') + 1]))
                 return subprocess.CompletedProcess(args, 0, stdout=b'{}', stderr=b'')
-            def component(run, python, module, receipt, selected):
+            def component(run, python, module, receipt, selected, *, platform_artifact=None):
                 self.assertEqual(builds, [module])
                 self.assertEqual(Path(json.loads(receipt.read_text())['module']), module)
                 self.assertEqual(python, destination / 'builder/bin/python')
                 self.assertEqual(selected, destination)
                 reached.append(module)
-            def lifecycle(run, python, module, receipt, selected):
+            def lifecycle(run, python, module, receipt, selected, *, platform_artifact):
+                self.assertEqual(staged, [destination / 'artifact'])
+                self.assertEqual(platform_artifact, staged[0])
                 self.assertEqual(reached, [module])
                 component(run, python, module, receipt, selected)
                 raise ReachedOriginalComponent()
@@ -824,8 +1553,19 @@ class CurrentHistoryTraceTests(unittest.TestCase):
 
 
 class PublicLifecycleTests(unittest.TestCase):
+    image_digest = 'c' * 64
+
     def original(self, path):
-        return SubmissionObservationTests().original(path)[:2]
+        module, receipt, _ = SubmissionObservationTests().original(path)
+        artifact = path / 'artifact'
+        artifact.mkdir()
+        original = json.loads(receipt.read_bytes())
+        (artifact / 'artifact.json').write_text(json.dumps({
+            'source_sha': original['source_sha'],
+            'module': {'sha256': original['module_sha256']},
+            'compiled_image': {'runtime_allocation': 'platform', 'sha256': self.image_digest},
+        }))
+        return module, receipt
 
     def observation(self, name, module):
         cases = {
@@ -840,13 +1580,15 @@ class PublicLifecycleTests(unittest.TestCase):
         }
         return {'success': True, 'actualCases': 1, 'case': cases[name],
                 'module_sha256': hashlib.sha256(module.read_bytes()).hexdigest(),
-                **({'atomic_precommit_writer_exclusion': True} if name in ('succeeded-result-saved', 'publication-unknown', 'task-drive-mixed') else {}),
+                **({'atomic_precommit_writer_exclusion': True,
+                    'image_sha256': self.image_digest, 'first_core_closed': True,
+                    'saved_first_core_closed': True} if name in ('succeeded-result-saved', 'publication-unknown', 'task-drive-mixed') else {}),
                 **({'core_owned_lifecycle': True, 'initial_quantum': 1, 'initial_drives_per_task': 8, 'continuation_quantum': 256, 'original_tasks': 2, 'actual_initial_quantum_drives': 16, 'observed_phase_transitions': 2, 'monotonic_progress': True} if name == 'task-drive-mixed' else {}),
                 **({'commit_reply_loss_readback_without_reexecution': True} if name == 'publication-unknown' else {})}
 
     def test_same_original_controls_without_build_or_installed_claim(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)
+            path = Path(tmp).resolve()
             module, receipt = self.original(path)
             calls = []
             def run(name, args, **options):
@@ -855,16 +1597,19 @@ class PublicLifecycleTests(unittest.TestCase):
                 self.assertEqual(options, {'timeout': 120 if name == 'cancellation-drive-start' else 300})
                 calls.append((name, args))
                 return json.dumps(self.observation(name, module)).encode()
-            result = ci.accept_public_lifecycle(run, Path('/selected/python'), module, receipt, path)
+            result = ci.accept_public_lifecycle(run, Path('/selected/python'), module, receipt, path, platform_artifact=path / 'artifact')
             self.assertEqual([name for name, _ in calls],
                 ['cancellation-saved', 'cancellation-precommit', 'state-unknown', 'state-partial-close',
                  'succeeded-result-saved', 'publication-unknown', 'task-drive-mixed', 'cancellation-drive-start'])
             self.assertEqual([args[-1] for _, args in calls[:4]],
                 ['process-state', 'precommit-state', 'fault-state', 'partial-state'])
             by_name = dict(calls)
-            self.assertEqual(by_name['publication-unknown'][-1], 'commit-unknown')
-            self.assertEqual(by_name['task-drive-mixed'][-1], 'task-drive-mixed')
+            self.assertEqual(by_name['publication-unknown'][4], 'commit-unknown')
+            self.assertEqual(by_name['task-drive-mixed'][4], 'task-drive-mixed')
             self.assertEqual(by_name['cancellation-drive-start'][-1], 'drive-start-state')
+            for name in ('succeeded-result-saved', 'publication-unknown', 'task-drive-mixed'):
+                self.assertEqual(by_name[name][-2:], ['--platform-artifact', path / 'artifact'])
+            self.assertEqual(result['image_sha256'], self.image_digest)
             self.assertEqual(len({args[3] for _, args in calls}), len(calls))
             self.assertFalse(result['installed_wheel_acceptance'])
             self.assertFalse(result['normal_image_acceptance'])
@@ -875,42 +1620,62 @@ class PublicLifecycleTests(unittest.TestCase):
         for change in ({'success': False}, {'actualCases': 0}, {'actualCases': True},
                        {'module_sha256': 'b' * 64}, {'case': 'unrelated'}):
             with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
-                path = Path(tmp)
+                path = Path(tmp).resolve()
                 module, receipt = self.original(path)
                 calls = []
                 def run(name, args, **options):
                     calls.append(name)
                     return json.dumps({**self.observation(name, module), **change}).encode()
                 with self.assertRaisesRegex(ValueError, 'Incomplete original'):
-                    ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path)
+                    ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path, platform_artifact=path / 'artifact')
                 self.assertEqual(calls, ['cancellation-saved'])
                 self.assertFalse((path / 'public-lifecycle.json').exists())
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)
+            path = Path(tmp).resolve()
             module, receipt = self.original(path)
             def missing_atomic(name, args, **options):
                 observed = self.observation(name, module)
                 observed.pop('atomic_precommit_writer_exclusion', None)
                 return json.dumps(observed).encode()
             with self.assertRaisesRegex(ValueError, 'Incomplete original atomic'):
-                ci.accept_public_lifecycle(missing_atomic, Path('/python'), module, receipt, path)
+                ci.accept_public_lifecycle(missing_atomic, Path('/python'), module, receipt, path, platform_artifact=path / 'artifact')
             self.assertFalse((path / 'public-lifecycle.json').exists())
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)
+            path = Path(tmp).resolve()
             module, receipt = self.original(path)
             def missing_recovery(name, args, **options):
                 observed = self.observation(name, module)
                 observed.pop('commit_reply_loss_readback_without_reexecution', None)
                 return json.dumps(observed).encode()
             with self.assertRaisesRegex(ValueError, 'Incomplete original publication recovery'):
-                ci.accept_public_lifecycle(missing_recovery, Path('/python'), module, receipt, path)
+                ci.accept_public_lifecycle(missing_recovery, Path('/python'), module, receipt, path, platform_artifact=path / 'artifact')
             self.assertFalse((path / 'public-lifecycle.json').exists())
+
+    def test_succeeded_controls_require_same_platform_image_and_first_closes(self):
+        for change in ({'image_sha256': 'd' * 64}, {'first_core_closed': False},
+                       {'saved_first_core_closed': False}):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp).resolve()
+                module, receipt = self.original(path)
+                calls = []
+                def run(name, args, **options):
+                    calls.append(name)
+                    observed = self.observation(name, module)
+                    if name == 'succeeded-result-saved':
+                        observed.update(change)
+                    return json.dumps(observed).encode()
+                with self.assertRaisesRegex(ValueError, 'Incomplete original platform image'):
+                    ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path,
+                        platform_artifact=path / 'artifact')
+                self.assertEqual(calls[-1], 'succeeded-result-saved')
+                self.assertNotIn('publication-unknown', calls)
+                self.assertFalse((path / 'public-lifecycle.json').exists())
 
     def test_task_drive_requires_bounded_original_task_facts_before_next_control(self):
         for change in ({'core_owned_lifecycle': False}, {'initial_quantum': True}, {'initial_quantum': 2}, {'initial_drives_per_task': 7}, {'continuation_quantum': 128}, {'actual_initial_quantum_drives': 15}, {'observed_phase_transitions': 1}, {'monotonic_progress': False},
                        {'original_tasks': True}, {'original_tasks': 1}):
             with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
-                path = Path(tmp)
+                path = Path(tmp).resolve()
                 module, receipt = self.original(path)
                 calls = []
                 def run(name, args, **options):
@@ -918,30 +1683,73 @@ class PublicLifecycleTests(unittest.TestCase):
                     observed = self.observation(name, module)
                     return json.dumps({**observed, **change} if name == 'task-drive-mixed' else observed).encode()
                 with self.assertRaisesRegex(ValueError, 'Incomplete original task-drive'):
-                    ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path)
+                    ci.accept_public_lifecycle(run, Path('/python'), module, receipt, path, platform_artifact=path / 'artifact')
                 self.assertEqual(calls[-1], 'task-drive-mixed')
                 self.assertNotIn('cancellation-drive-start', calls)
                 self.assertFalse((path / 'public-lifecycle.json').exists())
 
     def test_original_module_and_failure_cannot_be_substituted(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)
+            path = Path(tmp).resolve()
             module, receipt = self.original(path)
             original = RuntimeError('original public lifecycle failure')
             def failed(*args, **kwargs):
                 raise original
             with self.assertRaises(RuntimeError) as caught:
-                ci.accept_public_lifecycle(failed, Path('/python'), module, receipt, path)
+                ci.accept_public_lifecycle(failed, Path('/python'), module, receipt, path, platform_artifact=path / 'artifact')
             self.assertIs(caught.exception, original)
             module.write_bytes(b'changed original')
             with self.assertRaisesRegex(ValueError, 'original Core'):
                 ci.accept_public_lifecycle(
                     lambda *args, **kwargs: self.fail('Changed Core reached consumer'),
-                    Path('/python'), module, receipt, path)
+                    Path('/python'), module, receipt, path, platform_artifact=path / 'artifact')
             self.assertFalse((path / 'public-lifecycle.json').exists())
 
 
 class InstalledAuditTests(unittest.TestCase):
+    def test_sdk_binding_receipt_comes_from_the_installed_wheel_member(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            wheels = directory / 'wheels'
+            wheels.mkdir()
+            prefix = directory / 'consumer'
+            site = prefix / 'site-packages'
+            member = 'actql_sdk/_local_release_binding.json'
+            installed_binding = site / member
+            installed_binding.parent.mkdir(parents=True)
+            binding = b'{"fixture":"original SDK binding"}'
+            installed_binding.write_bytes(binding)
+            records = []
+            installs = []
+            for name in ('actql', 'actql-sdk', 'actql-local-runtime'):
+                wheel = wheels / (name + '.whl')
+                with zipfile.ZipFile(wheel, 'w') as archive:
+                    if name == 'actql-sdk':
+                        archive.writestr(member, binding)
+                raw = wheel.read_bytes()
+                digest = hashlib.sha256(raw).hexdigest()
+                records.append({'distribution': name, 'file': wheel.name,
+                                'bytes': len(raw), 'sha256': digest})
+                installs.append({'metadata': {'name': name}, 'is_direct': True,
+                                 'download_info': {'url': wheel.resolve().as_uri(),
+                                                   'archive_info': {'hashes': {'sha256': digest}}}})
+            (directory / 'cohort.json').write_text(json.dumps({'wheels': records, 'package_version': '0.0.3'}))
+            report = directory / 'pip-report.json'
+            report.write_text(json.dumps({'install': installs}))
+            distribution = SimpleNamespace(version='0.0.3', locate_file=lambda _: site)
+            with (patch.object(audit.metadata, 'distribution', return_value=distribution),
+                  patch.object(audit.importlib.util, 'find_spec',
+                               return_value=SimpleNamespace(origin=site / 'actql_sdk' / '__init__.py')),
+                  patch.object(audit.sys, 'prefix', str(prefix))):
+                result = audit.audit(directory, report)
+                self.assertEqual(result['sdk_runtime_binding'], {
+                    'member': member, 'bytes': len(binding), 'sha256': hashlib.sha256(binding).hexdigest(),
+                    'wheel_sha256': records[1]['sha256'],
+                })
+                installed_binding.write_bytes(b'{"fixture":"changed SDK binding!"}')
+                with self.assertRaisesRegex(AssertionError, 'Installed payload differs: ' + member):
+                    audit.audit(directory, report)
+
     def test_incomplete_cohort_cannot_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)
@@ -982,282 +1790,6 @@ class InstalledAuditTests(unittest.TestCase):
             (path / 'report.json').write_text(json.dumps({'install': installs}))
             with self.assertRaisesRegex(AssertionError, 'exact local wheel'):
                 audit.audit(path, path / 'report.json')
-
-
-class ClosedTaskDriveControlTests(unittest.TestCase):
-    """Observer service ports only; real compiled-Core proof belongs to CI."""
-
-    def configured_control(self):
-        from types import SimpleNamespace
-        sdk = SCRIPTS.parent / 'packages/python-sdk/src'
-        sys.path.insert(0, str(sdk))
-        try:
-            from actql_sdk._local_host_binding import _InvocationObservation
-        finally:
-            sys.path.remove(str(sdk))
-        module = load('closed_task_control', SCRIPTS / 'fixtures/python-product-installed.py')
-        self.assertIsNone(module.sys.getprofile())
-        self.assertIsNone(module.threading.getprofile())
-        control = object.__new__(module._ClosedTaskDriveObservation)
-        class FunctionPort:
-            def __call__(self):
-                return 1
-        class CorePort:
-            def drive_task(self):
-                return function()
-            def _call(self):
-                raise AssertionError('Observer cannot call a Core entrance')
-        function, core, run = FunctionPort(), CorePort(), object()
-        function._func = object()
-        work = SimpleNamespace(_owner=run)
-        matches = []
-        receipt = SimpleNamespace(_matches=lambda *a, **k: matches.append((a, k)) or True)
-        core._closed_wasm_exports = receipt
-        core._invocation_observation = object.__new__(_InvocationObservation)
-        core._invocation_observation.wasm_export = (receipt, 'actql_task_drive', function, function._func)
-        core._host_retained_work = (work, object(), 1)
-        control.host = SimpleNamespace(_physical_work=[work], _run_rows=[(run, object())])
-        control.core, control.receipt, control.export = core, receipt, function
-        control.work_type = SimpleNamespace
-        control.span_type = _InvocationObservation
-        control.drive_method, control.call_method = CorePort.drive_task, CorePort._call
-        control.drive_code, control.export_code = CorePort.drive_task.__code__, FunctionPort.__call__.__code__
-        control.counts, control.valid, control.failure, control.restored = [0] * 5, True, None, False
-        control.refusal_bits = 0
-        control.span_refusal_bits = 0
-        control.profile = control._profile
-        control.previous = (None, None)
-        return module, control, core, matches
-
-    def test_unrelated_and_foreign_profile_events_never_read_counts(self):
-        from types import SimpleNamespace
-        _, control, core, _ = self.configured_control()
-        class UnreadableCounts:
-            def __iter__(self):
-                raise AssertionError('An unrelated profile event read counters')
-        def unrelated():
-            return None
-        counts = UnreadableCounts()
-        control.counts = counts
-        for code, receiver in ((unrelated.__code__, core),
-                               (control.drive_code, object()),
-                               (control.export_code, object())):
-            for event in ('call', 'return'):
-                with self.subTest(code=code.co_name, event=event):
-                    frame = SimpleNamespace(f_code=code, f_locals={'self': receiver})
-                    control._profile(frame, event, None)
-                    self.assertIs(control.counts, counts)
-                    self.assertTrue(control.valid)
-                    self.assertIsNone(control.failure)
-                    self.assertEqual(control.refusal_bits, 0)
-                    self.assertEqual(control.span_refusal_bits, 0)
-
-    def test_exact_drive_and_export_events_still_saturate_and_preserve_first_failure(self):
-        from types import SimpleNamespace
-        for target in ('drive', 'export'):
-            with self.subTest(target=target):
-                _, control, core, _ = self.configured_control()
-                first = RuntimeError('Original observation failure')
-                control.failure = first
-                control.counts = [1024] * 5
-                frame = SimpleNamespace(
-                    f_code=control.drive_code if target == 'drive' else control.export_code,
-                    f_locals={'self': core if target == 'drive' else control.export})
-                for event in ('call', 'return'):
-                    control._profile(frame, event, None)
-                self.assertEqual(control.counts, ([1025, 1025, 1024, 1024, 1024]
-                                                 if target == 'drive'
-                                                 else [1024, 1024, 1025, 1025, 1025]))
-                self.assertFalse(control.valid)
-                self.assertIs(control.failure, first)
-                self.assertEqual(control.refusal_bits, 16)
-                self.assertEqual(control.span_refusal_bits, 0)
-
-    def test_worker_thread_calls_are_observed_without_replacing_methods_and_both_profiles_restore(self):
-        module, control, core, matches = self.configured_control()
-        original = type(core).drive_task
-        with control:
-            worker = module.threading.Thread(target=core.drive_task)
-            worker.start()
-            worker.join(2)
-            self.assertFalse(worker.is_alive())
-            # Runtime validation is forbidden inside the callback; it runs only
-            # when this explicit control returns its observer custody.
-            self.assertEqual(matches, [])
-        self.assertEqual(control.counts, [1] * 5)
-        self.assertIs(type(core).drive_task, original)
-        self.assertEqual(len(matches), 1)
-        self.assertIsNone(module.sys.getprofile())
-        self.assertIsNone(module.threading.getprofile())
-        self.assertIsNone(control.host)
-        self.assertIsNone(control.core)
-        self.assertIsNone(control.receipt)
-        self.assertIsNone(control.export)
-        result = control.result()
-        ci.require_closed_task_drive({'closed_task_drive': result})
-
-    def test_observer_refusal_preserves_primary_and_restores_both_profiles(self):
-        module, control, core, _ = self.configured_control()
-        class Primary(RuntimeError):
-            def __str__(self):
-                raise AssertionError('No primary formatting in observer cleanup')
-        original = Primary()
-        core._invocation_observation = object.__new__(control.span_type)
-        with self.assertRaises(Primary) as caught:
-            with control:
-                core.drive_task()
-                raise original
-        self.assertIs(caught.exception, original)
-        self.assertFalse(control.valid)
-        self.assertIsNotNone(control.failure)
-        self.assertIsNone(module.sys.getprofile())
-        self.assertIsNone(module.threading.getprofile())
-        with self.assertRaisesRegex(AssertionError, 'unqualified'):
-            control.result()
-
-    def test_unqualified_observer_reports_bounded_counts_and_missing_span_without_private_data(self):
-        _, control, core, _ = self.configured_control()
-        core._invocation_observation = None
-        with control:
-            core.drive_task()
-        with self.assertRaises(AssertionError) as caught:
-            control.result()
-        prefix = 'Closed task drive observation is unqualified: '
-        self.assertTrue(str(caught.exception).startswith(prefix))
-        witness = json.loads(str(caught.exception)[len(prefix):])
-        self.assertEqual(witness, {
-            'stage': 'closed-task-drive-refusal', 'counts': [1, 1, 1, 1, 0],
-            'valid': False, 'profilers_restored': True,
-            'failure_present': False, 'refusal_bits': 3,
-            'span_refusal_bits': 1,
-        })
-        self.assertLess(len(str(caught.exception)), 512)
-        self.assertIsNone(control.host)
-        self.assertIsNone(control.core)
-
-    def test_unqualified_original_span_is_distinct_from_an_absent_span_and_still_refuses(self):
-        _, control, core, _ = self.configured_control()
-        core._invocation_observation.wasm_export = None
-        with control:
-            core.drive_task()
-        with self.assertRaises(AssertionError) as caught:
-            control.result()
-        witness = json.loads(str(caught.exception).split(': ', 1)[1])
-        self.assertEqual(witness['counts'], [1, 1, 1, 1, 0])
-        self.assertEqual(witness['refusal_bits'], 3)
-        self.assertEqual(witness['span_refusal_bits'], 2)
-        self.assertFalse(witness['failure_present'])
-        self.assertTrue(witness['profilers_restored'])
-
-    def test_malformed_original_span_receipt_stays_a_closed_bounded_refusal(self):
-        _, control, core, _ = self.configured_control()
-        core._invocation_observation.wasm_export = ('not-a-complete-receipt',)
-        with control:
-            core.drive_task()
-        with self.assertRaises(AssertionError) as caught:
-            control.result()
-        witness = json.loads(str(caught.exception).split(': ', 1)[1])
-        self.assertEqual(witness['counts'], [1, 1, 1, 1, 0])
-        self.assertEqual(witness['refusal_bits'], 3)
-        self.assertEqual(witness['span_refusal_bits'], 4)
-        self.assertLess(len(str(caught.exception)), 512)
-
-    def test_unqualified_observer_never_formats_its_original_opaque_callback_failure(self):
-        from types import SimpleNamespace
-        _, control, core, _ = self.configured_control()
-        class OpaqueFailure(RuntimeError):
-            def __str__(self):
-                raise AssertionError('No original diagnostic formatting')
-        original = OpaqueFailure()
-        class WorkPort:
-            @property
-            def _owner(self):
-                raise original
-        work = WorkPort()
-        core._host_retained_work = (work, object(), 1)
-        control.work_type = WorkPort
-        control.host = SimpleNamespace(_physical_work=[work], _run_rows=[(object(), object())])
-        with control:
-            core.drive_task()
-        self.assertIs(control.failure, original)
-        with self.assertRaises(AssertionError) as caught:
-            control.result()
-        prefix = 'Closed task drive observation is unqualified: '
-        self.assertTrue(str(caught.exception).startswith(prefix))
-        witness = json.loads(str(caught.exception)[len(prefix):])
-        self.assertEqual(witness['counts'], [1, 1, 1, 1, 0])
-        self.assertTrue(witness['failure_present'])
-        self.assertEqual(witness['refusal_bits'], 32)
-        self.assertLess(len(str(caught.exception)), 512)
-        self.assertNotIn('OpaqueFailure', str(caught.exception))
-        self.assertIs(control.failure, original)
-
-    def test_restore_failure_attempts_both_and_never_replaces_primary(self):
-        module, control, _, _ = self.configured_control()
-        original = RuntimeError('original operation failure')
-        cleanup = OSError('profiler restore failed')
-        with patch.object(module.sys, 'setprofile', side_effect=[None, cleanup]) as main, \
-                patch.object(module.threading, 'setprofile') as threads:
-            with self.assertRaises(RuntimeError) as caught:
-                with control:
-                    raise original
-        self.assertIs(caught.exception, original)
-        self.assertEqual(main.call_args_list, [unittest.mock.call(control.profile), unittest.mock.call(None)])
-        self.assertEqual(threads.call_args_list, [unittest.mock.call(control.profile), unittest.mock.call(None)])
-        self.assertIs(control.failure, cleanup)
-        with self.assertRaisesRegex(AssertionError, 'unqualified'):
-            control.result()
-
-    def test_missing_holder_or_bounded_counter_overflow_cannot_qualify(self):
-        for missing in (True, False):
-            module, control, core, _ = self.configured_control()
-            if missing:
-                control.host._run_rows.clear()
-            else:
-                control.counts = [1024] * 5
-            with control:
-                core.drive_task()
-            self.assertTrue(all(count <= 1025 for count in control.counts))
-            self.assertIsNone(module.sys.getprofile())
-            self.assertIsNone(module.threading.getprofile())
-            with self.assertRaisesRegex(AssertionError, 'unqualified'):
-                control.result()
-
-    def test_parent_rejects_missing_mismatched_boolean_and_unobserved_claims(self):
-        original = {'actual_closed_task_drive': True, 'drive_calls': 2, 'drive_returns': 2,
-                    'wasm_entries': 2, 'wasm_returns': 2, 'retained_holder_checks': 2,
-                    'methods_unchanged': True, 'profilers_restored': True,
-                    'per_drive_fuel_observed': False, 'hash_count_observed': False}
-        ci.require_closed_task_drive({'closed_task_drive': original})
-        for witness in (None, {}, original | {'drive_calls': True}, original | {'drive_calls': 0},
-                        original | {'drive_calls': 1025}, original | {'wasm_returns': 1},
-                        original | {'retained_holder_checks': 1}, original | {'methods_unchanged': False},
-                        original | {'profilers_restored': False}, original | {'hash_count_observed': True},
-                        original | {'per_drive_fuel_observed': True}):
-            with self.assertRaises(ValueError):
-                ci.require_closed_task_drive({'closed_task_drive': witness})
-
-    def test_preexisting_profiler_and_changed_method_identity_cannot_qualify(self):
-        from types import MethodType
-        module, control, _, _ = self.configured_control()
-        existing = lambda *args: None
-        control.previous = (existing, existing)
-        with patch.object(module.sys, 'setprofile') as main, \
-                patch.object(module.threading, 'setprofile') as threads:
-            with self.assertRaisesRegex(AssertionError, 'another profiler'):
-                control.__enter__()
-        main.assert_not_called()
-        threads.assert_not_called()
-        module, control, core, _ = self.configured_control()
-        control.counts = [1] * 5  # Independent already-complete observer DATA.
-        def changed(self):
-            raise AssertionError('Changed method must never be called')
-        with control:
-            core.drive_task = MethodType(changed, core)
-        self.assertIsNone(module.sys.getprofile())
-        self.assertIsNone(module.threading.getprofile())
-        with self.assertRaisesRegex(AssertionError, 'unqualified'):
-            control.result()
 
 
 class OrdinaryOuterFuelObservationTests(unittest.TestCase):
@@ -1501,234 +2033,6 @@ class OrdinaryOuterFuelObservationTests(unittest.TestCase):
             self.assertEqual((stage['core'], stage['scope'], stage['operation']),
                              (original['core'], original['scope'], original['operation']))
         self.assertEqual((store.sets, store.reads), (1, 4))
-
-
-class TaskRetirementSnapshotTests(unittest.TestCase):
-    """Original Python worker/allowance timeline with explicit scalar FFI ports."""
-
-    def fixture(self):
-        import threading
-        sdk = SCRIPTS.parent / 'packages/python-sdk/src'
-        sys.path.insert(0, str(sdk))
-        try:
-            from actql_sdk._local_core import LocalCore, _Task, _Input
-            from actql_sdk._local_product import (InstalledLocalHost, _OriginalExecution,
-                _OriginalRunReference, _OriginalCancellationStop, LocalProductCleanupPending)
-            from actql_sdk._local_work import OriginalLocalWork
-        finally:
-            sys.path.remove(str(sdk))
-        module = load('ci_task_retirement_snapshot', SCRIPTS / 'fixtures/ci-python-installed-run.py')
-        core = object.__new__(LocalCore)
-        core._identity, core._lock = object(), threading.RLock()
-        core._closed = core._retired = core._closing = core._invoking = False
-        core._ordinary_host, core._host_fuel_phase = True, 'operation'
-        core._host_operation_scope, core._host_operation_id = object(), 1
-        core._host_retained_work = None
-        task = _Task(core._identity, 11)
-        core._task_loans = {11: task}
-        host = object.__new__(InstalledLocalHost)
-        host._original, host._core = host, core
-        owner = object()
-        reference = _OriginalRunReference(owner, _Input(core._identity, 1, 1, 0))
-        original = _OriginalExecution(host, owner, reference=reference, tasks=[task])
-        work = OriginalLocalWork(original, owner=original.run, on_exit=core._finish_work_operation)
-        host._physical_work = [work]
-        core._retain_work_operation(work)
-        return module, core, host, work, original, task, _OriginalCancellationStop, LocalProductCleanupPending
-
-    def run_original(self, *, closes=1, outside_lock=False, observation_error=False, unsupported=False):
-        from contextlib import nullcontext
-        module, core, host, work, original, task, stop_type, pending_type = self.fixture()
-        calls = []
-        stop = stop_type(original)
-        class OpaqueFailure(BaseException):
-            def __str__(self):
-                raise AssertionError('Never format the optional diagnostic cause')
-        def ffi(self_core, family, operation, handle, *fields):
-            self.assertIs(self_core, core)
-            self.assertEqual(core._host_fuel_phase, 'operation')
-            calls.append((family, operation, handle, fields))
-            if operation == 'close':
-                return -9
-            if observation_error:
-                raise OpaqueFailure()
-            return (-3 if unsupported else 4) if fields == (6,) else 83 if fields == (7,) else 2
-        def execute(self_host, run):
-            self.assertIs(self_host, host)
-            self.assertIs(run, original.run)
-            with nullcontext() if outside_lock else core._lock:
-                for _ in range(closes):
-                    self.assertFalse(core.close_task(task))
-            raise stop
-        with patch.object(type(core), '_call', ffi), patch.object(
-                type(host), '_execute_original_admitted_run', execute), module._TaskRetirementObservation() as observer:
-            work.start()
-            work._thread.join(2)
-            self.assertFalse(work._thread.is_alive())
-        primary = work._future.exception(timeout=0)
-        self.assertIs(type(primary), pending_type)
-        self.assertIs(primary.__context__, stop)
-        self.assertIs(stop.original, original)
-        self.assertIsNone(work._cleanup_error)
-        self.assertIsNone(work._exit_error)
-        self.assertIs(core._task_loans[11], task)
-        self.assertIs(original.tasks[0], task)
-        self.assertIsNone(core._host_fuel_phase)
-        self.assertIsNone(core._host_retained_work)
-        self.assertFalse(core._lock._is_owned())
-        self.assertIsNone(module.sys.getprofile())
-        self.assertIsNone(module.threading.getprofile())
-        return module, core, work, observer, calls, primary
-
-    def test_original_worker_samples_before_scope_exit_and_reports_after_without_entry(self):
-        module, core, work, observer, calls, primary = self.run_original()
-        self.assertEqual(calls, [('task', 'close', 11, ()), ('task', 'progress', 11, (6,)),
-                                ('task', 'progress', 11, (7,)), ('task', 'issue', 11, ())])
-        with patch.object(type(core), '_call', side_effect=AssertionError('No retired-scope entry')) as call:
-            result = observer.snapshot(work)
-        call.assert_not_called()
-        self.assertEqual(result, {'scope': 'post-close-current-snapshot', 'available': True,
-            'observation_failed': False, 'overflow': False, 'profilers_restored': True,
-            'refusal_code': None, 'tasks': [
-                {'stage_code': 4, 'execution_issue_code': 2, 'cleanup_issue_code': 83}]})
-        self.assertIs(work._future.exception(timeout=0), primary)
-        self.assertNotIn('private-', json.dumps(result))
-
-    def test_observer_failure_keeps_original_cancel_pending_and_scope_return(self):
-        _, _, work, observer, calls, primary = self.run_original(observation_error=True)
-        result = observer.snapshot(work)
-        self.assertFalse(result['available'])
-        self.assertTrue(result['observation_failed'])
-        self.assertEqual(result['tasks'], [])
-        self.assertEqual(len(calls), 2)
-        self.assertIs(work._future.exception(timeout=0), primary)
-
-    def test_captured_retirement_survives_cleared_host_lists_without_core_entry(self):
-        module, core, work, observer, _, primary = self.run_original()
-        host = work._invoke.host
-        host._physical_work, host._public_run_references = [], []
-        host._closing, host._installation = True, None
-        core._closing = core._closed = True
-        core._task_loans.clear()
-        trace, context = primary.__traceback__, primary.__context__
-        output = io.StringIO()
-        with patch.object(type(core), '_call', side_effect=AssertionError('No retired Core entry')) as call, \
-                patch.object(type(work), 'wait', side_effect=AssertionError('No work wait')) as wait:
-            module.report_contexts(primary, output, task_retirement=observer)
-        call.assert_not_called()
-        wait.assert_not_called()
-        record = json.loads(output.getvalue().splitlines()[0])
-        captured = record['captured_task_retirement']
-        self.assertEqual(captured['association'], 'same-original-worker-traceback')
-        self.assertEqual(captured['sample_timing'], 'original-task-close-return-before-worker-exit')
-        self.assertFalse(captured['live_selection'])
-        self.assertEqual(captured['snapshot'], observer.snapshot(work))
-        self.assertTrue(captured['snapshot']['available'])
-        self.assertNotIn('local_work', record)
-        self.assertIs(primary.__traceback__, trace)
-        self.assertIs(primary.__context__, context)
-        self.assertIs(work._future.exception(timeout=0), primary)
-
-    def test_captured_retirement_refuses_foreign_identity_and_preserves_unavailable_samples(self):
-        for settings in ({}, {'outside_lock': True}, {'observation_error': True}, {'closes': 17}):
-            with self.subTest(settings=settings):
-                module, _, work, observer, _, primary = self.run_original(**settings)
-                expected = observer.snapshot(work)
-                captured = module.captured_task_retirement(primary, observer)
-                self.assertEqual(captured['snapshot'], expected)
-                self.assertEqual(captured['snapshot']['available'], not settings)
-                owner = work._owner
-                work._owner = object()
-                self.assertIsNone(module.captured_task_retirement(primary, observer))
-                work._owner = owner
-                copied = type(primary)(work._invoke.host)
-                copied.__traceback__, copied.__context__ = primary.__traceback__, primary.__context__
-                self.assertIsNone(module.captured_task_retirement(copied, observer))
-                self.assertIsNone(module.captured_task_retirement(primary, object()))
-                self.assertIs(work._future.exception(timeout=0), primary)
-
-    def test_captured_retirement_traceback_visits_are_bounded(self):
-        module, _, _, observer, _, primary = self.run_original()
-        def raise_with_prefix(depth):
-            if depth:
-                return raise_with_prefix(depth - 1)
-            raise primary
-        try:
-            raise_with_prefix(module.MAX_FRAMES + 4)
-        except type(primary):
-            pass
-        walk = module.traceback.walk_tb
-        visited = []
-        def bounded_walk(trace):
-            for frame in walk(trace):
-                visited.append(None)
-                if len(visited) > module.MAX_FRAMES:
-                    raise AssertionError('Unbounded diagnostic traceback traversal')
-                yield frame
-        with patch.object(module.traceback, 'walk_tb', bounded_walk):
-            self.assertIsNone(module.captured_task_retirement(primary, observer))
-        self.assertEqual(len(visited), module.MAX_FRAMES)
-
-    def test_captured_retirement_observation_error_never_replaces_primary(self):
-        module, _, work, observer, _, primary = self.run_original()
-        class OpaqueFailure(BaseException):
-            def __str__(self):
-                raise AssertionError('No optional diagnostic formatting')
-        trace, context = primary.__traceback__, primary.__context__
-        output = io.StringIO()
-        with patch.object(module, 'captured_task_retirement', side_effect=OpaqueFailure(), create=True):
-            module.report_contexts(primary, output, task_retirement=observer)
-        record = json.loads(output.getvalue().splitlines()[0])
-        self.assertNotIn('captured_task_retirement', record)
-        self.assertIs(primary.__traceback__, trace)
-        self.assertIs(primary.__context__, context)
-        self.assertIs(work._future.exception(timeout=0), primary)
-
-    def test_absent_outer_retirement_lock_refuses_without_an_observer_entry(self):
-        _, _, work, observer, calls, _ = self.run_original(outside_lock=True)
-        self.assertEqual(calls, [('task', 'close', 11, ())])
-        result = observer.snapshot(work)
-        self.assertFalse(result['available'])
-        self.assertEqual(result['tasks'], [])
-
-    def test_slot_bound_precedes_any_additional_observer_guest_entry(self):
-        _, _, work, observer, calls, _ = self.run_original(closes=17)
-        result = observer.snapshot(work)
-        self.assertFalse(result['available'])
-        self.assertTrue(result['overflow'])
-        self.assertEqual(len(result['tasks']), 16)
-        self.assertEqual(len(calls), 17 + 3 * 16)
-
-    def test_unsupported_snapshot_field_is_refusal_not_available_evidence(self):
-        _, _, work, observer, _, primary = self.run_original(unsupported=True)
-        result = observer.snapshot(work)
-        self.assertFalse(result['available'])
-        self.assertEqual(result['refusal_code'], -3)
-        self.assertIs(work._future.exception(timeout=0), primary)
-
-    def test_only_initial_local_cancellation_facades_select_optional_observer(self):
-        module, *_ = self.fixture()
-        primary = RuntimeError('same consumer failure')
-        base = ['python-product-installed.py', '--mode', 'local', '--facade', 'sync',
-                '--case', 'cancellation', '--phase', 'initial']
-        for replacements, expected in [({}, True), ({'sync': 'async'}, True),
-                                        ({'sync': 'unknown'}, False),
-                                        ({'local': 'remote'}, False),
-                                        ({'initial': 'resume'}, False),
-                                        ({'cancellation': 'execution'}, False)]:
-            args = [replacements.get(value, value) for value in base]
-            with self.subTest(replacements=replacements), patch.object(module.sys, 'argv', args), patch.object(
-                    module.runpy, 'run_path', side_effect=primary) as run, patch.object(
-                    module, 'report_contexts') as report:
-                with self.assertRaises(RuntimeError) as caught:
-                    module.run_consumer(Path('/external/python-product-installed.py'))
-            self.assertIs(caught.exception, primary)
-            self.assertIs(report.call_args.args[0], primary)
-            observed = report.call_args.kwargs['task_retirement']
-            self.assertEqual(type(observed) is module._TaskRetirementObservation, expected)
-            if observed is not None:
-                self.assertTrue(observed.restored)
-            run.assert_called_once()
 
 
 class FailureLocationTests(unittest.TestCase):
@@ -2147,6 +2451,27 @@ class FailureLocationTests(unittest.TestCase):
                 self.assertEqual(frame['file'], Path(__file__).name)
                 self.assertGreater(frame['line'], 0)
 
+    def test_initial_cancellation_runs_once_without_installing_profilers(self):
+        import threading
+        runner = load('ci_installed_unprofiled_cancel', SCRIPTS / 'fixtures/ci-python-installed-run.py')
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'python-product-installed.py'
+            target.write_text(
+                'import sys, threading\nfrom pathlib import Path\n'
+                'assert sys.getprofile() is None and threading.getprofile() is None\n'
+                'with Path(__file__).with_name("calls").open("a") as output:\n'
+                '    output.write(sys.argv[sys.argv.index("--facade") + 1] + "\\n")\n')
+            with patch.object(sys, 'setprofile') as process, \
+                    patch.object(threading, 'setprofile') as worker:
+                for facade in ('sync', 'async'):
+                    args = [str(target), '--mode', 'local', '--facade', facade,
+                            '--case', 'cancellation', '--phase', 'initial']
+                    with patch.object(sys, 'argv', args):
+                        runner.run_consumer(target)
+            process.assert_not_called()
+            worker.assert_not_called()
+            self.assertEqual(target.with_name('calls').read_text(), 'sync\nasync\n')
+
     def test_same_failure_is_raised_once_even_if_diagnostics_fail(self):
         diagnostics = load('ci_installed_run_once', SCRIPTS / 'fixtures/ci-python-installed-run.py')
         original = RuntimeError('public-unknown')
@@ -2255,7 +2580,8 @@ class InitialPhaseObservationTests(unittest.TestCase):
         from types import ModuleType, SimpleNamespace
         from unittest.mock import MagicMock
         consumer = load('ci_initial_phase_observation', SCRIPTS / 'fixtures/python-product-installed.py')
-        client = MagicMock()
+        client = MagicMock(spec_set=['__enter__', '__exit__', 'new_submission', 'start_source',
+                                     'lookup_submission', 'attach'])
         client.__enter__.return_value = client
         client.__exit__.return_value = False
         runs = [MagicMock(ref={'original': index}) for index in (1, 2)]
@@ -2264,25 +2590,19 @@ class InitialPhaseObservationTests(unittest.TestCase):
             run.result.return_value.all.return_value = [{'n': 1}]
         client.new_submission.side_effect = [{'submission': 1}, {'submission': 2}]
         client.start_source.side_effect = runs
-        client._client._local_host = object()
-        control = MagicMock()
-        control.__enter__.return_value = control
-        control.__exit__.return_value = False
-        control.result.return_value = {'caller_control': True}
         public = ModuleType('actql')
         public.Client = SimpleNamespace(open=MagicMock(return_value=client))
-        return consumer, public, client, runs, control
+        return consumer, public, client, runs
 
     def test_success_records_only_closed_boundaries_without_changing_public_calls(self):
-        consumer, public, client, runs, control = self.fixture()
+        consumer, public, client, runs = self.fixture()
         stream = io.StringIO()
         with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
-                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
                 patch.object(consumer.sys, 'stderr', stream), \
                 patch.object(consumer, 'monotonic_ns', create=True,
                              side_effect=[1000] + list(range(1000, 1200, 10))) as clock:
             observed = consumer._sync('private-version', 'initial', Path(tmp) / 'original.json')
-        self.assertIs(observed, control.result.return_value)
+        self.assertIsNone(observed)
         records = [json.loads(line) for line in stream.getvalue().splitlines()]
         self.assertEqual([record['phase'] for record in records], [
             'facade-import-enter', 'facade-import-return', 'factory-enter', 'factory-return',
@@ -2305,14 +2625,13 @@ class InitialPhaseObservationTests(unittest.TestCase):
         client.__exit__.assert_called_once_with(None, None, None)
 
     def test_original_failure_and_first_close_remain_when_optional_output_fails(self):
-        consumer, public, client, _, control = self.fixture()
+        consumer, public, client, _ = self.fixture()
         original = RuntimeError('original first-start failure')
         client.start_source.side_effect = original
         class BrokenStream:
             def write(self, value):
                 raise KeyboardInterrupt('optional output refused')
         with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
-                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
                 patch.object(consumer.sys, 'stderr', BrokenStream()):
             with self.assertRaises(RuntimeError) as raised:
                 consumer._sync('fixture', 'initial', Path(tmp) / 'original.json')
@@ -2320,28 +2639,42 @@ class InitialPhaseObservationTests(unittest.TestCase):
         client.start_source.assert_called_once()
         self.assertEqual(client.__exit__.call_count, 1)
         self.assertIs(client.__exit__.call_args.args[1], original)
-        control.result.assert_not_called()
 
-    def test_saved_route_has_no_initial_markers_or_new_physical_control(self):
-        consumer, public, client, runs, control = self.fixture()
+    def test_saved_route_has_no_initial_markers_or_new_submission(self):
+        consumer, public, client, runs = self.fixture()
         saved = {'submission': {'same': 'original'}, 'run': runs[0].ref}
         client.lookup_submission.return_value = {'kind': 'ready', 'admission': {'ref': runs[0].ref}}
         client.attach.return_value = runs[0]
         stream = io.StringIO()
         with patch.dict(sys.modules, {'actql': public}), patch.object(consumer, '_saved', return_value=saved), \
-                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control) as observation, \
                 patch.object(consumer.sys, 'stderr', stream), \
                 patch.object(consumer, 'monotonic_ns', create=True) as clock:
             self.assertIsNone(consumer._sync('fixture', 'resume', Path('/unused/receipt')))
         self.assertEqual(stream.getvalue(), '')
         clock.assert_not_called()
-        observation.assert_not_called()
         client.start_source.assert_not_called()
         client.attach.assert_called_once_with(saved['run'])
         client.__exit__.assert_called_once_with(None, None, None)
 
+    def test_installed_operations_reject_existing_process_or_thread_instrumentation(self):
+        consumer, public, client, _ = self.fixture()
+        for scope, hook in ((consumer.sys, 'getprofile'), (consumer.sys, 'gettrace'),
+                            (consumer.threading, 'getprofile'), (consumer.threading, 'gettrace')):
+            for facade in ('sync', 'async'):
+                for case, message in (('execution', 'uninstrumented installed execution'),
+                                      ('cancellation', 'uninstrumented installed cancellation')):
+                    with self.subTest(scope=scope.__name__, hook=hook, facade=facade, case=case), \
+                            patch.object(scope, hook, return_value=object()), \
+                            patch.dict(sys.modules, {'actql': public}), \
+                            patch.object(consumer.metadata, 'version', return_value='fixture'):
+                        with self.assertRaisesRegex(AssertionError, message):
+                            consumer.installed('fixture', 'local', facade=facade, phase='initial',
+                                               case=case, receipt=Path('/unused/receipt'))
+        public.Client.open.assert_not_called()
+        client.start_source.assert_not_called()
+
     def test_unselected_or_foreign_marker_cannot_invoke_foreign_comparison_or_emit(self):
-        consumer, _, _, _, _ = self.fixture()
+        consumer, _, _, _ = self.fixture()
         class Foreign:
             def __eq__(self, other):
                 raise AssertionError('Do not compare a foreign diagnostic value')
@@ -2353,7 +2686,7 @@ class InitialPhaseObservationTests(unittest.TestCase):
         self.assertEqual(stream.getvalue(), '')
 
     def test_elapsed_refuses_foreign_negative_overflow_and_failed_clock_without_fabricating_time(self):
-        consumer, _, _, _, _ = self.fixture()
+        consumer, _, _, _ = self.fixture()
         class Foreign:
             def __sub__(self, other):
                 raise AssertionError('Do not subtract foreign diagnostic clocks')
@@ -2382,12 +2715,11 @@ class InitialPhaseObservationTests(unittest.TestCase):
         self.assertEqual(stream.getvalue(), '')
 
     def test_failed_origin_preserves_original_failure_and_first_close_without_reorigin(self):
-        consumer, public, client, _, control = self.fixture()
+        consumer, public, client, _ = self.fixture()
         original = RuntimeError('original first-start failure')
         client.start_source.side_effect = original
         stream = io.StringIO()
         with tempfile.TemporaryDirectory() as tmp, patch.dict(sys.modules, {'actql': public}), \
-                patch.object(consumer, '_ClosedTaskDriveObservation', return_value=control), \
                 patch.object(consumer.sys, 'stderr', stream), \
                 patch.object(consumer, 'monotonic_ns', create=True, side_effect=KeyboardInterrupt) as clock:
             with self.assertRaises(RuntimeError) as raised:
@@ -2397,7 +2729,6 @@ class InitialPhaseObservationTests(unittest.TestCase):
         self.assertEqual(stream.getvalue(), '')
         self.assertEqual(client.__exit__.call_count, 1)
         self.assertIs(client.__exit__.call_args.args[1], original)
-        control.result.assert_not_called()
 
 
 class InstalledCancellationTests(unittest.TestCase):

@@ -80,6 +80,7 @@ fn shared_quantity_test_execution(
       publication_retained: 0L,
       publication_execution: 0L,
       publication_planning: 0,
+      outcome: None,
     }),
   }
   start_model_owned(

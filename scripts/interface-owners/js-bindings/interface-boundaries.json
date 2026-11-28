@@ -63281,7 +63281,7 @@
             "extension": [
               {
                 "path": "src/run_publication/interactive_current_run_view.mbt",
-                "anchor": "park is Some(debug) && debug.resume_available"
+                "anchor": "Some(debug) if debug.continuation_available"
               }
             ],
             "verification": [
@@ -81368,7 +81368,7 @@
               },
               {
                 "path": "src/connectors/local/managed_provider.mbt",
-                "anchor": "infer_relation_prefix : ("
+                "anchor": "infer_relation_prefix : ManagedInferRelationPrefix?"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -84866,7 +84866,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0916edef8dd3161b53bfc12d074decd0609ca5cc5258c1b2e503f9eb39e9ce5d"
+      "sha256": "578074c68b963b28ac5b685c68c0917315a72cda38f9962dd97734b2e96b4810"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

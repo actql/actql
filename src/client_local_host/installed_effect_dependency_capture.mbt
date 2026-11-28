@@ -40,6 +40,7 @@ pub fn installed_effect_capture_constructor_capacity(
       models,
       row_key_nodes=all_nodes - nodes,
       effect_members=members,
+      sequential_construction=true,
     )
     is Some(layout) &&
     @execution.preparation_execution_capacity({
@@ -532,6 +533,30 @@ pub fn finish_installed_effect_dependency_capture(
   @publication.PreparedCapturedEffectRun,
   ClientInstalledManagedRunIssue,
 ] {
+  let captured = finish_installed_effect_dependency_capture_original(
+    owner, prepared, request, expected_plan, issuer,
+  )
+  captured.bind(value => {
+    // The completed issuer has dropped its parser, writer and temporary
+    // inventories. Preserve every retained dependency and the result while
+    // returning the exact same control's now-idle constructor space.
+    complete_installed_effect_dependency_construction(
+      owner, prepared, request, expected_plan,
+    ).map(_ => value)
+  })
+}
+
+///|
+fn finish_installed_effect_dependency_capture_original(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  issuer : @publication.CapturedRunIssuancePreparation,
+) -> Result[
+  @publication.PreparedCapturedEffectRun,
+  ClientInstalledManagedRunIssue,
+] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
   }
@@ -558,7 +583,7 @@ pub fn finish_installed_effect_dependency_capture(
   if !physical_equal(plan, expected_plan) {
     return Err(ForeignOriginal)
   }
-  with_installed_effect_dependency_work(
+  let captured = with_installed_effect_dependency_work(
     control,
     admission,
     plan,
@@ -598,4 +623,8 @@ pub fn finish_installed_effect_dependency_capture(
       }
     },
   ).map_err(installed_effect_operation_reservation_issue)
+  if captured is Ok(_) {
+    control.dependency_capture = None
+  }
+  captured
 }

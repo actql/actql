@@ -43903,7 +43903,7 @@
             "extension": [
               {
                 "path": "src/run_publication/interactive_current_run_view.mbt",
-                "anchor": "park is Some(debug) && debug.resume_available"
+                "anchor": "Some(debug) if debug.continuation_available"
               }
             ],
             "verification": [
@@ -62922,7 +62922,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -63430,7 +63430,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66032,7 +66032,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "1d61cd0893a4e9a63078f5262113c65c60b7cf3a180ce5d6b43fb4442d4ca173",
+      "sha256": "3ebe2150e6bbbb7d0a8c12b16398b2657efd5fef2592347fcf97d4c4f85b9c89",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -66078,6 +66078,13 @@
         {
           "name": "capturePackageCustody/capturePackageCustody",
           "parameters": [
+            "edge"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/capturePackageCustody#2",
+          "parameters": [
             "_",
             "index"
           ],
@@ -66086,20 +66093,6 @@
         {
           "name": "capturePackageCustody/initializeHostNamespace",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "capturePackageCustody/initializeHostNamespace/adapterGroup/adapterGroup",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "capturePackageCustody/initializeHostNamespace/directory/directory",
-          "parameters": [
-            "edge"
-          ],
           "async": false
         },
         {
@@ -66124,7 +66117,7 @@
           "async": false
         },
         {
-          "name": "capturePackageCustody/initializeHostNamespace/transport/transport",
+          "name": "capturePackageCustody/localTransport/localTransport",
           "parameters": [
             "value"
           ],
@@ -66148,6 +66141,14 @@
           "name": "capturePackageCustody/requiresBundled/requiresBundled",
           "parameters": [
             "registration"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturePackageCustody/sameOrdinaryPackageImage/sameOrdinaryPackageImage",
+          "parameters": [
+            "edge",
+            "index"
           ],
           "async": false
         },
@@ -66299,7 +66300,6 @@
             "capturePackageCustody/initializeHostNamespace/entry/entry",
             "capturePackageCustody/initializeHostNamespace/group/group",
             "capturePackageCustody/initializeHostNamespace/parser/parser",
-            "capturePackageCustody/initializeHostNamespace/transport/transport",
             "capturePackageCustody/readAsset",
             "concrete/concrete/concrete",
             "ordinaryLocalFilesNative",
@@ -66308,8 +66308,6 @@
             "prepareOrdinaryModelSdkInstallation/data/data/data",
             "prepareOrdinaryModelSdkInstallation/data/data/data#2",
             "prepareOrdinaryModelSdkInstallation/data/data/data#3",
-            "capturePackageCustody/initializeHostNamespace/adapterGroup/adapterGroup",
-            "capturePackageCustody/initializeHostNamespace/directory/directory",
             "capturePackageCustody/readSdkImages",
             "capturePackageCustody/selectSdkImages/adapterGroup/adapterGroup",
             "capturePackageCustody/selectSdkImages/sdkEdge/sdkEdge",
@@ -66318,12 +66316,15 @@
             "readVerifiedSdkImages",
             "capturePackageCustody/bindEdge/previous/previous",
             "capturePackageCustody/capturePackageCustody",
+            "capturePackageCustody/sameOrdinaryPackageImage/sameOrdinaryPackageImage",
             "capturePackageCustody/sharesCapturedImages/sharesCapturedImages",
             "capturePackageCustody/validateExternalLock/original/original",
             "capturePackageCustody/validateExternalLock/verify/verify",
             "capturePackageCustody/validateExternalLock/verify/verify/verify",
             "prepareOrdinaryModelSdkInstallation/prepareOrdinaryModelSdkInstallation",
-            "capturePackageCustody/requiresBundled/requiresBundled"
+            "capturePackageCustody/requiresBundled/requiresBundled",
+            "capturePackageCustody/capturePackageCustody#2",
+            "capturePackageCustody/localTransport/localTransport"
           ],
           "exports": [
             "commonjs:captureInitialControlPackageCustody",
@@ -66356,12 +66357,16 @@
                 "anchor": "function captureDependency(binding: unknown, from: string, importer: string | undefined,"
               },
               {
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "function sameOrdinaryPackageImage(original: unknown, selected: unknown, images: readonly unknown[],"
+              },
+              {
                 "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a package identity mismatch refuses even when its captured files match the DATA facts"
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -66504,6 +66509,10 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "ordinary external adapters share only the exact installed dependency under their own locks"
+              },
+              {
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
+                "anchor": "an ordinary released package alias retains both manifest variants and the same physical dependencies"
               }
             ]
           }
@@ -66541,7 +66550,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-package-custody.cts",
-                "anchor": "// The existing public registration port also owns the stock transport"
+                "anchor": "// A prepared optional graph does not select a package for this Host."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -69183,7 +69192,7 @@
     {
       "module": "adapters/host-node/installed-connectors.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5f666966453c4aca4d7516a182f75aa2ecf85c60d500f13070649915c8eaf3e1",
+      "sha256": "72cbc97312911eaa363950981e2fe56ae61d3519b4b167e0409ef18c9aba442e",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -93006,726 +93015,6 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": []
-    },
-    {
-      "module": "adapters/local-node/mock-churn-risk-catalogue.mjs",
-      "sha256": "8c2ef14a08e20ab8ddd87f55fdafa58484ab5c72018c3b48ae3e9f48425d5ea0",
-      "exports": [
-        "mockChurnRiskCatalogue"
-      ],
-      "operations": [],
-      "imports": [],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "responsibilityFacet": "primary",
-      "role": "common-semantics",
-      "owner": "Existing mock installation and Common Relation declaration/ValueContract owners",
-      "contracts": [
-        {
-          "operations": [],
-          "exports": [
-            "mockChurnRiskCatalogue"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.actual.test.mjs",
-                "anchor": "test('actual Common owns both mock Relation declarations and exact original key facts'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              },
-              {
-                "path": "scripts/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('portable catalogue retains the complete previously authored Node DATA vector'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('bundled mock catalogue declares the original two sources independently of rows and Task'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-catalogue.actual.test.mjs",
-                "anchor": "test('actual Common owns both mock Relation declarations and exact original key facts'"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "#### Original physical Mock records"
-              },
-              {
-                "path": "src/client_row_source_host/pkg.generated.mbti",
-                "anchor": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
-              },
-              {
-                "path": "src/connectors_builtin_node/pkg.generated.mbti",
-                "anchor": "pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]"
-              },
-              {
-                "path": "scripts/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('portable catalogue retains the complete previously authored Node DATA vector'"
-              }
-            ]
-          }
-        }
-      ]
     },
     {
       "module": "adapters/host-node/model-checkpoint-metadata.mjs",
@@ -132832,8 +132121,8 @@
                 "anchor": "export async function installPreparedProjectMockEffects({moon, mockPreparation,"
               },
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "pub fn prepare_mock_churn_risk_target_update("
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn prepare_relation_target_update("
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -132850,8 +132139,8 @@
                 "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal,"
               },
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "pub fn observe_mock_churn_risk_target("
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn observe_relation_target("
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -132950,8 +132239,8 @@
                 "anchor": "## Explicit initial Local Mock profile"
               },
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "pub fn admit_mock_churn_risk_target_document("
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn admit_relation_document("
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -132960,8 +132249,8 @@
             ],
             "verification": [
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
-                "anchor": "test "
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "test \"generic relation target applies arbitrary typed fields and preserves every untouched byte\""
               },
               {
                 "path": "adapters/host-node/mock-file-target.test.mts",
@@ -133024,8 +132313,8 @@
                 "anchor": "export async function installPreparedProjectMockEffects({moon, mockPreparation,"
               },
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "pub fn prepare_mock_churn_risk_target_update("
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn prepare_relation_target_update("
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -133042,8 +132331,8 @@
                 "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal,"
               },
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "pub fn observe_mock_churn_risk_target("
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn observe_relation_target("
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -133142,8 +132431,8 @@
                 "anchor": "## Explicit initial Local Mock profile"
               },
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
-                "anchor": "pub fn admit_mock_churn_risk_target_document("
+                "path": "src/client_row_source_host/relation_document_target.mbt",
+                "anchor": "pub fn admit_relation_document("
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -133152,8 +132441,8 @@
             ],
             "verification": [
               {
-                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
-                "anchor": "test "
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "test \"generic relation target applies arbitrary typed fields and preserves every untouched byte\""
               },
               {
                 "path": "adapters/host-node/mock-file-target.test.mts",

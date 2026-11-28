@@ -298,6 +298,7 @@ test "shared physical provider startup retains the same provider limits and larg
       publication_retained: 0L,
       publication_execution: 0L,
       publication_planning: 0,
+      outcome: None,
     }),
   }
   let before = @resources.ledger_usage(startup.ledger)
@@ -363,6 +364,7 @@ test "shared Model startup retains the actual aggregate quantity configuration a
       publication_retained: 0L,
       publication_execution: 0L,
       publication_planning: 0,
+      outcome: None,
     }),
   }
   // Dedicated startup remains an exact configuration binding. Equal rows or
@@ -429,6 +431,7 @@ test "shared Model startup preserves component ceilings while the parent bounds 
       publication_retained: 0L,
       publication_execution: 0L,
       publication_planning: 0,
+      outcome: None,
     }),
   }
   let before = @resources.ledger_usage(startup.ledger)

@@ -84,6 +84,7 @@ pub fn prepare_checked_effect_computation_dag(
   max_work : Int,
   source_free_root? : Bool = false,
   captured_prefix? : Int = 1,
+  split_debug_operations? : Bool = false,
 ) -> Result[CheckedEffectComputationDAG, GraphIssue] {
   let bindings = @results.effect_static_candidate_results(
     @checked.effect_program_static_effects(candidate),
@@ -107,6 +108,10 @@ pub fn prepare_checked_effect_computation_dag(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if split_debug_operations &&
+    (logical.captured_prefix != 0 || owners.length() != 1) {
+    return Err(DebugEffectTopologyUnavailable)
+  }
   let occurrences = match
     bind_checked_effect_source_occurrences(
       bindings,
@@ -128,8 +133,20 @@ pub fn prepare_checked_effect_computation_dag(
       logical.results.push(original)
     }
   }
-  let expanded = match
-    expand_internal_carrier_tasks(logical, max_tasks, work - exported) {
+  let tasks = if split_debug_operations {
+    expand_debug_logical_dag(logical, max_tasks, work - exported).map_err(issue => {
+      match issue {
+        Graph(graph) => graph
+        BoundaryUnavailable(stage, step) =>
+          DebugEffectBoundaryUnavailable(stage, step)
+        InputBoundaryUnavailable(stage, input) =>
+          DebugEffectInputBoundaryUnavailable(stage, input)
+      }
+    })
+  } else {
+    expand_internal_carrier_tasks(logical, max_tasks, work - exported)
+  }
+  let expanded = match tasks {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -392,6 +409,9 @@ pub(all) enum GraphIssue {
   EffectGraphOwnerRequired
   ForeignEffectSource(Int)
   UnsupportedEffectSource(Int)
+  DebugEffectTopologyUnavailable
+  DebugEffectBoundaryUnavailable(Int, Int)
+  DebugEffectInputBoundaryUnavailable(Int, Int)
   TaskLimit
   WorkLimit
   ForeignPipeline(Int)
@@ -1066,6 +1086,19 @@ pub fn graph_task_unit_index(graph : CheckedDAG, task : Int) -> Int? {
     }
   }
   None
+}
+
+///|
+/// Visit original physical tasks together with their checked Units once.
+pub fn visit_graph_task_units(
+  graph : CheckedDAG,
+  visit : (Int, Int) -> Unit,
+) -> Unit {
+  for unit, tasks in graph.stage_tasks {
+    for task in tasks {
+      visit(unit, task)
+    }
+  }
 }
 
 ///|

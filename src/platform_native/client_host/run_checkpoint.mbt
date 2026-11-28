@@ -231,7 +231,7 @@ fn NativeClientRunJournal::wait_original_checkpoint(
         artifact.checkpoint.run_definition_cid() ==
         Some(@publication.publication_contract_identity(record.definition)) &&
         record.physical_start_claimed &&
-        !record.cancellation_requested else {
+        !record.cancellation_requested() else {
         return Err(Checkpoint(InvalidMaterial))
       }
       if record.checkpoint is Some(_) {
@@ -405,7 +405,7 @@ fn NativeClientRunJournal::resolve_effect_checkpoint_with_operations(
         Ok(false) => ()
         _ => return Err(Checkpoint(Expired))
       }
-      if record.cancellation_requested &&
+      if record.cancellation_requested() &&
         verified.decision == @checkpoint.Approved {
         return Err(Checkpoint(NeedsOriginalContinuation))
       }

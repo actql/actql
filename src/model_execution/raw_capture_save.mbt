@@ -173,6 +173,105 @@ pub fn model_raw_capture_save_binding(
 }
 
 ///|
+/// Borrow the policy-bound Raw accepted by the pending failure settlement.
+/// The published Run still requires the original Store/Journal confirmation
+/// and physical retirement. An independently captured or bare rejection
+/// cannot supply this observation.
+pub fn model_call_settlement_failure_raw(
+  value : ModelCallSettlement,
+) -> @publication.BoundModelRawResponse? {
+  guard model_call_settlement_slot(value) is Some(slot) &&
+    model_outcome_at(value.owner.state, slot) is Some(NoResponseFailure(_)) else {
+    return None
+  }
+  model_call_settlement_complete_raw(value, slot)
+}
+
+///|
+/// A dependent consumer can retain only the complete, saved Raw from the
+/// same successful, still-unacknowledged physical attempt. Borrowing it
+/// establishes neither Journal settlement nor eligibility of any consumer.
+pub fn model_call_settlement_success_raw(
+  value : ModelCallSettlement,
+) -> @publication.BoundModelRawResponse? {
+  guard model_call_settlement_slot(value) is Some(slot) &&
+    model_outcome_at(value.owner.state, slot) is Some(Success(_)) &&
+    model_call_settlement_complete_raw(value, slot) is Some(raw) else {
+    return None
+  }
+  let (status, _, _) = @publication.model_raw_response_transport_facts(raw)
+  if status >= 200 && status < 300 {
+    Some(raw)
+  } else {
+    None
+  }
+}
+
+///|
+fn model_call_settlement_complete_raw(
+  value : ModelCallSettlement,
+  slot : Int,
+) -> @publication.BoundModelRawResponse? {
+  let state = value.owner.state
+  guard value.progress.call is Some(call) &&
+    !call.retired &&
+    !call.settlement_acknowledged &&
+    call.entry is Some(entry) &&
+    entry.slot == slot &&
+    entry.send_started &&
+    physical_equal(entry.progress, value.progress) &&
+    physical_equal(entry.prepared.owner, value.owner) &&
+    state.attempts.get(slot) is Some(trace) &&
+    physical_equal(trace, entry.trace) &&
+    call.raw_capture is Some(raw) &&
+    physical_equal(raw.call, call) &&
+    raw.saved is Some(saved) &&
+    physical_equal(saved.original, raw) else {
+    return None
+  }
+  let accepted : ModelSavedRawReceipt = match call.terminal {
+    Some(PhysicalChatResponse(response)) => response.saved_raw
+    Some(PhysicalNativeResponse(response)) => response.raw.saved_raw
+    Some(PhysicalSavedStructuredResponse(response)) => response.receipt
+    Some(PhysicalMeasuredHttp(receipt, _, _, PhysicalRejected(_, _))) => receipt
+    _ => return None
+  }
+  guard physical_equal(accepted, saved) else { return None }
+  let (_, eof, _) = @publication.model_raw_response_transport_facts(
+    raw.response,
+  )
+  if eof {
+    Some(raw.response)
+  } else {
+    None
+  }
+}
+
+///|
+/// Before ACK, retain the exact failure Raw only for the strict path that
+/// will stop on this original attempt.
+pub fn model_call_settlement_retains_strict_failure(
+  value : ModelCallSettlement,
+) -> Bool {
+  value.progress.phase is FailAfterSettlement &&
+  model_call_settlement_failure_raw(value) is Some(_)
+}
+
+///|
+/// Read the same held strict slot after its original ACK and physical return.
+/// The caller must have retained the token before acknowledging it. A call's
+/// slot loses its physical reference only after its cleanup and holding ACKs.
+pub fn model_call_settlement_strict_failure_retired(
+  value : ModelCallSettlement,
+) -> Bool {
+  value.progress.phase is FailAfterSettlement &&
+  value.progress.slot == value.slot + 1 &&
+  value.progress.settlement is None &&
+  value.progress.call is None &&
+  model_outcome_at(value.owner.state, value.slot) is Some(NoResponseFailure(_))
+}
+
+///|
 /// Keep the trusted Store adapter on the exact compiled Run of this Call.
 /// Neither a copied descriptor nor a matching public Run CID can replace it.
 pub fn model_raw_capture_save_matches_run(
@@ -200,22 +299,170 @@ pub fn model_raw_capture_save_originals(
 }
 
 ///|
+fn check_model_raw_capture_call_current(
+  call : ModelPhysicalCall,
+) -> Result[Unit, ModelRawCaptureSaveIssue] {
+  if !model_raw_capture_call_owned(call) {
+    return Err(ForeignCall)
+  }
+  let entry = call.entry.unwrap()
+  if entry.prepared.owner.state.stop_requested || call.cancel_requested {
+    return Err(Stopped)
+  }
+  Ok(())
+}
+
+///|
 /// Recheck after every Store await and immediately before adopting a receipt.
 /// A refusal does not erase physical persistence or release its retry custody.
 pub fn model_raw_capture_save_current(
   value : ModelRawCaptureSave,
 ) -> Result[Unit, ModelRawCaptureSaveIssue] {
-  if !model_raw_capture_call_owned(value.call) {
+  match check_model_raw_capture_call_current(value.call) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    @publication_host.check_client_model_raw_capture_current(value.registration) {
+    Err(issue) => return Err(Capture(issue))
+    Ok(_) => ()
+  }
+  // The selection callback can stop or retire the original Call.
+  check_model_raw_capture_call_current(value.call)
+}
+
+///|
+/// The installed portable Store calls this inside its already-funded original
+/// Read. The byte ceiling is a limit, not a reservation. Only the current
+/// entered Call and its own admitted Raw can select the authenticated preimage.
+/// Returning these bytes does not acknowledge persistence or authorize a send.
+pub fn model_raw_capture_save_portable_input(
+  value : ModelRawCaptureSave,
+  call : ModelPhysicalCall,
+  bytes : Bytes,
+  plaintext_limit : Int,
+) -> Result[(Bytes, Bytes), ModelRawCaptureSaveIssue] {
+  guard physical_equal(value.call, call) &&
+    call.raw_capture is Some(original) &&
+    physical_equal(original, value) else {
     return Err(ForeignCall)
   }
-  let entry = value.call.entry.unwrap()
-  if entry.prepared.owner.state.stop_requested || value.call.cancel_requested {
-    return Err(Stopped)
+  match model_raw_capture_save_current(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
-  @publication_host.check_client_model_raw_capture_current(value.registration).map_err(issue => {
-      Capture(issue)
-    },
+  guard call.raw_capture is Some(retained) && physical_equal(retained, value) else {
+    return Err(ForeignCall)
+  }
+  let (semantic, _, descriptor, content, count) = @publication.model_raw_response_store_binding(
+    value.response,
   )
+  guard count == bytes.length() &&
+    count <= 1048576 &&
+    plaintext_limit > 0 &&
+    plaintext_limit <= 1048576 else {
+    return Err(ResponseLimit)
+  }
+  let descriptor_limit = plaintext_limit - 1 - 4 * ((count + 2) / 3)
+  guard descriptor_limit > 0 &&
+    @scalar.admit_utf8_length(descriptor, descriptor_limit) is Ok(_) else {
+    return Err(ResponseLimit)
+  }
+  guard @publication.model_raw_response_store_plaintext(
+      descriptor, content, count, bytes,
+    )
+    is Some(plaintext) &&
+    @publication.private_evidence_aad("model_raw_response", semantic)
+    is Some(aad) else {
+    return Err(
+      Evidence(
+        @publication.RunEvidenceReferenceMismatch(
+          "model_raw_response.content_cid",
+        ),
+      ),
+    )
+  }
+  Ok((@utf8.encode(plaintext), aad))
+}
+
+///|
+/// A trusted portable Store calls this after authenticating the actual
+/// retained envelope under the existing Read, key and AAD. Only matching
+/// plaintext from this exact Call is returned to its typed decoder.
+pub fn acknowledge_portable_model_raw_readback(
+  value : ModelRawCaptureSave,
+  call : ModelPhysicalCall,
+  authenticated : Bytes,
+  plaintext_limit : Int,
+) -> Result[(ModelSavedRawReceipt, Bytes), ModelRawCaptureSaveIssue] {
+  guard physical_equal(value.call, call) &&
+    call.raw_capture is Some(original) &&
+    physical_equal(original, value) else {
+    return Err(ForeignCall)
+  }
+  match model_raw_capture_save_current(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard authenticated.length() <= plaintext_limit &&
+    plaintext_limit > 0 &&
+    plaintext_limit <= 1048576 else {
+    return Err(ResponseLimit)
+  }
+  guard @publication.read_model_raw_response_store_plaintext(
+      value.response,
+      authenticated,
+      plaintext_limit,
+    )
+    is Some(bytes) else {
+    return Err(
+      Evidence(
+        @publication.RunEvidenceReferenceMismatch(
+          "model_raw_response.content_cid",
+        ),
+      ),
+    )
+  }
+  acknowledge_saved_model_raw_capture(value).map(receipt => (receipt, bytes))
+}
+
+///|
+/// Decode the bytes authenticated by the portable Store on the original
+/// Read. Keeping decoding here prevents replacing the response text after
+/// confirming the original Raw. Callers fund the plaintext and UTF-8 decode
+/// before invocation and classify transfer/cleanup on the same Call.
+pub fn portable_model_saved_chat_response(
+  value : ModelRawCaptureSave,
+  call : ModelPhysicalCall,
+  authenticated : Bytes,
+  plaintext_limit : Int,
+) -> Result[
+  (ModelSavedRawReceipt, ModelPhysicalCallPoll),
+  ModelRawCaptureSaveIssue,
+] {
+  let (receipt, bytes) = match
+    acknowledge_portable_model_raw_readback(
+      value, call, authenticated, plaintext_limit,
+    ) {
+    Ok(original) => original
+    Err(issue) => return Err(issue)
+  }
+  let (status, eof, _) = @publication.model_raw_response_transport_facts(
+    value.response,
+  )
+  let usage : ModelPhysicalUsage = { input_tokens: None, output_tokens: None, }
+  if !eof {
+    return Ok((receipt, PhysicalUnknown(usage)))
+  }
+  if status < 200 || status >= 300 {
+    return Ok((receipt, PhysicalRejected(ProviderError, usage)))
+  }
+  let body = @utf8.decode(bytes, ignore_bom=true) catch {
+    _ => return Ok((receipt, PhysicalRejected(SchemaInvalid, usage)))
+  }
+  model_saved_raw_chat_response(receipt, body, None).map(response => {
+    (receipt, PhysicalChatResponse(response))
+  })
 }
 
 ///|
@@ -280,6 +527,7 @@ pub fn model_saved_raw_chat_response(
     observed_at,
     provider_metadata,
     saved_raw: receipt,
+    failure_observation: None,
   })
 }
 

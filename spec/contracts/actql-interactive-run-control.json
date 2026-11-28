@@ -115,35 +115,85 @@
       }
     },
     "control_interval": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "until",
-        "guards"
-      ],
-      "properties": {
-        "until": {
-          "type": "string",
-          "enum": [
-            "step",
-            "batch",
-            "gate",
-            "boundary",
-            "breakpoint",
-            "terminal"
-          ]
-        },
-        "guards": {
-          "oneOf": [
-            {
-              "type": "null"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "until",
+            "guards"
+          ],
+          "properties": {
+            "until": {
+              "type": "string",
+              "enum": [
+                "step",
+                "batch",
+                "gate",
+                "boundary",
+                "terminal"
+              ]
             },
-            {
-              "$ref": "#/schemas/control_guards"
+            "guards": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/schemas/control_guards"
+                }
+              ]
             }
-          ]
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "until",
+            "guards",
+            "breakpoint_selection"
+          ],
+          "properties": {
+            "until": {
+              "const": "breakpoint"
+            },
+            "guards": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/schemas/control_guards"
+                }
+              ]
+            },
+            "breakpoint_selection": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "logical_map_cid",
+                "before_step_ids"
+              ],
+              "properties": {
+                "logical_map_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "before_step_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              }
+            }
+          }
         }
-      }
+      ]
     },
     "control_profile": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1353,8 +1403,29 @@
         },
         "capabilities": {
           "$ref": "#/schemas/run_control_capabilities"
+        },
+        "entry_breakpoint_profile": {
+          "const": "all_operations"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "entry_breakpoint_profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "capabilities": {
+                "required": [
+                  "debug_entry"
+                ]
+              }
+            }
+          }
+        }
+      ]
     },
     "control_resume_origin": {
       "oneOf": [
@@ -1479,7 +1550,8 @@
             "breakpoint",
             "pause",
             "guard_exceeded",
-            "guard_unavailable"
+            "guard_unavailable",
+            "effect_write"
           ]
         },
         "boundary": {
@@ -1517,14 +1589,71 @@
                 "logical_step",
                 "batch",
                 "gate",
-                "boundary"
+                "boundary",
+                "effect_write"
               ]
             },
             "consumed_boundary_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "effect_write": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "unit_id",
+                "effect_preview_cid",
+                "member_preview_cid"
+              ],
+              "properties": {
+                "unit_id": {
+                  "$ref": "actql-client-host.json#/schemas/installed_effect_continuation/properties/unit_id"
+                },
+                "effect_preview_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "member_preview_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "effect_write"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              "then": {
+                "required": [
+                  "effect_write"
+                ],
+                "properties": {
+                  "step_id": {
+                    "type": "null"
+                  },
+                  "position": {
+                    "const": "before"
+                  }
+                }
+              },
+              "else": {
+                "not": {
+                  "required": [
+                    "effect_write"
+                  ]
+                }
+              }
+            }
+          ]
         },
         "matched_breakpoints": {
           "type": "array",
@@ -1674,6 +1803,42 @@
           "if": {
             "properties": {
               "stop_reason": {
+                "const": "effect_write"
+              }
+            },
+            "required": [
+              "stop_reason"
+            ]
+          },
+          "then": {
+            "properties": {
+              "boundary": {
+                "properties": {
+                  "kind": {
+                    "const": "effect_write"
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "boundary": {
+                "properties": {
+                  "kind": {
+                    "not": {
+                      "const": "effect_write"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stop_reason": {
                 "const": "breakpoint"
               }
             },
@@ -1713,7 +1878,8 @@
           "type": "string",
           "enum": [
             "pause",
-            "resume"
+            "resume",
+            "confirm_write"
           ]
         },
         "run_ref": {
@@ -1730,6 +1896,28 @@
         },
         "interval": {
           "$ref": "#/schemas/control_interval"
+        },
+        "effect_write": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit_id",
+            "effect_preview_cid",
+            "member_preview_cid"
+          ],
+          "properties": {
+            "unit_id": {
+              "$ref": "actql-client-host.json#/schemas/installed_effect_continuation/properties/unit_id"
+            },
+            "effect_preview_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "member_preview_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
         },
         "self_cid": {
           "type": "string",
@@ -1757,6 +1945,37 @@
             "not": {
               "required": [
                 "interval"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": {
+                "const": "confirm_write"
+              }
+            },
+            "required": [
+              "operation"
+            ]
+          },
+          "then": {
+            "required": [
+              "effect_write"
+            ],
+            "properties": {
+              "expected_control_revision": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 2147483646
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "effect_write"
               ]
             }
           }
@@ -3161,7 +3380,8 @@
               "resume",
               "cancel",
               "resolve",
-              "lookup_control_operation"
+              "lookup_control_operation",
+              "confirm_write"
             ]
           },
           "minItems": 0,
@@ -3169,8 +3389,127 @@
         },
         "capabilities": {
           "$ref": "#/schemas/run_control_capabilities"
+        },
+        "breakpoint_targets": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "entry_breakpoint_selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "logical_map_cid",
+            "before_step_ids"
+          ],
+          "properties": {
+            "logical_map_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "before_step_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 32
+            }
+          }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "breakpoint_targets"
+            ]
+          },
+          "then": {
+            "properties": {
+              "logical_map_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "run_state": {
+                "properties": {
+                  "status": {
+                    "const": "paused"
+                  },
+                  "boundary": {
+                    "properties": {
+                      "kind": {
+                        "const": "logical_step"
+                      },
+                      "position": {
+                        "const": "before"
+                      },
+                      "step_id": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "entry_breakpoint_selection"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "breakpoint_targets"
+              ]
+            },
+            "properties": {
+              "logical_map_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "run_state": {
+                "required": [
+                  "boundary",
+                  "stop_reason"
+                ],
+                "properties": {
+                  "status": {
+                    "const": "paused"
+                  },
+                  "stop_reason": {
+                    "const": "entry"
+                  },
+                  "boundary": {
+                    "properties": {
+                      "kind": {
+                        "const": "entry"
+                      },
+                      "position": {
+                        "const": "before"
+                      },
+                      "step_id": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "run_plan_view": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -5626,7 +5965,7 @@
     "control_quantity": "sha256:4b2b7ef61e4ca0c4ec8f4c5ee5526305e4b97d0e11acba5be33ee15787399488",
     "control_money": "sha256:3ff2b76540c468cfb8465fc1ef353fa60ce79c0680ff07baa2a3e2108e73ebbf",
     "control_guards": "sha256:78042c86816324a2a74619155ab4279ae7329b6f654144da5e45dbb34cdf7771",
-    "control_interval": "sha256:96c7f78a4f3b7fa1c28767a62af8bb2b30d9b0e6d149221637161fa661caaa27",
+    "control_interval": "sha256:1f36e9ba1e0d3de12adc8564ab8b3e401d1eaac2554453665324505254fcdc45",
     "control_profile": "sha256:de509d6973a97005a404c6312ec5dcec7a72088842659d4480990b0b672b43e3",
     "control_request_intent": "sha256:a6b7aac22908f080c9e98fbbcd318cbf44f2ba1524c3b035892f3df1d1f9b6cc",
     "control_admission": "sha256:f71d8bc18652162c270821b33feb3310f2747cab5d874fa3674a5796de5fc008",
@@ -5638,10 +5977,10 @@
     "logical_step": "sha256:358b99d025a24cb2136eecd815d76d4420ebca12376ab6e3f2ef9b8a2abb8038",
     "logical_map": "sha256:89c090b128f4cd79aa09cc767eb439890032f8c897f3f44ec93c0159b4495df4",
     "run_control_capabilities": "sha256:ec77b63d8ce6993243c2431db8d100f11c75b0fbdb1751acf31db9330a82e498",
-    "plan_view": "sha256:51856c457b3eae9724d9626319ad865f38baee748f341f179d3575b2558c5bf4",
+    "plan_view": "sha256:96c085e289c370c4156cd5668fc8755512324923e45482b29db84f5a2626bd8a",
     "control_resume_origin": "sha256:a6aecb1e607745939e7d1e3a16a89c61ec9d0d6ff272aab22e000f40687ea13f",
-    "controlled_run_state": "sha256:95db721d1dd426ae5323fa89b11a045e1c8e445ed720e7f55f6dac54bedb0d2c",
-    "control_command": "sha256:3652d5b0ccd085bcb7077cae918e6c802fa6d8e7d2ef57fdf533b591bcb23365",
+    "controlled_run_state": "sha256:eae860a6f564f069bd1f3cebb06867d14cdb1f3b68488213585485ac66381361",
+    "control_command": "sha256:284fa01119e327af0a57cc4a45a288214264573dd5a11c92eda39683fa32208f",
     "control_operation_ref": "sha256:789a793ad961d9b353c7ce7e7291c5ea6332c5c5eda5626a86ddeb89b762f2b8",
     "control_operation_receipt": "sha256:22eeab3c3f9f494a4bb19441508e774e9fe647e7df0cf7bf4b63ac2a895c0822",
     "control_operation_observation": "sha256:a3b7c22419a2a4de7c2573080d71b98f6f899dff632bf68a19f86e1c34d9668b",
@@ -5656,7 +5995,7 @@
     "sample_vectors": "sha256:aac6c7925d0d1530470025c220cd318ae05478e3e6a3fc549f3650e4347a412b",
     "sample_events": "sha256:b1f560c21d34be458106a6d9bba1beda6c0fae10c4495b2e719de752ae7aa067",
     "run_sample": "sha256:2dd54eb2b19fa3a2711de876dea2b965a3490c69482df328915415f8c24f1bf6",
-    "run_view": "sha256:080a02459f184f92fb956141c2105b3ea36d0ac7f2efd02f06dcc9ac4b08a293",
+    "run_view": "sha256:daf99c1333c71d5369c71b9581aaefb894e3d71806def43f6da2db4c76094c15",
     "run_plan_view": "sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77",
     "effectful_static_plan_view": "sha256:290df7e7a6ceeab8d5198bc7fd39ba4a65d213fa80f83e5a6381b94c6dbde645",
     "explanation_type": "sha256:3695d05cd5c60f600347cbe1eb2589a23374966eb9b3c681f9971b743b9417e3",
@@ -5802,5 +6141,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:d83bc96bcf370b40f166ca6d32587aae383f5f822da52648d3ae7aa9a9603f32"
+  "registry_cid": "sha256:c45b7644c4092d65b7d273c49d8be4f8794640c85ba7244e972c81f9d5088d35"
 }

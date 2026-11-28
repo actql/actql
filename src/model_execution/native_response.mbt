@@ -135,6 +135,8 @@ fn advance_native_model_response(
     model_native_response_original(native, call) else {
     return @bounded.Failed(RequestIdentity, 1, 1)
   }
+  let status = native.raw.status
+  let provider_refused = status < 200 || status >= 300
   if child.facts is Some(facts) {
     match retain_chat_model_usage(state, call, facts, false) {
       Err(issue) => return @bounded.Failed(issue, 1, 1)
@@ -142,6 +144,8 @@ fn advance_native_model_response(
     }
   }
   match advance_native_envelope_decode(child) {
+    Err(OutputValue) if provider_refused =>
+      accept_saved_model_http_rejection_without_usage(state, call, status)
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => {
       if child.facts is Some(facts) {
@@ -159,17 +163,16 @@ fn advance_native_model_response(
         Err(issue) => return @bounded.Failed(issue, 1, 1)
         Ok(_) => ()
       }
-      retire_model_raw_usage_child(call) |> ignore
-      if native.raw.status < 200 || native.raw.status >= 300 || facts.malformed {
+      match retire_model_raw_usage_child(call) {
+        Err(issue) => return @bounded.Failed(issue, 1, 1)
+        Ok(_) => ()
+      }
+      if provider_refused || facts.malformed {
         cancel_native_envelope_decode(child)
         state.progress.observing_response = false
         return accept_failed_model_slot(
           state,
-          if facts.malformed {
-            SchemaInvalid
-          } else {
-            ProviderError
-          },
+          model_http_rejected_response_failure(status),
         )
       }
       // Reuse the existing finite synchronous alias codec. Its work units

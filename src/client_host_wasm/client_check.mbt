@@ -13,6 +13,44 @@ priv struct StoredClientCheck {
 }
 
 ///|
+fn client_check_environment(
+  value : Instance,
+  environment : Int,
+  configuration : Int,
+) -> (@checked.CheckEnvironment, String?, String?)? {
+  guard value.run_configurations.get(configuration) is Some(current) else {
+    return None
+  }
+  if current.mock_project is None &&
+    current.local_project is None &&
+    !(current.sdk is Some({ portable_model: Some(_), .. })) {
+    return value.environments
+      .get(environment)
+      .map(original => (original.environment, None, None))
+  }
+  guard value.original_metadata.get(environment) is Some(original) &&
+    original.kind == 7 &&
+    original.produced &&
+    !original.output_closed else {
+    return None
+  }
+  let held = match original.project {
+    Some(MockCheck(held)) if current.mock_project == Some(held.project) => held
+    Some(LocalCheck(held)) if current.local_project == Some(held.project) =>
+      held
+    Some(PortableModelCheck(held)) if current.sdk
+      is Some({ portable_model: Some(model), .. }) &&
+      held.project == model => held
+    _ => return None
+  }
+  guard held.configuration == configuration &&
+    held.environment is Some((checker, publication, scope)) else {
+    return None
+  }
+  Some((checker, publication, scope))
+}
+
+///|
 /// kind=0 exposes only public checking selections to the trusted Host's keyed
 /// context encoder. kind=1 reports an exact captured request through Common.
 pub fn reserve_client_check(
@@ -25,7 +63,7 @@ pub fn reserve_client_check(
   physical_copy_bytes : Int64,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.environments.contains(environment) &&
+    client_check_environment(value, environment, configuration) is Some(_) &&
     value.run_configurations.get(configuration) is Some(original) &&
     original.host_current is Some(_) &&
     value.copies.get(input) is Some((input_slot, physical)) else {
@@ -75,8 +113,9 @@ pub fn reserve_client_check(
 
 ///|
 fn client_check_metadata(
-  environment : StoredEnvironment,
+  environment : @checked.CheckEnvironment,
   configuration : StoredRunConfiguration,
+  visibility : String?,
 ) -> String raise @encode.EncodeFailure {
   let (reason, outcome) = @preparation.client_program_check_reporting_schema_cids()
   let writer = @encode.writer(262144, 32, 4)
@@ -86,9 +125,7 @@ fn client_check_metadata(
       ("compiler", @preparation.client_program_check_compiler_identity()),
       (
         "checking_context",
-        @preparation.client_program_check_context_identity(
-          environment.environment,
-        ),
+        @preparation.client_program_check_context_identity(environment),
       ),
       ("reason_schema_cid", reason),
       ("outcome_schema_cid", outcome),
@@ -98,6 +135,10 @@ fn client_check_metadata(
     @encode.key(writer, key)
     @encode.string_value(writer, text)
   }
+  if visibility is Some(scope) {
+    @encode.key(writer, "publication_context")
+    @encode.string_value(writer, scope)
+  }
   @encode.end_object(writer)
   @encode.finish(writer)
 }
@@ -106,6 +147,7 @@ fn client_check_metadata(
 fn client_check_report(
   environment : @checked.CheckEnvironment,
   request : @decode.ObjectView,
+  publication? : String? = None,
 ) -> String? {
   guard required_text(request, "kind") is Some(kind) &&
     required_text(request, "scope") is Some(scope) &&
@@ -124,18 +166,27 @@ fn client_check_report(
     (parameters is Some(_)) == (parameters_revision is Some(_)) else {
     return None
   }
-  let publication = try {
-    let writer = @encode.writer(4096, 16, 4)
-    @encode.begin_object(writer)
-    @encode.key(writer, "environmentCid")
-    @encode.string_value(writer, @checked.checking_environment_cid(environment))
-    @encode.key(writer, "aliases")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.end_object(writer)
-    @encode.finish(writer)
-  } catch {
-    _ => return None
+  let runtime_available = publication is None
+  let original_project_catalog = publication is Some(_)
+  let publication = if publication is Some(original) {
+    original
+  } else {
+    try {
+      let writer = @encode.writer(4096, 16, 4)
+      @encode.begin_object(writer)
+      @encode.key(writer, "environmentCid")
+      @encode.string_value(
+        writer,
+        @checked.checking_environment_cid(environment),
+      )
+      @encode.key(writer, "aliases")
+      @encode.begin_array(writer)
+      @encode.end_array(writer)
+      @encode.end_object(writer)
+      @encode.finish(writer)
+    } catch {
+      _ => return None
+    }
   }
   if kind == "program" && format == "json" && declarations is None {
     Some(
@@ -150,6 +201,8 @@ fn client_check_report(
         correlation,
         scope,
         None,
+        runtime_available~,
+        original_project_catalog~,
       ),
     )
   } else if kind == "text" {
@@ -168,6 +221,7 @@ fn client_check_report(
         correlation,
         scope,
         None,
+        runtime_available~,
       ),
     )
   } else {
@@ -194,7 +248,8 @@ pub fn current_client_check(nonce : Int64, handle : Int, current : Int) -> Int {
 pub fn produce_client_check(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.client_checks.get(handle) is Some(record) &&
-    value.environments.get(record.environment) is Some(environment) &&
+    client_check_environment(value, record.environment, record.configuration)
+    is Some((environment, publication, visibility)) &&
     value.run_configurations.get(record.configuration) is Some(configuration) else {
     return -2
   }
@@ -216,7 +271,7 @@ pub fn produce_client_check(nonce : Int64, handle : Int) -> Int {
   guard input_cursor(value, borrow.slot) is Some(cursor) else { return -31 }
   let wire = if record.kind == 0 {
     guard @decode.closed_object(cursor, []) is Ok(_) else { return -31 }
-    client_check_metadata(environment, configuration) catch {
+    client_check_metadata(environment, configuration, visibility) catch {
       _ => return -34
     }
   } else {
@@ -225,7 +280,7 @@ pub fn produce_client_check(nonce : Int64, handle : Int) -> Int {
         "declarations", "parameters", "declarations_revision", "parameters_revision",
       ])
       is Ok(request) &&
-      client_check_report(environment.environment, request) is Some(wire) else {
+      client_check_report(environment, request, publication~) is Some(wire) else {
       return -31
     }
     wire

@@ -21,9 +21,9 @@ const file = selected === 'js' ? 'packages/client-wire/submission-check-semantic
   : 'scripts/test-native-client-wire.test.mjs';
 const path = selected === 'js' ? 'packages/client-wire/client-host.generated.js'
   : 'src/cmd/native_client/wire.generated.mbt';
-const from = selected === 'js' ? 'export const validCheckOutcomeContract = value => {'
+const from = selected === 'js' ? 'export function validCheckOutcomeContract(value) {'
   : '  if !wire_check_report_contract(value) {\n    return false\n  }';
-const to = selected === 'js' ? from + ' return validCheckOutcomeShape(value);' : '';
+const to = selected === 'js' ? from + '\n    return validCheckOutcomeShape(value);' : '';
 const original = readFileSync(path, 'utf8');
 if (original.split(from).length !== 2) throw new Error('SemanticMutationAnchorNotUnique');
 // Debug retains the same generated Native predicates without three expensive

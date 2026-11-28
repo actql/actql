@@ -105,6 +105,8 @@ fn non_sdk_source_restore_case(
     run_namespace: "local",
     source_free_result_policy: None,
     host_current: None,
+    mock_project: None,
+    local_project: None,
     sdk: None,
   }
   value.restorations[4] = {

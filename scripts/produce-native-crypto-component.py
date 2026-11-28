@@ -1,7 +1,8 @@
-"""Produce the selected private Crypto member for the ordinary Native recipe.
+"""Produce an exact private Crypto component for a selected Host profile.
 
-The component imports the existing process provider. It never loads another
-provider, configures shared OpenSSL, acquires capacity or installs a profile.
+The Native component imports the existing process provider. The portable
+component uses the ordinary Wasm Host's caller-funded arena and an isolated
+OpenSSL image. Neither producer installs or authorizes a profile.
 """
 from __future__ import annotations
 
@@ -35,6 +36,10 @@ LINUX_TARGET = 'x86_64-unknown-linux-gnu'
 LINUX_LIBRARY = 'libactql_crypto_component.so'
 LINUX_SYSTEM_LIBRARIES = frozenset(('libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0'))
 LINUX_WEAK_C_RUNTIME_IMPORTS = frozenset(('_ITM_deregisterTMCloneTable', '_ITM_registerTMCloneTable', '__gmon_start__'))
+PORTABLE_EXPORTS = tuple('actql_portable_crypto_' + action for action in
+                         ('begin', 'seal', 'open', 'inventory', 'close',
+                          'verify_ed25519', 'sign_attestation'))
+PORTABLE_LINUX_LIBRARY = 'libactql_portable_crypto.so'
 
 
 def original(path: Path, maximum: int = 32 * 1024 * 1024) -> dict[str, object]:
@@ -543,7 +548,8 @@ def prepare_linux_package_inputs(destination: Path, archives: list[Path], select
     return {'packages': package_originals, 'inputs': inputs}
 
 
-def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -> dict:
+def inspect_linux_component(library: Path, *, execute=subprocess.check_output,
+                            portable: bool = False) -> dict:
     observed = original(library)
     with library.open('rb') as stream:
         header = stream.read(64)
@@ -554,32 +560,47 @@ def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -
             or int.from_bytes(header[52:54], 'little') != 64):
         raise ValueError('Crypto component requires ELF64 little-endian x86-64 shared image')
     definitions = execute(['/usr/bin/nm', '-D', '--defined-only', str(library)], text=True)
-    undefined = execute(['/usr/bin/nm', '-D', '--undefined-only', str(library)], text=True)
+    if portable:
+        # The oldest supported binutils' nm omits the imported version. Read
+        # the actual versioned dynamic symbols, never infer a floor from names.
+        symbols = execute(['/usr/bin/readelf', '--dyn-syms', '--wide', str(library)], text=True)
+        undefined = [('w' if fields[4] == 'WEAK' else 'U', fields[7])
+                     for line in symbols.splitlines() if len(fields := line.split()) >= 8
+                     and fields[0].endswith(':') and fields[6] == 'UND']
+    else:
+        symbols = execute(['/usr/bin/nm', '-D', '--undefined-only', str(library)], text=True)
+        undefined = [tuple(line.split()[-2:]) for line in symbols.splitlines() if line.strip()]
     dynamic = execute(['/usr/bin/readelf', '--dynamic', '--wide', str(library)], text=True)
     names = {line.split()[-1] for line in definitions.splitlines() if line.strip()}
-    if names != set(EXPORTS):
+    if names != set(PORTABLE_EXPORTS if portable else EXPORTS):
         raise ValueError('Unexpected Linux Crypto component exports')
     imports = set()
-    for line in undefined.splitlines():
-        if not line.strip():
-            continue
-        fields = line.split()
-        name = fields[-1]
+    glibc_versions = []
+    for binding, name in undefined:
         if name.startswith('actql_'):
             imports.add(name)
-        elif (name in LINUX_WEAK_C_RUNTIME_IMPORTS and len(fields) >= 2 and fields[-2].lower() == 'w'):
+        elif name in LINUX_WEAK_C_RUNTIME_IMPORTS and binding.lower() == 'w':
             # These optional weak references belong to the selected compiler
             # CRT, not a provider or a callable stock-Crypto import.
             continue
-        elif re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*@GLIBC_[0-9]+(?:\.[0-9]+)*', name) is None:
-            raise ValueError('Unexpected Linux Crypto component system import')
-    if imports != PROVIDER_IMPORTS:
+        else:
+            version = re.fullmatch(r'([A-Za-z_][A-Za-z0-9_]*)@GLIBC_([0-9]+(?:\.[0-9]+)*)', name)
+            if version is None:
+                raise ValueError('Unexpected Linux Crypto component system import')
+            if portable:
+                if version[1] in ('dlopen', 'dlmopen', 'dlsym'):
+                    raise ValueError('Portable Crypto imports a dynamic loader')
+                glibc_versions.append(tuple(map(int, version[2].split('.'))))
+    if imports != (set() if portable else PROVIDER_IMPORTS):
         raise ValueError('Original Linux Crypto process provider imports differ')
+    if portable and (not glibc_versions or max(glibc_versions) > (2, 28)):
+        raise ValueError('Portable Crypto exceeds the ordinary Linux glibc 2.28 ABI')
     dependencies = re.findall(r'\(NEEDED\).*\[([^\]]+)\]', dynamic)
     if ('libc.so.6' not in dependencies or len(dependencies) != len(set(dependencies))
             or not set(dependencies) <= LINUX_SYSTEM_LIBRARIES):
         raise ValueError('Linux Crypto component has another provider or shared crypto dependency')
-    if re.findall(r'\(SONAME\).*\[([^\]]+)\]', dynamic) != [LINUX_LIBRARY]:
+    if re.findall(r'\(SONAME\).*\[([^\]]+)\]', dynamic) != [
+            PORTABLE_LINUX_LIBRARY if portable else LINUX_LIBRARY]:
         raise ValueError('Linux Crypto component SONAME differs')
     if re.search(r'\((?:RPATH|RUNPATH)\)', dynamic):
         raise ValueError('Linux Crypto component requires an ambient search path')
@@ -587,7 +608,8 @@ def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -
         raise ValueError('Linux Crypto component changed during inspection')
     return {'library': observed, 'exports': sorted(names),
             'provider_imports': sorted(imports), 'dependencies': dependencies,
-            'target': LINUX_TARGET, 'dynamic': dynamic}
+            'target': LINUX_TARGET, 'dynamic': dynamic,
+            **({'maximum_glibc_version': '.'.join(map(str, max(glibc_versions)))} if portable else {})}
 
 
 def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int, *,
@@ -719,6 +741,166 @@ def produce_linux(output: Path, openssl: Path | None, clang: Path, seconds: int,
     return result
 
 
+def portable_linux_perl_inputs(directory: Path, selected: dict) -> dict:
+    if {member.name for member in directory.iterdir()} != set(selected):
+        raise ValueError('Portable Linux Crypto requires the exact Perl RPM inventory')
+    inputs = {}
+    for name, expected in selected.items():
+        path = directory / name
+        if original(path, expected['bytes']) != expected:
+            raise ValueError('Foreign Portable Linux Crypto Perl input: ' + name)
+        inputs[str(path)] = expected
+    return inputs
+
+
+def produce_portable(output: Path, compiler: Path, sdk: Path | None, seconds: int,
+                     target: str, source_archive: Path, *,
+                     linux_perl_rpms: Path | None = None) -> dict:
+    """Build the Wasm Host's independent, caller-funded physical primitive."""
+    darwin = (platform.system(), platform.machine()) == ('Darwin', 'arm64')
+    linux = (platform.system(), platform.machine()) == ('Linux', 'x86_64')
+    if (target == 'darwin-arm64' and (not darwin or sdk is None)
+            or target == 'linux-x64' and (not linux or sdk is not None
+                or os.confstr('CS_GNU_LIBC_VERSION') != 'glibc 2.28')
+            or target not in ('darwin-arm64', 'linux-x64')):
+        raise ValueError('Portable Crypto requires its exact selected build target and ABI floor')
+    if type(seconds) is not int or not 0 < seconds <= 1800:
+        raise ValueError('Explicit bounded Portable Crypto preparation required')
+    if linux != (linux_perl_rpms is not None):
+        raise ValueError('Select the pinned Perl RPM inventory for Portable Linux Crypto only')
+    if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True):
+        raise ValueError('Portable Crypto requires exact clean committed source')
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    recipe_path = SOURCE / 'source.json'
+    recipe = json.loads(recipe_path.read_bytes())
+    selected = recipe['portable'][target]
+    expected_configuration = ['darwin64-arm64-cc' if darwin else 'linux-x86_64',
+        'no-shared', 'no-pinshared', 'no-module', 'no-dso', 'no-autoload-config',
+        'no-engine', 'no-legacy', 'no-tests']
+    expected_library = 'libactql_portable_crypto.dylib' if darwin else PORTABLE_LINUX_LIBRARY
+    if (selected['configure'] != expected_configuration or selected['library'] != expected_library
+            or darwin and selected['minimum_macos'] != '11.0'
+            or linux and selected['glibc_ceiling'] != '2.28'):
+        raise ValueError('Unselected Portable Crypto source build profile')
+    tools = {name: Path('/usr/bin') / name for name in ('make', 'perl', 'nm')}
+    tools['compiler'] = compiler
+    if darwin:
+        for name in ('lipo', 'otool'):
+            tools[name] = Path('/Library/Developer/CommandLineTools/usr/bin') / name
+    else:
+        tools['readelf'] = Path('/usr/bin/readelf')
+        tools['rpm'] = Path('/usr/bin/rpm')
+    perl_inputs = (portable_linux_perl_inputs(linux_perl_rpms, selected['perl_inputs'])
+                   if linux_perl_rpms is not None else {})
+    inputs, aliases = original_tool_inputs(tools)
+    inputs.update(perl_inputs)
+    inputs.update({str(path): original(path, 512 * 1024 * 1024) for path in (
+        recipe_path, Path(__file__).resolve(), Path(sys.executable).resolve(), source_archive,
+        *((sdk / 'SDKSettings.json',) if sdk is not None else ()))})
+    owned = {**recipe['portable']['local'],
+             'component_arena.inc': recipe['local']['component_arena.inc']}
+    for name, expected in owned.items():
+        path = SOURCE / name
+        observed = original(path)
+        if observed != expected:
+            raise ValueError('Stale Portable Crypto source identity: ' + name)
+        inputs[str(path)] = observed
+
+    deadline = time.monotonic() + seconds
+    output.mkdir(parents=True, exist_ok=False)
+    build = output / 'build'
+    build.mkdir()
+    flags = ['-O2', '-fPIC']
+    if sdk is not None:
+        flags.extend(('-mmacosx-version-min=11.0', '-isysroot', str(sdk)))
+    else:
+        flags.extend(('-march=x86-64', '-mtune=generic'))
+    environment = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'LC_ALL': 'C', 'LANG': 'C',
+                   'CC': str(compiler), 'CFLAGS': shlex.join(flags)}
+    if sdk is not None:
+        environment.update(SDKROOT=str(sdk), MACOSX_DEPLOYMENT_TARGET='11.0')
+    steps = []
+
+    def run(name, command, *, env=environment):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError('Portable Crypto preparation budget exhausted')
+        log = output / (name + '.log')
+        with log.open('xb') as stream:
+            result = subprocess.run(command, cwd=build, env=env, stdout=stream,
+                stderr=subprocess.STDOUT, timeout=remaining, check=False)
+        steps.append({'name': name, 'command': [str(item) for item in command], 'exit': result.returncode})
+        (output / 'steps.json').write_text(json.dumps(steps, indent=2) + '\n')
+        if result.returncode:
+            raise ValueError('Portable Crypto command failed: ' + name)
+        return log
+
+    if linux:
+        # The caller installs the pinned archives in the disposable floor
+        # image. Compare actual installed files to those original archives.
+        verify_perl = [tools['rpm'], '--verify', '--noscripts', '--package', *perl_inputs]
+        run('verify-linux-perl-inputs', verify_perl)
+    members = source_archive_members(source_archive, recipe['upstream'],
+        'openssl-' + recipe['upstream']['version'], output / 'source')
+    source = output / 'source' / ('openssl-' + recipe['upstream']['version'])
+    run('compiler-version', [compiler, '--version'])
+    run('configure', [tools['perl'], source / 'Configure', *expected_configuration])
+    run('build-static', [tools['make'], '-j2', 'build_libs'])
+    archive = build / 'libcrypto.a'
+    inputs[str(archive)] = original(archive)
+    library = output / expected_library
+    exports = output / 'component.exports'
+    if darwin:
+        exports.write_text(''.join('_' + name + '\n' for name in PORTABLE_EXPORTS))
+        link = ['-dynamiclib', '-Wl,-install_name,@rpath/' + expected_library,
+                '-Wl,-exported_symbols_list,' + str(exports)]
+    else:
+        exports.write_text('{ global:\n' + ''.join(name + ';\n' for name in PORTABLE_EXPORTS)
+                           + 'local: *; };\n')
+        link = ['-D_GNU_SOURCE', '-shared', '-Wl,-z,defs', '-Wl,--exclude-libs,ALL',
+                '-Wl,--version-script=' + str(exports), '-Wl,-soname,' + expected_library, '-pthread']
+    run('link', [compiler, '-std=c11', '-Wall', '-Wextra', '-Werror', *flags,
+                 '-fvisibility=hidden', '-I' + str(build / 'include'), '-I' + str(source / 'include'),
+                 SOURCE / 'portable_component.c', archive, *link, '-o', library])
+    identity = original(library)
+    if darwin:
+        names = run('exports', [tools['nm'], '-gjU', library]).read_text().splitlines()
+        dependencies = run('dependencies', [tools['otool'], '-L', library]).read_text().splitlines()[1:]
+        loads = run('loads', [tools['otool'], '-l', library]).read_text()
+        undefined = run('imports', [tools['nm'], '-u', library]).read_text().splitlines()
+        if (set(names) != {'_' + name for name in PORTABLE_EXPORTS}
+                or run('target', [tools['lipo'], '-archs', library]).read_text().strip() != 'arm64'
+                or [line.split()[0] for line in dependencies] != [
+                    '@rpath/' + expected_library, '/usr/lib/libSystem.B.dylib']
+                or re.findall(r'^\s*minos\s+(\S+)', loads, flags=re.M) != ['11.0']
+                or 'LC_RPATH' in loads
+                or any(line.split()[-1].startswith(('_actql_', '_dlopen', '_dlsym'))
+                       for line in undefined if line.strip())):
+            raise ValueError('Foreign Portable Darwin Crypto image')
+        image = {'exports': sorted(PORTABLE_EXPORTS), 'dependencies': ['/usr/lib/libSystem.B.dylib']}
+    else:
+        image = inspect_linux_component(library, portable=True)
+    notice = source / 'LICENSE.txt'
+    if original(notice)['sha256'] != recipe['license_sha256']:
+        raise ValueError('Foreign Portable Crypto upstream notice')
+    notice_copy = output / 'OPENSSL-LICENSE'
+    notice_copy.write_bytes(notice.read_bytes())
+    if original(notice_copy) != original(notice):
+        raise ValueError('Portable Crypto upstream notice changed')
+    if linux:
+        run('verify-linux-perl-inputs-after', verify_perl)
+    verify_tool_aliases(aliases)
+    verify_original_inputs(inputs)
+    if original(library) != identity or subprocess.check_output(
+            ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != head:
+        raise ValueError('Portable Crypto source or artifact changed')
+    receipt = {'source': head, 'target': target, 'profile': selected, 'inputs': inputs,
+               'source_members': members, 'image': image, 'library': identity,
+               'notice': original(notice_copy), 'loaded': False}
+    (output / 'producer.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    return receipt
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
@@ -733,10 +915,25 @@ def main() -> None:
                         help='Explicit additional Linux system-header destination root; never a fallback')
     parser.add_argument('--static-profile', choices=('homebrew26', 'source-macos11'), default='homebrew26')
     parser.add_argument('--source-archive', type=Path)
+    parser.add_argument('--portable', action='store_true',
+                        help='Build the isolated ordinary Wasm Host Crypto primitive from pinned source')
+    parser.add_argument('--portable-linux-perl-rpms', type=Path,
+                        help='Exact pinned Perl RPM originals installed in the selected Linux build image')
     args = parser.parse_args()
+    if args.portable_linux_perl_rpms is not None and (not args.portable or args.target != 'linux-x64'):
+        raise ValueError('Perl RPM originals require Portable Linux Crypto')
     if args.system_header_root and args.target != 'linux-x64':
         raise ValueError('Additional system-header roots require a Linux Crypto component')
-    if args.target == 'linux-x64':
+    if args.portable:
+        if (args.source_archive is None or args.system_header_root or args.openssl_prefix is not None
+                or args.openssl_package_archive is not None or args.static_profile != 'homebrew26'):
+            raise ValueError('Portable Crypto requires the pinned source archive only')
+        result = produce_portable(args.output.resolve(), args.clang.resolve(strict=True),
+            args.sdk.resolve(strict=True) if args.sdk is not None else None, args.seconds,
+            args.target, args.source_archive.resolve(strict=True),
+            linux_perl_rpms=args.portable_linux_perl_rpms.resolve(strict=True)
+            if args.portable_linux_perl_rpms is not None else None)
+    elif args.target == 'linux-x64':
         if args.sdk is not None or args.source_archive is not None:
             raise ValueError('Linux Crypto preparation cannot select a Darwin SDK')
         result = produce_linux(args.output.resolve(),

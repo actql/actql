@@ -1,5 +1,6 @@
 """Independent physical transport oracles, not public Run/COMMIT acceptance."""
 import copy
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import RLock
@@ -12,7 +13,10 @@ from actql_sdk._local_core import (
     _JOURNAL_SIGNATURES, _Output, _PhysicalInput,
 )
 from actql_sdk._local_journal_port import _JournalCallbacks
-from actql_sdk._local_storage import LocalByteStore, ByteWrite, ByteFence, StoredBytes, _NamespaceReader
+from actql_sdk._local_storage import (
+    LocalByteStore, LocalStorageError, ByteWrite, ByteFence, StoredBytes, _NamespaceReader,
+)
+from actql_sdk._local_storage_physical import _SQLiteByteDatabase
 from actql_sdk import _wire as wire
 from actql_sdk._values import decode_json
 from local_abi_declaration_fixture import assert_current_local_abi, original_byte_fixture_port
@@ -75,6 +79,464 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
         return (bytes(callbacks.row_byte(0, i) for i in range(callbacks.length(0))),
                 bytes(callbacks.row_byte(1, i) for i in range(callbacks.length(1))),
                 callbacks.revision())
+
+    def test_task_material_take_uses_original_row_transfer_and_confirmed_misses(self):
+        run_key = 'sha256:' + 'a' * 64
+        key = self.store.namespaced_key('client_task_run_materials', run_key + ':0')
+        self.assertEqual(self.store.compare_exchange(key, None, b'original material'), 0)
+        callbacks = self.callbacks
+        statements = []
+        self.store._connection.set_trace_callback(statements.append)
+
+        def inspect(reader):
+            callbacks.reader = reader
+            try:
+                with callbacks.task_material_rows(run_key, 17) as take:
+                    self.assertEqual(take(0), 0)
+                    self.assertEqual(callbacks.revision(), 0)
+                    self.assertEqual(callbacks.row_copy(0, 0, 73), (run_key + ':0').encode())
+                    self.assertEqual(callbacks.row_copy(1, 0, 17), b'original material')
+                    self.assertEqual(callbacks.release(), 0)
+                    for ordinal in (1, 2, 3):
+                        self.assertEqual(take(ordinal), 1)
+                        self.assertIsNone(callbacks.row)
+                        self.assertEqual(callbacks.release(), 0)
+                self.assertIsNone(callbacks.task_material_scope)
+                self.assertEqual(take(0), -41)
+                self.assertRegex(str(callbacks.failure), 'loan expired or changed')
+            finally:
+                callbacks.reader = None
+
+        self.store.inspect_namespaces(self.fences, inspect=inspect, current=callbacks.current)
+        self.assertEqual(sum('WITH requested(ordinal, key)' in sql for sql in statements), 1)
+        self.assertFalse(self.store._connection.in_transaction)
+
+    def test_task_material_abort_does_not_take_or_copy_a_later_slot(self):
+        self.check_task_material_budget_after_first_slot(abort=True)
+
+    def test_task_material_take_reports_original_later_capacity_refusal(self):
+        self.check_task_material_budget_after_first_slot(abort=False)
+
+    def check_task_material_budget_after_first_slot(self, *, abort):
+        run_key = 'sha256:' + 'b' * 64
+        keys = [self.store.namespaced_key('client_task_run_materials', f'{run_key}:{i}')
+                for i in (0, 1)]
+        first_payload = b'\xff' if abort else b'a'
+        for key, payload in zip(keys, [first_payload, b'later physical row'], strict=True):
+            self.assertEqual(self.store.compare_exchange(key, None, payload), 0)
+        callbacks = self.callbacks
+        copied = []
+        read_row = _SQLiteByteDatabase.read_row
+
+        def observe(database, key, max_bytes):
+            if key in keys:
+                copied.append(key)
+            return read_row(database, key, max_bytes)
+
+        def inspect(reader):
+            callbacks.reader = reader
+            try:
+                with callbacks.task_material_rows(run_key, 1) as take:
+                    self.assertEqual(take(0), 0)
+                    self.assertEqual(callbacks.row_copy(1, 0, 1), first_payload)
+                    self.assertEqual(callbacks.release(), 0)
+                    if abort:
+                        raise ValueError('first slot rejected by Common')
+                    self.assertEqual(take(1), -41)
+                    first = callbacks.failure
+                    self.assertIsInstance(first, LocalStorageError)
+                    self.assertEqual(take(2), -41)
+                    self.assertIs(callbacks.failure, first)
+            finally:
+                callbacks.reader = None
+
+        with patch.object(_SQLiteByteDatabase, 'read_row', observe):
+            if abort:
+                with self.assertRaisesRegex(ValueError, 'first slot rejected'):
+                    self.store.inspect_namespaces(self.fences, inspect=inspect, current=callbacks.current)
+                self.assertIsNone(callbacks.failure)
+            else:
+                with self.assertRaisesRegex(LocalStorageError, 'Over-budget') as failure:
+                    self.store.inspect_namespaces(self.fences, inspect=inspect, current=callbacks.current)
+                self.assertIs(failure.exception, callbacks.failure)
+        self.assertEqual(copied, [keys[0]])
+        self.assertIsNone(callbacks.task_material_scope)
+        self.assertFalse(self.store._connection.in_transaction)
+
+    def test_task_material_batch_preserves_indivisible_statement_failure(self):
+        run_key = 'sha256:' + 'c' * 64
+        callbacks = self.callbacks
+        denying = False
+        denied = []
+
+        def authorize(action, table, column, *_):
+            if denying and action == sqlite3.SQLITE_READ and table == 'core_bytes' and column == 'generation':
+                denied.append(column)
+                return sqlite3.SQLITE_DENY
+            return sqlite3.SQLITE_OK
+
+        def inspect(reader):
+            nonlocal denying
+            callbacks.reader = reader
+            denying = True
+            try:
+                with callbacks.task_material_rows(run_key, 17):
+                    self.fail('Failed physical statement admitted a task-material borrower')
+            finally:
+                denying = False
+                callbacks.reader = None
+
+        self.store._connection.set_authorizer(authorize)
+        with self.assertRaises(sqlite3.DatabaseError) as refused:
+            self.store.inspect_namespaces(self.fences, inspect=inspect, current=callbacks.current)
+        self.assertEqual(refused.exception.sqlite_errorcode, sqlite3.SQLITE_AUTH)
+        self.assertIs(callbacks.failure, refused.exception)
+        self.assertIsNone(callbacks.row)
+        self.assertIsNone(callbacks.task_material_scope)
+        self.assertEqual(denied, ['generation'])
+        self.assertFalse(self.store._connection.in_transaction)
+
+    def test_saved_identity_pair_checks_reached_extent_before_physical_body(self):
+        submission, run = ('sha256:' + value * 64 for value in ('a', 'b'))
+        keys = (self.store.namespaced_key('client_submitted_intents', submission),
+                self.store.namespaced_key('client_runs', run))
+        bodies = (b'{"fixture":"original submission"}', b'{"fixture":"original saved run"}')
+        for key, body in zip(keys, bodies, strict=True):
+            self.assertEqual(self.store.compare_exchange(key, None, body), 0)
+        copied = []
+        targets = []
+        physical_row = _SQLiteByteDatabase.read_row
+        physical_headers = _SQLiteByteDatabase.read_target_headers
+
+        def read_row(database, key, maximum):
+            if key in keys:
+                copied.append(key)
+            return physical_row(database, key, maximum)
+
+        def read_headers(database, requested):
+            targets.append(requested)
+            return physical_headers(database, requested)
+
+        for second_size in (len(bodies[1]), len(bodies[1]) + 1, len(bodies[1]) - 1):
+            callbacks = _JournalCallbacks(lambda: None, self.store)
+            sizes = (len(bodies[0]), second_size)
+            exact = second_size == len(bodies[1])
+            copied.clear()
+            targets.clear()
+
+            def inspect(reader):
+                callbacks.reader = reader
+                try:
+                    with callbacks.saved_identity_rows(submission, run, sizes, 512) as take:
+                        self.assertEqual(copied, [])
+                        self.assertEqual(take(0), 0)
+                        self.assertEqual(callbacks.row_copy(1, 0, sizes[0]), bodies[0])
+                        self.assertEqual(callbacks.release(), 0)
+                        self.assertEqual(take(1), 0 if exact else 2)
+                        if exact:
+                            self.assertEqual(callbacks.row_copy(1, 0, sizes[1]), bodies[1])
+                        else:
+                            self.assertIsNone(callbacks.row)
+                            self.assertIsNone(callbacks.failure)
+                        self.assertEqual(callbacks.release(), 0)
+                finally:
+                    callbacks.reader = None
+
+            with (patch.object(_SQLiteByteDatabase, 'read_target_headers', read_headers),
+                  patch.object(_SQLiteByteDatabase, 'read_row', read_row)):
+                self.store.inspect_namespaces(self.fences, inspect=inspect, current=callbacks.current)
+            self.assertEqual(targets, [keys])
+            self.assertEqual(copied, list(keys if exact else keys[:1]))
+            self.assertIsNone(callbacks.task_material_scope)
+            self.assertFalse(self.store._connection.in_transaction)
+
+    def test_target_read_orders_exact_rows_and_refreshes_same_revision_bytes(self):
+        revision = 9007199254740993
+        empty = self.store.namespaced_key(self.namespace, 'empty')
+        neighbor = self.store.namespaced_key(self.namespace, 'neighbor')
+        with closing(sqlite3.connect(self.path)) as physical, physical:
+            physical.execute('UPDATE core_bytes SET generation=? WHERE key=?',
+                             (revision, self.record_key))
+            physical.executemany('INSERT INTO core_bytes VALUES(?, 0, ?)',
+                                 ((empty, b''), (neighbor, bytes(1024))))
+        wanted = ((self.namespace, 'missing'), (self.namespace, self.key),
+                  (self.namespace, 'empty'), ('é:/~', self.key))
+        statements = []
+        observed = []
+        readers = []
+        self.store._connection.set_trace_callback(statements.append)
+
+        def inspect(reader):
+            readers.append(reader)
+            take = reader.get_many(reader, wanted, len(self.raw), current)
+            observed.append(tuple(take(reader, ordinal) for ordinal in range(len(wanted))))
+        current = lambda: None
+        self.store.inspect_namespaces(self.fences, inspect=inspect, current=current)
+        self.assertEqual(observed, [(None, StoredBytes(revision, self.raw), StoredBytes(0, b''), None)])
+        queries = [statement for statement in statements if 'WITH requested(ordinal, key)' in statement]
+        self.assertEqual(len(queries), 1)
+        self.assertNotIn(neighbor.encode().hex(), queries[0])
+        self.assertNotIn(neighbor, queries[0])
+        self.assertFalse(self.store._connection.in_transaction)
+        with self.assertRaisesRegex(ValueError, 'inventory reader is not active'):
+            readers[0].get_many(readers[0], wanted, len(self.raw), current)
+
+        # A different writer changes complete bytes while retaining the physical
+        # generation. The next fresh observation must expose the changed bytes.
+        changed = self.raw.replace(b'1.25', b'2.25')
+        with closing(sqlite3.connect(self.path)) as physical, physical:
+            physical.execute('UPDATE core_bytes SET payload=? WHERE key=?', (changed, self.record_key))
+        self.store.inspect_namespaces(self.fences, inspect=inspect, current=current)
+        self.assertEqual(observed, [
+            (None, StoredBytes(revision, self.raw), StoredBytes(0, b''), None),
+            (None, StoredBytes(revision, changed), StoredBytes(0, b''), None),
+        ])
+        self.assertIsNot(readers[0], readers[1])
+        connection = self.store._connection
+        self.store.close()
+        with self.assertRaises(sqlite3.ProgrammingError):
+            connection.execute('SELECT 1')
+
+    def test_target_read_one_short_refuses_only_the_reached_body(self):
+        second = b'\x00other original'
+        other_key = self.store.namespaced_key(self.namespace, 'extra')
+        self.assertEqual(self.store.compare_exchange(other_key, None, second), 0)
+        wanted = ((self.namespace, self.key), (self.namespace, 'extra'))
+        total = len(self.raw) + len(second)
+        read_row = _SQLiteByteDatabase.read_row
+        copied = []
+        current = lambda: None
+
+        def observe(database, key, max_bytes):
+            row = read_row(database, key, max_bytes)
+            if key != 'epoch':
+                copied.append((key, max_bytes))
+            return row
+
+        def inspect(reader):
+            take = reader.get_many(reader, wanted, total - 1, current)
+            self.assertEqual(copied, [])
+            self.assertEqual(take(reader, 0), StoredBytes(0, self.raw))
+            take(reader, 1)
+
+        with patch.object(_SQLiteByteDatabase, 'read_row', observe):
+            with self.assertRaisesRegex(LocalStorageError, 'Over-budget'):
+                self.store.inspect_namespaces(self.fences, inspect=inspect, current=current)
+        self.assertEqual(copied, [(self.record_key, len(self.raw))])
+        self.assertFalse(self.store._connection.in_transaction)
+
+        def inspect_exact(reader):
+            take = reader.get_many(reader, wanted, total, current)
+            self.assertEqual(take(reader, 0), StoredBytes(0, self.raw))
+            self.assertEqual(take(reader, 1), StoredBytes(0, second))
+
+        self.store.inspect_namespaces(self.fences, inspect=inspect_exact, current=current)
+
+    def test_target_read_uses_same_cumulative_query_budget_and_refuses_duplicates(self):
+        self.store.close()
+        self.store = LocalByteStore(self.path, max_records=12, max_record_bytes=512,
+                                    max_payload_bytes=4096, max_inspection_queries=1)
+        self.addCleanup(self.store.close)
+        wanted = ((self.namespace, self.key), (self.namespace, 'missing'))
+        statements = []
+        self.store._connection.set_trace_callback(statements.append)
+        current = lambda: None
+
+        def inspect(reader):
+            take = reader.get_many(reader, wanted, len(self.raw), current)
+            self.assertEqual(take(reader, 0), StoredBytes(0, self.raw))
+            take(reader, 1)
+
+        with self.assertRaisesRegex(LocalStorageError, 'inspection capacity'):
+            self.store.inspect_namespaces(self.fences, inspect=inspect, current=current)
+        headers = [sql for sql in statements if 'WITH requested(ordinal, key)' in sql]
+        self.assertEqual(len(headers), 1)
+        self.assertNotIn('missing', headers[0])
+
+        def duplicate(reader):
+            reader.get_many(reader, (wanted[0], wanted[0]), len(self.raw), current)
+        with self.assertRaisesRegex(ValueError, 'target key set'):
+            self.store.inspect_namespaces(self.fences, inspect=duplicate, current=current)
+        self.assertEqual(sum('WITH requested(ordinal, key)' in sql for sql in statements), 1)
+
+    def test_target_read_refuses_foreign_reader_and_keeps_post_read_current_failure(self):
+        wanted = ((self.namespace, self.key),)
+        current = lambda: None
+        returned = []
+
+        def copied(reader):
+            reader.get_many(copy.copy(reader), wanted, len(self.raw), current)
+        with patch.object(_SQLiteByteDatabase, 'read_target_headers') as query:
+            with self.assertRaisesRegex(ValueError, 'inventory reader is not active'):
+                self.store.inspect_namespaces(self.fences, inspect=copied, current=current)
+            query.assert_not_called()
+
+        refusal = OSError('original target current observation lost')
+        observations = []
+
+        def after_body():
+            observations.append('current')
+            if len(observations) == 4:
+                raise refusal
+
+        def inspect(reader):
+            take = reader.get_many(reader, wanted, len(self.raw), after_body)
+            returned.append(take(reader, 0))
+        with self.assertRaises(OSError) as raised:
+            self.store.inspect_namespaces(self.fences, inspect=inspect, current=current)
+        self.assertIs(raised.exception, refusal)
+        self.assertEqual(len(observations), 4)
+        self.assertEqual(returned, [])
+        self.assertFalse(self.store._connection.in_transaction)
+        self.assertEqual(self.store.read(self.record_key), StoredBytes(0, self.raw))
+
+    def test_target_read_batch_sql_failure_and_swallowed_reentry_stay_failures(self):
+        wanted = ((self.namespace, self.key),)
+        current = lambda: None
+        rows = []
+        original = _SQLiteByteDatabase.read_row
+
+        def observe(database, key, max_bytes):
+            if key == self.record_key:
+                rows.append(key)
+            return original(database, key, max_bytes)
+
+        denying = False
+        def authorize(action, table, column, *_):
+            return (sqlite3.SQLITE_DENY if denying and action == sqlite3.SQLITE_READ
+                    and table == 'core_bytes' and column == 'generation'
+                    else sqlite3.SQLITE_OK)
+
+        self.store._connection.set_authorizer(authorize)
+        def denied(reader):
+            nonlocal denying
+            denying = True
+            try:
+                reader.get_many(reader, wanted, len(self.raw), current)
+            finally:
+                denying = False
+
+        with patch.object(_SQLiteByteDatabase, 'read_row', observe):
+            with self.assertRaises(sqlite3.DatabaseError) as refused:
+                self.store.inspect_namespaces(self.fences, inspect=denied, current=current)
+        self.assertEqual(refused.exception.sqlite_errorcode, sqlite3.SQLITE_AUTH)
+        self.assertEqual(rows, [])
+        self.assertFalse(self.store._connection.in_transaction)
+        self.store._connection.set_authorizer(None)
+
+        errors = []
+        def reenter(reader):
+            def attempt():
+                try:
+                    reader.get_many(reader, wanted, len(self.raw), current)
+                except ValueError as error:
+                    errors.append(error)
+            reader.get_many(reader, wanted, len(self.raw), attempt)
+
+        with patch.object(_SQLiteByteDatabase, 'read_target_headers') as query:
+            with self.assertRaises(ValueError) as raised:
+                self.store.inspect_namespaces(self.fences, inspect=reenter, current=current)
+            query.assert_not_called()
+        self.assertEqual(len(errors), 1)
+        self.assertIs(raised.exception, errors[0])
+        self.assertFalse(self.store._connection.in_transaction)
+
+    def test_target_read_retry_preserves_original_header_or_body_sql_failure(self):
+        wanted = ((self.namespace, self.key),)
+        physical_header = _SQLiteByteDatabase.read_target_headers
+        physical_body = _SQLiteByteDatabase.read_row
+        connection = self.store._connection
+
+        for cut in ('header', 'body'):
+            with self.subTest(cut=cut):
+                denied = False
+                calls = []
+                caught = []
+
+                def authorizer(action, table, column, *_):
+                    return (sqlite3.SQLITE_DENY if denied and action == sqlite3.SQLITE_READ
+                            and table == 'core_bytes' and column == 'generation'
+                            else sqlite3.SQLITE_OK)
+
+                def header(database, keys):
+                    nonlocal denied
+                    calls.append('header')
+                    denied = cut == 'header'
+                    try:
+                        return physical_header(database, keys)
+                    finally:
+                        denied = False
+
+                def body(database, key, max_bytes):
+                    nonlocal denied
+                    if key != self.record_key:
+                        return physical_body(database, key, max_bytes)
+                    calls.append('body')
+                    denied = cut == 'body'
+                    try:
+                        return physical_body(database, key, max_bytes)
+                    finally:
+                        denied = False
+
+                def current():
+                    return None
+
+                def inspect(reader):
+                    def get():
+                        return reader.get_many(reader, wanted, len(self.raw), current)
+
+                    take = None if cut == 'header' else get()
+
+                    def request():
+                        return get() if take is None else take(reader, 0)
+
+                    for retry in (request, request, reader.current):
+                        with self.assertRaises(sqlite3.DatabaseError) as refused:
+                            retry()
+                        caught.append(refused.exception)
+
+                connection.set_authorizer(authorizer)
+                try:
+                    with (patch.object(_SQLiteByteDatabase, 'read_target_headers', header),
+                          patch.object(_SQLiteByteDatabase, 'read_row', body)):
+                        with self.assertRaises(sqlite3.DatabaseError) as failed:
+                            self.store.inspect_namespaces(self.fences, inspect=inspect, current=current)
+                finally:
+                    connection.set_authorizer(None)
+
+                self.assertEqual(failed.exception.sqlite_errorcode, sqlite3.SQLITE_AUTH)
+                self.assertEqual(len(caught), 3)
+                self.assertTrue(all(error is failed.exception for error in caught))
+                self.assertEqual(calls, ['header'] if cut == 'header' else ['header', 'body'])
+                self.assertFalse(connection.in_transaction)
+                self.assertEqual(self.store.read(self.record_key), StoredBytes(0, self.raw))
+
+    def test_target_read_refuses_same_revision_mutation_inside_original_snapshot(self):
+        wanted = ((self.namespace, self.key),)
+        changed = self.raw.replace(b'1.25', b'2.25')
+        current = lambda: None
+        body_reads = []
+        read_row = _SQLiteByteDatabase.read_row
+
+        def observe(database, key, max_bytes):
+            if key == self.record_key:
+                body_reads.append(key)
+            return read_row(database, key, max_bytes)
+
+        def inspect(reader):
+            take = reader.get_many(reader, wanted, len(self.raw), current)
+            # Same connection, same revision and extent. The sticky original
+            # snapshot observation must refuse before reading any body.
+            self.store._connection.execute('UPDATE core_bytes SET payload=? WHERE key=?',
+                                           (changed, self.record_key))
+            take(reader, 0)
+
+        with patch.object(_SQLiteByteDatabase, 'read_row', observe):
+            with self.assertRaisesRegex(LocalStorageError, 'target snapshot changed'):
+                self.store.inspect_namespaces(self.fences, inspect=inspect, current=current)
+        self.assertEqual(body_reads, [])
+        self.assertFalse(self.store._connection.in_transaction)
+        self.assertEqual(self.store.read(self.record_key), StoredBytes(0, self.raw))
 
     def test_same_store_scan_and_exact_read_preserve_raw_key_body_and_int64(self):
         with sqlite3.connect(self.path) as physical:
@@ -155,7 +617,7 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
     def test_query_transfer_limits_and_order_refuse_without_io(self):
         reader = _NamespaceReader(lambda *args: self.fail('Unexpected query'),
                                   lambda *args: self.fail('Unexpected query'), self.store, lambda: None, check_fences=lambda *_: None, check_fences_and_current=scalar_reader_check)
-        for mode, left, right in [(2, 1, 1), (1, 1, 0), (0, 4097, 1), (0, 1, 4097), (True, 1, 1)]:
+        for mode, left, right in [(4, 1, 1), (1, 1, 0), (3, 1, 0), (0, 4097, 1), (0, 1, 4097), (True, 1, 1)]:
             callbacks = _JournalCallbacks(lambda: None, self.store, reader=reader)
             self.assertEqual(callbacks.begin(mode, left, right), -41)
         callbacks = _JournalCallbacks(lambda: None, self.store, reader=reader)
@@ -165,6 +627,32 @@ class LocalJournalPhysicalPortTests(unittest.TestCase):
         incomplete = _JournalCallbacks(lambda: None, self.store, reader=reader)
         self.assertEqual(incomplete.begin(1, 1, 1), 0)
         self.assertEqual(incomplete.query(), -41)
+
+    def test_name_hmac_mode_is_closed_to_the_selected_epoch_and_namespace(self):
+        reader = _NamespaceReader(lambda *args: self.fail('Unexpected query'),
+                                  lambda *args: self.fail('Unexpected query'),
+                                  self.store, lambda: None, check_fences=lambda *_: None,
+                                  check_fences_and_current=scalar_reader_check)
+        namespace = 'client_submission_names'
+        preimage = '["scoped-submission-name","local","actor","name"]'
+        calls = []
+        result = b'a' * 32
+
+        def authenticate(body):
+            calls.append(body)
+            return result
+
+        enabled = _JournalCallbacks(lambda: None, self.store, reader=reader,
+                                    name_authenticate=authenticate)
+        self.assertEqual(query(enabled, 3, namespace, preimage), 0)
+        self.assertEqual(enabled.row, (b'authenticator', StoredBytes(0, result)))
+        self.assertEqual(enabled.release(), 0)
+        for rejected_namespace, authenticator in [('client_runs', authenticate), (namespace, None)]:
+            rejected = _JournalCallbacks(lambda: None, self.store, reader=reader,
+                                         name_authenticate=authenticator)
+            self.assertEqual(query(rejected, 3, rejected_namespace, preimage), -41)
+            self.assertIsNone(rejected.row)
+        self.assertEqual(calls, [preimage.encode('utf-8')])
 
     def test_unreleased_query_copy_cannot_be_overwritten_by_another_query(self):
         def consume():

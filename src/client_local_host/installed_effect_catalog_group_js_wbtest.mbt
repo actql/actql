@@ -469,3 +469,26 @@ test "COMMON repeated exact DATA is quoted once before packet construction while
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
+
+///|
+test "dependency graph validation funds edge indexes only while constructing" {
+  let no_edges = installed_effect_dependency_graph_capacity(9, 2, 0, 810L).unwrap()
+  let with_edges = installed_effect_dependency_graph_capacity(9, 2, 37, 4140L).unwrap()
+  let retained = @execution.execution_capacity_retained_bytes(no_edges)
+  assert_eq(@execution.execution_capacity_retained_bytes(with_edges), retained)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(with_edges) >
+    @execution.execution_capacity_execution_bytes(no_edges),
+  )
+  let vectors = @shape.reference_array_retained_extent(2L, 11L).unwrap()
+  assert_eq(
+    retained,
+    @execution.preparation_representation_cost({
+      record_headers: vectors.record_headers + 3L,
+      reference_slots: vectors.reference_slots + 4L,
+      scalar_words: vectors.scalar_words + 13L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap(),
+  )
+}

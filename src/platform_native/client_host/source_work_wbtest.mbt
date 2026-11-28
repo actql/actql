@@ -117,20 +117,10 @@ test "Native Local work guard observes cancellation accepted by its final author
     () => {
       callbacks = callbacks + 1
       if callbacks == 4 {
-        journal
-        .transaction(() => {
-          let record = journal.retained(request).unwrap().unwrap()
-          let action = @host.prepare_client_run_cancellation(
-            record.definition,
-            @publication.publication_contract_identity(definition),
-            true,
-            false,
-            record.cancellation_requested,
-          ).unwrap()
-          accepted = action == @host.AcceptCancellation
-          journal.save({ ..record, cancellation_requested: true, }).map(_ => ())
-        })
-        .unwrap()
+        journal.accept_fixture_cancellation(
+          journal.retained(request).unwrap().unwrap(),
+        )
+        accepted = true
       }
       true
     },
@@ -144,7 +134,7 @@ test "Native Local work guard observes cancellation accepted by its final author
   // of physical stop/cleanup. The guard supplies no acquisition permit.
   assert_true(record.dispatch_reserved)
   assert_true(record.physical_start_claimed)
-  assert_true(record.cancellation_requested)
+  assert_true(record.cancellation_requested())
   assert_false(journal.claim_physical_start(request, true).unwrap())
   database.close_checked().unwrap()
 }

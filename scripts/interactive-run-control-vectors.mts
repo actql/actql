@@ -4,7 +4,8 @@ import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 import {identityVectors, shapeVectors, negativeVectors, running, paused,
-  manual, legacyState, bindingVectors, bindingMutations, sampleBindingCases, planBody, ref} from './fixtures/interactive-run-control-vectors.mjs';
+  manual, legacyState, bindingVectors, bindingMutations, sampleBindingCases, breakpointBindingCases,
+  planBody, ref} from './fixtures/interactive-run-control-vectors.mjs';
 import {sampleIdentityVectors, sampleInvalidIdentityBodies, sampleSubstitutedCompleteValues} from
   './fixtures/relation-sample-identity-vectors.mjs';
 
@@ -48,11 +49,22 @@ export function generateControlVectors() {
   source += bindingTest('original intent and input-only Plan map', null, true);
   for (const [index, mutation] of bindingMutations.entries())
     source += bindingTest(`rehashed substitution ${index}`, mutation, false);
-  for (const {label, records, expected} of sampleBindingCases) {
-    source += `\n///|\ntest "interactive Sample target binding ${label}" {\n` +
+  const projectionCases = [
+    ...sampleBindingCases.map(vector => ({...vector, kind: 'Sample target', work: undefined})),
+    ...breakpointBindingCases.map(vector => ({...vector, kind: 'breakpoint'})),
+  ];
+  for (const {label, records, expected, kind, work} of projectionCases) {
+    source += `\n///|\ntest "interactive ${kind} binding ${label}" {\n` +
       `  let plan = seal_publication_contract("compiled_plan", ${quote(canonicalText(planBody))}, 20000, 2000, 32).unwrap()\n` +
       records.map(([name, body], index) => `  let value${index} = seal_run_evidence_value(${quote(name)}, ${quote(canonicalText(body))}, 20000, 2000, 32).unwrap()\n`).join('') +
-      `  assert_${expected ? 'true' : 'false'}(check_interactive_admission_binding(value1, value0, value0, value2, value3, value4, plan, ${quote(ref.namespaceId)}, ${quote(ref.runDefinitionCid)}, 20000, 2000, 32) is Ok(_))\n}\n`;
+      `  assert_${expected ? 'true' : 'false'}(check_interactive_admission_binding(value1, value0, value0, value2, value3, value4, plan, ${quote(ref.namespaceId)}, ${quote(ref.runDefinitionCid)}, 20000, 2000, 32) is Ok(_))\n`;
+    if (work !== undefined) {
+      // One target, two Step visits, their two name visits and one resolved point.
+      source += `  guard @json.object_field(value3.value, "steps") is Some(@json.Array(steps)) else { fail("missing original steps") }\n` +
+        `  assert_eq(check_interactive_breakpoint_projection(value0.value, value2.value, steps, ${work}), Ok(()))\n` +
+        `  assert_eq(check_interactive_breakpoint_projection(value0.value, value2.value, steps, ${work - 1}), Err(RunEvidenceInvalidLimits))\n`;
+    }
+    source += `}\n`;
   }
   for (const [index, [name, body]] of sampleInvalidIdentityBodies.entries()) {
     source += `\n///|\ntest "interactive sample invalid body ${index}" {\n` +

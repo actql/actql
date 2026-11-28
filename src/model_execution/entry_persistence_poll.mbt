@@ -136,6 +136,25 @@ fn retire_model_entering(state : ModelState) -> Unit {
 }
 
 ///|
+// Cleanup can only poll an operation that already exists. Keep its original
+// attempt on Saved or Unknown, without consulting the current send gate.
+fn cleanup_model_entering(state : ModelState) -> Bool {
+  guard state.progress.entry is Some(entry) else { return true }
+  if entry.persistence is Some(operation) {
+    if operation.terminal is None {
+      poll_model_call_entry_persistence(operation, entry, entry.prepared)
+      |> ignore
+      if operation.terminal is None {
+        return false
+      }
+    }
+    model_entry_persistence_issue(state) |> ignore
+  }
+  retire_model_entering(state)
+  true
+}
+
+///|
 fn retain_model_entry_attempt(
   state : ModelState,
   entry : ModelCallEntry,

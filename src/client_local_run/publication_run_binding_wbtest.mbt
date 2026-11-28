@@ -206,7 +206,7 @@ test "original publication binding projects only the same Run CAS and exact poli
   assert_false(
     actual.dispatch_reserved ||
     actual.physical_start_claimed ||
-    actual.cancellation_requested,
+    actual.cancellation_requested(),
   )
   assert_true(
     validate_local_run_publication_binding(step, run, submitted) is Ok(_),
@@ -362,7 +362,10 @@ test "original publication binding refuses cancelled Run and a substituted Store
   ).unwrap()
   for
     changed in [
-      { ..encoding, cancellation_requested: true, },
+      {
+        ..encoding,
+        cancellation_head: binding_fixture_cancellation_head(run.body),
+      },
       { ..encoding, publication_binding: Some("foreign-Store"), },
       { ..encoding, publication_policy_originals: Some("{}"), },
     ] {
@@ -383,6 +386,19 @@ test "original publication binding refuses cancelled Run and a substituted Store
       is Err(CustodyLost),
     )
   }
+}
+
+///|
+fn binding_fixture_cancellation_head(
+  body : Bytes,
+) -> @host.ClientAcceptedCancellationHead? raise {
+  let changed = @utf8.decode(body).replace(
+    old="\"cancellation_head\":null",
+    new="\"cancellation_head\":{\"observed_revision\":\"1\",\"record_key\":\"3ec097f4b1602404e88a04cfe7da4c13504e50a5358aae9e3841039c77f6ebcd\"}",
+  )
+  @host.decode_client_run_journal_row_with_observation_originals(
+    @utf8.encode(changed),
+  ).unwrap().0.cancellation_head
 }
 
 ///|
@@ -538,8 +554,8 @@ test "pure retained Run decoder cannot hide changed current or cancellation" {
     revision: saved.revision + 1L,
     body: @utf8.encode(
       @utf8.decode(saved.body).replace(
-        old="\"cancellation_requested\":false",
-        new="\"cancellation_requested\":true",
+        old="\"cancellation_head\":null",
+        new="\"cancellation_head\":{\"observed_revision\":\"1\",\"record_key\":\"3ec097f4b1602404e88a04cfe7da4c13504e50a5358aae9e3841039c77f6ebcd\"}",
       ),
     ),
   }

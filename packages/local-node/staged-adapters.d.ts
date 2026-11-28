@@ -1,6 +1,10 @@
 // The Local package stages its adapter graph after the TypeScript emit.
 // Resolve the corresponding authored adapter types independently of that
 // staging directory. The shipped entry points still load the staged JS.
+declare module '*/adapters/host-node/model-http/normal-http-chat.mjs' {
+  export const createHttpChatProvider: typeof import('../provider-http/_internal/normal-http-chat.mjs').createHttpChatProvider;
+}
+
 declare module '*/adapters/host-node/installed-connectors.mjs' {
   export const createInstalledConnectorTable: typeof import('../../adapters/host-node/installed-connectors.mjs').createInstalledConnectorTable;
 }

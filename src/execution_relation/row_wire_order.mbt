@@ -11,13 +11,22 @@ pub fn prepare_row_wire_order(
   names : Array[String],
   max_columns : Int,
   max_work : Int,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[RowWireOrder, RowWireIssue] {
+  if work is Some(spend) && !spend(1) {
+    return Err(OrderLimit)
+  }
   let cursor = match start_row_wire_order(names, max_columns, max_work) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let quantum = if work is Some(_) { 1 } else { 64 }
   while !cursor.done {
-    match advance_row_wire_order(cursor, 64) {
+    if work is Some(spend) && !spend(1) {
+      cancel_row_wire_order(cursor) |> ignore
+      return Err(OrderLimit)
+    }
+    match advance_row_wire_order(cursor, quantum) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }

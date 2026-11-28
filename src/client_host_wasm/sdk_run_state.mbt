@@ -1,4 +1,7 @@
 ///|
+const SAVED_SDK_RUN_STATE_MAX_BYTES : Int = 65536
+
+///|
 /// Project only an already saved SDK observation from the original admitted
 /// Submission/Run snapshot. Its observation counter/key remains independent of
 /// the SQL and Run control revisions. This neither refreshes availability nor
@@ -8,12 +11,13 @@ fn saved_sdk_run_state_wire(
 ) -> Result[Bytes, Int] {
   guard snapshot is Some(snapshot) &&
     @host.client_saved_submission_run_row(snapshot) is Some(row) &&
-    @host.client_saved_submission_state_original(snapshot) is Some(state) else {
+    @host.client_saved_submission_retained_state_original(snapshot)
+    is Some(retained) else {
     return Err(-42)
   }
   let submitted = @host.client_saved_submission_record(snapshot)
   guard submitted.run_admission is Some(_) &&
-    submitted.run_state_original == Some(state.wire()) &&
+    submitted.run_state_original is Some(wire) &&
     submitted.run_state_observation is Some((revision, Some(key))) else {
     return Err(-42)
   }
@@ -21,42 +25,15 @@ fn saved_sdk_run_state_wire(
   // already admitted these same originals. Require their SDK provenance too.
   guard @host.decode_client_run_journal_row_with_observation_originals(row.body)
     is Ok((run, Some(_), Some(_))) &&
-    @publication.run_definition_run_id(run.definition) is Ok(run_id) else {
-    return Err(-32)
-  }
-  saved_sdk_run_state_observation_wire(state, run_id, revision, key)
-}
-
-///|
-// Match the existing Native saved-state reader's exact observation binding.
-// Never infer a public revision or availability from a row/COMMIT scalar.
-fn saved_sdk_run_state_observation_wire(
-  state : @host.ClientRunStateOriginal,
-  run_id : String,
-  revision : Int64,
-  key : String,
-) -> Result[Bytes, Int] {
-  let observation = match
-    @publication.prepare_run_state_observation(
-      state.state_wire(),
-      run_id,
-      revision,
-      65536,
-      8192,
-      64,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(-32)
-  }
-  if observation.key() != key ||
-    observation.wire(revision).to_option() != Some(state.state_wire()) {
+    retained.matches(run.definition, wire, revision, key) &&
+    retained.resolve() is Ok(state) else {
     return Err(-32)
   }
   Ok(@utf8.encode(state.state_wire()))
 }
 
 ///|
-fn sdk_run_state_snapshot(
+fn ordinary_sdk_run_state_snapshot(
   value : Instance,
   run : Int,
   current_configuration : Int,
@@ -74,10 +51,6 @@ fn sdk_run_state_snapshot(
       (plan, snapshot)
     })
   }
-  // Keep the same checked preparation, saved initial rows and policy original.
-  // The helper already completed the full original journal audit and current
-  // fences. Consume that exact snapshot immediately, before another callback,
-  // rather than repeating the audit through the same configuration and reader.
   let (snapshot, _, _) = match sdk_saved_original_snapshot(value, run, plan) {
     Err(code) => return Err(code)
     Ok(value) => value
@@ -94,11 +67,132 @@ fn sdk_run_state_snapshot(
 }
 
 ///|
+/// Borrow the live File snapshot only inside its actual adopted Journal Read.
+/// The callback receives the same checked Request and Definition used by the
+/// ordinary state codec. It cannot become a second source-free preparation.
+fn[T] with_sdk_file_state_snapshot(
+  value : Instance,
+  parent : StoredPublication,
+  file : StoredFilePublicationCapture,
+  run : Int,
+  current : StoredRunConfiguration,
+  consume : (
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+    @host.ClientSavedSubmissionSnapshot,
+  ) -> Result[T, Int],
+  saved_state_update? : @host.ClientSavedRunStateUpdate? = None,
+  read_predecessor? : Bool = false,
+) -> Result[T, Int] {
+  guard sdk_file_publication_owns_run(value, parent, file, run) &&
+    value.publication_preflights.get(parent.preflight)
+    is Some({ origin: FilePublicationPreflight(active), closing: false, .. }) &&
+    physical_equal(active, file.original) &&
+    active.prepared is Some(preflight) else {
+    return Err(-35)
+  }
+  with_file_publication_preflight_read(
+    value,
+    active,
+    (_, _, _, _, original, snapshot, locator, read) => {
+      @local_run.check_local_captured_task_publication_run_state(
+        preflight,
+        snapshot,
+        locator,
+        current.account,
+        original.context_cid,
+        read,
+        saved_state_update~,
+        read_predecessor~,
+      )
+      .map_err(file_preflight_issue)
+      .bind(materials => consume(materials.0, materials.1, snapshot))
+    },
+    selected_file_projection=true,
+  )
+}
+
+///|
+fn[T] with_sdk_run_state_snapshot(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  run : Int,
+  current_configuration : Int,
+  consume : (
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+    @host.ClientSavedSubmissionSnapshot,
+  ) -> Result[T, Int],
+  saved_state_update? : @host.ClientSavedRunStateUpdate? = None,
+) -> Result[T, Int] {
+  guard value.publications.get(output.publication) is Some(parent) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return Err(-2)
+  }
+  if parent.file is Some(file) {
+    return with_sdk_file_state_snapshot(
+      value,
+      parent,
+      file,
+      run,
+      current,
+      consume,
+      saved_state_update~,
+    )
+  }
+  ordinary_sdk_run_state_snapshot(value, run, current_configuration).bind(original => {
+    let (plan, snapshot) = original
+    consume(
+      @local_run.local_run_request(plan),
+      @local_run.local_run_definition(plan),
+      snapshot,
+    )
+  })
+}
+
+///|
+fn sdk_run_state_read_current(
+  value : Instance,
+  parent : StoredPublication,
+  run : Int,
+  current : StoredRunConfiguration,
+  saved_state_update? : @host.ClientSavedRunStateUpdate? = None,
+) -> Result[Unit, Int] {
+  guard value.publication_preflights.get(parent.preflight)
+    is Some({ closing: false, .. } as original) else {
+    return Err(-32)
+  }
+  match original.origin {
+    ComputePublicationPreflight({ prepared: Some(preflight), .. }) =>
+      @local_run.validate_local_preflight_run_read_current(
+        preflight,
+        current.account,
+      ).map_err(_ => -35)
+    FilePublicationPreflight(_) =>
+      match parent.file {
+        Some(file) =>
+          with_sdk_file_state_snapshot(
+            value,
+            parent,
+            file,
+            run,
+            current,
+            (_, _, _) => Ok(()),
+            saved_state_update~,
+          )
+        None => Err(-35)
+      }
+    _ => Err(-32)
+  }
+}
+
+///|
 fn sdk_run_state_current(
   value : Instance,
   output : StoredPublicationCommitExport,
   run : Int,
   current_configuration : Int,
+  saved_state_update? : @host.ClientSavedRunStateUpdate? = None,
 ) -> Result[
   (
     @publication.PublicationCommitPreparation,
@@ -109,8 +203,6 @@ fn sdk_run_state_current(
   guard value.publications.get(output.publication) is Some(parent) &&
     value.run_configurations.get(current_configuration) is Some(current) &&
     current.sdk is Some(_) &&
-    value.publication_preflights.get(parent.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) &&
     parent.observation_checked &&
     !parent.observation_failed &&
     parent.observation_index is Some(index) &&
@@ -133,12 +225,10 @@ fn sdk_run_state_current(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  if @local_run.validate_local_preflight_run_read_current(
-      preflight,
-      current.account,
-    )
-    is Err(_) {
-    return Err(-35)
+  match
+    sdk_run_state_read_current(value, parent, run, current, saved_state_update~) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
   }
   let code = publication_observation_publisher(
     value,
@@ -146,6 +236,7 @@ fn sdk_run_state_current(
     publisher,
     current_configuration,
     Some(index),
+    file_state=saved_state_update.map(update => (output.publication, update)),
   )
   if code != 0 {
     return Err(code)
@@ -154,14 +245,26 @@ fn sdk_run_state_current(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  if @local_run.validate_local_preflight_run_read_current(
-      preflight,
-      current.account,
-    )
-    is Err(_) {
-    return Err(-35)
+  match
+    sdk_run_state_read_current(value, parent, run, current, saved_state_update~) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
   }
-  publication_commit_export_view(value, parent, current.account)
+  match (parent.file, saved_state_update) {
+    (Some(file), Some(update)) =>
+      checked_publication_commit_view(value, parent, () => {
+        sdk_file_live_state_read_current(
+          value,
+          output.publication,
+          parent,
+          file,
+          run,
+          current,
+          confirm_update=Some(update),
+        )
+      })
+    _ => publication_commit_export_view(value, parent, current.account)
+  }
 }
 
 ///|
@@ -174,9 +277,16 @@ fn sdk_run_state_candidate(
   run : Int,
   input : @buffers.BufferSlot,
   current_configuration : Int,
+  saved_state_update? : @host.ClientSavedRunStateUpdate? = None,
 ) -> Result[(@publication.PublicationContract, String), Int] {
   let (owner, view) = match
-    sdk_run_state_current(value, output, run, current_configuration) {
+    sdk_run_state_current(
+      value,
+      output,
+      run,
+      current_configuration,
+      saved_state_update~,
+    ) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
@@ -186,7 +296,7 @@ fn sdk_run_state_candidate(
     @decode.required(fields, "payloads") is Ok(payloads_cursor) &&
     @decode.elements(payloads_cursor) is Ok(payloads) &&
     value.publications.get(output.publication) is Some(parent) &&
-    payloads.length() == parent.publications.length() &&
+    payloads.length() == publication_result_count(parent) &&
     payloads.length() <= 8 else {
     return Err(-30)
   }
@@ -275,15 +385,19 @@ fn sdk_run_state_candidate(
       _ => return Err(-32)
     }
   }
-  let (plan, _) = match
-    sdk_run_state_snapshot(value, run, current_configuration) {
+  let run_id = match
+    with_sdk_run_state_snapshot(
+      value,
+      output,
+      run,
+      current_configuration,
+      (_, definition, _) => {
+        @publication.run_definition_run_id(definition).map_err(_ => -32)
+      },
+      saved_state_update~,
+    ) {
     Ok(value) => value
     Err(code) => return Err(code)
-  }
-  let run_id = match
-    @publication.run_definition_run_id(@local_run.local_run_definition(plan)) {
-    Ok(value) => value
-    Err(_) => return Err(-32)
   }
   let wire = match
     @publication.issue_succeeded_run_state_wire(
@@ -301,7 +415,14 @@ fn sdk_run_state_candidate(
     Ok(value) => value
     Err(_) => return Err(-32)
   }
-  match sdk_run_state_current(value, output, run, current_configuration) {
+  match
+    sdk_run_state_current(
+      value,
+      output,
+      run,
+      current_configuration,
+      saved_state_update~,
+    ) {
     Ok(_) => Ok((manifest, wire))
     Err(code) => Err(code)
   }
@@ -315,7 +436,6 @@ fn prepare_sdk_run_state_update(
   run : Int,
   input : Int,
   current_configuration : Int,
-  measured? : Bool = false,
 ) -> Result[
   (@host.ClientSavedRunStateUpdate, StoredPublicationCommitExport),
   Int,
@@ -330,7 +450,7 @@ fn prepare_sdk_run_state_update(
   }
   output.pending = true
   let prepared = prepare_sdk_run_state_update_body(
-    value, output, run, slot, physical, handle, input, current_configuration, measured,
+    value, output, run, slot, physical, handle, input, current_configuration,
   )
   output.pending = false
   prepared.map(update => (update, output))
@@ -346,7 +466,6 @@ fn prepare_sdk_run_state_update_body(
   handle : Int,
   input : Int,
   current_configuration : Int,
-  measured : Bool,
 ) -> Result[@host.ClientSavedRunStateUpdate, Int] {
   match sdk_run_state_current(value, output, run, current_configuration) {
     Err(code) => return Err(code)
@@ -356,7 +475,7 @@ fn prepare_sdk_run_state_update_body(
     return Err(-5)
   }
   output.invoked = true
-  output.projection = Some(SDKRunState(input, run))
+  output.projection = Some(SDKMeasuredRunState(input, run, 0, false))
   let borrow = match
     @buffers.borrow_buffer(value.pool, slot, () => {
       physical_reader_stop(physical, handle) == 0
@@ -365,14 +484,12 @@ fn prepare_sdk_run_state_update_body(
     Err(issue) => return Err(issue_code(issue))
   }
   output.state_borrow = Some(borrow)
-  if measured {
-    guard sdk_run_state_update_construction_capacity() is Some((r, e)) else {
-      return Err(-4)
-    }
-    match @resources.reserve_capacity(value.root, r, e) {
-      Ok(capacity) => output.sdk_run_state_update_capacity = Some(capacity)
-      Err(_) => return Err(-4)
-    }
+  guard sdk_run_state_update_construction_capacity() is Some((r, e)) else {
+    return Err(-4)
+  }
+  match @resources.reserve_capacity(value.root, r, e) {
+    Ok(capacity) => output.sdk_run_state_update_capacity = Some(capacity)
+    Err(_) => return Err(-4)
   }
   let (update, prior_bytes) = match
     build_sdk_run_state_update(value, output, run, slot, current_configuration) {
@@ -382,14 +499,10 @@ fn prepare_sdk_run_state_update_body(
   // Store the candidate before any reconciliation can fail. The constructor
   // frame has returned, so no parsed snapshot or wrapped-state alias escapes.
   output.sdk_run_state_update = Some(update)
-  if measured {
-    match
-      reconcile_sdk_run_state_update_capacity(
-        value, output, prior_bytes, update,
-      ) {
-      Ok(_) => ()
-      Err(code) => return Err(code)
-    }
+  match
+    reconcile_sdk_run_state_update_capacity(value, output, prior_bytes, update) {
+    Ok(_) => ()
+    Err(code) => return Err(code)
   }
   if output.closing {
     Err(-5)
@@ -411,121 +524,109 @@ fn build_sdk_run_state_update(
     Ok(value) => value
     Err(code) => return Err(code)
   }
-  let (plan, snapshot) = match
-    sdk_run_state_snapshot(value, run, current_configuration) {
-    Ok(value) => value
-    Err(code) => return Err(code)
-  }
-  let update = match
+  with_sdk_run_state_snapshot(value, output, run, current_configuration, (
+    request,
+    definition,
+    snapshot,
+  ) => {
     @host.prepare_client_saved_run_state_update(
-      snapshot,
-      @local_run.local_run_request(plan),
-      @local_run.local_run_definition(plan),
-      manifest,
-      wire,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(-35)
+      snapshot, request, definition, manifest, wire,
+    )
+    .map_err(_ => -35)
+    .map(update => {
+      (update, @host.client_saved_submission_row(snapshot).body.length())
+    })
+  })
+}
+
+///|
+const SDK_RUN_STATE_TRANSPORT_HEADER : Int = 84
+
+///|
+fn sdk_run_state_transport_extent(
+  key : String,
+  body : Bytes,
+  state : String,
+) -> Int? {
+  guard @scalar.utf8_length_within(key, 71) == Some(71) &&
+    body.length() > 0 &&
+    body.length() < 1048576 - SDK_RUN_STATE_TRANSPORT_HEADER &&
+    @scalar.utf8_length_within(
+      state,
+      1048576 - SDK_RUN_STATE_TRANSPORT_HEADER - body.length(),
+    )
+    is Some(state_bytes) &&
+    state_bytes > 0 else {
+    return None
   }
-  let prior_bytes = @host.client_saved_submission_row(snapshot).body.length()
-  Ok((update, prior_bytes))
+  Some(SDK_RUN_STATE_TRANSPORT_HEADER + body.length() + state_bytes)
 }
 
 ///|
-fn write_sdk_run_state_transport(
-  writer : @encode.Writer,
-  update : @host.ClientSavedRunStateUpdate,
-) -> Unit raise {
-  let (key, prior, revision, body) = @host.client_saved_run_state_update_row(
-    update,
-  )
-  write_sdk_run_state_fields(
-    writer,
-    key,
-    prior,
-    revision,
-    body,
-    @host.client_saved_run_state_update_candidate_wire(update),
-  )
+// The main output slot pays for the complete packet. The synchronous writer
+// owns just the two UTF-8 temporaries and fixed output construction controls.
+fn with_sdk_run_state_transport_capacity(
+  value : Instance,
+  output : StoredPublicationCommitExport,
+  temporary_bytes : Int,
+  encode : () -> Result[Unit, Int],
+) -> Result[Unit, Int] {
+  guard @execution.preparation_representation_cost({
+      record_headers: 12L,
+      reference_slots: 16L,
+      scalar_words: 16L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 2L * temporary_bytes.to_int64(),
+    })
+    is Some(working) else {
+    return Err(-4)
+  }
+  with_sdk_export_transport_capacity(value, output, working, encode)
 }
 
 ///|
-fn write_sdk_run_state_fields(
-  writer : @encode.Writer,
+// Private binary image: prior revision, body extent, change flag, exact
+// Submission key, original row bytes, then original public State UTF-8.
+fn sdk_run_state_transport_packet(
   key : String,
   prior : Int64,
   revision : Int64,
   body : Bytes,
   state : String,
-) -> Unit raise {
-  @encode.begin_object(writer)
-  @encode.key(writer, "body")
-  @encode.string_value(writer, @utf8.decode(body))
-  @encode.key(writer, "key")
-  @encode.string_value(writer, key)
-  @encode.key(writer, "kind")
-  @encode.string_value(
-    writer,
-    if prior == revision {
-      "retained"
-    } else {
-      "replace"
-    },
-  )
-  @encode.key(writer, "revision")
-  @encode.string_value(writer, prior.to_string())
-  @encode.key(writer, "state")
-  @encode.string_value(writer, state)
-  @encode.end_object(writer)
-}
-
-///|
-// Scoped constructor capacity, apart from the output slot's Core wire and
-// Python copies. The nested row has already been admitted by the original CAS
-// owner. UTF8 decoding owns at most one UTF16 unit per original byte. The
-// actual text writer's backing, trim and synchronous controls are separate.
-fn sdk_run_state_transport_capacity(
-  update : @host.ClientSavedRunStateUpdate,
-  output_bytes : Int,
-) -> Int64? {
-  let (_, _, _, body) = @host.client_saved_run_state_update_row(update)
-  guard @encode.text_writer_construction_inventory(output_bytes, 16, 1)
-    is Some(writer) else {
+  bytes : Int,
+) -> Bytes? {
+  guard sdk_run_state_transport_extent(key, body, state) == Some(bytes) &&
+    prior >= 0L &&
+    (
+      revision == prior ||
+      (prior < 9223372036854775807L && revision == prior + 1L)
+    ) else {
     return None
   }
-  @execution.preparation_representation_cost({
-    // Extra decode result, tuple, writer/outcome and original size controls.
-    record_headers: writer.record_headers + 12L,
-    reference_slots: writer.reference_slots + 16L,
-    scalar_words: writer.scalar_words + 16L,
-    owned_utf16_units: writer.owned_utf16_units + body.length().to_int64(),
-    owned_wire_bytes: 0L,
-  })
-}
-
-///|
-fn[T] with_sdk_run_state_transport_capacity(
-  value : Instance,
-  output : StoredPublicationCommitExport,
-  update : @host.ClientSavedRunStateUpdate,
-  bytes : Int,
-  encode : () -> Result[T, Int],
-) -> Result[T, Int] {
-  guard output.sdk_run_state_transport is None &&
-    sdk_run_state_transport_capacity(update, bytes) is Some(working) else {
-    return Err(-4)
-  }
-  let capacity = match @resources.reserve_capacity(value.root, 0L, working) {
-    Ok(capacity) => capacity
-    Err(_) => return Err(-4)
-  }
-  output.sdk_run_state_transport = Some(capacity)
-  let result = encode()
-  match @resources.settle_capacity(value.root, capacity) {
-    Ok(_) => output.sdk_run_state_transport = None
-    Err(_) => if result is Ok(_) { return Err(-4) }
-  }
-  result
+  let key_bytes = @utf8.encode(key)
+  let state_bytes = @utf8.encode(state)
+  let body_end = SDK_RUN_STATE_TRANSPORT_HEADER + body.length()
+  Some(
+    Bytes::makei(bytes, index => {
+      if index < 8 {
+        (prior >> (index * 8)).to_byte()
+      } else if index < 12 {
+        (body.length() >> ((index - 8) * 8)).to_byte()
+      } else if index == 12 {
+        if revision == prior {
+          b'\x00'
+        } else {
+          b'\x01'
+        }
+      } else if index < SDK_RUN_STATE_TRANSPORT_HEADER {
+        key_bytes[index - 13]
+      } else if index < body_end {
+        body[index - SDK_RUN_STATE_TRANSPORT_HEADER]
+      } else {
+        state_bytes[index - body_end]
+      }
+    }),
+  )
 }
 
 ///|
@@ -534,53 +635,27 @@ fn emit_sdk_run_state_transport(
   output : StoredPublicationCommitExport,
   update : @host.ClientSavedRunStateUpdate,
   bytes : Int,
-  exact? : Bool = false,
 ) -> Result[Unit, Int] {
-  // No code after success in this frame retains the decoded/escaped Strings.
-  let packet = try {
-    let writer = @encode.writer(bytes, 16, 1)
-    write_sdk_run_state_transport(writer, update)
-    @encode.finish(writer)
-  } catch {
-    _ => return Err(-34)
-  }
-  let wire = @utf8.encode(packet)
-  if exact && wire.length() != bytes {
-    return Err(-34)
-  }
-  let result = status(
-    @buffers.supply_buffer_output(value.pool, output.slot, wire),
+  let (key, prior, revision, body) = @host.client_saved_run_state_update_row(
+    update,
   )
-  if result == 0 {
-    Ok(())
-  } else {
-    Err(result)
-  }
-}
-
-///|
-/// Prepare the existing same-row metadata CAS. This output is not public state
-/// until the physical Host confirms the exact committed original row.
-pub fn produce_publication_sdk_run_state(
-  nonce : Int64,
-  handle : Int,
-  run : Int,
-  input : Int,
-  current_configuration : Int,
-) -> Int {
-  guard selected(nonce) is Some(value) else { return -2 }
-  let (update, output) = match
-    prepare_sdk_run_state_update(
-      nonce, handle, run, input, current_configuration,
-    ) {
-    Ok(prepared) => prepared
-    Err(code) => return code
-  }
-  match emit_sdk_run_state_transport(value, output, update, 1048576) {
-    Err(code) => return code
-    Ok(_) => output.produced = true
-  }
-  validate_publication_sdk_run_state(nonce, handle, current_configuration)
+  let state = @host.client_saved_run_state_update_candidate_wire(update)
+  with_sdk_run_state_transport_capacity(value, output, bytes - body.length(), () => {
+    guard sdk_run_state_transport_packet(
+        key, prior, revision, body, state, bytes,
+      )
+      is Some(wire) else {
+      return Err(-34)
+    }
+    let result = status(
+      @buffers.supply_buffer_output(value.pool, output.slot, wire),
+    )
+    if result == 0 {
+      Ok(())
+    } else {
+      Err(result)
+    }
+  })
 }
 
 ///|
@@ -600,36 +675,15 @@ pub fn measure_publication_sdk_run_state(
   }
   let (update, original) = match
     prepare_sdk_run_state_update(
-      nonce,
-      handle,
-      run,
-      input,
-      current_configuration,
-      measured=true,
+      nonce, handle, run, input, current_configuration,
     ) {
     Ok(prepared) => prepared
     Err(code) => return code
   }
-  original.pending = true
-  let extent = with_sdk_run_state_transport_capacity(
-    value,
-    original,
-    update,
-    0,
-    () => {
-      try {
-        let writer = @encode.measuring_writer(1048576, 16, 1)
-        write_sdk_run_state_transport(writer, update)
-        Ok(@encode.finish_measurement(writer))
-      } catch {
-        _ => Err(-34)
-      }
-    },
-  )
-  original.pending = false
-  let bytes = match extent {
-    Ok(bytes) => bytes
-    Err(code) => return code
+  let (key, _, _, body) = @host.client_saved_run_state_update_row(update)
+  let state = @host.client_saved_run_state_update_candidate_wire(update)
+  guard sdk_run_state_transport_extent(key, body, state) is Some(bytes) else {
+    return -34
   }
   if original.closing {
     return -5
@@ -653,11 +707,18 @@ pub fn emit_publication_sdk_run_state(
     output.publication == original.publication &&
     original.projection
     is Some(SDKMeasuredRunState(input, run, bytes, attempted)) &&
+    bytes > 0 &&
     original.sdk_run_state_update is Some(update) else {
     return -2
   }
   if output.closing || original.closing {
     return -5
+  }
+  guard value.publications.get(original.publication) is Some(parent) else {
+    return -2
+  }
+  if parent.file is Some(file) && file.state_export is Some(_) {
+    return -33
   }
   if output.invoked ||
     output.pending ||
@@ -680,10 +741,7 @@ pub fn emit_publication_sdk_run_state(
     sdk_run_state_current(value, original, run, current_configuration) {
     Err(code) => Err(code)
     Ok(_) if output.closing || original.closing => Err(-5)
-    Ok(_) =>
-      with_sdk_run_state_transport_capacity(value, output, update, bytes, () => {
-        emit_sdk_run_state_transport(value, output, update, bytes, exact=true)
-      })
+    Ok(_) => emit_sdk_run_state_transport(value, output, update, bytes)
   }
   original.pending = false
   output.pending = false
@@ -694,7 +752,26 @@ pub fn emit_publication_sdk_run_state(
       original.produced = true
     }
   }
-  validate_publication_sdk_run_state(nonce, first_handle, current_configuration)
+  let checked = validate_publication_sdk_run_state(
+    nonce, first_handle, current_configuration,
+  )
+  if checked != 0 {
+    return checked
+  }
+  if parent.file is Some(file) {
+    guard !parent.closing &&
+      !original.closing &&
+      !output.closing &&
+      value.publications.get(original.publication) is Some(active) &&
+      physical_equal(active, parent) &&
+      file.state_export is None else {
+      return -35
+    }
+    // The existing export retains both the update and its capacity through
+    // lost CAS return. This handle alone is never a confirmation.
+    file.state_export = Some(first_handle)
+  }
+  0
 }
 
 ///|
@@ -711,8 +788,7 @@ fn sdk_run_state_validate(
     return -2
   }
   let (input, run) = match output.projection {
-    Some(SDKRunState(input, run))
-    | Some(SDKMeasuredRunState(input, run, _, _)) => (input, run)
+    Some(SDKMeasuredRunState(input, run, _, _)) => (input, run)
     _ => return -2
   }
   guard value.copies.get(input) is Some((slot, _)) else { return -2 }
@@ -737,27 +813,55 @@ fn sdk_run_state_validate_body(
   update : @host.ClientSavedRunStateUpdate,
   committed : Bool,
 ) -> Int {
+  let saved_state_update = if committed &&
+    value.publications.get(output.publication) is Some({ file: Some(_), .. }) {
+    Some(update)
+  } else {
+    None
+  }
   match
-    sdk_run_state_candidate(value, output, run, slot, current_configuration) {
+    sdk_run_state_candidate(
+      value,
+      output,
+      run,
+      slot,
+      current_configuration,
+      saved_state_update~,
+    ) {
     Err(code) => return code
     Ok(_) => ()
   }
-  let (_, snapshot) = match
-    sdk_run_state_snapshot(value, run, current_configuration) {
-    Ok(value) => value
+  let validated = with_sdk_run_state_snapshot(
+    value,
+    output,
+    run,
+    current_configuration,
+    (_, _, snapshot) => {
+      if committed {
+        @host.confirm_client_saved_run_state_update(update, snapshot)
+        .map(_ => ())
+        .map_err(_ => -35)
+      } else {
+        @host.validate_client_saved_run_state_update_original(update, snapshot).map_err(_ => {
+            -35
+          },
+        )
+      }
+    },
+    saved_state_update~,
+  )
+  match validated {
     Err(code) => return code
+    Ok(_) => ()
   }
-  if committed {
-    if @host.confirm_client_saved_run_state_update(update, snapshot) is Err(_) {
-      return -35
-    }
-  } else if @host.validate_client_saved_run_state_update_original(
-      update, snapshot,
-    )
-    is Err(_) {
-    return -35
-  }
-  match sdk_run_state_current(value, output, run, current_configuration) {
+  match
+    sdk_run_state_current(
+      value,
+      output,
+      run,
+      current_configuration,
+      saved_state_update~,
+    ) {
     Err(code) => code
     Ok(_) => 0
   }

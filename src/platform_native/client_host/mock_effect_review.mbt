@@ -144,7 +144,7 @@ fn NativeLocalJournalCapture::save_effect_review_original_in_scope(
         record.revision < first.observed_revision ||
         !record.dispatch_reserved ||
         !record.physical_start_claimed ||
-        record.cancellation_requested ||
+        record.cancellation_requested() ||
         record.checkpoint is Some(_) ||
         record.effect_material_originals is None ||
         record.publication_binding != Some(store_binding) ||

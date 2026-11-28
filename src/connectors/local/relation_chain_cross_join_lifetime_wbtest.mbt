@@ -37,17 +37,7 @@ test "Cross Join chain retires actual child scratch while preserving every outpu
     quote.execution_bytes,
     Int64::max(
       base.execution_bytes,
-      retained +
-      peak +
-      count.to_int64() * 256L +
-      512L +
-      @execution.preparation_representation_cost({
-        record_headers: 4L,
-        reference_slots: 13L,
-        scalar_words: 4L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      }).unwrap(),
+      retained + peak + chain_lifetime_start_control_bytes(count),
     ),
   )
   let (active, state) = chain_lifetime_start(sequence, read)

@@ -155,7 +155,8 @@ fn NativeLocalHostConnection::observe_retained_run_receipt_with_operations(
           return Err(ForeignRun)
         }
         guard run.publication_binding is Some(binding) &&
-          record.restored_state_original is Some((_, state)) else {
+          record.restored_state_original is Some(retained) &&
+          retained.resolve() is Ok(state) else {
           return Err(CustodyLost)
         }
         if !authority.current_for(self.journal, original.request) {

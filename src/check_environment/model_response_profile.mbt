@@ -605,3 +605,25 @@ pub fn model_response_profile_observation_at(
     Some(value.observations[index])
   }
 }
+
+///|
+/// Compare the admitted physical fields with the independently selected installation.
+pub fn model_response_profile_matches_installation(
+  profile : ModelResponseProfile,
+  installation : ModelResponseProfileInstallation,
+) -> Bool {
+  let actual = profile.installation
+  actual.builder_id == installation.builder_id &&
+  actual.builder_revision == installation.builder_revision &&
+  actual.codec_id == installation.codec_id &&
+  actual.codec_revision == installation.codec_revision &&
+  actual.build_artifact_cid == installation.build_artifact_cid &&
+  actual.sdk == installation.sdk &&
+  actual.endpoint == installation.endpoint &&
+  actual.http_method == installation.http_method &&
+  actual.streaming == installation.streaming &&
+  actual.validator_id == installation.validator_id &&
+  actual.validator_revision == installation.validator_revision &&
+  actual.validator_artifact_cid == installation.validator_artifact_cid &&
+  actual.completion_basis == installation.completion_basis
+}

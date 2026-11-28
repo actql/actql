@@ -43,7 +43,7 @@ class LocalHostFiles:
                  observe_roots: Callable[[], None] | None = None,
                  _installation: 'OriginalLocalInstallation | None' = None) -> None:
         if (type(root) is not LocalFileRoot or type(store) is not LocalByteStore
-                or type(max_files) is not int or not 1 <= max_files <= 9
+                or type(max_files) is not int or not 1 <= max_files <= 12
                 or type(max_bytes) is not int or not 1 <= max_bytes <= 2097152
                 or observe_roots is not None and not callable(observe_roots)):
             raise ValueError('Invalid original Local Host physical pins')
@@ -53,6 +53,9 @@ class LocalHostFiles:
                     or _installation._original is not _installation
                     or _installation._closing or observe_roots is not None):
                 raise ValueError('Invalid original Local installation file provenance')
+        if max_files > 9 and (max_files != 12 or _installation is None
+                or root is not _installation._source or not _installation._approval_provisioned):
+            raise ValueError('Invalid original Local Host approval file pins')
         root._open()
         self._lock = RLock()
         self._original = self
@@ -186,14 +189,3 @@ class LocalHostFiles:
                 self._bytes -= len(value.body)
                 del self._files[name]
             return True
-
-
-# Definition-time provenance for the fixed original reconciliation driver.
-from ._local_prepare_provenance import _capture_prepare_methods
-_PREPARE_METHODS = (
-    _capture_prepare_methods(LocalHostFiles, (
-        '_nominal', '_observe_current_files', '_require_current_lifetime',
-        '_require_original', '_require_original_members', 'current',
-        'require_current_originals',
-    )),
-)
